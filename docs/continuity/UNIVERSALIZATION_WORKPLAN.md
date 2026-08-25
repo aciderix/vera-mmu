@@ -60,14 +60,14 @@ Le rituel se termine par une confirmation explicite : **ce qui est prouvé, obse
 | Champ | Valeur actuelle | Statut | Source de contrôle |
 |---|---|---|---|
 | Produit | VERA-MMU — *Verifiable Epistemics & Relational Architecture*. | `PROVEN` par le contenu du dépôt. | [Identité](../IDENTITY.md) ; journal `LOG-0002`. |
-| Révision VERA-MMU | `2986774c91bb3e90f4dfce9457a17ce6e19ad99b` sur `main`, baseline publiée avant M2.7 ; le patch M2.7 attend son commit atomique. | `OBSERVED` | Journal `LOG-0022`, `LOG-0024`. |
+| Révision VERA-MMU | `f4b878061dfaa1dd4f22b6b6f21a18f49ec5a1f8` sur `main`, commit M2.7 publié et vérifié ; le record de publication est consigné dans le commit documentaire suivant. | `OBSERVED` | Journal `LOG-0024`, `LOG-0025`. |
 | Révision ARET-MMU de référence | `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4` sur `main`, arbre propre au relevé initial. | `OBSERVED` | Journal `LOG-0001`. |
 | Capacité actuelle | Core d’identité, substrate SQLite, entités, relations, knowledge append-only, provenance déclarative, supersession directe et assets binaires hashés : migrations checksumées, metadata/audit, transactions, objets typés immuables, assertions hashées, sources bornées, sidecar prédécesseur→successeur acyclique et bytes revérifiés avant lecture. | `OBSERVED` : 79 tests et 14 sous-tests passent ; wheel isolé et registre d’assets validés. | Journal `LOG-0024` ; mémoire `MEM-STATE-013`. |
 | Exclusions actuelles | Pas encore de chemin/fichier externe, fetch, réseau, import/export, bundle, mutation de statut ou `SUPERSEDED`, version counter, `PROVEN`/evidence, execution/validator, FTS/FIND, traversal/listing de lignée, intégration à `RelationService`, symbol, serveur MCP de production, Capability Engine, importeur ARET ou dashboard. | `OBSERVED` | Mémoire `MEM-STATE-013` ; journal `LOG-0024`. |
 | Baseline M0.1 | Inventaire, hashes, tests, surface statique, hooks/reprise, bundle et bundle Git capturés dans `ARET_MMU_M0_1_BASELINE/`. | `OBSERVED` ; exécution exhaustive `UNKNOWN` | Journal `LOG-0006` ; mémoire `MEM-BASE-003`. |
 | Wall active | Toolchain des oracles ARET indisponible dans l’environnement de baseline ; ne pas confondre `SKIPPED` et validation. | `BLOCKED` | Mémoire `MEM-WALL-001` ; journal `LOG-0006`. |
 | Registre M0.2 | Seize couplages documentés avec sources, frontière Core/pack, stratégie et tests de parité ; C07/C08 restent bloqués par la toolchain. | `PASS` pour la cartographie ; parité `UNKNOWN` | [Matrice](../DECOUPLING_MATRIX.md) ; journal `LOG-0007`. |
-| Lot suivant | Aucun sous-lot actif : M2.7 attend seulement son commit/publication atomique. M2.8 exige un rituel distinct et une hypothèse explicitement bornée. | `READY_FOR_M2.8_RITUAL` ; `MEM-WALL-001` préservée | Journal `LOG-0024` ; mémoire section 7. |
+| Lot suivant | Aucun sous-lot actif : M2.7 est publié. M2.8 exige un rituel distinct et une hypothèse explicitement bornée. | `READY_FOR_M2.8_RITUAL` ; `MEM-WALL-001` préservée | Journal `LOG-0024`, `LOG-0025` ; mémoire section 7. |
 
 ## 6. Roadmap de transformation et gates de sortie
 

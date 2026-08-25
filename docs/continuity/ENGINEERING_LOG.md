@@ -48,6 +48,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0022` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.6 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-012`, `MEM-DEC-012`, `MEM-WALL-001` |
 | `LOG-0023` | 2026-08-25 | `HYPOTHESIS` | M2.7 | asset binaire, SHA-256, lecture exacte, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-013`, `MEM-WALL-001` |
 | `LOG-0024` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.7 | asset binaire, hash avant lecture, immuabilité, audit | `OBSERVED` | `PASS` pour M2.7 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001` |
+| `LOG-0025` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.7 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -534,3 +535,18 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour le périmètre M2.7 et ses gates techniques. `UNKNOWN` pour M2 au total, toute parité ARET et toute sémantique d’evidence ou d’exécution. |
 | Mémoire liée | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour mémoire, plan, matrice et README ; relancer les checks finaux, puis committer et publier atomiquement. |
+
+### LOG-0025 — Publication M2.7 vérifiée
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RECORD` / `HANDOFF` |
+| Lot | `M2.7 — Publication` |
+| Certitude | `OBSERVED` |
+| Baseline | Verdict technique M2.7 `LOG-0024`; branche VERA locale et distante sur `main`; ARET-MMU inchangé à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, arbre propre. |
+| Commit publié | `f4b878061dfaa1dd4f22b6b6f21a18f49ec5a1f8` — `feat: add M2 asset registry`. |
+| Vérification | `git push origin main` a réussi, puis `git ls-remote origin refs/heads/main` a retourné le même SHA que `git rev-parse HEAD`. L’arbre VERA était propre après publication. |
+| Limites | Cette publication ne change pas le verdict M2.7 ni les exclusions : M2 complet et toute parité ARET restent `UNKNOWN`; `MEM-WALL-001` reste actif. |
+| Mémoire liée | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001`. |
+| Suivi | Actualiser les références de reprise qui signalaient la publication en attente, committer ce record documentaire puis vérifier de nouveau la référence publique. |
