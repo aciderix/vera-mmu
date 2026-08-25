@@ -67,6 +67,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0041` | 2026-08-25 | `HYPOTHESIS` | M2.12 | symbol, entity FK, immuabilité, audit, no-scan | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-DEC-022`, `MEM-WALL-001` |
 | `LOG-0042` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.12 | symbol, migration 012, URI, audit, wheel | `OBSERVED` | `PASS` pour M2.12 ; M2 restant/parité ARET `UNKNOWN` | `MEM-STATE-019`, `MEM-DEC-022`, `MEM-STATE-020`, `MEM-WALL-001` |
 | `LOG-0043` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.12 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-019`, `MEM-STATE-020`, `MEM-WALL-001` |
+| `LOG-0044` | 2026-08-25 | `HYPOTHESIS` | M2.13 | work item, parent, statut initial, immuabilité, no-graph | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-020`, `MEM-WALL-001` |
+| `LOG-0045` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.13 | work item, migration 013, parent, audit, wheel | `OBSERVED` | `PASS` pour M2.13 ; M2 restant/parité ARET `UNKNOWN` | `MEM-STATE-021`, `MEM-DEC-023`, `MEM-STATE-022`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -882,3 +884,38 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour la publication M2.12. |
 | Mémoire liée | `MEM-STATE-019`, `MEM-STATE-020`, `MEM-WALL-001`. |
 | Suivi | Publier ce record documentaire, puis établir la baseline M2.13 sans transférer la responsabilité de work graph, gate, policy ou Evidence Store dans M2. |
+
+### LOG-0044 — Hypothèse M2.13 : Work-Item Backbone
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.13 — Work-Item Backbone` |
+| Baseline | VERA `48962892e0f2576e5940108c22643daba10bcc04`, `main` propre et alignée à `origin/main`; ARET `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, `main` propre et non modifié. Baseline VERA : 109 tests et 14 sous-tests `PASS`; schéma courant 001–012. |
+| Écart contractuel | La spécification Universal Schema requiert `work_item`; `CORE_RESOURCE_TYPES` autorise déjà `work-item`, mais aucune table, migration, modèle ni service correspondant n’existe. |
+| Hypothèse | Si VERA ajoute une migration 013 et un `WorkItemService` append-only, créant/lisant exactement un work item générique de type fermé (`GOAL`, `EPIC`, `WORK_ITEM`, `SUBTASK`), titre/description, priorité, assignee déclaratif, metadata JSON et parent optionnel existant, alors le Core ferme la ressource structurelle `work-item` sans ouvrir lifecycle, graph ou gate. |
+| Décision de sûreté | Le statut initial est imposé à `PLANNED` à la création et `updated_at` est égal à `created_at`; aucune API de mise à jour, transition, `DONE`, assignation active, dépendance ou traversal n’existe. Un parent doit déjà exister; l’immutabilité et les FKs empêchent les cycles créés a posteriori. |
+| Tests-first attendus | Migration 001→013 et installation fresh ; création/lecture et URI `vera://…/work-item/…`; types/identifiants/JSON/priority invalides ; parent inconnu ou self-parent ; statut initial imposé ; audit atomique/rollback ; UPDATE/DELETE SQL refusés ; aucune liste, traversal, gate, execution, evidence ou vocabulaire ARET. |
+| Invariants | I001, I002, I003, I009, I011, I014, I015. |
+| Non-objectifs | Aucun lifecycle, update, dépendance, work graph, Front, resume, gate, execution, evidence, proof, policy, shell, réseau, import ARET ou promotion `PROVEN`. |
+| Verdict | `PENDING` — tests et patch minimal à produire; aucune capacité n’est encore livrée. |
+
+### LOG-0045 — Verdict M2.13 : Work-Item Backbone
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.13 — Work-Item Backbone` |
+| Changement minimal | Migration `013_work_item_registry.sql`; module `work_items.py`; exports publics `WorkItem`, `WorkItemError`, `WorkItemNotFoundError`, `WorkItemService`; tests-first `test_work_items.py`; ajustement mécanique des attentes de baseline globale 12→13. Aucune CLI, lifecycle, work graph, gate, capability, policy, runner, evidence, réseau, fichier externe ou dépendance ARET n’est ajoutée. |
+| Exécution ciblée | `PYTHONPATH=src python3 -m pytest -q tests/test_work_items.py` : 9 tests `PASS`. |
+| Exécution Core | `PYTHONPATH=src python3 -m pytest -q` : 118 tests et 14 sous-tests `PASS`. |
+| Distribution | Wheel construit avec `python3 -m pip wheel --no-deps --no-build-isolation`; SHA-256 `1405e80ffd9bab0d986256fb15abc3a6723c4ea63440459023a3f40316a8d876`. Installation hors arbre source dans `/tmp/vera-m213-install` et script d’intégration : migration 013, parent/child, statut initial et URI vérifiés `PASS`. |
+| Contrôles | `git diff --check` `PASS`; scan ciblé de `work_items.py` et migration 013 sans vocabulaire ARET, shell, réseau ni ouverture de fichier `PASS`. |
+| Comparaison | Baseline M2.12 : 109 tests et 14 sous-tests `PASS`, schéma 012. Résultat : 118 tests et 14 sous-tests `PASS`, schéma 013. Les neuf tests additionnels couvrent migration, création/lecture exacte, URI, type fermé, parent, statut initial, entrées invalides, audit/rollback et immuabilité SQL. |
+| Invariants | I001, I002, I003, I009, I011, I014, I015. |
+| Limites | Aucun lifecycle, update, `DONE`, assignation active, dépendance, traversal, work graph, Front, resume, gate, execution, proof, evidence ou admission `PROVEN` n’existe. C05/C16 restent `SPLIT`; la parité ARET exhaustive reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Verdict | `PASS` pour M2.13 ; `UNKNOWN` pour M2 restant et toute parité ARET. |
+| Mémoire liée | `MEM-STATE-021`, `MEM-DEC-023`, `MEM-STATE-022`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la matrice, la mémoire, le plan et le README ; committer/publier atomiquement, puis ouvrir la baseline/hypothèse distincte M2.14. |

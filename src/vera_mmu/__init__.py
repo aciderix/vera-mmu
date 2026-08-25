@@ -40,6 +40,7 @@ from .supersession import (
     KnowledgeSupersessionNotFoundError,
     KnowledgeSupersessionService,
 )
+from .work_items import WorkItem, WorkItemError, WorkItemNotFoundError, WorkItemService
 from .workspace import Workspace, WorkspaceError, WorkspaceResolver, resolve_workspace
 
 __all__ = [
@@ -99,6 +100,10 @@ __all__ = [
     "SymbolNotFoundError",
     "SymbolService",
     "RuntimeLocatorError",
+    "WorkItem",
+    "WorkItemError",
+    "WorkItemNotFoundError",
+    "WorkItemService",
     "Workspace",
     "WorkspaceError",
     "WorkspaceResolver",

@@ -177,3 +177,12 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C16` | Le registre ajoute une mutation métier append-only : FK d’owner, audit dans la même transaction et triggers anti-réécriture/suppression. | `tests/test_symbols.py` : doublon, FK, audit/rollback, immuabilité SQL ; `LOG-0042`. | Audit des couches Evidence/Execution/Gate, import/bundle et parité historique. | `SPLIT` |
 
 > M2.12 ferme une ressource déclarative `symbol` du schéma universel ; il ne lit pas de fichier, ne recherche pas, ne résout pas de code et ne constitue aucune compatibilité ou preuve ARET. Les lignes C04 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
+### 2.14. Avancement observé M2.13 — Work-Item Backbone
+
+| Couplage | Surface VERA désormais observée | Evidence M2.13 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C05` | Migration `013` et `work_item` immutable, avec type fermé (`GOAL`, `EPIC`, `WORK_ITEM`, `SUBTASK`), statut initial `PLANNED`, parent optionnel déjà existant, priorité/assignee déclaratifs, metadata JSON et URI exacte. Les triggers refusent UPDATE/DELETE; aucun lifecycle ni work graph n’est ouvert. | `tests/test_work_items.py` : migration 12→13, création/lecture exacte, URI, types invalides, parent inconnu/self-parent, statut initial, rollback d’audit et refus SQL des UPDATE/DELETE ; suite complète et wheel isolé validés ; `LOG-0045`. | Migration V1 `brick → work_item`, milestones/plateformes/priorités ARET, lifecycle, Front, ordre roadmap, dépendances/cycles, gates/executions/evidence, import V1 et parité fonctionnelle ARET. | `SPLIT` |
+| `C16` | Le backbone ajoute une mutation métier append-only : parent FK, statut initial SQL fermé, timestamps identiques, audit dans la même transaction et triggers anti-réécriture/suppression. | `tests/test_work_items.py` : FK/self-parent, statut, audit/rollback et immuabilité SQL ; `LOG-0045`. | Audit des couches Capability/Execution/Evidence/Gate, import/bundle et parité historique. | `SPLIT` |
+
+> M2.13 ferme la ressource structurelle `work-item` du schéma universel ; il ne contient aucun cycle de vie, work graph, Front, reprise, gate, exécution ou preuve. Les lignes C05 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.

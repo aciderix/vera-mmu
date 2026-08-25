@@ -96,8 +96,8 @@ class KnowledgeSourceHashIndexTests(unittest.TestCase):
 
     def test_default_migrations_include_knowledge_source_hash_index(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 12})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 13})
             index_names = {row[1] for row in store.connection.execute("PRAGMA index_list('knowledge_source')").fetchall()}
             self.assertIn("idx_knowledge_source_hash_knowledge", index_names)
 
