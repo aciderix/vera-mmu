@@ -104,6 +104,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0078` | 2026-08-25 | `HYPOTHESIS` | M3.9 | policy HMAC projet, secret en mémoire, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-031`, `MEM-DEC-029`, `MEM-WALL-001` |
 | `LOG-0079` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.9 | policy HMAC, non-persistance secret, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-031`, `MEM-STATE-032`, `MEM-DEC-029`, `MEM-WALL-001` |
 | `LOG-0080` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.9 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-032`, `MEM-WALL-001` |
+| `LOG-0081` | 2026-08-25 | `HYPOTHESIS` | M3.10 | validator local `EVIDENCE_HASH`, no-oracle | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-033`, `MEM-DEC-030`, `MEM-WALL-001` |
+| `LOG-0082` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.10 | intégrité locale, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-033`, `MEM-STATE-034`, `MEM-DEC-030`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1329,3 +1331,27 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication M3.9. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
 | Suivi | Cadrer séparément un framework de validators fermé, sans oracle ARET, runner additionnel, réseau implicite ni exécution de commande. |
+
+
+### LOG-0081 — Hypothèse M3.10 : validator d’intégrité `EVIDENCE_HASH`
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `c37f6438b85e9e7a4a6aeee0dc11c2212d40e65e`, `main` propre et alignée; 146 tests et 14 sous-tests `PASS`; M3.9 publié. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | Une evidence enregistre un `content_hash`, mais sa lecture ne revalide pas ce hash. Aucun résultat de validation persistent ne distingue actuellement l’intégrité locale vérifiée d’un simple champ stocké. |
+| Hypothèse | Un registre fermé de validators limité à `EVIDENCE_HASH` et un résultat append-only lié à une evidence peuvent recalculer localement SHA-256 du JSON canonique et produire uniquement `PASS` ou `FAIL`, sans exécuter de command, lire de fichier, contacter de réseau ou admettre l’evidence. |
+| Sûreté | Aucun oracle, runner, subprocessus, shell, URL, path, artefact, admission, gate, HMAC, mutation de knowledge/evidence ni promotion `PROVEN`. Un résultat `PASS` de validator n’est pas une admission et ne suffit pas à promouvoir une preuve. |
+| Tests-first attendus | Migration/FK/enum/immutabilité/audit/rollback; validator inconnu refusé; evidence intacte `PASS`; contenu/hash altéré `FAIL`; résultat unique par validator/evidence; refus sans audit de runner ni modification d’evidence. |
+| Invariants | I001, I004–I008, I011, I013–I015. |
+| Verdict | `PENDING` — aucun patch M3.10 n’est encore produit. |
+
+
+### LOG-0082 — Verdict M3.10 : validator d’intégrité `EVIDENCE_HASH`
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 022 et `ValidatorService` : registre immutable limité à `EVIDENCE_HASH`, lecture exacte et résultat `PASS`/`FAIL` append-only lié à une evidence. La validation recalcule SHA-256 du JSON canonique et ne modifie ni evidence, ni admission, ni knowledge. |
+| Validation | Tests-first : import absent attendu; tests ciblés : 2 `PASS`; suite complète : 148 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan sans processus, shell, réseau, I/O, `eval`, import dynamique, mutation de validator/result/knowledge/evidence ni nouvelle insertion d’execution `PASS`; wheel isolé avec migration 022, evidence intacte `PASS`, evidence altérée `FAIL` et admission inchangée `PASS`. |
+| Atomicité | Validator ou evidence inconnus refusent avant insertion et audit de résultat. La contrainte unique `(validator_id, evidence_id)` interdit une seconde validation ambiguë; un `FAIL` est un fait append-only, pas une admission ou une promotion. |
+| Limite | Seul `EVIDENCE_HASH` local est livré. Aucun oracle externe, validator de contenu métier, runner, source de fichier, URL, réseau, admission automatique, gate multi-evidence ou exécution ARET n’est ajouté. |
+| Verdict | `PASS` pour M3.10 technique; publication et synchronisation de continuité à finaliser. |

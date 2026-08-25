@@ -218,3 +218,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-032` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : framework de validators, runners sûrs additionnels, gates multi-evidence, lifecycle/traversal de work graph, CLI/MCP et pack ARET. La rotation/révocation/expiration de secret et les algorithmes alternatifs restent hors M3.9. | `OBSERVED` | Revue post-M3.9; aucun contrat ou test de ces capacités n’est livré. | `LOG-0079` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-031`, `MEM-DEC-029`, `MEM-STATE-032`, `MEM-WALL-001`, puis `LOG-0078`–`LOG-0079` avant tout lot M3 ultérieur.
+
+
+## 18. Addendum de reprise — M3.10 validator d’intégrité
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-033` | Validation locale | `SUPERSEDES: MEM-STATE-032` pour cette exclusion précise. Un registre immutable contient uniquement `EVIDENCE_HASH`; un résultat append-only compare le hash stocké d’une evidence avec SHA-256 de son JSON canonique et produit `PASS` ou `FAIL`. Le résultat ne modifie ni evidence, ni admission, ni knowledge. | `OBSERVED` | Migration `022_validators.sql`, `validators.py`, tests M3.10; 148 tests et 14 sous-tests, wheel isolé. | `LOG-0081`, `LOG-0082` |
+| `MEM-DEC-030` | Frontière validator | Un verdict de validator est un fait d’intégrité local, non une admission, une preuve, une promotion ou une autorisation d’execution. Un seul résultat par `(validator, evidence)` est admis afin d’empêcher les répétitions ambiguës. | `DECISION` | Contrat M3.10 et invariants I004–I008, I013–I015. | `LOG-0081`, `LOG-0082` |
+| `MEM-STATE-034` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validators de contenu explicitement bornés, runners sûrs additionnels, gates multi-evidence, lifecycle/traversal de work graph, CLI/MCP et pack ARET. Aucun oracle externe, fichier, URL ou réseau n’est livré par M3.10. | `OBSERVED` | Revue post-M3.10; aucun contrat ou test de ces capacités n’est livré. | `LOG-0082` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-033`, `MEM-DEC-030`, `MEM-STATE-034`, `MEM-WALL-001`, puis `LOG-0081`–`LOG-0082` avant tout lot M3 ultérieur.
