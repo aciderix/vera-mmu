@@ -3,6 +3,12 @@
 from .addressing import Address, AddressError, CORE_RESOURCE_TYPES, make_address, parse_address
 from .assets import Asset, AssetError, AssetNotFoundError, AssetService, MAX_ASSET_BYTES
 from .entities import Entity, EntityError, EntityNotFoundError, EntityService, EntityType
+from .knowledge_assets import (
+    KnowledgeAssetLink,
+    KnowledgeAssetLinkError,
+    KnowledgeAssetLinkNotFoundError,
+    KnowledgeAssetLinkService,
+)
 from .knowledge import (
     Knowledge,
     KnowledgeAdmissionError,
@@ -50,6 +56,10 @@ __all__ = [
     "MAX_ASSET_BYTES",
     "MemoryStore",
     "Knowledge",
+    "KnowledgeAssetLink",
+    "KnowledgeAssetLinkError",
+    "KnowledgeAssetLinkNotFoundError",
+    "KnowledgeAssetLinkService",
     "KnowledgeAdmissionError",
     "KnowledgeError",
     "KnowledgeNotFoundError",

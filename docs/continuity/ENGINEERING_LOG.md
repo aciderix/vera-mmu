@@ -49,6 +49,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0023` | 2026-08-25 | `HYPOTHESIS` | M2.7 | asset binaire, SHA-256, lecture exacte, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-013`, `MEM-WALL-001` |
 | `LOG-0024` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.7 | asset binaire, hash avant lecture, immuabilité, audit | `OBSERVED` | `PASS` pour M2.7 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001` |
 | `LOG-0025` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.7 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001` |
+| `LOG-0026` | 2026-08-25 | `HYPOTHESIS` | M2.8 | association exacte knowledge–asset, immuabilité, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-014`, `MEM-WALL-001` |
+| `LOG-0027` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.8 | association exacte knowledge–asset, immuabilité, audit | `OBSERVED` | `PASS` pour M2.8 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-014`, `MEM-DEC-014`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -550,3 +552,41 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites | Cette publication ne change pas le verdict M2.7 ni les exclusions : M2 complet et toute parité ARET restent `UNKNOWN`; `MEM-WALL-001` reste actif. |
 | Mémoire liée | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001`. |
 | Suivi | Actualiser les références de reprise qui signalaient la publication en attente, committer ce record documentaire puis vérifier de nouveau la référence publique. |
+
+### LOG-0026 — Hypothèse M2.8 : association knowledge–asset déclarative
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.8 — Knowledge-Asset Link Registry` |
+| Hypothèse | Le Core peut rendre explicite l’association entre une knowledge existante et un asset existant par un sidecar immutable et audité, sans prétendre que l’asset est une evidence, sans modifier la knowledge et sans exposer de découverte ou lecture indirecte. |
+| Périmètre | Migration `008`, table `knowledge_asset_link` avec clés étrangères vers `knowledge` et `asset`, unicité de paire, audit et triggers anti-réécriture/suppression ; dataclass et service dédiés pour créer/lire une seule paire exacte. |
+| Justification | M2.4 rend les assertions knowledge hashées ; M2.7 rend les bytes assets canoniques et vérifiés avant lecture. Une liaison déclarative permet de les référencer sans franchir I004 : une association n’est ni une evidence, ni un résultat, ni une promotion `PROVEN`. |
+| Exclusions | Aucun changement de statut knowledge, `PROVEN`, evidence/proof, admission, validator, execution, gate, relation générique, traversal, listing, recherche, lecture de bytes à travers le lien, fetch, fichier externe, bundle, policy, capability, MCP, import/export ou compatibilité ARET. |
+| Baseline | VERA-MMU `main` et `origin/main` à `fb3b287c1c973ca4d56c317dca899276bb65ccd4`, propres. M2.7 publié `f4b878061dfaa1dd4f22b6b6f21a18f49ec5a1f8`. ARET-MMU intact à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, propre. |
+| Invariants | I001, I002, I003, I004, I005, I011, I014, I015. |
+| Tests prévus | Migration 7→8 ; association et lecture exacte ; endpoints inconnus ; duplicat ; identifiants invalides ; immuabilité SQL ; rollback lien+audit ; absence de mutation knowledge et de lecture asset ; wheel isolé. |
+| Verdict | `NOT_RUN` — aucun patch M2.8 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-014` à créer, `MEM-STATE-014`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, écrire les tests M2.8 avant la migration et le service, puis exécuter les gates complètes. |
+
+### LOG-0027 — Verdict M2.8 : association knowledge–asset déclarative
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.8 — Knowledge-Asset Link Registry` |
+| Certitude | `OBSERVED` : les tests, la migration, les contrôles statiques et le wheel ont produit les résultats consignés ; le lien créé n’est pas une evidence VERA-MMU. |
+| Baseline | M2.7 publié `f4b878061dfaa1dd4f22b6b6f21a18f49ec5a1f8`; `LOG-0026`; VERA `main`/`origin/main` à `fb3b287c1c973ca4d56c317dca899276bb65ccd4` avant patch. ARET-MMU est resté propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Changement | Migration `008_knowledge_asset_links.sql`, table stricte `knowledge_asset_link`, `KnowledgeAssetLink` et `KnowledgeAssetLinkService`. Une paire relie une knowledge et un asset déjà existants, avec foreign keys, unicité de paire, immuabilité et audit atomique. |
+| Invariants | I001, I002, I003, I004, I005, I011, I014, I015. La liaison ne modifie ni contenu, hash ou statut knowledge, ni métadonnées d’asset ; elle ne lit aucun byte et ne confère aucune admissibilité. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **85 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration 7→8, création/lecture de paire exacte, endpoints et identifiants invalides, duplicat, immuabilité SQL, absence de mutation des endpoints et rollback conjoint lien+audit. |
+| Contrôles de sûreté | `git diff --check` réussit. Le scan ciblé des nouveaux artefacts M2.8 ne trouve aucune dépendance ARET, admission `PROVEN`, `AssetService`, lecture de bytes, execution, validator, MCP ou réseau. La seule API publique M2.8 est `link` et `get`; aucun listing, traversal, import, export ou read n’est exposé. |
+| Distribution | Wheel construit via `pip wheel`, installé dans une cible isolée, puis contrôlé par un script hors dépôt qui crée knowledge, asset et lien, relit la paire et confirme le schéma 8. SHA-256 wheel : `72af37c2edb36eb04e926ee4dbb724ccc350a084e1ddb407dda9f31f456dcac5`; sortie de contrôle : `7c2919ee95bef8e6ceb12f163cba4306ef8c594ee50bdf1e30c166ffef2e17d2`; migration : `8d7c0d050f8c885249b2c06fd7e2909fc10a9f7ab85d6e2617c8986df4b5fc0c`; service : `5a322dd24ebcdb77ba0d6dec0df110ecfe51bb0133ee0ac7a45f9d3817da99c6`. |
+| Comparaison | M2.7 possédait des assets hashés mais sans association persistée à une knowledge. M2.8 ajoute une référence déclarative minimale, sans conversion en evidence, preuve, résultat d’exécution ou promotion épistémique. |
+| Limites | Aucun statut `PROVEN`, evidence/proof, admission, validator, execution, gate, relation générique, listing/traversal, lecture asset via lien, fetch, fichier externe, bundle, policy, capability, MCP, import/export ou compatibilité ARET n’est livré. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.8 et ses gates techniques. `UNKNOWN` pour M2 au total, toute parité ARET et toute sémantique d’evidence ou d’exécution. |
+| Mémoire liée | `MEM-STATE-014`, `MEM-DEC-014`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour mémoire, plan, matrice et README ; relancer les checks finaux, puis committer et publier atomiquement. |

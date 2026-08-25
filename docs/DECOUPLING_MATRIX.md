@@ -132,3 +132,12 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C16` | `AssetService` écrit un asset append-only avec SHA-256, taille et media type, puis ne restitue les bytes qu’après revérification de hash et taille ; audit atomique `ASSET_RECORDED`. | Tests de hash altéré, duplicat, rewrite/delete SQL refusés et audit/rollback ; scan ciblé et wheel isolé ; `LOG-0024`. | Evidence/proof, execution/validator, admission `PROVEN`, HMAC, relation avec knowledge, import croisé, bundle et parité historique. | `SPLIT` |
 
 > M2.7 établit un contenu binaire canonique vérifié avant lecture sans ouvrir de filesystem externe ni de sémantique d’evidence. Les lignes C02 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
+### 2.9. Avancement observé M2.8 — association knowledge–asset déclarative
+
+| Couplage | Surface VERA désormais observée | Evidence M2.8 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C16` | Migration `008` et sidecar `knowledge_asset_link` immutable entre une knowledge et un asset existants ; foreign keys, unicité de paire, lecture exacte de l’association et audit atomique. | `tests/test_knowledge_asset_links.py` : migration 7→8, endpoints/identifiants invalides, duplicat, immuabilité SQL, absence de mutation des endpoints et audit/rollback ; wheel vérifié ; `LOG-0027`. | Evidence/proof, admission `PROVEN`, validator/execution/gate, relation générique, listing/traversal, lecture de contenu par liaison, HMAC, import croisé, bundle et parité historique. | `SPLIT` |
+| `C03` | Les associations portent exclusivement les identifiants génériques de knowledge et d’asset ; elles n’introduisent aucun `component`, `function`, symbole ou vocabulaire technique. | Validation des deux endpoints VERA, scan ciblé du nouveau Core et wheel isolé ; `LOG-0027`. | Import des composants V1, liens de connaissance spécialisés, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
+
+> M2.8 rend la référence knowledge–asset explicite sans qualifier l’asset de preuve, sans mutation de knowledge et sans ouvrir de graph traversal. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
