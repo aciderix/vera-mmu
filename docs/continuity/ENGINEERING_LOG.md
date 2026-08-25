@@ -72,6 +72,28 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0046` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.13 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-021`, `MEM-STATE-022`, `MEM-WALL-001` |
 | `LOG-0047` | 2026-08-25 | `HYPOTHESIS` | M2.14 | capability, execution, déclaration, immuabilité, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-022`, `MEM-WALL-001` |
 | `LOG-0048` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.14 | capability, execution schema, URI, audit, wheel | `OBSERVED` | `PASS` pour M2.14 ; M2.EXIT/parité ARET `UNKNOWN` | `MEM-STATE-023`, `MEM-DEC-024`, `MEM-WALL-001` |
+| `LOG-0049` | 2026-08-25 | `RUN` / `COMPARISON` / `VERDICT` | M2.EXIT | migrations 001–014, schema universel, upgrade, wheel, frontières | `OBSERVED` | `PASS` pour M2 ; parité ARET `UNKNOWN` | `MEM-STATE-024`, `MEM-DEC-025`, `MEM-WALL-001` |
+| `LOG-0050` | 2026-08-25 | `HYPOTHESIS` | M3.1 | contracts capability, runner fermé, no-shell, no-network | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-WALL-001` |
+| `LOG-0051` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.1 | capability contracts, migration 015, publication | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-025`, `MEM-WALL-001` |
+| `LOG-0052` | 2026-08-25 | `PREPARATION` | M3.2 | runner borné, `NOOP`, `DENY_NETWORK` | `DECISION` | `N/A` | `MEM-STATE-025` |
+| `LOG-0053` | 2026-08-25 | `HYPOTHESIS` | M3.2 | execution, runner `NOOP`, no-processus | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-025` |
+| `LOG-0054` | 2026-08-25 | `RUN` / `VERDICT` | M3.2 | execution immutable, `NOOP`, no-network | `OBSERVED` | `PASS` technique | `MEM-STATE-025` |
+| `LOG-0055` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.2 | publication execution runner | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-025` |
+| `LOG-0056` | 2026-08-25 | `HYPOTHESIS` | M3.3 | evidence hashée, verdict, admission pending | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-025` |
+| `LOG-0057` | 2026-08-25 | `RUN` / `VERDICT` | M3.3 | evidence store, hash, immuabilité | `OBSERVED` | `PASS` technique | `MEM-STATE-025` |
+| `LOG-0058` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.3 | publication evidence store | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-025` |
+| `LOG-0059` | 2026-08-25 | `HYPOTHESIS` | M3.4 | admission immutable, evidence `PASS` | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-025` |
+| `LOG-0060` | 2026-08-25 | `RUN` / `VERDICT` | M3.4 | admission, `ADMITTED`, `REJECTED` | `OBSERVED` | `PASS` technique | `MEM-STATE-025` |
+| `LOG-0061` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.4 | publication admission | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-025` |
+| `LOG-0062` | 2026-08-25 | `HYPOTHESIS` | M3.6 | work dependencies, gates, anti-cycle | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-025` |
+| `LOG-0063` | 2026-08-25 | `HYPOTHESIS` | M3.5 | HMAC, evidence-knowledge, proof dérivée | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-025` |
+| `LOG-0064` | 2026-08-25 | `DECISION` | M3.5 | `PROVEN` dérivé, secret HMAC en mémoire | `DECISION` | `PASS` pour le cadrage | `MEM-DEC-026` |
+| `LOG-0065` | 2026-08-25 | `BASELINE` | M3.5 | preuve dérivée, invariant de non-réécriture | `OBSERVED` | `READY_FOR_TESTS_FIRST` | `MEM-STATE-025` |
+| `LOG-0066` | 2026-08-25 | `RUN` / `VERDICT` | M3.5 | proof, admission, HMAC digest | `OBSERVED` | `PASS` technique | `MEM-STATE-025` |
+| `LOG-0067` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.5 | publication proof dérivée | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-025` |
+| `LOG-0068` | 2026-08-25 | `RUN` / `VERDICT` | M3.6 | work graph, gate mono-evidence, admission | `OBSERVED` | `PASS` technique | `MEM-STATE-025` |
+| `LOG-0069` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.6 | publication work graph/gate | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-025` |
+| `LOG-0070` | 2026-08-25 | `RUN` / `COMPARISON` / `VERDICT` / `DECISION` | M3.S1.EXIT | migrations 001–019, tests, wheel, frontières, portée | `OBSERVED` / `DECISION` | `PASS` pour M3.S1 ; M3/parité ARET non clos | `MEM-STATE-025`, `MEM-DEC-026`, `MEM-STATE-026`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1160,3 +1182,28 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limite | La gate lit des décisions existantes : elle n’exécute aucune capability, n’admet aucune evidence, ne modifie pas de knowledge et ne promulgue aucun état. |
 | Verdict | `PASS` pour M3.6 technique; publication à finaliser. |
 
+
+### LOG-0069 — Publication vérifiée M3.6
+
+| Champ | Valeur |
+|---|---|
+| Commit | `63f4b028a3432e6308e78988ebf5faaa90d63537` — `feat: add work graph admission gates`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt propre et helper supprimé. |
+| Statut | `PASS` pour la publication M3.6. La gate terminale M3 doit encore vérifier les migrations 001→019, la distribution isolée, les frontières de preuve et l’absence de régression ARET. |
+
+
+
+### LOG-0070 — Gate `M3.S1.EXIT` : tranche opérationnelle minimale
+
+| Champ | Valeur |
+|---|---|
+| Type | `RUN` / `COMPARISON` / `VERDICT` / `DECISION` |
+| Périmètre admis | Migrations 015–019 : contrat fermé, runner `NOOP` sous `DENY_NETWORK`, execution immutable, evidence hashée, admission immutable, preuve dérivée sans réécriture de knowledge, dépendance directe et gate mono-evidence. |
+| Contrôles | `tests/test_work_graph_gates.py` : 1 `PASS`; suite complète : 139 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan de `gates.py` sans processus, shell, réseau, I/O externe, insertion d’execution ni mutation knowledge/evidence `PASS`; wheel construit sans dépendance, installé hors source et vérifiant migrations 001→019 et les imports de services M3 `PASS`. |
+| Comparaison | Le contrôle final conserve le contrat M2.EXIT et ajoute seulement M3.1–M3.6; aucun résultat `UNKNOWN` ou `SKIPPED` n’est requalifié. ARET demeure au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, arbre propre, sans test de parité nouvellement produit. |
+| Preuve appliquée | Execution ≠ evidence; evidence `PASS` ≠ admission; une preuve dérivée exige evidence `PASS` + admission `ADMITTED`; le secret HMAC facultatif ne persiste pas; une gate lit uniquement l’admission existante. |
+| Exclusions | Aucun runner externe, shell arbitraire, réseau implicite, validation typée complète de paramètres, policy `ALLOW`/`DENY`/`CONFIRM`, validator framework, policy HMAC de projet, gate multi-evidence, traversal/lifecycle, CLI/MCP ou pack ARET. |
+| Décision de scope | La gate est nommée `M3.S1.EXIT` afin de valider cette tranche verticale finie sans déclarer **M3 global** complet. Les exclusions deviennent des futurs lots M3, chacun soumis à baseline, hypothèse, tests-first et gate propres. |
+| Verdict | `PASS` pour **M3.S1**; `IN_PROGRESS` pour **M3 global**; `UNKNOWN` pour toute parité/exécution exhaustive ARET sous `MEM-WALL-001`. |
+| Mémoire liée | `MEM-STATE-025`, `MEM-DEC-026`, `MEM-STATE-026`, `MEM-WALL-001`. |
+| Suivi | Publier atomiquement la synchronisation de continuité; ouvrir ensuite un unique lot M3 manquant, sans mélanger refactoring ou fonctionnalité adjacente. |
