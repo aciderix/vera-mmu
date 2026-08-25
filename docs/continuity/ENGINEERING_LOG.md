@@ -1039,3 +1039,22 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Commit | `61a3bba33ee0dbad0453f1b3f87ac3a28a4fb0d7` — `feat: add noop execution runner`. |
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt propre et helper supprimé. |
 | Statut | `PASS` pour la publication M3.2. Evidence, proof, admission, HMAC et `PROVEN` restent absents. |
+
+### LOG-0056 — Hypothèse M3.3 : Evidence Store minimal
+
+| Champ | Valeur |
+|---|---|
+| Hypothèse | Ajouter une evidence append-only liée à une execution existante, typée dans un enum universel, hashée, avec verdict fermé (`PASS`, `FAIL`, `ERROR`, `SKIPPED`, `UNKNOWN`) et statut d’admission initial `PENDING`. |
+| Sûreté | L’écriture d’evidence n’admet rien, ne promeut aucune knowledge et ne produit aucun `PROVEN`. `PASS` seul demeure insuffisant sans policy d’admission explicite. |
+| Invariants | I001, I003, I004, I005, I006, I011, I014, I015. |
+| Statut | `PENDING` — tests-first, schéma et service minimaux à produire. |
+
+### LOG-0057 — Verdict M3.3 : Evidence Store minimal
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 016 et `EvidenceService` : evidence append-only liée à une execution, type/verdict fermés, contenu JSON canonique SHA-256 et admission initiale `PENDING`. |
+| Validation | Tests dédiés : 3 `PASS`; suite complète : 134 tests et 14 sous-tests `PASS`; diff et scan de périmètre `PASS`. |
+| Limite | Aucun mécanisme d’admission, HMAC, promotion de knowledge ou `PROVEN` n’est présent. |
+| Verdict | `PASS` pour M3.3 technique; publication à finaliser. |
+
