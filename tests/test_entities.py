@@ -55,8 +55,8 @@ class EntityServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_entity_registry(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 5})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 6})
 
     def test_existing_m2_1_store_migrates_to_entity_registry(self) -> None:
         schema = Path(self._directory.name) / "m2_1_schema"

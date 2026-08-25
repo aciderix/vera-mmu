@@ -43,6 +43,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0017` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.4 | types knowledge, append-only, hash, statuts, audit | `OBSERVED` | `PASS` pour M2.4 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-010`, `MEM-DEC-010`, `MEM-WALL-001` |
 | `LOG-0018` | 2026-08-25 | `HYPOTHESIS` | M2.5 | provenance documentaire, sources hashées, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-011`, `MEM-WALL-001` |
 | `LOG-0019` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.5 | sources knowledge, confinement, immuabilité, audit | `OBSERVED` | `PASS` pour M2.5 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-011`, `MEM-DEC-011`, `MEM-WALL-001` |
+| `LOG-0020` | 2026-08-25 | `HYPOTHESIS` | M2.6 | supersession knowledge, append-only, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-012`, `MEM-WALL-001` |
+| `LOG-0021` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.6 | supersession knowledge, sidecar immutable, anti-cycle, audit | `OBSERVED` | `PASS` pour M2.6 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-012`, `MEM-DEC-012`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -394,6 +396,23 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | Mémoire liée | `MEM-STATE-011`, `MEM-DEC-011`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour le plan, la mémoire, la matrice et le manifeste ; relire le diff, committer puis publier atomiquement. |
 
+### LOG-0020 — Hypothèse M2.6 : supersession knowledge append-only
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.6 — Knowledge Supersession Registry` |
+| Hypothèse | Le Core peut enregistrer une relation immuable de supersession entre une knowledge antérieure et une knowledge de remplacement déjà appendée, sans réécrire le contenu, le statut ni les métadonnées d’aucune des deux assertions. |
+| Périmètre | Migration `006`, `KnowledgeSupersession`, `KnowledgeSupersessionService`, prédécesseur/successeur exacts, unicité d’un successeur par prédécesseur, prévention de cycle, lecture directe prédécesseur/successeur et audit de création. |
+| Exclusions | Mise à jour de statut `SUPERSEDED`, mutation de knowledge, construction automatisée d’un successeur, traversal/lineage/FIND, version counter, `PROVEN`, evidence/proof/artifact, fetch/import, relation générique, bundle, policy, capability, MCP, pack/lecteur/import ARET. |
+| Baseline | M2.5 publié au commit `fc34cccf867c3044203085ca1618b9095c2cfa44`; `LOG-0019`; cycle de versioning ARET lu comme référence de périmètre, sans import de code ARET. |
+| Invariants | I001, I002, I003, I004, I011, I014, I015. |
+| Tests prévus | Migration 5→6, knowledge inconnue, prédécesseur=successeur, prédécesseur déjà supersédé, successeur déjà lié, cycle, lecture directe, immuabilité SQL, audit de création, rollback atomique et absence de vocabulaire ARET. |
+| Verdict | `NOT_RUN` — aucun patch M2.6 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-012` à créer, `MEM-STATE-011`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, puis créer les tests et modules M2.6 sans étendre vers statut, traversal, proof ou recherche. |
+
 ## 4. Protocole de journalisation d’un changement
 
 Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du work item actif avec : cause supposée, comportement cible, surface de fichiers, baseline, invariants et tests prévus. Après le patch, ajouter des entrées distinctes pour `RUN`, `EVIDENCE`, `COMPARISON` et `VERDICT` si le changement est significatif. Une entrée de verdict doit pouvoir être lue indépendamment et répondre à quatre questions : qu’a-t-on changé, contre quelle baseline, quelle preuve a été produite et quelle limite demeure ?
@@ -439,3 +458,23 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 ## Références
 
 [1]: https://github.com/aciderix/ARET-MMU "ARET-MMU — dépôt de référence"
+
+### LOG-0021 — Verdict M2.6 : supersession knowledge déclarative
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.6 — Knowledge Supersession Registry` |
+| Certitude | `OBSERVED` : les tests, le contrôle de distribution et les checks statiques ont produit les résultats consignés ; aucune preuve métier VERA n’est admise ou créée. |
+| Baseline | M2.5 publié `fc34cccf867c3044203085ca1618b9095c2cfa44`; `LOG-0020`; invariants I001/I002/I003/I004/I011/I014/I015. ARET-MMU est resté propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Changement | Migration `006_knowledge_supersession.sql`, sidecar `knowledge_supersession`, `KnowledgeSupersession` et `KnowledgeSupersessionService`. Une relation directe immutable lie deux knowledge préexistantes ; chaque prédécesseur et chaque successeur sont uniques, les self-links et cycles sont refusés, et les deux lectures sont exactes. L’audit consigne `KNOWLEDGE_SUPERSESSION_RECORDED`. |
+| Invariants | I001, I002, I003, I004, I011, I014, I015. Les enregistrements knowledge eux-mêmes restent inchangés, append-only et liés au ProjectIdentity. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **72 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration 5→6, identifiants inconnus, self-link, prédécesseur/successeur dupliqués, cycle de longueur trois, lectures exactes, immuabilité SQL et rollback conjoint lien+audit. |
+| Contrôles de sûreté | `git diff --check` réussit. Le scan ciblé des artefacts M2.6 ne trouve aucune dépendance ARET, admission `PROVEN`, evidence, FTS/FIND ou API de découverte/traversal. Les seules APIs publiques sont `supersede`, `successor_of` et `predecessor_of`. |
+| Distribution | Wheel construit via `pip wheel`, installé dans une cible isolée, puis contrôlé par un script hors dépôt qui initialise le store, append deux knowledge, enregistre et relit une supersession. SHA-256 wheel : `2e95db8422fa68f9f59c93c19886efcd700fe062c5f6e037088b524252f8b479`; sortie de contrôle : `63bc2eb446dfd81bf749c8525508a493de600ec7bf0b964695d6db251c8e04b3`; migration : `80bb4a78e92bedebe313bf6b5dfd09819e47bfaf872e1df5522bb5c0b486bafe`; service : `f4047c56e630c25cb61c918cd8a2754458e0d48607bec4e2d4c78109c94a7060`. |
+| Comparaison | M2.5 pouvait déclarer des sources d’une knowledge mais pas exprimer qu’une assertion nouvelle remplace une assertion antérieure. M2.6 ajoute seulement ce lien direct immutable, sans réécrire le contenu, le hash, les métadonnées, la provenance ou le statut de l’assertion remplacée. |
+| Limites | Aucun statut `SUPERSEDED`, version counter, création automatique de successeur, traversal ou listing de lignée, intégration à `RelationService`, evidence/proof/artifact, admission `PROVEN`, fetch/import, FTS/FIND, policy, capability, bundle, MCP, pack ou compatibilité ARET n’est livré. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.6 et ses gates techniques. `UNKNOWN` pour M2 au total, toute parité ARET et tout comportement hors périmètre. |
+| Mémoire liée | `MEM-STATE-012`, `MEM-DEC-012`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, le plan, la matrice et le README ; relancer les checks finaux, puis committer et publier atomiquement. |

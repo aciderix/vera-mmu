@@ -25,6 +25,12 @@ from .provenance import KnowledgeSource, KnowledgeSourceError, KnowledgeSourceNo
 from .relations import Relation, RelationError, RelationNotFoundError, RelationService, RelationType
 from .runtime import RuntimeLocator, RuntimeLocatorError
 from .store import MemoryStore, StoreError, StoreIdentityError
+from .supersession import (
+    KnowledgeSupersession,
+    KnowledgeSupersessionError,
+    KnowledgeSupersessionNotFoundError,
+    KnowledgeSupersessionService,
+)
 from .workspace import Workspace, WorkspaceError, WorkspaceResolver, resolve_workspace
 
 __all__ = [
@@ -43,6 +49,10 @@ __all__ = [
     "KnowledgeNotFoundError",
     "KnowledgeService",
     "KnowledgeType",
+    "KnowledgeSupersession",
+    "KnowledgeSupersessionError",
+    "KnowledgeSupersessionNotFoundError",
+    "KnowledgeSupersessionService",
     "KnowledgeSource",
     "KnowledgeSourceError",
     "KnowledgeSourceNotFoundError",

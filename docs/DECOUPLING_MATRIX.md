@@ -114,3 +114,12 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 [1]: https://github.com/aciderix/ARET-MMU "ARET-MMU — dépôt de référence"
 [2]: continuity/PROJECT_MEMORY.md "Mémoire factuelle du chantier VERA-MMU"
 [3]: continuity/ENGINEERING_LOG.md "Journal d’ingénierie VERA-MMU"
+
+### 2.7. Avancement observé M2.6 — supersession knowledge déclarative
+
+| Couplage | Surface VERA désormais observée | Evidence M2.6 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C16` | Migration `006` et sidecar `knowledge_supersession` immutable entre deux knowledge existantes ; unicité de prédécesseur/successeur, self-link et cycle refusés, lectures exactes dans les deux sens et audit atomique. | `tests/test_supersession.py` : migration 5→6, inconnus, self-link, duplicats, cycle, lecture exacte, rewrite/delete SQL refusés, audit/rollback ; wheel vérifié ; `LOG-0021`. | Mutation de statut ou `SUPERSEDED`, version counter, création automatique, traversal/listing de lignée, integration à `RelationService`, evidence/proof/artifact, admission `PROVEN`, FTS/FIND, import croisé et parité historique. | `SPLIT` |
+| `C03` | La supersession porte uniquement les identifiants de knowledge génériques existantes ; elle n’introduit aucun `component`, `function`, symbole ou vocabulaire technique. | Validation d’identifiants VERA et de l’existence des deux knowledge ; scan ciblé du nouveau Core ; `LOG-0021`. | Import des composants V1, liens de connaissance spécialisés, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
+
+> M2.6 rend un remplacement explicite traçable sans réécrire les assertions knowledge et sans reproduire le lifecycle historique. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
