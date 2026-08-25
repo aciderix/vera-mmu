@@ -35,6 +35,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0009` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M1 | C01/C02/C11, Core universel, distribution | `OBSERVED` | `PASS` pour les gates M1 ; `UNKNOWN` pour la parité ARET | `MEM-STATE-006`, `MEM-DEC-006`, `MEM-WALL-001` |
 | `LOG-0010` | 2026-08-25 | `HYPOTHESIS` | M2.1 | SQLite, migrations, identité de store, audit technique | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-007`, `MEM-WALL-001` |
 | `LOG-0011` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.1 | substrate SQLite, migration, identité, transaction, CLI | `OBSERVED` | `PASS` pour M2.1 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-007`, `MEM-DEC-007`, `MEM-WALL-001` |
+| `LOG-0012` | 2026-08-25 | `HYPOTHESIS` | M2.2 | registre de types d’entité, entités, audit métier | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-008`, `MEM-WALL-001` |
+| `LOG-0013` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.2 | types d’entité, entités, lecture exacte, audit | `OBSERVED` | `PASS` pour M2.2 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-008`, `MEM-DEC-008`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -238,6 +240,43 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | Mémoire liée | `MEM-STATE-007`, `MEM-DEC-007`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour plan, mémoire et matrice ; relire le diff puis committer atomiquement. |
 
+### LOG-0012 — Hypothèse M2.2 : registre d’entités génériques
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.2 — Entity Registry` |
+| Hypothèse | Le Core peut enregistrer des types d’entités et créer/lire des entités génériques, liées à un ProjectIdentity et auditées, sans réintroduire `component`, `function_symbol`, symboles ou vocabulaire ARET. |
+| Périmètre | Migration `002`, `EntityService` composé sur `MemoryStore`, registre de types, entités, lecture exacte, JSON canonique et audit métier de création. |
+| Exclusions | Symboles, relations, knowledge, recherche/FIND, evidence/proofs, work items, suppression/modification, bundles, policies, capability, MCP, pack/lecteur/import ARET. |
+| Baseline | M2.1 publié au commit `3fc41eff3fb525bab82338287ddde33b3dce9358`; `LOG-0011`; C03/C04/C16 de la matrice et sections 8–9 de la spécification. |
+| Invariants | I001, I002, I003, I011, I014, I015. |
+| Tests prévus | Migration 1→2, type inconnu/dupliqué, ID invalide, entity dupliquée, JSON non canonique, lecture exacte, audit de création, rollback atomique et absence de vocabulaire ARET. |
+| Verdict | `NOT_RUN` — aucun patch M2.2 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-008` à créer, `MEM-STATE-007`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, puis ajouter tests et code dans des modules séparés avant toute extension relationnelle ou de connaissance. |
+
+### LOG-0013 — Verdict M2.2 : registre d’entités génériques
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.2 — Entity Registry` |
+| Certitude | `OBSERVED` : les tests, le wheel et le contrôle de création/lecture ont produit les résultats consignés ; aucune evidence métier VERA n’est encore disponible. |
+| Baseline | M2.1 publié `3fc41eff3fb525bab82338287ddde33b3dce9358`; `LOG-0012`; C03/C04/C16 de la matrice et tables génériques de la spécification, sans import de code ARET. |
+| Changement | Migration `002_entity_registry.sql`, `EntityService`, `EntityType`/`Entity`, type préalablement enregistré, création atomique, lecture exacte, JSON canonique et audit `ENTITY_TYPE_REGISTERED`/`ENTITY_CREATED`. |
+| Invariants | I001, I002, I003, I011, I014, I015. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **40 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration M2.1→M2.2, type inconnu/dupliqué, identifiant invalide, entity dupliquée, lecture exacte, JSON mapping et rollback entity+audit. |
+| Contrôles de sûreté | `git diff --check` et scan anti-ARET du Core réussis. Le type doit être enregistré, l’ID est validé par l’adresse `vera://`, et mutation/audit se font dans une transaction unique. |
+| Distribution | Wheel construit puis installé dans une cible temporaire ; migration `002` présente et création/lecture d’une entité réussie depuis le wheel. SHA-256 wheel : `668982804257229fb76542a21c21baa311b3a183e28db46c3a8a46ba099fb92e`; sortie de contrôle : `48c145310fad36ce52f58bc0a6a5253328e70dc130cc697b83a21733b3fbd6ae`. |
+| Comparaison | M2.1 ne pouvait que créer un substrate neutre. M2.2 ajoute le premier objet métier universel, sans table ARET de component/function, symboles, relations, FIND, knowledge ou evidence. |
+| Limites | Pas de relation, symbole, knowledge append-only, recherche, supersession, proof/evidence, artifact, work item, bundle, policy, capability, MCP ou compatibilité ARET. L’invariant I003 n’est pas encore exercé par une table knowledge. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.2. `UNKNOWN` pour M2 dans son ensemble et toute parité ARET. |
+| Mémoire liée | `MEM-STATE-008`, `MEM-DEC-008`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour le plan, la mémoire, la matrice et le manifeste ; relire le diff, committer puis publier atomiquement. |
+
 ## 4. Protocole de journalisation d’un changement
 
 Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du work item actif avec : cause supposée, comportement cible, surface de fichiers, baseline, invariants et tests prévus. Après le patch, ajouter des entrées distinctes pour `RUN`, `EVIDENCE`, `COMPARISON` et `VERDICT` si le changement est significatif. Une entrée de verdict doit pouvoir être lue indépendamment et répondre à quatre questions : qu’a-t-on changé, contre quelle baseline, quelle preuve a été produite et quelle limite demeure ?
@@ -253,11 +292,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 
 ## 5. Handoff actif
 
-> **État de reprise :** M2.1 est clos par son verdict `LOG-0011` et sera versionné dans son commit atomique. M1 demeure publié ; M2 complet et la parité ARET restent `UNKNOWN`, et `MEM-WALL-001` reste ouvert. Aucun sous-lot M2.2 n’est encore ouvert.
+> **État de reprise :** M2.2 est clos par son verdict `LOG-0013` et sera versionné dans son commit atomique. M1/M2.1 demeurent publiés ; M2 complet et la parité ARET restent `UNKNOWN`, et `MEM-WALL-001` reste ouvert. Aucun sous-lot M2.3 n’est encore ouvert.
 
 | Reprendre par | Lire ensuite | Ne pas faire avant |
 |---|---|---|
-| `UNIVERSALIZATION_WORKPLAN.md`, état actif puis rituel M2.2 | `PROJECT_MEMORY.md`, sections 4–7 ; `LOG-0010` et `LOG-0011`. | Présenter M2.1 comme une persistance métier complète, déclarer une parité ARET, créer un alias `ARET://`, démarrer M2.2 sans hypothèse distincte ou lever `MEM-WALL-001` par hypothèse. |
+| `UNIVERSALIZATION_WORKPLAN.md`, état actif puis rituel M2.3 | `PROJECT_MEMORY.md`, sections 4–7 ; `LOG-0012` et `LOG-0013`. | Présenter M2.2 comme un modèle relationnel ou une mémoire complète, déclarer une parité ARET, créer un alias `ARET://`, démarrer M2.3 sans hypothèse distincte ou lever `MEM-WALL-001` par hypothèse. |
 
 ## 6. Gabarit d’entrée future
 

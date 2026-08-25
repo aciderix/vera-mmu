@@ -57,6 +57,15 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M2.1 établit un substrate mais ne met en œuvre aucun objet de persistance métier. Les lignes C02, C14 et C16 restent donc `SPLIT` et la parité ARET reste `UNKNOWN`.
 
+### 2.3. Avancement observé M2.2 — registre d’entités
+
+| Couplage | Surface VERA désormais observée | Evidence M2.2 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C03` | Migration `002`, `entity_type` et `entity` génériques ; `EntityService` exige un type enregistré, produit une adresse `vera://` exacte et ne dépend d’aucun concept `component`/`function`. | `tests/test_entities.py` : migration 1→2, type/ID inconnus ou dupliqués, lecture exacte ; wheel installé et vérifié ; `LOG-0013`. | Symboles, `function_symbol`→`symbol`, migration de données V1, composants historiques, relations et parité fonctionnelle ARET. | `SPLIT` |
+| `C16` | Création de type et d’entité accompagnée d’un audit dans la même transaction ; rollback testé si l’audit est refusé. | Tests audit/rollback et contrôles de duplication ; `LOG-0013`. | Knowledge append-only, audit des autres mutations métier, relation/proof, import de mémoire et règles de non-réécriture. | `SPLIT` |
+
+> M2.2 apporte un premier objet métier universel mais ne crée ni chemin de migration ARET ni modèle relationnel complet. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

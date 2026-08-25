@@ -124,6 +124,21 @@ class MemoryStore:
                 pass
             raise
 
+    def append_audit(
+        self,
+        connection: sqlite3.Connection,
+        action: str,
+        payload: Mapping[str, Any],
+    ) -> None:
+        """Append one Core audit record inside an already-open store transaction."""
+        if connection is not self._connection:
+            raise StoreError("La connexion d’audit doit appartenir au store actif.")
+        if not isinstance(action, str) or not action or len(action) > 128:
+            raise StoreError("Action d’audit invalide.")
+        if not isinstance(payload, Mapping):
+            raise StoreError("Payload d’audit invalide.")
+        self._append_audit(connection, action, payload)
+
     def close(self) -> None:
         """Close the underlying SQLite connection without modifying the store."""
         self._connection.close()
