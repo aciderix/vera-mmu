@@ -1005,3 +1005,29 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment `79a3e188e2645b685866217c89930d93b965792e`; arbre propre et helper supprimé. |
 | Limite | Le seul runner autorisé est `NOOP` et aucune API `run`/execution/evidence/proof/gate n’est présente. |
 | Suivi | Mettre à jour le plan/mémoire, puis ouvrir séparément la baseline du premier runner borné. |
+
+### LOG-0052 — Préparation M3.2 : runner borné
+
+| Champ | Valeur |
+|---|---|
+| Contrainte | Le client sélectionnera exclusivement une capability déclarée et des paramètres validés; aucune commande, path, URL ou shell arbitraire ne sera accepté. |
+| Précondition | Le contrat fermé M3.1 publié fixe actuellement `NOOP` et `DENY_NETWORK`; le premier runner réel exigera une hypothèse, une policy et des tests séparés. |
+| Statut | `PREPARATION` — aucun runner ni execution opérationnelle n’est encore livré. |
+
+### LOG-0053 — Hypothèse M3.2 : NOOP Execution Runner
+
+| Champ | Valeur |
+|---|---|
+| Hypothèse | Un `ExecutionService` limité au contrat `NOOP` et `DENY_NETWORK` peut valider un objet de paramètres JSON, écrire une execution `COMPLETED` à code `0`, un environnement déclaré minimal et un résultat déclaratif, puis auditer le fait dans la même transaction. |
+| Sûreté | Aucun sous-processus, shell, fichier, réseau, artefact, secret, validator, evidence ou promotion `PROVEN`; `yields_proof` doit être `false`. Une capability sans contrat ou avec paramètres hors schéma est refusée. |
+| Tests attendus | Résolution exacte capability/contrat, validation JSON-object minimaliste, refus de tout contrat non NOOP/non DENY_NETWORK ou `yields_proof`, rollback audit, immuabilité de l’execution et absence de lecture/evidence. |
+| Statut | `PENDING` — tests-first et patch minimal à produire. |
+
+### LOG-0054 — Verdict M3.2 : NOOP Execution Runner
+
+| Champ | Valeur |
+|---|---|
+| Résultat | `ExecutionService.run_noop` exige un contrat exact `NOOP` / `DENY_NETWORK` avec `yields_proof=false`, paramètres objet et actor. Il écrit une execution `COMPLETED`, code `0`, environnement/résultat JSON minimaux, sans artefact. |
+| Validation | Tests dédiés : 2 `PASS`; suite complète : 131 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan sans processus, shell, réseau ou I/O externe `PASS`. |
+| Limite | Une execution est un fait opérationnel auditée; elle ne constitue ni evidence, ni proof, ni admission `PROVEN`. |
+| Verdict | `PASS` pour M3.2 technique; publication et documentation de continuité restent à finaliser. |
