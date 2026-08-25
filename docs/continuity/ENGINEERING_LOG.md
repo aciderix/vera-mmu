@@ -101,6 +101,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0075` | 2026-08-25 | `HYPOTHESIS` | M3.8 | policy fermée, `ALLOW`, `DENY`, `CONFIRM`, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-029`, `MEM-DEC-028`, `MEM-WALL-001` |
 | `LOG-0076` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.8 | policy, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-029`, `MEM-STATE-030`, `MEM-DEC-028`, `MEM-WALL-001` |
 | `LOG-0077` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.8 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-030`, `MEM-WALL-001` |
+| `LOG-0078` | 2026-08-25 | `HYPOTHESIS` | M3.9 | policy HMAC projet, secret en mémoire, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-031`, `MEM-DEC-029`, `MEM-WALL-001` |
+| `LOG-0079` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.9 | policy HMAC, non-persistance secret, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-031`, `MEM-STATE-032`, `MEM-DEC-029`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1292,3 +1294,27 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication M3.8. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
 | Suivi | Cadrer séparément un framework de validators fermé, sans exécution d’oracle ARET, runner additionnel ni réseau implicite. |
+
+
+### LOG-0078 — Hypothèse M3.9 : policy HMAC de projet
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `ae80ea9380968e99baa7e73327f1353d0d165010`, `main` propre et alignée; 143 tests et 14 sous-tests `PASS`; M3.8 publié. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | `ProofService` reçoit encore `hmac_required` comme configuration du processus. La règle est locale mais non déclarée au niveau du projet, ce qui n’établit ni policy persistante ni fail-loud lorsque le projet n’a pas de règle. |
+| Hypothèse | Une policy de projet singleton, append-only, déclarant seulement `HMAC_SHA256` et `hmac_required`, peut être persistée sans secret. `ProofService` doit exiger cette policy avant une preuve; si HMAC est requis, seul un secret bytes fourni en mémoire est accepté et seul le digest est persisté. |
+| Sûreté | Aucun secret, encodage de secret, hint, longueur ou valeur de secret ne doit être écrit dans SQLite, audit, retour, erreur ou document. Absence de policy, secret manquant si requis, ou secret fourni quand non requis échouent bruyamment. Aucun runner, réseau, shell, evidence, admission ou knowledge n’est modifié. |
+| Tests-first attendus | Migration singleton/immutabilité/audit/rollback; lecture exacte; refus sans policy; policy non-HMAC refusée; HMAC requis sans secret refusé; HMAC requis avec secret produit seulement un digest; HMAC non requis refuse un secret; knowledge historique inchangée. |
+| Invariants | I001, I003–I008, I011, I013–I015. |
+| Verdict | `PENDING` — aucun patch M3.9 n’est encore produit. |
+
+
+### LOG-0079 — Verdict M3.9 : policy HMAC de projet
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 021 et `ProofPolicyService` : policy singleton immutable `HMAC_SHA256` avec `hmac_required`, sans champ de secret. `ProofService` exige cette policy avant une preuve dérivée; secret bytes en mémoire seulement si requis, digest SHA-256 seul persistant. |
+| Validation | Tests-first : import absent attendu; tests ciblés : 5 `PASS`; suite complète : 146 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan sans processus, shell, réseau, I/O, `eval`, import dynamique, persistance/audit/retour de secret ni mutation knowledge/evidence `PASS`; wheel isolé avec migration 021, refus sans secret et preuve HMAC valide `PASS`. |
+| Atomicité | L’absence de policy, un secret manquant lorsque requis, ou un secret fourni lorsque non requis échouent avant insertion de `knowledge_proof` et audit de preuve. Le knowledge historique reste inchangé. |
+| Limite | La policy ne gère ni rotation/révocation de secret, ni expiration, ni plusieurs algorithmes, ni plusieurs policies de projet, ni validator, runner, réseau, artefact ou gate nouvelle. |
+| Verdict | `PASS` pour M3.9 technique; publication et synchronisation de continuité à finaliser. |

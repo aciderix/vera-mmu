@@ -207,3 +207,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-030` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : framework de validators, runners sûrs additionnels, policy HMAC de projet, gates multi-evidence, lifecycle/traversal de work graph, CLI/MCP et pack ARET. `ALLOW`/`DENY`/`CONFIRM` fermés sont livrés, mais la confirmation interactive et la mutabilité de policy ne le sont pas. | `OBSERVED` | Revue post-M3.8; aucun contrat ou test de ces capacités n’est livré. | `LOG-0076` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-029`, `MEM-DEC-028`, `MEM-STATE-030`, `MEM-WALL-001`, puis `LOG-0075`–`LOG-0076` avant tout lot M3 ultérieur.
+
+
+## 17. Addendum de reprise — M3.9 policy HMAC de projet
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-031` | Policy de preuve | `SUPERSEDES: MEM-STATE-030` pour cette exclusion précise. Une policy singleton immutable de projet déclare `HMAC_SHA256` et `hmac_required`, sans secret. Toute preuve dérivée exige cette policy; lorsqu’elle requiert HMAC, le secret bytes demeure en mémoire et seul le digest est persisté. | `OBSERVED` | Migration `021_proof_policies.sql`, `proof_policies.py`, `proofs.py`, tests M3.9; 146 tests et 14 sous-tests, wheel isolé. | `LOG-0078`, `LOG-0079` |
+| `MEM-DEC-029` | Secret HMAC | L’absence de policy, un secret manquant lorsque requis, ou un secret fourni lorsque non requis sont des erreurs fail-loud. La policy, les audits et les records de preuve ne portent aucun secret, encodage, hint ou longueur de secret. | `DECISION` | Contrat M3.9 et invariants I004, I006–I008, I013–I015. | `LOG-0078`, `LOG-0079` |
+| `MEM-STATE-032` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : framework de validators, runners sûrs additionnels, gates multi-evidence, lifecycle/traversal de work graph, CLI/MCP et pack ARET. La rotation/révocation/expiration de secret et les algorithmes alternatifs restent hors M3.9. | `OBSERVED` | Revue post-M3.9; aucun contrat ou test de ces capacités n’est livré. | `LOG-0079` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-031`, `MEM-DEC-029`, `MEM-STATE-032`, `MEM-WALL-001`, puis `LOG-0078`–`LOG-0079` avant tout lot M3 ultérieur.

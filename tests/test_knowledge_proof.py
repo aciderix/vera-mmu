@@ -12,6 +12,7 @@ from vera_mmu.evidence import EvidenceService
 from vera_mmu.executions import ExecutionService
 from vera_mmu.identity import load_profile
 from vera_mmu.knowledge import KnowledgeService
+from vera_mmu.proof_policies import ProofPolicyService
 from vera_mmu.proofs import ProofError, ProofService
 from vera_mmu.store import MemoryStore
 
@@ -36,16 +37,16 @@ class ProofTests(unittest.TestCase):
  def setUp(self):
   self.d=tempfile.TemporaryDirectory();self.addCleanup(self.d.cleanup);r=Path(self.d.name)/'.vera-mmu';r.mkdir();self.p=r/'p.yaml';self.p.write_text(PROFILE)
  def _store(self):return MemoryStore.open(load_profile(self.p),self.p)
- def _ready(self,s):
+ def _ready(self,s,*,hmac_required=False):
   k=KnowledgeService(s);k.register_type('fact','Fact');k.append('k','fact','OBSERVED','T','content')
   CapabilityService(s).create('c','C','CHECK','1.0.0');CapabilityContractService(s).declare('c','NOOP','DENY_NETWORK',30);CapabilityPolicyService(s).declare('c','ALLOW','test policy');ExecutionService(s).run_noop('x','c',{})
-  EvidenceService(s).record('e','x','TEST_PROOF','PASS',{});AdmissionService(s).decide('a','e','ADMITTED','ok')
+  EvidenceService(s).record('e','x','TEST_PROOF','PASS',{});AdmissionService(s).decide('a','e','ADMITTED','ok');ProofPolicyService(s).declare('HMAC_SHA256',hmac_required=hmac_required)
  def test_derived_proven_record_preserves_knowledge(self):
   with self._store() as s:
    self._ready(s);proof=ProofService(s).promote('p','k','e','a',actor='t')
    self.assertEqual(proof.knowledge_id,'k');self.assertEqual(proof.status,'PROVEN');self.assertEqual(KnowledgeService(s).get('k').status,'OBSERVED')
  def test_hmac_required_refuses_missing_or_invalid_secret(self):
   with self._store() as s:
-   self._ready(s);service=ProofService(s,hmac_required=True)
+   self._ready(s,hmac_required=True);service=ProofService(s)
    with self.assertRaises(ProofError):service.promote('p','k','e','a')
 if __name__=='__main__':unittest.main()
