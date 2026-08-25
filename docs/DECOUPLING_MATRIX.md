@@ -123,3 +123,12 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C03` | La supersession porte uniquement les identifiants de knowledge génériques existantes ; elle n’introduit aucun `component`, `function`, symbole ou vocabulaire technique. | Validation d’identifiants VERA et de l’existence des deux knowledge ; scan ciblé du nouveau Core ; `LOG-0021`. | Import des composants V1, liens de connaissance spécialisés, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
 
 > M2.6 rend un remplacement explicite traçable sans réécrire les assertions knowledge et sans reproduire le lifecycle historique. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
+### 2.8. Avancement observé M2.7 — registre d’assets binaires hashés
+
+| Couplage | Surface VERA désormais observée | Evidence M2.7 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C02` | Migration `007` et table `asset` SQLite stricte ; le contenu binaire appartient au store lié au ProjectIdentity, sans chemin ou fichier externe. | `tests/test_assets.py` : migration 6→7, enregistrement/lecture exacte, hash/taille/type, immuabilité et rollback ; wheel vérifié ; `LOG-0024`. | Runtime de fichiers, checkpoint/policy de filesystem, exports, doctor, comportement de stockage V1 et parité ARET. | `SPLIT` |
+| `C16` | `AssetService` écrit un asset append-only avec SHA-256, taille et media type, puis ne restitue les bytes qu’après revérification de hash et taille ; audit atomique `ASSET_RECORDED`. | Tests de hash altéré, duplicat, rewrite/delete SQL refusés et audit/rollback ; scan ciblé et wheel isolé ; `LOG-0024`. | Evidence/proof, execution/validator, admission `PROVEN`, HMAC, relation avec knowledge, import croisé, bundle et parité historique. | `SPLIT` |
+
+> M2.7 établit un contenu binaire canonique vérifié avant lecture sans ouvrir de filesystem externe ni de sémantique d’evidence. Les lignes C02 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.

@@ -1,6 +1,7 @@
 """VERA-MMU: a transport-neutral Core for verifiable project memory."""
 
 from .addressing import Address, AddressError, CORE_RESOURCE_TYPES, make_address, parse_address
+from .assets import Asset, AssetError, AssetNotFoundError, AssetService, MAX_ASSET_BYTES
 from .entities import Entity, EntityError, EntityNotFoundError, EntityService, EntityType
 from .knowledge import (
     Knowledge,
@@ -36,12 +37,17 @@ from .workspace import Workspace, WorkspaceError, WorkspaceResolver, resolve_wor
 __all__ = [
     "Address",
     "AddressError",
+    "Asset",
+    "AssetError",
+    "AssetNotFoundError",
+    "AssetService",
     "CORE_RESOURCE_TYPES",
     "Entity",
     "EntityError",
     "EntityNotFoundError",
     "EntityService",
     "EntityType",
+    "MAX_ASSET_BYTES",
     "MemoryStore",
     "Knowledge",
     "KnowledgeAdmissionError",

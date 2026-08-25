@@ -55,8 +55,8 @@ class KnowledgeServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_knowledge_registry(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 6})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 7})
 
     def test_existing_m2_3_store_migrates_to_knowledge_registry(self) -> None:
         schema = Path(self._directory.name) / "m2_3_schema"

@@ -46,6 +46,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0020` | 2026-08-25 | `HYPOTHESIS` | M2.6 | supersession knowledge, append-only, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-012`, `MEM-WALL-001` |
 | `LOG-0021` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.6 | supersession knowledge, sidecar immutable, anti-cycle, audit | `OBSERVED` | `PASS` pour M2.6 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-012`, `MEM-DEC-012`, `MEM-WALL-001` |
 | `LOG-0022` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.6 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-012`, `MEM-DEC-012`, `MEM-WALL-001` |
+| `LOG-0023` | 2026-08-25 | `HYPOTHESIS` | M2.7 | asset binaire, SHA-256, lecture exacte, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-013`, `MEM-WALL-001` |
+| `LOG-0024` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.7 | asset binaire, hash avant lecture, immuabilité, audit | `OBSERVED` | `PASS` pour M2.7 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -494,3 +496,41 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites | Cette publication ne change pas le verdict M2.6 ni les exclusions : M2 complet et toute parité ARET restent `UNKNOWN`; `MEM-WALL-001` reste actif. |
 | Mémoire liée | `MEM-STATE-012`, `MEM-DEC-012`, `MEM-WALL-001`. |
 | Suivi | Actualiser les références de reprise qui signalaient la publication en attente, committer ce record documentaire puis vérifier de nouveau la référence publique. |
+
+### LOG-0023 — Hypothèse M2.7 : registre d’assets hashés
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.7 — Asset Registry` |
+| Hypothèse | Le Core peut enregistrer et relire des assets binaires locaux dans SQLite, append-only et liés à leur SHA-256, sans accéder à un chemin client, sans réseau, sans runner et sans les confondre avec une evidence ou une preuve. |
+| Périmètre | Migration `007`, table `asset` contenant identifiant, hash, taille, media type, contenu binaire, auteur et horodatage ; `AssetService` pour l’enregistrement, la lecture exacte de métadonnées et la lecture de bytes après revérification du hash/format ; audit atomique. |
+| Justification | I005 et la politique de sécurité imposent la vérification du hash avant toute lecture d’artefact. L’espace d’adressage Core possède déjà la ressource générique `asset`, mais le schéma ne possède encore aucun registre associé. Le stockage du payload en SQLite évite l’exposition d’un chemin, les courses fichier↔base et toute sémantique d’import/fetch. |
+| Exclusions | Aucun chemin, fichier externe, symlink, fetch, réseau, import/export, bundle, déduplication inter-projet, execution, validator, evidence/proof, admission `PROVEN`, relation vers knowledge, mutation/suppression, recherche/listing, capability, policy ou MCP. Aucun vocabulaire ARET. |
+| Baseline | VERA-MMU `main` et `origin/main` à `2986774c91bb3e90f4dfce9457a17ce6e19ad99b`, propres ; M2.6 publié `e6afb43e1f840cbf5c909f6522d65c351ae62411`. ARET-MMU intact à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, propre. |
+| Invariants | I001, I002, I004, I005, I011, I014, I015. |
+| Tests prévus | Migration 6→7 ; asset valide ; hash/taille/media type/identifiant invalides ; duplicat ; lecture exacte avec hash revérifié ; altération SQL ; triggers d’immuabilité ; rollback asset+audit ; wheel isolé. |
+| Verdict | `NOT_RUN` — aucun patch M2.7 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-013` à créer, `MEM-STATE-012`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, écrire les tests M2.7 avant la migration et le service, puis vérifier les gates complètes. |
+
+### LOG-0024 — Verdict M2.7 : registre d’assets hashés
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.7 — Asset Registry` |
+| Certitude | `OBSERVED` : les tests, la migration, les checks statiques et le wheel ont produit les résultats consignés ; aucune evidence métier VERA n’est créée ou admise. |
+| Baseline | M2.6 publié `e6afb43e1f840cbf5c909f6522d65c351ae62411`; `LOG-0023`; VERA `main`/`origin/main` à `2986774c91bb3e90f4dfce9457a17ce6e19ad99b` avant patch. ARET-MMU est resté propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Changement | Migration `007_asset_registry.sql`, table SQLite stricte `asset`, `Asset` et `AssetService`. Un asset contient bytes, SHA-256, taille, media type, auteur et horodatage ; il est append-only, audité et adressé par `vera://<project>/asset/<id>`. |
+| Invariants | I001, I002, I004, I005, I011, I014, I015. Le hash SHA-256 et la taille sont revérifiés avant que `read` ne restitue les bytes. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **79 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration 6→7, enregistrement/lecture exacte, hash/taille/media type/ID invalides, duplicats, asset SQL altéré, rewrite/delete SQL refusés et rollback conjoint asset+audit. |
+| Contrôles de sûreté | `git diff --check` réussit. Le scan ciblé des nouveaux artefacts M2.7 ne trouve aucune dépendance ARET, admission `PROVEN`, evidence, MCP ou réseau. La seule API publique M2.7 est `record`, `get`, `read` ; aucun listing, scan, import ou export n’est exposé. |
+| Distribution | Wheel construit via `pip wheel`, installé dans une cible isolée, puis contrôlé par un script hors dépôt qui initialise un store, écrit et relit un asset hashé. SHA-256 wheel : `6fa127198a92f67d51de48853df6c061826cdfee78d71da8e2bfc9776dea9fdd`; sortie de contrôle : `9cf128e5a13914b989cef7aa17539d41cad218e333cef54f41dee83e43ab3002`; migration : `8009c584940d4c262cb7eceb38d08ef3269c23896900a4c6a8da0811fb99ba04`; service : `90a60e112b1951a025d0ac3c977733294e9ec14db11309a3f19605f7ffa7c2ea`. |
+| Comparaison | M2.6 rendait le remplacement d’assertions knowledge explicite, mais le Core ne possédait aucun contenu binaire canonique protégé par hash avant lecture. M2.7 ajoute ce substrat d’asset sans créer de fichier externe, execution, validator, preuve ou promotion épistémique. |
+| Limites | Aucun chemin/fichier externe, symlink, fetch, réseau, import/export, bundle, déduplication inter-projet, relation avec knowledge, execution, validator, evidence/proof, admission `PROVEN`, policy, capability, MCP, recherche/listing ou mutation/suppression n’est livré. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.7 et ses gates techniques. `UNKNOWN` pour M2 au total, toute parité ARET et toute sémantique d’evidence ou d’exécution. |
+| Mémoire liée | `MEM-STATE-013`, `MEM-DEC-013`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour mémoire, plan, matrice et README ; relancer les checks finaux, puis committer et publier atomiquement. |
