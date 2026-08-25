@@ -100,6 +100,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0074` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.7 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-028`, `MEM-WALL-001` |
 | `LOG-0075` | 2026-08-25 | `HYPOTHESIS` | M3.8 | policy fermée, `ALLOW`, `DENY`, `CONFIRM`, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-029`, `MEM-DEC-028`, `MEM-WALL-001` |
 | `LOG-0076` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.8 | policy, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-029`, `MEM-STATE-030`, `MEM-DEC-028`, `MEM-WALL-001` |
+| `LOG-0077` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.8 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-030`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1281,3 +1282,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Atomicité | L’absence de policy, `DENY` ou `CONFIRM` lève une erreur avant validation des paramètres, insertion d’execution et audit de runner. Seule la déclaration de policy elle-même produit son audit append-only. |
 | Limite | `CONFIRM` reste un refus explicite : aucun protocole de confirmation interactive, override temporaire, expiration, changement de décision, runner additionnel, réseau, artefact, evidence ou promotion n’est ajouté. |
 | Verdict | `PASS` pour M3.8 technique; publication et synchronisation de continuité à finaliser. |
+
+
+### LOG-0077 — Publication vérifiée M3.8
+
+| Champ | Valeur |
+|---|---|
+| Commit | `53515175156846a68496d3a952a9fbe04d47c7c2` — `feat: add explicit capability policies`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication M3.8. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Suivi | Cadrer séparément un framework de validators fermé, sans exécution d’oracle ARET, runner additionnel ni réseau implicite. |
