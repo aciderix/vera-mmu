@@ -1,6 +1,6 @@
 # Invariants non régressifs
 
-Ces invariants constituent le contrat de sûreté de VeriChronicle. Toute évolution du Core doit indiquer lesquels elle affecte et ajouter ou préserver les tests associés. Un profil ou un Domain Pack peut renforcer ce contrat ; il ne peut pas l’affaiblir.
+Ces invariants constituent le contrat de sûreté de VERA-MMU. Toute évolution du Core doit indiquer lesquels elle affecte et ajouter ou préserver les tests associés. Un profil ou un Domain Pack peut renforcer ce contrat ; il ne peut pas l’affaiblir.
 
 | ID | Invariant | Exigence vérifiable |
 |---|---|---|

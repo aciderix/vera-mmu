@@ -3,13 +3,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "verichronicle"
+name = "vera-mmu"
 version = "0.1.0"
-description = "Deterministic project memory, provenance, evidence, and continuity engine for AI-assisted work"
+description = "Verifiable epistemics, relational provenance, and auditable continuity for AI-assisted projects"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-  { name = "VeriChronicle contributors" },
+  { name = "VERA-MMU contributors" },
 ]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mmu = "verichronicle.__main__:main"
+vmmu = "vera_mmu.__main__:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

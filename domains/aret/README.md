@@ -1,6 +1,6 @@
 # ARET Domain Pack — statut de conception
 
-ARET est le premier **client de compatibilité** envisagé pour VeriChronicle. Ce répertoire ne contient volontairement aucun code, script, corpus, binaire ni document provenant d’ARET-MMU.
+ARET est le premier **client de compatibilité** envisagé pour VERA-MMU. Ce répertoire ne contient volontairement aucun code, script, corpus, binaire ni document provenant d’ARET-MMU.
 
 Le futur pack devra fournir, dans un format déclaré et versionné :
 
@@ -8,7 +8,7 @@ Le futur pack devra fournir, dans un format déclaré et versionné :
 |---|---|
 | Profil ARET | Taxonomie, Front, reprise, policies et intégration correspondant au projet ARET. |
 | Lecteur de migration V1 | Import explicite et hors ligne de sources/bundles ARET, avec rapport de transformation. |
-| Compatibilité d’adresses | Lecture transitoire des adresses `ARET://…`; toute nouvelle écriture utilise `mmu://…`. |
+| Compatibilité d’adresses | Lecture transitoire des adresses `ARET://…`; toute nouvelle écriture utilise `vera://…`. |
 | Capabilities | Pipelines, validators et exigences de toolchain ARET, entièrement confinés au pack. |
 | Gates | Critères de validation ARET fondés sur des executions et evidence réelles. |
 | Playbook | Doctrine métier ARET distincte de la doctrine universelle. |

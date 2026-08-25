@@ -2,7 +2,7 @@
 
 ## Intention
 
-VeriChronicle est un moteur de continuité de projet qui sépare les mécanismes vérifiables des spécialisations de domaine. Le modèle ou l’IDE est un client du système ; il n’est ni le registre canonique ni l’autorité de preuve.
+VERA-MMU est un moteur de continuité de projet qui sépare les mécanismes vérifiables des spécialisations de domaine. Le modèle ou l’IDE est un client du système ; il n’est ni le registre canonique ni l’autorité de preuve.
 
 ```text
 Project Profile + Domain Packs + Capability Catalog + Policies
@@ -40,7 +40,7 @@ Project Profile + Domain Packs + Capability Catalog + Policies
 
 ## Décisions initiales
 
-Le package Python est `verichronicle`, le nom de distribution envisagé est `verichronicle`, et la CLI publique envisagée est `mmu`. La configuration du projet résidera sous `.mmu/`; le format canonique prévu est `.mmu/project.yaml`. Les nouveaux objets utiliseront le schéma d’adressage `mmu://<project>/<resource>/<id>`.
+Le package Python est `vera_mmu`, le nom de distribution est `vera-mmu`, et la CLI publique est `vmmu`. La configuration du projet résidera sous `.vera-mmu/`; le format canonique prévu est `.vera-mmu/project.yaml`. Les nouveaux objets utilisent le schéma d’adressage `vera://<project>/<resource>/<id>`.
 
 Le serveur MCP ne doit pas être généré comme un nouveau programme Python pour chaque projet. La compilation produit un manifeste immuable et des fichiers d’intégration ; un serveur universel charge ce manifeste et ne résout que des capacités et outils enregistrés. Cette approche réduit la surface de code généré et permet au doctor de détecter les divergences de profil, de pack ou d’adaptateur.
 

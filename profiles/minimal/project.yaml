@@ -4,7 +4,7 @@ mmu:
 project:
   id: "example-project"
   name: "Example Project"
-  description: "Minimal deterministic profile for VeriChronicle foundation tests."
+  description: "Minimal deterministic profile for VERA-MMU foundation tests."
   domain: "generic"
 
 workspace:
@@ -12,7 +12,7 @@ workspace:
   additional_roots: []
 
 storage:
-  memory_dir: ".mmu"
+  memory_dir: ".vera-mmu"
   sqlite_file: "memory.sqlite"
   artifacts_dir: "artifacts"
   max_context_bytes: 18500
@@ -53,13 +53,13 @@ work:
   enabled: true
 
 capabilities:
-  catalog: ".mmu/capabilities.yaml"
+  catalog: ".vera-mmu/capabilities.yaml"
 
 gates:
-  catalog: ".mmu/gates.yaml"
+  catalog: ".vera-mmu/gates.yaml"
 
 policies:
-  file: ".mmu/policies.yaml"
+  file: ".vera-mmu/policies.yaml"
 
 resume:
   sections:

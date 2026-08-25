@@ -1,4 +1,4 @@
-"""Command-line entry point for the VeriChronicle foundation."""
+"""Command-line entry point for the VERA-MMU foundation."""
 
 from __future__ import annotations
 
@@ -12,8 +12,8 @@ from .identity import ProfileError, load_profile, profile_identity
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="mmu",
-        description="VeriChronicle foundation CLI: deterministic project profile identity.",
+        prog="vmmu",
+        description="VERA-MMU foundation CLI: deterministic project profile identity.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

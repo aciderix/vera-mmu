@@ -1,4 +1,4 @@
-"""VeriChronicle: deterministic continuity primitives for AI-assisted projects."""
+"""VERA-MMU: verifiable continuity primitives for AI-assisted projects."""
 
 from .identity import ProfileIdentity, canonical_json, load_profile, profile_identity
 

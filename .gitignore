@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *.so
 *.egg-info/
+build/
+dist/
 .venv/
 venv/
 .pytest_cache/
@@ -10,11 +12,11 @@ venv/
 htmlcov/
 
 # Local project runtime
-.mmu/memory.sqlite
-.mmu/memory.sqlite-shm
-.mmu/memory.sqlite-wal
-.mmu/artifacts/
-.mmu/runtime/
+.vera-mmu/memory.sqlite
+.vera-mmu/memory.sqlite-shm
+.vera-mmu/memory.sqlite-wal
+.vera-mmu/artifacts/
+.vera-mmu/runtime/
 
 # Editors and operating systems
 .vscode/

@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from verichronicle.identity import ProfileError, load_profile, profile_identity
+from vera_mmu.identity import ProfileError, load_profile, profile_identity
 
 
 PROFILE = """\
@@ -17,7 +17,7 @@ project:
 workspace:
   root: "."
 storage:
-  memory_dir: ".mmu"
+  memory_dir: ".vera-mmu"
   sqlite_file: "memory.sqlite"
   artifacts_dir: "artifacts"
 """
@@ -42,7 +42,7 @@ class ProfileIdentityTests(unittest.TestCase):
 storage:
   artifacts_dir: "artifacts"
   sqlite_file: "memory.sqlite"
-  memory_dir: ".mmu"
+  memory_dir: ".vera-mmu"
 workspace:
   root: "."
 project:
