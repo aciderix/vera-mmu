@@ -39,6 +39,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0013` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.2 | types d’entité, entités, lecture exacte, audit | `OBSERVED` | `PASS` pour M2.2 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-008`, `MEM-DEC-008`, `MEM-WALL-001` |
 | `LOG-0014` | 2026-08-25 | `HYPOTHESIS` | M2.3 | registre relationnel, arêtes entre entités, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-009`, `MEM-WALL-001` |
 | `LOG-0015` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.3 | types relationnels, arêtes, immuabilité, audit | `OBSERVED` | `PASS` pour M2.3 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-009`, `MEM-DEC-009`, `MEM-WALL-001` |
+| `LOG-0016` | 2026-08-25 | `HYPOTHESIS` | M2.4 | registre knowledge, append-only, statuts épistémiques, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-010`, `MEM-WALL-001` |
+| `LOG-0017` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.4 | types knowledge, append-only, hash, statuts, audit | `OBSERVED` | `PASS` pour M2.4 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-010`, `MEM-DEC-010`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -316,6 +318,43 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | Mémoire liée | `MEM-STATE-009`, `MEM-DEC-009`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour le plan, la mémoire, la matrice et le manifeste ; relire le diff, committer puis publier atomiquement. |
 
+### LOG-0016 — Hypothèse M2.4 : noyau knowledge append-only
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.4 — Knowledge Registry` |
+| Hypothèse | Le Core peut enregistrer des types de connaissance puis ajouter/lire exactement des enregistrements append-only, avec hash de contenu, statuts épistémiques contrôlés et audit atomique, sans créer une voie de contournement vers `PROVEN`. |
+| Périmètre | Migration `004`, `KnowledgeService`, `knowledge_type`, `knowledge`, métadonnées JSON canoniques, hash SHA-256 du contenu, statuts initiaux `ACTIVE`/`OBSERVED`/`HYPOTHESIS`/`CONFLICTING`, lecture exacte et audit de création. |
+| Exclusions | `PROVEN`, preuves/evidence/artifacts, FTS/FIND, tags, sources documentaires, supersession/versioning, relations, mise à jour/suppression, promotion/demotion, bundle, policy, capability, MCP, pack/lecteur/import ARET. |
+| Baseline | M2.3 publié au commit `5e68a9694137dd1e49f6a8b4a1700c7ca2e40764`; `LOG-0015`; C16 de la matrice, sections 7 et 17 de la spécification et contrat ARET d’append knowledge lus comme références de périmètre. |
+| Invariants | I001, I002, I003, I004, I011, I014, I015. |
+| Tests prévus | Migration 3→4, type inconnu/dupliqué, statut interdit, `PROVEN` rejeté, ID invalide, hash de contenu, lecture exacte, immuabilité SQL, audit de création, rollback atomique et absence de vocabulaire ARET. |
+| Verdict | `NOT_RUN` — aucun patch M2.4 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-010` à créer, `MEM-STATE-009`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, puis créer les tests et modules M2.4 sans étendre vers evidence, recherche ou supersession. |
+
+### LOG-0017 — Verdict M2.4 : noyau knowledge append-only
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.4 — Knowledge Registry` |
+| Certitude | `OBSERVED` : les tests, le wheel et le contrôle knowledge ont produit les résultats consignés ; aucune evidence métier VERA admissible n’existe encore. |
+| Baseline | M2.3 publié `5e68a9694137dd1e49f6a8b4a1700c7ca2e40764`; `LOG-0016`; C16 de la matrice, taxonomie de la spécification et contrat ARET d’append knowledge lus comme références de périmètre, sans import de code ARET. |
+| Changement | Migration `004_knowledge_registry.sql`, `KnowledgeService`, `KnowledgeType`/`Knowledge`, hash SHA-256 de contenu, JSON canonique, statuts initiaux sûrs, triggers append-only et audit `KNOWLEDGE_TYPE_REGISTERED`/`KNOWLEDGE_APPENDED`. |
+| Invariants | I001, I002, I003, I004, I011, I014, I015. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **57 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration 3→4, type inconnu/dupliqué, statuts admissibles, `PROVEN` rejeté par l’API et le schéma, ID invalide, hash de contenu, lecture exacte, hash incohérent, rollback audit et refus SQL de rewrite/delete. |
+| Contrôles de sûreté | `git diff --check` et scan anti-ARET du Core réussis. `PROVEN` est refusé à l’admission et par la contrainte SQL, car aucune Evidence Store ne peut établir la preuve requise. |
+| Distribution | Wheel construit puis installé dans une cible temporaire ; migration `004` présente et append/relecture d’une knowledge observée réussie depuis le wheel. SHA-256 wheel : `2614d3930d5f63489aa78d4f0bc35d2f17af207208f925a9d92442c05f935305`; sortie de contrôle : `14e8c5346dedec5c5c2f8166c18d5d2a9750f4feb753f0caa5644d47eef83950`. |
+| Comparaison | M2.3 ne persistait pas de connaissance. M2.4 ajoute une assertion générique append-only, sans type ARET codé, FTS/FIND, source documentaire, supersession, relation ou preuve. |
+| Limites | Pas de `PROVEN`, evidence/proof/artifact, FTS/FIND, tags, sources documentaires, supersession/versioning, relation vers knowledge, promotion/demotion, bundle, policy, capability, MCP ou compatibilité ARET. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.4. `UNKNOWN` pour M2 dans son ensemble et toute parité ARET. |
+| Mémoire liée | `MEM-STATE-010`, `MEM-DEC-010`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour le plan, la mémoire, la matrice et le manifeste ; relire le diff, committer puis publier atomiquement. |
+
 ## 4. Protocole de journalisation d’un changement
 
 Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du work item actif avec : cause supposée, comportement cible, surface de fichiers, baseline, invariants et tests prévus. Après le patch, ajouter des entrées distinctes pour `RUN`, `EVIDENCE`, `COMPARISON` et `VERDICT` si le changement est significatif. Une entrée de verdict doit pouvoir être lue indépendamment et répondre à quatre questions : qu’a-t-on changé, contre quelle baseline, quelle preuve a été produite et quelle limite demeure ?
@@ -331,11 +370,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 
 ## 5. Handoff actif
 
-> **État de reprise :** M2.3 est clos par son verdict `LOG-0015` et sera versionné dans son commit atomique. M1/M2.1/M2.2 demeurent publiés ; M2 complet et la parité ARET restent `UNKNOWN`, et `MEM-WALL-001` reste ouvert. Aucun sous-lot M2.4 n’est encore ouvert.
+> **État de reprise :** M2.4 est clos par son verdict `LOG-0017` et sera versionné dans son commit atomique. M1/M2.1/M2.2/M2.3 demeurent publiés ; M2 complet et la parité ARET restent `UNKNOWN`, et `MEM-WALL-001` reste ouvert. Aucun sous-lot M2.5 n’est encore ouvert.
 
 | Reprendre par | Lire ensuite | Ne pas faire avant |
 |---|---|---|
-| `UNIVERSALIZATION_WORKPLAN.md`, état actif puis rituel M2.4 | `PROJECT_MEMORY.md`, sections 4–7 ; `LOG-0014` et `LOG-0015`. | Présenter M2.3 comme un graphe complet ou une mémoire complète, déclarer une parité ARET, créer un alias `ARET://`, démarrer M2.4 sans hypothèse distincte ou lever `MEM-WALL-001` par hypothèse. |
+| `UNIVERSALIZATION_WORKPLAN.md`, état actif puis rituel M2.5 | `PROJECT_MEMORY.md`, sections 4–7 ; `LOG-0016` et `LOG-0017`. | Présenter M2.4 comme une Evidence Store ou une mémoire complète, admettre `PROVEN`, déclarer une parité ARET, créer un alias `ARET://`, démarrer M2.5 sans hypothèse distincte ou lever `MEM-WALL-001` par hypothèse. |
 
 ## 6. Gabarit d’entrée future
 

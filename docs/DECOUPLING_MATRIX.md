@@ -75,6 +75,15 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M2.3 établit des arêtes génériques mais n’implémente ni graphe de traversal ni lifecycle historique. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
 
+### 2.5. Avancement observé M2.4 — knowledge append-only
+
+| Couplage | Surface VERA désormais observée | Evidence M2.4 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C16` | Migration `004`, `knowledge_type` déclaratif et `knowledge` append-only avec hash SHA-256, JSON canonique, statuts initiaux sûrs, lecture exacte et audit atomique. | `tests/test_knowledge.py` : migration 3→4, hash, statuts, `PROVEN` refusé par API et SQL, rewrite/delete refusés, audit/rollback ; wheel vérifié ; `LOG-0017`. | Evidence/proof/artifact, admission de `PROVEN`, FTS/FIND, tags, sources, supersession, relations vers knowledge, audit de toute mutation métier, import croisé. | `SPLIT` |
+| `C03` | Les connaissances restent génériques et ne portent aucun lien `component` ou `function`; leur type est enregistré dans le Core. | Tests de type inconnu/dupliqué et d’adresse VERA exacte ; `LOG-0017`. | Import des composants V1, liens de connaissance, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
+
+> M2.4 établit une connaissance append-only vérifiable par hash mais ne fournit ni preuve admissible, ni recherche, ni lifecycle. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

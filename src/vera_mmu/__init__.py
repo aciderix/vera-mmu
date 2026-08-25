@@ -2,6 +2,14 @@
 
 from .addressing import Address, AddressError, CORE_RESOURCE_TYPES, make_address, parse_address
 from .entities import Entity, EntityError, EntityNotFoundError, EntityService, EntityType
+from .knowledge import (
+    Knowledge,
+    KnowledgeAdmissionError,
+    KnowledgeError,
+    KnowledgeNotFoundError,
+    KnowledgeService,
+    KnowledgeType,
+)
 from .identity import (
     ProfileError,
     ProfileIdentity,
@@ -28,6 +36,12 @@ __all__ = [
     "EntityService",
     "EntityType",
     "MemoryStore",
+    "Knowledge",
+    "KnowledgeAdmissionError",
+    "KnowledgeError",
+    "KnowledgeNotFoundError",
+    "KnowledgeService",
+    "KnowledgeType",
     "Migration",
     "MigrationError",
     "MigrationRunner",

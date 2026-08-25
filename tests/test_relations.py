@@ -58,8 +58,8 @@ class RelationServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_relation_registry(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 3})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 4})
 
     def test_existing_m2_2_store_migrates_to_relation_registry(self) -> None:
         schema = Path(self._directory.name) / "m2_2_schema"
@@ -69,7 +69,8 @@ class RelationServiceTests(unittest.TestCase):
         shutil.copyfile(source_dir / "002_entity_registry.sql", schema / "002_entity_registry.sql")
         with MemoryStore.open(self._profile(), self.profile_path, schema_dir=schema) as m2_2_store:
             self.assertEqual(m2_2_store.metadata()["store_format"], {"schema_version": 2})
-        with self._open() as store:
+        shutil.copyfile(source_dir / "003_relation_registry.sql", schema / "003_relation_registry.sql")
+        with MemoryStore.open(self._profile(), self.profile_path, schema_dir=schema) as store:
             self.assertEqual(store.metadata()["store_format"], {"schema_version": 3})
             self.assertEqual(
                 [event["action"] for event in store.audit_events()],
