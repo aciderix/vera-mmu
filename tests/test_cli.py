@@ -41,7 +41,7 @@ class CliTests(unittest.TestCase):
             first = json.loads(output.getvalue())
             self.assertEqual(first_status, 0)
             self.assertTrue(first["ok"])
-            self.assertEqual(first["metadata"]["store_format"], {"schema_version": 13})
+            self.assertEqual(first["metadata"]["store_format"], {"schema_version": 14})
 
             output = StringIO()
             with redirect_stdout(output):

@@ -70,6 +70,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0044` | 2026-08-25 | `HYPOTHESIS` | M2.13 | work item, parent, statut initial, immuabilité, no-graph | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-020`, `MEM-WALL-001` |
 | `LOG-0045` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.13 | work item, migration 013, parent, audit, wheel | `OBSERVED` | `PASS` pour M2.13 ; M2 restant/parité ARET `UNKNOWN` | `MEM-STATE-021`, `MEM-DEC-023`, `MEM-STATE-022`, `MEM-WALL-001` |
 | `LOG-0046` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.13 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-021`, `MEM-STATE-022`, `MEM-WALL-001` |
+| `LOG-0047` | 2026-08-25 | `HYPOTHESIS` | M2.14 | capability, execution, déclaration, immuabilité, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-022`, `MEM-WALL-001` |
+| `LOG-0048` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.14 | capability, execution schema, URI, audit, wheel | `OBSERVED` | `PASS` pour M2.14 ; M2.EXIT/parité ARET `UNKNOWN` | `MEM-STATE-023`, `MEM-DEC-024`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -934,3 +936,38 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour la publication M2.13. |
 | Mémoire liée | `MEM-STATE-021`, `MEM-STATE-022`, `MEM-WALL-001`. |
 | Suivi | Publier ce record documentaire, puis établir la baseline M2.14 sans ouvrir runner, validator, Evidence Store, gate, policy ou admission `PROVEN`. |
+
+### LOG-0047 — Hypothèse M2.14 : Capability Declaration & Execution Schema
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.14 — Capability Declaration & Execution Schema` |
+| Baseline | VERA `a7ae4831524447a1ffb1fb03d294d3be4fabe5ba`, `main` propre et alignée à `origin/main`; ARET `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, `main` propre et non modifié. Baseline VERA : 118 tests et 14 sous-tests `PASS`; schéma courant 001–013. |
+| Écart contractuel | Le schéma M2 requiert un capability registry et une `execution` distincte de proof. `CORE_RESOURCE_TYPES` ne contient pas encore `capability`; aucune table, migration, modèle ni service de capability/execution n’existe. |
+| Hypothèse | Si VERA ajoute une migration 014 avec un registre immutable de capabilities déclaratives, fermé sur les types universels de la spécification, et une table `execution` append-only référant une capability mais sans service public d’écriture/lecture, alors M2 ferme les deux dernières ressources de schéma sans déplacer runner, policy, validation, Evidence Store ou gate de M3. |
+| Décision de frontière | `CapabilityService` ne persiste que identité, nom, description, kind, version et schémas JSON déclaratifs d’inputs/paramètres/outputs. Il n’accepte ni commande, runner, policy, réseau, timeout, artefact, validator ni secret. La table `execution` est contrôlée structurellement par migration/FK/immutabilité seulement : une écriture/lecture opérationnelle ne sera ouverte qu’avec le runner M3. |
+| Tests-first attendus | Migration 001→014 et installation fresh ; nouvelle ressource URI `capability`; création/lecture exacte de capability; types/version/JSON/identifiants invalides; unicité, audit atomique et rollback; triggers anti-UPDATE/DELETE sur capability/execution; FK execution→capability vérifiée par SQL de structure; absence de `ExecutionService`, runner, shell, policy, validator, evidence, proof, gate et admission `PROVEN`. |
+| Invariants | I001, I002, I003, I004, I006, I007, I008, I011, I014, I015. |
+| Non-objectifs | Aucun runner, commande, shell, paramètres exécutés, policy, timeout, réseau, validator, artefact, writing/lecture opérationnelle d’execution, Evidence Store, HMAC, proof, gate, work graph, admission ou promotion `PROVEN`, import ARET. |
+| Verdict | `PENDING` — tests et patch minimal à produire; aucune capacité d’exécution n’est encore livrée. |
+
+### LOG-0048 — Verdict M2.14 : Capability Declaration & Execution Schema
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.14 — Capability Declaration & Execution Schema` |
+| Changement minimal | Migration `014_capability_execution_schema.sql`; `CapabilityService`/`Capability`; URI `capability`; tests-first `test_capabilities.py`; attentes de baseline globale 13→14. La table `execution` est structurelle et immutable, sans service d’exécution. |
+| Exécution ciblée | `tests/test_capabilities.py` : 8 tests `PASS`. |
+| Exécution Core | `PYTHONPATH=src python3 -m pytest -q` : 126 tests et 14 sous-tests `PASS`. |
+| Distribution | Wheel isolé `PASS`, SHA-256 `b94a06c2216abd97847402a77ac9ab1fcde2a0836b93ad24389548631bc3cd08`; migration 014, URI capability et absence de `ExecutionService` vérifiées hors arbre source. |
+| Contrôles | `git diff --check` `PASS`; scan sans accès externe, runner/execution service, shell ou vocabulaire ARET `PASS`. |
+| Comparaison | Baseline M2.13 : 118 tests et 14 sous-tests, schéma 013. Résultat : 126 tests et 14 sous-tests, schéma 014. Les huit tests ajoutés couvrent migrations, capability exacte, URI, validation, audit/rollback, triggers et FK execution. |
+| Invariants | I001, I002, I003, I004, I006, I007, I008, I011, I014, I015. |
+| Limites | La capability est déclarative ; aucun runner/policy/validator/commande/réseau/artefact n’est stocké. `execution` n’est ni produite ni lue par un service M2 et n’est jamais une proof. Aucun Evidence Store, admission ou `PROVEN` n’existe. |
+| Verdict | `PASS` pour M2.14 ; `UNKNOWN` pour M2.EXIT et toute parité ARET. |
+| Mémoire liée | `MEM-STATE-023`, `MEM-DEC-024`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour mémoire, plan, README et matrice ; publier M2.14 puis exécuter l’audit M2.EXIT séparé. |

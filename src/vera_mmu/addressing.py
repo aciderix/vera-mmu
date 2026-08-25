@@ -16,6 +16,7 @@ from .identity import PROJECT_ID_RE
 CORE_RESOURCE_TYPES = frozenset(
     {
         "asset",
+        "capability",
         "entity",
         "evidence",
         "execution",
