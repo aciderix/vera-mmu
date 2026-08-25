@@ -37,7 +37,7 @@ The composed name must be used consistently in public documentation and tooling.
 
 ## Current status
 
-This repository now contains the **M1 identity Core**, the **M2.1 SQLite substrate**, and the **M2.2 generic Entity Registry**: a safely normalized Project Profile, deterministic project identities, a `WorkspaceResolver`, a confined `RuntimeLocator`, strict canonical `vera://` addresses, an immutable migration ledger, a ProjectIdentity-bound SQLite store, technical audit records, registered generic entity types, and exact entity creation/read. It does **not** yet provide relations, symbols, append-only knowledge, evidence services, bundles, a production MCP server, a generic capability runner, an ARET migration tool, or a dashboard.
+This repository now contains the **M1 identity Core**, the **M2.1 SQLite substrate**, the **M2.2 generic Entity Registry**, and the **M2.3 Relation Registry**: a safely normalized Project Profile, deterministic project identities, a `WorkspaceResolver`, a confined `RuntimeLocator`, strict canonical `vera://` addresses, an immutable migration ledger, a ProjectIdentity-bound SQLite store, technical audit records, registered generic entity types, exact entity creation/read, and immutable typed edges between entities. It does **not** yet provide relation traversal or lifecycle, symbols, append-only knowledge, evidence services, bundles, a production MCP server, a generic capability runner, an ARET migration tool, or a dashboard.
 
 ## Continuity records
 
@@ -62,7 +62,7 @@ PYTHONPATH=src python3 -m vera_mmu inspect profiles/minimal/project.yaml
 PYTHONPATH=src python3 -m vera_mmu init profiles/minimal/project.yaml
 ```
 
-The `identity` command validates the profile and prints its deterministic SHA-256 identity. The `inspect` command resolves project roots, optional local VCS markers, runtime, SQLite location, and artifact directory without opening a store or running Git. The `init` command opens only the profile-bound runtime, applies the checksum-protected migration ledger, records the ProjectIdentity and prints the resulting metadata. The public Python Core additionally exposes `EntityService` for registered generic types and exact entity creation/read. The implementation remains deliberately bounded: it adds no relations, knowledge, evidence, policy or execution semantics before their explicit tests and contracts exist.
+The `identity` command validates the profile and prints its deterministic SHA-256 identity. The `inspect` command resolves project roots, optional local VCS markers, runtime, SQLite location, and artifact directory without opening a store or running Git. The `init` command opens only the profile-bound runtime, applies the checksum-protected migration ledger, records the ProjectIdentity and prints the resulting metadata. The public Python Core additionally exposes `EntityService` for registered generic types and exact entity creation/read, and `RelationService` for registered immutable edges between existing entities. The implementation remains deliberately bounded: it adds no traversal, relation lifecycle, knowledge, evidence, policy or execution semantics before their explicit tests and contracts exist.
 
 ## Roadmap
 
@@ -70,7 +70,7 @@ The `identity` command validates the profile and prints its deterministic SHA-25
 |---|---|
 | **M0 — Governance baseline** | Invariants, decoupling matrix, test conventions, provenance rules, naming audit, and independent package namespace. |
 | **M1 — Universal identity and profile** | Canonical Project Profile, profile/project/workspace hashes, confined runtime, mono/multi/no-Git resolution, and generic strict `vera://` addressing. Technical gates verified; ARET parity remains out of scope. |
-| **M2 — Universal persistence** | **M2.1 delivered:** SQLite migration ledger, identity binding, format metadata, technical audit, transaction and CLI initialization. **M2.2 delivered:** generic entity types, exact entities, canonical JSON and atomic creation audit. Relations, symbols, append-only knowledge, evidence, artifacts, bundles and broader audit remain separate future sub-lots. |
+| **M2 — Universal persistence** | **M2.1 delivered:** SQLite migration ledger, identity binding, format metadata, technical audit, transaction and CLI initialization. **M2.2 delivered:** generic entity types, exact entities, canonical JSON and atomic creation audit. **M2.3 delivered:** declarative relation types, immutable typed edges between entities, endpoint constraints and atomic creation audit. Traversal/lifecycle, symbols, append-only knowledge, evidence, artifacts, bundles and broader audit remain separate future sub-lots. |
 | **M3 — ARET compatibility pack** | Read-only importer, `ARET://` compatibility reader, profile, toolchain declarations, and parity suite. |
 | **M4 — Capabilities and gates** | Closed catalog, policy engine, safe runners, validators, executions, and gate engine. |
 | **M5 — MCP compiler and adapters** | Generated manifest, stable MCP Core API, runtime adapters, instructions, hooks, and doctor. |

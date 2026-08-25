@@ -55,17 +55,18 @@ class EntityServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_entity_registry(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 2})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 3})
 
     def test_existing_m2_1_store_migrates_to_entity_registry(self) -> None:
         schema = Path(self._directory.name) / "m2_1_schema"
         schema.mkdir()
-        source = Path(__file__).parents[1] / "src" / "vera_mmu" / "schema" / "001_core_store.sql"
-        shutil.copyfile(source, schema / source.name)
+        source_dir = Path(__file__).parents[1] / "src" / "vera_mmu" / "schema"
+        shutil.copyfile(source_dir / "001_core_store.sql", schema / "001_core_store.sql")
         with MemoryStore.open(load_profile(self.profile_path), self.profile_path, schema_dir=schema) as m2_1_store:
             self.assertEqual(m2_1_store.metadata()["store_format"], {"schema_version": 1})
-        with self._open() as store:
+        shutil.copyfile(source_dir / "002_entity_registry.sql", schema / "002_entity_registry.sql")
+        with MemoryStore.open(load_profile(self.profile_path), self.profile_path, schema_dir=schema) as store:
             service = EntityService(store)
             self.assertEqual(store.metadata()["store_format"], {"schema_version": 2})
             self.assertEqual(

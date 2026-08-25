@@ -54,6 +54,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-006` | Core M1 | Le Core contient un Project Profile canonique, `ProjectIdentity` avec fingerprint de topologie, adressage strict `vera://`, résolution mono/multi/no-Git et `RuntimeLocator` confiné. | `OBSERVED` | 21 tests et 14 sous-tests passent ; le Core n’ouvre encore aucun store, gate, evidence, bundle, MCP adapter ou pack. | `LOG-0009` |
 | `MEM-STATE-007` | Substrate M2.1 | `SUPERSEDES: MEM-STATE-003` pour le sous-ensemble migrations/store. Le Core dispose d’un store SQLite lié au profile, d’un ledger checksumé, de métadonnées de format, d’audit technique et d’une transaction explicite. | `OBSERVED` | 31 tests et 14 sous-tests passent ; knowledge, entities, relations, evidence, bundles et services métier restent absents. | `LOG-0011` |
 | `MEM-STATE-008` | Entity Registry M2.2 | `SUPERSEDES: MEM-STATE-003` pour le sous-ensemble types/entités. Le Core enregistre des types génériques puis crée/lit exactement des entités JSON canoniques avec audit atomique. | `OBSERVED` | 40 tests et 14 sous-tests passent ; relations, symboles, knowledge, evidence, bundles et services métier associés restent absents. | `LOG-0013` |
+| `MEM-STATE-009` | Relation Registry M2.3 | `SUPERSEDES: MEM-STATE-003` pour le sous-ensemble relations. Le Core enregistre des types relationnels puis crée/lit exactement des arêtes immuables entre entités, avec contraintes source/cible et audit atomique. | `OBSERVED` | 48 tests et 14 sous-tests passent ; traversal, lifecycle, symboles, knowledge, evidence, bundles et services métier associés restent absents. | `LOG-0015` |
 
 ## 5. Décisions actives
 
@@ -67,6 +68,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-DEC-006` | Le catalogue initial d’adresses est strictement générique et fermé ; aucune forme d’adresse historique n’est interprétée par le Core. | `DECISION` | Préserver I014/I015 et éviter un renommage cosmétique ou une compatibilité implicite. | `parse_address` accepte exclusivement les URI canoniques `vera://<project>/<resource>/<id>` ; un lecteur historique éventuel est hors M1. | `LOG-0009` |
 | `MEM-DEC-007` | Commencer M2 par un substrate SQLite sans objets métier : migrations checksumées, identité de store, audit technique et transactions bornées. | `DECISION` | Établir I001/I010/I011/I014 avant les connaissances, entités, evidence ou bundles. | M2.1 exclut toute taxonomie, migration de données ARET, commande, capability, MCP, pack et compatibilité historique. | `LOG-0010` |
 | `MEM-DEC-008` | M2.2 introduit uniquement un registre de types d’entité et des entités génériques créées/lues de façon exacte et auditée. | `DECISION` | Commencer C03 sans emprunter les tables `component`/`function_symbol` ni ouvrir C04/C05/C16 au-delà du nécessaire. | Les entités exigent un type enregistré ; l’API exclut FIND, relations, symboles, knowledge, evidence et toute compatibilité ARET. | `LOG-0012` |
+| `MEM-DEC-009` | M2.3 introduit uniquement un registre de types de relation et des arêtes immuables entre entités existantes. | `DECISION` | Établir une relation universelle et typée sans ouvrir le traversal, la supersession, le graphe de travail ou la connaissance. | Les types de relation sont déclaratifs et contraignent les types d’entité ; l’API exclut FIND, lifecycle, relation vers d’autres ressources, knowledge, evidence et toute compatibilité ARET. | `LOG-0014` |
 
 ## 6. Risques, incertitudes et blocages
 
@@ -80,17 +82,18 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 ## 7. Reprise active
 
-**État de reprise :** `M2.2 — Entity Registry` est techniquement terminé ; son commit atomique versionne le verdict `LOG-0013`. Aucun sous-lot M2.3 n’est ouvert. `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
+**État de reprise :** `M2.3 — Relation Registry` est techniquement terminé ; son commit atomique versionne le verdict `LOG-0015`. Aucun sous-lot M2.4 n’est ouvert. `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
 
 | Élément | Valeur de reprise |
 |---|---|
 | État vérifié | C01/C02/C11 disposent de primitives génériques testées : URI VERA canonique, profile/identités hashés, roots contrôlées, no-Git, multi-repo, détection VCS sans appel Git et runtime confiné. M1 est publié au commit `c48efc4ec824a9ec5b1a3742f7022636e9ef082b`. |
 | Evidence M1 | `PYTHONPATH=src python3 -m pytest -q` : 21 passés, 14 sous-tests ; build/install wheel et `vmmu inspect` réussis ; `git diff --check` et scan anti-ARET réussis. Hash wheel : `92078ad9018f0a26d5b6999fcfe25f32dd6ca1699b6b49c501b7bc12c8f13e1e`. |
 | Baseline M2.1 | Store SQLite canonique, migration checksumée, métadonnées, identité de store, audit technique et transaction, publié au commit `3fc41eff3fb525bab82338287ddde33b3dce9358`. |
-| Périmètre M2.2 | Registre de types d’entité, entités génériques, JSON canonique, lecture exacte, audit de création et migration M2.1→M2.2. Aucun symbole, relation, knowledge, recherche, evidence, bundle ou capability n’est autorisé. |
-| Limites explicites | Pas encore de knowledge append-only, relation, symbole, evidence, policy, capability, bundle, adapter MCP, dashboard, pack ARET ni compatibilité de lecteur historique. L’absence de vocabulaire ARET du Core ne démontre pas de parité comportementale ARET. |
-| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0011`, `LOG-0012` et `LOG-0013`. |
-| Prochaine action | Vérifier le commit atomique M2.2 ; si le chantier reprend, ouvrir un sous-lot M2.3 distinct avec hypothèse et limites propres, sans lever `MEM-WALL-001`. |
+| Baseline M2.2 | Registre de types d’entité, entités génériques, JSON canonique, lecture exacte, audit de création et migration M2.1→M2.2, publié au commit `8f367ca5fdf906f48a58e739360af97d1649c40a`. |
+| Périmètre M2.3 | Registre de types de relation, arêtes immuables entre entités, contraintes déclaratives source/cible, lecture exacte, audit de création et migration M2.2→M2.3. Aucun traversal, lifecycle, knowledge, evidence, bundle ou capability n’est autorisé. |
+| Limites explicites | Pas encore de knowledge append-only, traversal/lifecycle relationnel, symbole, evidence, policy, capability, bundle, adapter MCP, dashboard, pack ARET ni compatibilité de lecteur historique. L’absence de vocabulaire ARET du Core ne démontre pas de parité comportementale ARET. |
+| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0013`, `LOG-0014` et `LOG-0015`. |
+| Prochaine action | Vérifier le commit atomique M2.3 ; si le chantier reprend, ouvrir un sous-lot M2.4 distinct avec hypothèse et limites propres, sans lever `MEM-WALL-001`. |
 
 ## 8. Protocole de mise à jour append-only
 

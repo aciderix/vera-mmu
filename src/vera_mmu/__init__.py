@@ -13,6 +13,7 @@ from .identity import (
     validate_profile,
 )
 from .migrations import Migration, MigrationError, MigrationRunner, migration_checksums
+from .relations import Relation, RelationError, RelationNotFoundError, RelationService, RelationType
 from .runtime import RuntimeLocator, RuntimeLocatorError
 from .store import MemoryStore, StoreError, StoreIdentityError
 from .workspace import Workspace, WorkspaceError, WorkspaceResolver, resolve_workspace
@@ -33,6 +34,11 @@ __all__ = [
     "ProfileError",
     "ProfileIdentity",
     "ProjectIdentity",
+    "Relation",
+    "RelationError",
+    "RelationNotFoundError",
+    "RelationService",
+    "RelationType",
     "RuntimeLocator",
     "StoreError",
     "StoreIdentityError",
