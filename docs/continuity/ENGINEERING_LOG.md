@@ -1113,3 +1113,12 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Sûreté | Le secret HMAC reste uniquement en mémoire d’exécution et n’est jamais sérialisé. Sans policy explicite ou HMAC valide lorsqu’il est requis, la promotion échoue bruyamment. Une promotion ne modifie ni evidence, ni admission; elle crée un record de décision traçable. |
 | Statut | `PENDING` — policy, tests-first, liaison immutable et transaction de promotion à produire. |
 
+
+### LOG-0064 — Décision de conception : promotion PROVEN append-only
+
+| Champ | Valeur |
+|---|---|
+| Décision | Une promotion `PROVEN` ne réécrira jamais un knowledge historique. Elle sera représentée par un record dérivé immutable, lié à la knowledge cible, à l’evidence `PASS` admise et à une policy de promotion. |
+| HMAC | Si la policy requiert HMAC, le service recevra le secret uniquement en mémoire d’exécution; aucun champ de schéma, audit ou erreur ne doit en exposer la valeur. |
+| Statut | `DECISION` — le test et le patch doivent préserver I003, I004, I006 et I014. |
+
