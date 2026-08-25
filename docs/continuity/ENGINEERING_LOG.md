@@ -66,6 +66,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0040` | 2026-08-25 | `DECISION` / `ROADMAP` | Cadrage M2 | gate terminale, M2/M3, anti-redondance, macro-lots | `DECISION` | `PASS` pour le cadrage | `MEM-DEC-019` à `MEM-DEC-021`, `MEM-STATE-018`, `MEM-WALL-001` |
 | `LOG-0041` | 2026-08-25 | `HYPOTHESIS` | M2.12 | symbol, entity FK, immuabilité, audit, no-scan | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-DEC-022`, `MEM-WALL-001` |
 | `LOG-0042` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.12 | symbol, migration 012, URI, audit, wheel | `OBSERVED` | `PASS` pour M2.12 ; M2 restant/parité ARET `UNKNOWN` | `MEM-STATE-019`, `MEM-DEC-022`, `MEM-STATE-020`, `MEM-WALL-001` |
+| `LOG-0043` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.12 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-019`, `MEM-STATE-020`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -867,3 +868,17 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour M2.12 ; `UNKNOWN` pour M2 restant et toute parité ARET. |
 | Mémoire liée | `MEM-STATE-019`, `MEM-DEC-022`, `MEM-STATE-020`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour le plan et le README, committer/publier atomiquement, puis ouvrir la baseline/hypothèse distincte M2.13. |
+
+### LOG-0043 — Publication vérifiée M2.12
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RECORD` / `HANDOFF` |
+| Lot | `M2.12 — Symbol Registry` |
+| Commit fonctionnel | `769e8779dfcaf3f8fbe5a5d8beadbf0c7114a6a4` — `feat: add generic symbol registry`. |
+| Publication | `git push origin main` a publié `b1b6704..769e877`; `git ls-remote origin refs/heads/main` retourne `769e8779dfcaf3f8fbe5a5d8beadbf0c7114a6a4`. |
+| État final | `main...origin/main` propre après publication ; helper d’authentification éphémère supprimé. ARET reste propre au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Verdict | `PASS` pour la publication M2.12. |
+| Mémoire liée | `MEM-STATE-019`, `MEM-STATE-020`, `MEM-WALL-001`. |
+| Suivi | Publier ce record documentaire, puis établir la baseline M2.13 sans transférer la responsabilité de work graph, gate, policy ou Evidence Store dans M2. |
