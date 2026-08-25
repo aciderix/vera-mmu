@@ -94,6 +94,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0068` | 2026-08-25 | `RUN` / `VERDICT` | M3.6 | work graph, gate mono-evidence, admission | `OBSERVED` | `PASS` technique | `MEM-STATE-025` |
 | `LOG-0069` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.6 | publication work graph/gate | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-025` |
 | `LOG-0070` | 2026-08-25 | `RUN` / `COMPARISON` / `VERDICT` / `DECISION` | M3.S1.EXIT | migrations 001–019, tests, wheel, frontières, portée | `OBSERVED` / `DECISION` | `PASS` pour M3.S1 ; M3/parité ARET non clos | `MEM-STATE-025`, `MEM-DEC-026`, `MEM-STATE-026`, `MEM-WALL-001` |
+| `LOG-0071` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.S1.EXIT | publication gate, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-026`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1207,3 +1208,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour **M3.S1**; `IN_PROGRESS` pour **M3 global**; `UNKNOWN` pour toute parité/exécution exhaustive ARET sous `MEM-WALL-001`. |
 | Mémoire liée | `MEM-STATE-025`, `MEM-DEC-026`, `MEM-STATE-026`, `MEM-WALL-001`. |
 | Suivi | Publier atomiquement la synchronisation de continuité; ouvrir ensuite un unique lot M3 manquant, sans mélanger refactoring ou fonctionnalité adjacente. |
+
+
+### LOG-0071 — Publication vérifiée de `M3.S1.EXIT`
+
+| Champ | Valeur |
+|---|---|
+| Commit | `47eb39f9c6f778b7183ec2471fa4c46af7e19470` — `docs: record M3 operational slice gate`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; arbre VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication de la gate `M3.S1.EXIT`. M3 global reste `IN_PROGRESS`; `MEM-WALL-001` maintient la parité ARET à `UNKNOWN`. |
+| Suivi | Le prochain lot ne peut porter que sur une exclusion de `MEM-STATE-026`, avec baseline, hypothèse, tests-first et gate distinctes. |
