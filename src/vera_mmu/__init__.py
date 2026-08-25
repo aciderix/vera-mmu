@@ -3,6 +3,7 @@
 from .addressing import Address, AddressError, CORE_RESOURCE_TYPES, make_address, parse_address
 from .assets import Asset, AssetError, AssetNotFoundError, AssetService, MAX_ASSET_BYTES
 from .capabilities import Capability, CapabilityError, CapabilityNotFoundError, CapabilityService
+from .capability_contracts import CapabilityContract, CapabilityContractError, CapabilityContractService
 from .asset_provenance import AssetSource, AssetSourceError, AssetSourceNotFoundError, AssetSourceService, MAX_ASSET_SOURCE_LIST_LIMIT
 from .entities import Entity, EntityError, EntityNotFoundError, EntityService, EntityType
 from .knowledge_assets import (
@@ -59,6 +60,9 @@ __all__ = [
     "CapabilityError",
     "CapabilityNotFoundError",
     "CapabilityService",
+    "CapabilityContract",
+    "CapabilityContractError",
+    "CapabilityContractService",
     "CORE_RESOURCE_TYPES",
     "Entity",
     "EntityError",

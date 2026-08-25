@@ -982,3 +982,15 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour **M2 Universal Schema**. `UNKNOWN` pour la parité ARET exhaustive sous `MEM-WALL-001`; M3 reste non commencé. |
 | Limites | Evidence Store, runner, validator, policy, admission, HMAC, `PROVEN`, gates et work graph sont explicitement différés à M3. |
 | Suivi | Mettre à jour mémoire/plan/README, publier le record terminal, puis ouvrir M3 seulement sous un plan et une hypothèse distincts. |
+
+### LOG-0050 — Hypothèse M3.1 : Closed Capability Contract
+
+| Champ | Valeur |
+|---|---|
+| Type | `HYPOTHESIS` |
+| Baseline | VERA `0df618e1f9de127760564e4c9ea1692f8a8bcafb`, propre et alignée ; 126 tests et 14 sous-tests `PASS`; M2.EXIT `PASS`. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | Les capabilities M2 sont déclaratives, immuables et sans runner/policy. M3 doit être fermé et sûr avant qu’un runner puisse exister. |
+| Hypothèse | Ajouter un registre append-only de contrats de capability, distinct de la déclaration M2 immuable, avec un profil de runner **fermé**, une policy **fermée**, timeout borné, schéma de paramètres JSON et `yields_proof` explicite, sans commande, chemin, secret ni exécution. |
+| Sûreté | Le client ne pourra sélectionner qu’un `capability_id`; aucun contrat n’accepte du shell, une URL, un path ou une commande. Aucun service `run`, écriture d’execution, evidence, HMAC, admission ou `PROVEN` ne sera ajouté dans ce lot. |
+| Tests-first attendus | Migration, FK capability, enums/policies/timeout/JSON, unicité, audit/rollback, immuabilité SQL, lecture exacte et absence expresse de runner/`ExecutionService`/promotion. |
+| Verdict | `PENDING` — aucune capacité M3 n’est encore livrée. |
