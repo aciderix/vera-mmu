@@ -7,6 +7,7 @@ import unittest
 from vera_mmu.admission import AdmissionError, AdmissionService
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
+from vera_mmu.capability_policies import CapabilityPolicyService
 from vera_mmu.evidence import EvidenceService
 from vera_mmu.executions import ExecutionService
 from vera_mmu.identity import load_profile
@@ -34,7 +35,7 @@ class AdmissionTests(unittest.TestCase):
   self.d=tempfile.TemporaryDirectory();self.addCleanup(self.d.cleanup);r=Path(self.d.name)/'.vera-mmu';r.mkdir();self.p=r/'p.yaml';self.p.write_text(PROFILE)
  def store(self): return MemoryStore.open(load_profile(self.p),self.p)
  def evidence(self,s,verdict='PASS'):
-  CapabilityService(s).create('c','C','CHECK','1.0.0');CapabilityContractService(s).declare('c','NOOP','DENY_NETWORK',30);ExecutionService(s).run_noop('x','c',{});return EvidenceService(s).record('e','x','TEST_PROOF',verdict,{})
+  CapabilityService(s).create('c','C','CHECK','1.0.0');CapabilityContractService(s).declare('c','NOOP','DENY_NETWORK',30);CapabilityPolicyService(s).declare('c','ALLOW','test policy');ExecutionService(s).run_noop('x','c',{});return EvidenceService(s).record('e','x','TEST_PROOF',verdict,{})
  def test_admits_pass_without_mutating_evidence_or_knowledge(self):
   with self.store() as s:
    self.evidence(s);d=AdmissionService(s).decide('d','e','ADMITTED','verified',actor='t')

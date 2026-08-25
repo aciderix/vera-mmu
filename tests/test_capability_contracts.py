@@ -43,7 +43,7 @@ class CapabilityContractTests(unittest.TestCase):
 
     def test_contract_migration_and_exact_declaration(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 19})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 20})
             capabilities = CapabilityService(store)
             capabilities.create("unit-tests", "Unit tests", "CHECK", "1.0.0")
             contract = CapabilityContractService(store).declare(

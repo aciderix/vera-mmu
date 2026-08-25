@@ -7,6 +7,7 @@ import unittest
 from vera_mmu.admission import AdmissionService
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
+from vera_mmu.capability_policies import CapabilityPolicyService
 from vera_mmu.evidence import EvidenceService
 from vera_mmu.executions import ExecutionService
 from vera_mmu.identity import load_profile
@@ -37,7 +38,7 @@ class ProofTests(unittest.TestCase):
  def _store(self):return MemoryStore.open(load_profile(self.p),self.p)
  def _ready(self,s):
   k=KnowledgeService(s);k.register_type('fact','Fact');k.append('k','fact','OBSERVED','T','content')
-  CapabilityService(s).create('c','C','CHECK','1.0.0');CapabilityContractService(s).declare('c','NOOP','DENY_NETWORK',30);ExecutionService(s).run_noop('x','c',{})
+  CapabilityService(s).create('c','C','CHECK','1.0.0');CapabilityContractService(s).declare('c','NOOP','DENY_NETWORK',30);CapabilityPolicyService(s).declare('c','ALLOW','test policy');ExecutionService(s).run_noop('x','c',{})
   EvidenceService(s).record('e','x','TEST_PROOF','PASS',{});AdmissionService(s).decide('a','e','ADMITTED','ok')
  def test_derived_proven_record_preserves_knowledge(self):
   with self._store() as s:

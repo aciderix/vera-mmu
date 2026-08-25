@@ -196,3 +196,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-028` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : catalogue de décisions `ALLOW`/`DENY`/`CONFIRM`, framework de validators, runners sûrs additionnels, policy HMAC de projet, gates multi-evidence, lifecycle/traversal de work graph, CLI/MCP et pack ARET. La validation des paramètres n’est plus une exclusion ouverte. | `OBSERVED` | Revue post-M3.7; aucun contrat ou test de ces capacités n’est livré. | `LOG-0073` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-027`, `MEM-DEC-027`, `MEM-STATE-028`, `MEM-WALL-001`, puis `LOG-0072`–`LOG-0073` avant tout lot M3 ultérieur.
+
+
+## 16. Addendum de reprise — M3.8 policy explicite
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-029` | Policy d’exécution | `SUPERSEDES: MEM-STATE-028` pour cette exclusion précise. Une policy immutable liée à une capability porte une décision fermée `ALLOW`/`DENY`/`CONFIRM`, un motif et un audit. Le runner `NOOP` exige `ALLOW` avant validation des paramètres ou insertion d’execution; absence, `DENY` et `CONFIRM` refusent sans effet de runner. | `OBSERVED` | Migration `020_capability_policies.sql`, `capability_policies.py`, `executions.py`, tests M3.8; 143 tests et 14 sous-tests, wheel isolé. | `LOG-0075`, `LOG-0076` |
+| `MEM-DEC-028` | Frontière de confirmation | `CONFIRM` est un refus persistant et explicite, non une autorisation différée. Aucun flux interactif, override, expiration, révision ou changement de policy n’est déduit de cette décision append-only. | `DECISION` | Contrat M3.8 et invariants I007, I008, I013–I015. | `LOG-0075`, `LOG-0076` |
+| `MEM-STATE-030` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : framework de validators, runners sûrs additionnels, policy HMAC de projet, gates multi-evidence, lifecycle/traversal de work graph, CLI/MCP et pack ARET. `ALLOW`/`DENY`/`CONFIRM` fermés sont livrés, mais la confirmation interactive et la mutabilité de policy ne le sont pas. | `OBSERVED` | Revue post-M3.8; aucun contrat ou test de ces capacités n’est livré. | `LOG-0076` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-029`, `MEM-DEC-028`, `MEM-STATE-030`, `MEM-WALL-001`, puis `LOG-0075`–`LOG-0076` avant tout lot M3 ultérieur.

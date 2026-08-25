@@ -16,8 +16,9 @@ class ExecutionService:
   if not isinstance(parameters,Mapping): raise ExecutionError('Paramètres objet requis.')
   if not isinstance(actor,str) or not actor: raise ExecutionError('Actor requis.')
   with self.store.transaction() as c:
-   row=c.execute("SELECT runner_profile,network_policy,yields_proof,parameter_schema_json FROM capability_contract WHERE capability_id=?",(capability_id,)).fetchone()
+   row=c.execute("SELECT contract.runner_profile,contract.network_policy,contract.yields_proof,contract.parameter_schema_json,policy.decision AS policy_decision FROM capability_contract AS contract LEFT JOIN capability_policy AS policy ON policy.capability_id=contract.capability_id WHERE contract.capability_id=?",(capability_id,)).fetchone()
    if row is None or row['runner_profile']!='NOOP' or row['network_policy']!='DENY_NETWORK' or bool(row['yields_proof']): raise ExecutionError('Contrat NOOP non admissible.')
+   if row['policy_decision']!='ALLOW': raise ExecutionError('Policy ALLOW explicite requise.')
    try: validated_parameters=validate_parameters(json.loads(str(row['parameter_schema_json'])),parameters)
    except (ParameterValidationError, TypeError, ValueError) as exc: raise ExecutionError('Paramètres hors contrat fermé.') from exc
    payload=json.dumps(validated_parameters,sort_keys=True,separators=(',',':'),allow_nan=False)

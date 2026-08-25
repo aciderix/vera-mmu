@@ -6,6 +6,7 @@ import unittest
 
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractError, CapabilityContractService
+from vera_mmu.capability_policies import CapabilityPolicyService
 from vera_mmu.executions import ExecutionError, ExecutionService
 from vera_mmu.identity import load_profile
 from vera_mmu.store import MemoryStore
@@ -38,6 +39,7 @@ class NoopExecutionRunnerTests(unittest.TestCase):
         with self._open() as store:
             CapabilityService(store).create("check", "Check", "CHECK", "1.0.0")
             CapabilityContractService(store).declare("check", "NOOP", "DENY_NETWORK", 30)
+            CapabilityPolicyService(store).declare("check", "ALLOW", "test policy", actor="test")
             execution = ExecutionService(store).run_noop("execution-001", "check", {"scope": "core"}, actor="test")
             self.assertEqual(execution.status, "COMPLETED"); self.assertEqual(execution.exit_code, 0)
             self.assertEqual(execution.parameters, {"scope": "core"}); self.assertIsNone(execution.artifact_hash)
@@ -82,6 +84,7 @@ class NoopExecutionRunnerTests(unittest.TestCase):
         with self._open() as store:
             CapabilityService(store).create("check", "Check", "CHECK", "1.0.0")
             CapabilityContractService(store).declare("check", "NOOP", "DENY_NETWORK", 30, parameter_schema=schema)
+            CapabilityPolicyService(store).declare("check", "ALLOW", "test policy")
             service = ExecutionService(store)
             execution = service.run_noop("execution-valid", "check", {"scope": "core", "attempt": 2, "enabled": True, "ratio": 1.5})
             self.assertEqual(execution.parameters["scope"], "core")

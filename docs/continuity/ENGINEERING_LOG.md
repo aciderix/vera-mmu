@@ -98,6 +98,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0072` | 2026-08-25 | `HYPOTHESIS` | M3.7 | parameter schema fermé, validation locale, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-027`, `MEM-DEC-027`, `MEM-WALL-001` |
 | `LOG-0073` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.7 | paramètres, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-027`, `MEM-STATE-028`, `MEM-DEC-027`, `MEM-WALL-001` |
 | `LOG-0074` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.7 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-028`, `MEM-WALL-001` |
+| `LOG-0075` | 2026-08-25 | `HYPOTHESIS` | M3.8 | policy fermée, `ALLOW`, `DENY`, `CONFIRM`, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-029`, `MEM-DEC-028`, `MEM-WALL-001` |
+| `LOG-0076` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.8 | policy, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-029`, `MEM-STATE-030`, `MEM-DEC-028`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1255,3 +1257,27 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication M3.7. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
 | Suivi | Cadrer séparément la policy explicite `ALLOW`/`DENY`/`CONFIRM`, sans modifier le runner `NOOP` ni rendre le réseau implicite. |
+
+
+### LOG-0075 — Hypothèse M3.8 : policy d’exécution explicite
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `9887564564ed4d0bf77927a2515d2c2ec655a7e3`, `main` propre et alignée; 141 tests et 14 sous-tests `PASS`; M3.7 publié. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | Le contrat capability fixe actuellement le profil `NOOP` et `DENY_NETWORK`, mais aucune décision universelle `ALLOW`/`DENY`/`CONFIRM` n’est persistée ni exigée avant l’execution. I013 reste donc non matérialisé pour le runner. |
+| Hypothèse | Une policy append-only liée à une capability existante, avec décision fermée, motif et audit, peut être déclarée une seule fois; `run_noop` doit exiger exclusivement une décision `ALLOW` avant toute validation de paramètres ou insertion d’execution. |
+| Sûreté | `DENY` et `CONFIRM` refusent bruyamment et sans effet; l’absence de policy refuse aussi. Aucun mécanisme de confirmation interactive, runner additionnel, modification de contrat, shell, fichier, réseau, artefact, evidence, admission, HMAC ou preuve n’est ajouté. |
+| Tests-first attendus | Migration/FK/enum/immutabilité/audit/rollback; lecture exacte; refus absence/`DENY`/`CONFIRM`; `ALLOW` seul permet le `NOOP`; aucun refus ne crée execution ou audit de runner. |
+| Invariants | I001, I004, I006–I008, I011, I013–I015. |
+| Verdict | `PENDING` — aucun patch M3.8 n’est encore produit. |
+
+
+### LOG-0076 — Verdict M3.8 : policy d’exécution explicite
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 020 et `CapabilityPolicyService` : une policy immutable par capability, avec décision fermée `ALLOW`/`DENY`/`CONFIRM`, motif et audit. `run_noop` exige désormais une policy `ALLOW` après vérification de son contrat fermé et avant validation des paramètres ou insertion d’execution. |
+| Validation | Tests-first : import absent attendu; tests ciblés : 14 `PASS`; suite complète : 143 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan sans processus, shell, réseau, I/O, `eval`, import dynamique, mutation de policy/knowledge/evidence ni nouvelle insertion d’execution `PASS`; wheel isolé avec migration 020, `ALLOW` accepté et `DENY` refusé `PASS`. |
+| Atomicité | L’absence de policy, `DENY` ou `CONFIRM` lève une erreur avant validation des paramètres, insertion d’execution et audit de runner. Seule la déclaration de policy elle-même produit son audit append-only. |
+| Limite | `CONFIRM` reste un refus explicite : aucun protocole de confirmation interactive, override temporaire, expiration, changement de décision, runner additionnel, réseau, artefact, evidence ou promotion n’est ajouté. |
+| Verdict | `PASS` pour M3.8 technique; publication et synchronisation de continuité à finaliser. |

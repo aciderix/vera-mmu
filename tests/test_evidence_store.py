@@ -7,6 +7,7 @@ import unittest
 
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
+from vera_mmu.capability_policies import CapabilityPolicyService
 from vera_mmu.evidence import EvidenceError, EvidenceService
 from vera_mmu.executions import ExecutionService
 from vera_mmu.identity import load_profile
@@ -39,6 +40,7 @@ class EvidenceStoreTests(unittest.TestCase):
     def _execution(self, store: MemoryStore) -> str:
         CapabilityService(store).create('check','Check','CHECK','1.0.0')
         CapabilityContractService(store).declare('check','NOOP','DENY_NETWORK',30)
+        CapabilityPolicyService(store).declare('check','ALLOW','test policy',actor='test')
         return ExecutionService(store).run_noop('execution-001','check',{},actor='test').id
     def test_record_hashes_exact_content_and_stays_pending(self) -> None:
         with self._open() as store:
