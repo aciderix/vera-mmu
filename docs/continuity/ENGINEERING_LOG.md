@@ -1095,3 +1095,21 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt propre et helper supprimé. |
 | Statut | `PASS` pour la publication M3.4. HMAC, lien evidence↔knowledge, promotion `PROVEN`, gates et work graph restent à concevoir séparément. |
 
+
+### LOG-0062 — Hypothèse M3.5 : Work Graph & Admission Gate
+
+| Champ | Valeur |
+|---|---|
+| Hypothèse | Ajouter des dépendances immuables entre work items existants, avec anti-cycle, puis une gate déclarative dont l’évaluation retourne uniquement `PASS` lorsqu’une admission `ADMITTED` existe pour chaque evidence requise. |
+| Sûreté | Aucun runner, mutation de work item, traversal libre, admission nouvelle, HMAC ou promotion `PROVEN`. La gate rend une décision calculée et auditée; elle ne modifie aucune evidence ni knowledge. |
+| Statut | `PENDING` — tests-first, schéma et services bornés à produire. |
+
+
+### LOG-0063 — Hypothèse M3.5 : HMAC, Evidence-Knowledge & PROVEN
+
+| Champ | Valeur |
+|---|---|
+| Hypothèse | Une liaison immutable entre knowledge et evidence peut déclencher une promotion `PROVEN` seulement lorsque l’evidence est `PASS`, possède une décision `ADMITTED` et satisfait la règle HMAC explicitement requise par la policy du projet. |
+| Sûreté | Le secret HMAC reste uniquement en mémoire d’exécution et n’est jamais sérialisé. Sans policy explicite ou HMAC valide lorsqu’il est requis, la promotion échoue bruyamment. Une promotion ne modifie ni evidence, ni admission; elle crée un record de décision traçable. |
+| Statut | `PENDING` — policy, tests-first, liaison immutable et transaction de promotion à produire. |
+
