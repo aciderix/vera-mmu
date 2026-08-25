@@ -1122,3 +1122,22 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | HMAC | Si la policy requiert HMAC, le service recevra le secret uniquement en mémoire d’exécution; aucun champ de schéma, audit ou erreur ne doit en exposer la valeur. |
 | Statut | `DECISION` — le test et le patch doivent préserver I003, I004, I006 et I014. |
 
+
+### LOG-0065 — Baseline M3.5 : promotion dérivée
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `3b2d05f50812178a1cff4c6b8a46349b9c810877`, `main` propre et alignée; 136 tests et 14 sous-tests `PASS`. |
+| Contrat | Toute preuve dérivée doit préserver le knowledge historique, référencer evidence `PASS` admise et vérifier HMAC seulement lorsque la policy le requiert. |
+| Statut | `READY_FOR_TESTS_FIRST` — aucune migration ou promotion n’est encore implémentée. |
+
+
+### LOG-0066 — Verdict M3.5 : preuve dérivée PROVEN
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 018 et `ProofService` : record immutable `PROVEN` lié à knowledge, evidence `PASS` et admission `ADMITTED`; le knowledge d’origine conserve son statut historique. |
+| HMAC | Une policy de service peut exiger un secret HMAC; son absence échoue bruyamment. Le digest seul est persistant, jamais le secret. |
+| Validation | Tests dédiés : 2 `PASS`; suite complète : 138 tests et 14 sous-tests `PASS`; diff et scan de périmètre `PASS`. |
+| Verdict | `PASS` pour M3.5 technique; publication à finaliser. |
+

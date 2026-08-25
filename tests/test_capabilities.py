@@ -47,8 +47,8 @@ class CapabilityServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_capability_and_execution_schemas(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 17})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 18})
             columns = {row[1] for row in store.connection.execute("PRAGMA table_info('execution')").fetchall()}
             self.assertEqual(
                 columns,

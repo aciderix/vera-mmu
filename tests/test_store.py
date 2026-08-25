@@ -49,7 +49,7 @@ class MemoryStoreTests(unittest.TestCase):
     def test_initialization_records_identity_migration_and_audit(self) -> None:
         with MemoryStore.open(self._profile(), self.profile_path) as store:
             self.assertTrue(store.locator.sqlite_path.is_file())
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18})
             self.assertEqual(store.metadata()["project_identity"], store.identity.as_dict())
             self.assertEqual(store.audit_events()[0]["action"], "STORE_INITIALIZED")
             self.assertEqual(store.connection.execute("PRAGMA foreign_keys").fetchone()[0], 1)
