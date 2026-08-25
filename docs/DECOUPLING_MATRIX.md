@@ -84,6 +84,15 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M2.4 établit une connaissance append-only vérifiable par hash mais ne fournit ni preuve admissible, ni recherche, ni lifecycle. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
 
+### 2.6. Avancement observé M2.5 — provenance documentaire déclarative
+
+| Couplage | Surface VERA désormais observée | Evidence M2.5 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C16` | Migration `005`, `knowledge_source` immutable attachée à une knowledge existante : repository, revision, chemin relatif, section, lignes et SHA-256 ; lecture exacte ou liste bornée et audit atomique. | `tests/test_provenance.py` : migration 4→5, confinement de chemins, lignes/hash, duplicat de slice, lecture bornée, rewrite/delete refusés, audit/rollback ; wheel vérifié ; `LOG-0019`. | Fetch/validation de document, importeur/migration batch, sources non documentaires, evidence/proof/artifact, admission de `PROVEN`, FTS/FIND, supersession, relations vers knowledge, audit de toute mutation métier. | `SPLIT` |
+| `C03` | Les sources restent attachées à une knowledge générique et n’introduisent aucun lien `component`/`function`, symbole ni import technique. | Tests de knowledge inconnue et adresse VERA exacte ; `LOG-0019`. | Import des composants V1, liens de connaissance, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
+
+> M2.5 établit une provenance déclarative sans ouvrir le document, sans importer son contenu et sans rendre une assertion `PROVEN`. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

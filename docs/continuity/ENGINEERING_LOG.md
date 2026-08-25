@@ -41,6 +41,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0015` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.3 | types relationnels, arêtes, immuabilité, audit | `OBSERVED` | `PASS` pour M2.3 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-009`, `MEM-DEC-009`, `MEM-WALL-001` |
 | `LOG-0016` | 2026-08-25 | `HYPOTHESIS` | M2.4 | registre knowledge, append-only, statuts épistémiques, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-010`, `MEM-WALL-001` |
 | `LOG-0017` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.4 | types knowledge, append-only, hash, statuts, audit | `OBSERVED` | `PASS` pour M2.4 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-010`, `MEM-DEC-010`, `MEM-WALL-001` |
+| `LOG-0018` | 2026-08-25 | `HYPOTHESIS` | M2.5 | provenance documentaire, sources hashées, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-011`, `MEM-WALL-001` |
+| `LOG-0019` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.5 | sources knowledge, confinement, immuabilité, audit | `OBSERVED` | `PASS` pour M2.5 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-011`, `MEM-DEC-011`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -355,6 +357,43 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | Mémoire liée | `MEM-STATE-010`, `MEM-DEC-010`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour le plan, la mémoire, la matrice et le manifeste ; relire le diff, committer puis publier atomiquement. |
 
+### LOG-0018 — Hypothèse M2.5 : provenance documentaire attachée
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.5 — Knowledge Source Registry` |
+| Hypothèse | Le Core peut attacher à une connaissance existante une référence documentaire relative, bornée par des lignes et hashée, puis la relire exactement, sans lire le document, lancer un importeur, modifier la connaissance ou admettre `PROVEN`. |
+| Périmètre | Migration `005`, `KnowledgeSource`, `KnowledgeSourceService`, références repository/revision/path/section/plage/source hash, unicité de slice, lecture bornée des sources d’une knowledge et audit de création. |
+| Exclusions | Lecture/fetch de document, vérification du hash contre un fichier, importeur/migration batch, tags, FTS/FIND, evidence/proof/artifact, `PROVEN`, supersession/versioning, mutation/suppression de source, bundle, policy, capability, MCP, pack/lecteur/import ARET. |
+| Baseline | M2.4 publié au commit `a783d3efefafe0b1e80c5454e8649f082858611e`; `LOG-0017`; C16 de la matrice, provenance ARET et spécification lus comme références de périmètre. |
+| Invariants | I001, I002, I003, I004, I011, I014, I015. |
+| Tests prévus | Migration 4→5, knowledge inconnue, source dupliquée, chemin absolu/traversant/lecteur Windows, lignes invalides, hash invalide, lecture exacte bornée, immuabilité SQL, audit de création, rollback atomique et absence de vocabulaire ARET. |
+| Verdict | `NOT_RUN` — aucun patch M2.5 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-011` à créer, `MEM-STATE-010`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, puis créer les tests et modules M2.5 sans étendre vers import, fetch, evidence ou `PROVEN`. |
+
+### LOG-0019 — Verdict M2.5 : provenance documentaire attachée
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.5 — Knowledge Source Registry` |
+| Certitude | `OBSERVED` : les tests, le wheel et le contrôle de provenance ont produit les résultats consignés ; aucune source n’a été ouverte ou importée. |
+| Baseline | M2.4 publié `a783d3efefafe0b1e80c5454e8649f082858611e`; `LOG-0018`; C16 de la matrice, schema/validateur ARET et spécification lus comme références de périmètre, sans import de code ARET. |
+| Changement | Migration `005_knowledge_sources.sql`, `KnowledgeSourceService`, `KnowledgeSource`, référence repository/revision/path/section/lignes/hash, lecture exacte ou liste bornée, triggers append-only et audit `KNOWLEDGE_SOURCE_ATTACHED`. |
+| Invariants | I001, I002, I003, I004, I011, I014, I015. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **65 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration 4→5, knowledge inconnue, duplicat de slice, chemin absolu/traversant/lecteur Windows, lignes/hash invalides, lecture ordonnée bornée, hash injecté invalide, rollback audit et refus SQL de rewrite/delete. |
+| Contrôles de sûreté | `git diff --check` et scan anti-ARET du Core réussis. Une source est une donnée déclarée : le service ne lit, ne télécharge, ne vérifie ni n’interprète le document référencé. |
+| Distribution | Wheel construit puis installé dans une cible temporaire ; migration `005` présente et attache/relecture de provenance réussie depuis le wheel. SHA-256 wheel : `e2049bfa5a4502a2984185cdb4e77ab032fbfb630ac07f3857676b6d56c34dcb`; sortie de contrôle : `b07586f3818a833b9dfc875b4b0ffabd04f202ffa813a13e0933ae91f6508dd2`. |
+| Comparaison | M2.4 ne persistait que la connaissance hashée. M2.5 ajoute une provenance déclarative bornée, sans document source, import, evidence, relation ou admission `PROVEN`. |
+| Limites | Pas de fetch/vérification de document, importeur/migration batch, evidence/proof/artifact, `PROVEN`, FTS/FIND, tags, supersession/versioning, relations vers knowledge, bundle, policy, capability, MCP ou compatibilité ARET. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.5. `UNKNOWN` pour M2 dans son ensemble et toute parité ARET. |
+| Mémoire liée | `MEM-STATE-011`, `MEM-DEC-011`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour le plan, la mémoire, la matrice et le manifeste ; relire le diff, committer puis publier atomiquement. |
+
 ## 4. Protocole de journalisation d’un changement
 
 Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du work item actif avec : cause supposée, comportement cible, surface de fichiers, baseline, invariants et tests prévus. Après le patch, ajouter des entrées distinctes pour `RUN`, `EVIDENCE`, `COMPARISON` et `VERDICT` si le changement est significatif. Une entrée de verdict doit pouvoir être lue indépendamment et répondre à quatre questions : qu’a-t-on changé, contre quelle baseline, quelle preuve a été produite et quelle limite demeure ?
@@ -370,11 +409,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 
 ## 5. Handoff actif
 
-> **État de reprise :** M2.4 est clos par son verdict `LOG-0017` et sera versionné dans son commit atomique. M1/M2.1/M2.2/M2.3 demeurent publiés ; M2 complet et la parité ARET restent `UNKNOWN`, et `MEM-WALL-001` reste ouvert. Aucun sous-lot M2.5 n’est encore ouvert.
+> **État de reprise :** M2.5 est clos par son verdict `LOG-0019` et sera versionné dans son commit atomique. M1/M2.1/M2.2/M2.3/M2.4 demeurent publiés ; M2 complet et la parité ARET restent `UNKNOWN`, et `MEM-WALL-001` reste ouvert. Aucun sous-lot M2.6 n’est encore ouvert.
 
 | Reprendre par | Lire ensuite | Ne pas faire avant |
 |---|---|---|
-| `UNIVERSALIZATION_WORKPLAN.md`, état actif puis rituel M2.5 | `PROJECT_MEMORY.md`, sections 4–7 ; `LOG-0016` et `LOG-0017`. | Présenter M2.4 comme une Evidence Store ou une mémoire complète, admettre `PROVEN`, déclarer une parité ARET, créer un alias `ARET://`, démarrer M2.5 sans hypothèse distincte ou lever `MEM-WALL-001` par hypothèse. |
+| `UNIVERSALIZATION_WORKPLAN.md`, état actif puis rituel M2.6 | `PROJECT_MEMORY.md`, sections 4–7 ; `LOG-0018` et `LOG-0019`. | Présenter M2.5 comme un importeur, une Evidence Store ou une mémoire complète, ouvrir/télécharger/vérifier un document par effet de bord, admettre `PROVEN`, déclarer une parité ARET, créer un alias `ARET://`, démarrer M2.6 sans hypothèse distincte ou lever `MEM-WALL-001` par hypothèse. |
 
 ## 6. Gabarit d’entrée future
 

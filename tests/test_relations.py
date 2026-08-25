@@ -58,8 +58,8 @@ class RelationServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_relation_registry(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 4})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 5})
 
     def test_existing_m2_2_store_migrates_to_relation_registry(self) -> None:
         schema = Path(self._directory.name) / "m2_2_schema"

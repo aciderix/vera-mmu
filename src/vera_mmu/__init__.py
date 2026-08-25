@@ -21,6 +21,7 @@ from .identity import (
     validate_profile,
 )
 from .migrations import Migration, MigrationError, MigrationRunner, migration_checksums
+from .provenance import KnowledgeSource, KnowledgeSourceError, KnowledgeSourceNotFoundError, KnowledgeSourceService
 from .relations import Relation, RelationError, RelationNotFoundError, RelationService, RelationType
 from .runtime import RuntimeLocator, RuntimeLocatorError
 from .store import MemoryStore, StoreError, StoreIdentityError
@@ -42,6 +43,10 @@ __all__ = [
     "KnowledgeNotFoundError",
     "KnowledgeService",
     "KnowledgeType",
+    "KnowledgeSource",
+    "KnowledgeSourceError",
+    "KnowledgeSourceNotFoundError",
+    "KnowledgeSourceService",
     "Migration",
     "MigrationError",
     "MigrationRunner",

@@ -56,6 +56,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-008` | Entity Registry M2.2 | `SUPERSEDES: MEM-STATE-003` pour le sous-ensemble types/entités. Le Core enregistre des types génériques puis crée/lit exactement des entités JSON canoniques avec audit atomique. | `OBSERVED` | 40 tests et 14 sous-tests passent ; relations, symboles, knowledge, evidence, bundles et services métier associés restent absents. | `LOG-0013` |
 | `MEM-STATE-009` | Relation Registry M2.3 | `SUPERSEDES: MEM-STATE-003` pour le sous-ensemble relations. Le Core enregistre des types relationnels puis crée/lit exactement des arêtes immuables entre entités, avec contraintes source/cible et audit atomique. | `OBSERVED` | 48 tests et 14 sous-tests passent ; traversal, lifecycle, symboles, knowledge, evidence, bundles et services métier associés restent absents. | `LOG-0015` |
 | `MEM-STATE-010` | Knowledge Registry M2.4 | `SUPERSEDES: MEM-STATE-003` pour le sous-ensemble knowledge. Le Core enregistre des types knowledge puis ajoute/lit exactement des assertions append-only hashées avec statuts initiaux sûrs et audit atomique. | `OBSERVED` | 57 tests et 14 sous-tests passent ; `PROVEN`, evidence, FTS/FIND, tags, sources, supersession, bundles et services métier associés restent absents. | `LOG-0017` |
+| `MEM-STATE-011` | Knowledge Source Registry M2.5 | `SUPERSEDES: MEM-STATE-010` pour le sous-ensemble provenance déclarative. Le Core attache/lit des références documentaires immuables, hashées et bornées par lignes à une knowledge existante, sans ouvrir le document référencé. | `OBSERVED` | 65 tests et 14 sous-tests passent ; fetch, vérification de document, import, evidence, `PROVEN`, recherche, supersession et bundles restent absents. | `LOG-0019` |
 
 ## 5. Décisions actives
 
@@ -71,6 +72,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-DEC-008` | M2.2 introduit uniquement un registre de types d’entité et des entités génériques créées/lues de façon exacte et auditée. | `DECISION` | Commencer C03 sans emprunter les tables `component`/`function_symbol` ni ouvrir C04/C05/C16 au-delà du nécessaire. | Les entités exigent un type enregistré ; l’API exclut FIND, relations, symboles, knowledge, evidence et toute compatibilité ARET. | `LOG-0012` |
 | `MEM-DEC-009` | M2.3 introduit uniquement un registre de types de relation et des arêtes immuables entre entités existantes. | `DECISION` | Établir une relation universelle et typée sans ouvrir le traversal, la supersession, le graphe de travail ou la connaissance. | Les types de relation sont déclaratifs et contraignent les types d’entité ; l’API exclut FIND, lifecycle, relation vers d’autres ressources, knowledge, evidence et toute compatibilité ARET. | `LOG-0014` |
 | `MEM-DEC-010` | M2.4 introduit uniquement un registre knowledge append-only avec types déclaratifs, hash de contenu et statuts épistémiques initiaux sûrs. | `DECISION` | Établir I003 et empêcher une promotion sans evidence avant de créer le moteur d’Evidence. | `PROVEN`, supersession, FTS/FIND, tags, sources, relations et toute mutation sont exclus ; les écritures sont append-only, auditables et liées au profile. | `LOG-0016` |
+| `MEM-DEC-011` | M2.5 introduit uniquement des références documentaires immuables, hashées et bornées par lignes, attachées à une knowledge existante. | `DECISION` | Établir la provenance déclarative sans créer de fetch, importeur, preuve ou admission `PROVEN`. | Les sources sont validées comme données de référence ; l’API exclut lecture de fichier, vérification de contenu, import, migration batch, evidence et toute mutation/suppression. | `LOG-0018` |
 
 ## 6. Risques, incertitudes et blocages
 
@@ -84,7 +86,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 ## 7. Reprise active
 
-**État de reprise :** `M2.4 — Knowledge Registry` est techniquement terminé ; son commit atomique versionne le verdict `LOG-0017`. Aucun sous-lot M2.5 n’est ouvert. `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
+**État de reprise :** `M2.5 — Knowledge Source Registry` est techniquement terminé ; son commit atomique versionne le verdict `LOG-0019`. Aucun sous-lot M2.6 n’est ouvert. `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
 
 | Élément | Valeur de reprise |
 |---|---|
@@ -93,10 +95,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Baseline M2.1 | Store SQLite canonique, migration checksumée, métadonnées, identité de store, audit technique et transaction, publié au commit `3fc41eff3fb525bab82338287ddde33b3dce9358`. |
 | Baseline M2.2 | Registre de types d’entité, entités génériques, JSON canonique, lecture exacte, audit de création et migration M2.1→M2.2, publié au commit `8f367ca5fdf906f48a58e739360af97d1649c40a`. |
 | Baseline M2.3 | Registre de types de relation, arêtes immuables entre entités, contraintes déclaratives source/cible, lecture exacte, audit de création et migration M2.2→M2.3, publié au commit `5e68a9694137dd1e49f6a8b4a1700c7ca2e40764`. |
-| Périmètre M2.4 | Registre knowledge, enregistrements append-only, hash SHA-256 de contenu, statuts initiaux `ACTIVE`/`OBSERVED`/`HYPOTHESIS`/`CONFLICTING`, lecture exacte, audit de création et migration M2.3→M2.4. `PROVEN`, evidence, recherche et supersession sont interdits. |
-| Limites explicites | Pas encore de promotion `PROVEN`, evidence, traversal/lifecycle relationnel, symbole, FTS/FIND, policy, capability, bundle, adapter MCP, dashboard, pack ARET ni compatibilité de lecteur historique. L’absence de vocabulaire ARET du Core ne démontre pas de parité comportementale ARET. |
-| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0015`, `LOG-0016` et `LOG-0017`. |
-| Prochaine action | Vérifier le commit atomique M2.4 ; si le chantier reprend, ouvrir un sous-lot M2.5 distinct avec hypothèse et limites propres, sans lever `MEM-WALL-001`. |
+| Baseline M2.4 | Registre knowledge, assertions append-only hashées, statuts initiaux sûrs, lecture exacte, audit de création et migration M2.3→M2.4, publié au commit `a783d3efefafe0b1e80c5454e8649f082858611e`. |
+| Périmètre M2.5 | Références documentaires à une knowledge existante : repository, revision, chemin relatif, section, lignes, SHA-256, lecture exacte bornée, audit de création et migration M2.4→M2.5. Aucun fetch, import, evidence, `PROVEN`, FTS/FIND ou mutation n’est autorisé. |
+| Limites explicites | Pas encore de fetch/vérification de document, import/migration batch, promotion `PROVEN`, evidence, traversal/lifecycle relationnel, symbole, FTS/FIND, policy, capability, bundle, adapter MCP, dashboard, pack ARET ni compatibilité de lecteur historique. L’absence de vocabulaire ARET du Core ne démontre pas de parité comportementale ARET. |
+| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0017`, `LOG-0018` et `LOG-0019`. |
+| Prochaine action | Vérifier le commit atomique M2.5 ; si le chantier reprend, ouvrir un sous-lot M2.6 distinct avec hypothèse et limites propres, sans lever `MEM-WALL-001`. |
 
 ## 8. Protocole de mise à jour append-only
 
