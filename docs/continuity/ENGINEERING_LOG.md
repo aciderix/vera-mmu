@@ -28,7 +28,9 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0002` | 2026-08-25 | `DECISION` | Pré-M0 | VERA-MMU, identité, dépôt indépendant, fondation | `DECISION` | `PASS` | `MEM-ID-001`, `MEM-BASE-002`, `MEM-DEC-001`, `MEM-DEC-002` |
 | `LOG-0003` | 2026-08-25 | `INSPECTION` | M0.1 | spécification, doctrine ARET, continuité, baseline, reprise | `OBSERVED` | `PASS` | `MEM-SRC-001`, `MEM-SRC-002`, `MEM-DEC-003`, `MEM-DEC-004` |
 | `LOG-0004` | 2026-08-25 | `INSPECTION` | M0.0 | continuité, liens croisés, Git, reprise, format | `OBSERVED` | `PASS` | `MEM-DEC-003`, reprise active |
-| `LOG-0005` | À ouvrir | `BASELINE` | M0.1 | freeze, tests, schéma, hooks, MCP, bundle, dépendances | `PLANNED` | `NOT_RUN` | `MEM-RISK-001`, reprise active |
+| `LOG-0005` | 2026-08-25 | `BASELINE` | M0.1 | ouverture, environnement, périmètre, préconditions | `OBSERVED` | `NOT_RUN` | `MEM-RISK-001`, reprise active |
+| `LOG-0006` | 2026-08-25 | `BASELINE` / `WALL` | M0.1 | inventaire, pytest, hooks, MCP, bundle, toolchain, intégrité | `OBSERVED` | `UNKNOWN` | `MEM-BASE-003`, `MEM-BASE-004`, `MEM-WALL-001` |
+| `LOG-0007` | À ouvrir | `INSPECTION` | M0.2 | découplage, adressage, store, schéma, MCP | `PLANNED` | `NOT_RUN` | Reprise active |
 
 ## 3. Entrées append-only
 
@@ -100,22 +102,44 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | Mémoire liée | `MEM-DEC-003`, section Reprise active. |
 | Suivi | Ouvrir `LOG-0005` pour le freeze ARET. |
 
-### LOG-0005 — Gabarit de freeze ARET (à renseigner avant exécution)
+### LOG-0005 — Ouverture du freeze ARET
 
-| Champ | Valeur à compléter |
+| Champ | Valeur |
 |---|---|
-| Date | `YYYY-MM-DD` |
+| Date | 25 août 2026 |
 | Type | `BASELINE` |
 | Lot | `M0.1 — Freeze ARET` |
-| Hypothèse | Le baseline peut être reproduit sur l’environnement décrit, ou les préconditions manquantes seront qualifiées explicitement. |
-| Périmètre | Commit, versions Python/dépendances, schéma et checksums, tests, MCP, hooks, bundle, état Git, outils système. |
-| Commandes et environnement | À consigner avec versions, répertoire de travail, variables pertinentes non secrètes et timeout. |
-| Artefacts | Hashes de schéma/migrations, sorties de test, conformance MCP, comportement des hooks, bundle ou motif d’impossibilité. |
-| Comparaison | Première mesure de référence ; les runs futurs doivent y être comparés. |
-| Invariants | I001, I004–I011, I014, I015 au minimum selon les tests réalisables. |
-| Verdict | `PASS` / `FAIL` / `UNKNOWN` / `NOT_RUN` avec cause. |
-| Mémoire liée | Nouveaux records `MEM-BASE-*`, `MEM-RISK-*` ou `MEM-WALL-*` selon le résultat. |
-| Suivi | Créer `LOG-0005` pour toute wall, dépendance manquante ou décision de découpage. |
+| Hypothèse | Le baseline peut être reproduit sur l’environnement décrit ; toute précondition manquante ou divergence d’environnement sera journalisée comme une wall, sans assimilation à un `PASS`. |
+| Périmètre | Commit, état Git, versions Python/dépendances, schéma et checksums, tests, surface MCP, hooks, bundle et outils système. Aucune modification d’ARET-MMU n’est autorisée dans ce lot. |
+| Préconditions observées | ARET-MMU est sur `main` au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, avec arbre Git propre. Python `3.12.3`, Git `2.43.0`, pytest `9.1.1` et Bash `5.2.21` sont disponibles ; le client `sqlite3` est absent. |
+| Répertoire d’évidence | À créer hors des dépôts sous `/home/ubuntu/ARET_MMU_M0_1_BASELINE/`. |
+| Artefacts attendus | Inventaire de fichiers/dépendances, hashes de schéma/migrations, sorties de tests, surface MCP, comportement des hooks, bundle ou motif d’impossibilité. |
+| Comparaison | Première mesure de référence ; les runs futurs seront comparés à ses hashes, comptes, statuts et divergences qualifiées. |
+| Invariants | I001, I004–I011, I014 et I015, selon les validations réalisables. |
+| Verdict | `NOT_RUN` — le baseline est ouvert ; aucune exécution de test, de hook ou de bundle n’est encore qualifiée. |
+| Mémoire liée | `MEM-BASE-001`, `MEM-RISK-001`, `MEM-RISK-004`. |
+| Suivi | Le résultat de freeze et la wall d’environnement sont consignés dans `LOG-0006`. |
+
+### LOG-0006 — Freeze M0.1 : baseline capturé avec wall de toolchain
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `BASELINE` / `WALL` / `VERDICT` |
+| Lot | `M0.1 — Freeze ARET` |
+| Certitude | `OBSERVED` |
+| Baseline source | ARET-MMU `main` à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, arbre propre avant et après les captures. |
+| Inventaire | 130 fichiers Git, 180 fichiers package, 25 fichiers de tests, 90 tests collectés, 6 migrations SQL, 44 outils MCP `aret_*` statiques et 11 modules de hooks. |
+| Environnement | Python 3.12.3, Git 2.43.0, pytest 9.1.1 et Bash 5.2.21 ; client `sqlite3` absent. L’inventaire complet est dans le répertoire de baseline. |
+| Exécutions | Collecte pytest : `PASS` (90). Suite complète : 82 passés, 1 échec, 7 ignorés. Sous-ensemble hooks/reprise/bundle : 10 passés. |
+| Wall | `tests/test_execution_confinement.py::test_oracle_repository_path_and_resolved_script_stay_under_configured_repository` échoue parce que `gcc` est absent : l’oracle fermé retourne `SKIPPED` avant l’exécution de la fixture et le marqueur attendu n’est pas produit. Cargo, Wine, MinGW, Clang, LLD, LLVM DLLTool, le binaire réel ARET et le script réel de difftest sont aussi absents. |
+| Bundle | Bundle de mécanique exporté, importé et réimporté idempotent ; hash `1001e6a907c5103bc4e327abc75918a36e4ed851318cc41a38b6baac5bd2642e`. |
+| Evidence | `/home/ubuntu/ARET_MMU_M0_1_BASELINE/BASELINE_REPORT.md`, manifeste SHA-256 `05e9c126425a27d6440cb5e92c367bcae6676ff04b430fe4b3618c7afff7984d`, archive `ARET_MMU_M0_1_BASELINE_7f7b4df.tar.gz`. |
+| Invariants | I001, I004–I011, I014 et I015 ; aucune preuve de parité VERA n’est produite. |
+| Comparaison | Première mesure : les exécutions futures doivent comparer les comptes, hashes, résultats et la disponibilité de toolchain à cette capture. |
+| Verdict | `UNKNOWN` pour un baseline d’exécution exhaustif ; `PASS` pour la capture de référence, l’intégrité des artefacts, les hooks/reprises testés et la mécanique de bundle. |
+| Mémoire liée | `MEM-BASE-003`, `MEM-BASE-004`, `MEM-WALL-001`. |
+| Suivi | Ouvrir `LOG-0007` pour `M0.2 — Registre de compatibilité`; maintenir `MEM-WALL-001` comme précondition des claims d’oracle/parité. |
 
 ## 4. Protocole de journalisation d’un changement
 
@@ -132,11 +156,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 
 ## 5. Handoff actif
 
-> **État de reprise :** les trois documents de continuité sont présents dans `docs/continuity/` et leur structure a été validée dans `LOG-0004`. Ils font partie du commit atomique de gouvernance associé à cette entrée ; avant `M0.1`, vérifier que l’arbre Git et la branche distante sont propres. Le travail actif demeure `M0.1 — Freeze ARET` ; la prochaine action est d’ouvrir `LOG-0005`, de définir le périmètre exact du freeze, puis de capturer les versions et outils avant toute exécution.
+> **État de reprise :** `M0.1` est capturé dans `LOG-0006` avec verdict `UNKNOWN` pour l’exécution exhaustive à cause de `MEM-WALL-001`, mais les sources, hashes, suite de tests, hooks/reprise et bundle de mécanique sont enregistrés. Le travail actif devient `M0.2 — Registre de compatibilité ARET`. La prochaine action est d’ouvrir `LOG-0007` et d’examiner la première tranche de couplages sans déplacer de code.
 
 | Reprendre par | Lire ensuite | Ne pas faire avant |
 |---|---|---|
-| `UNIVERSALIZATION_WORKPLAN.md`, section 5 | `PROJECT_MEMORY.md`, sections 2, 5, 6 et 7 ; puis `LOG-0005`. | Lancer des tests ARET, modifier le Core ou déclarer une parité sans avoir décrit le baseline et les gates. |
+| `UNIVERSALIZATION_WORKPLAN.md`, section 5 | `PROJECT_MEMORY.md`, sections 2, 5, 6 et 7 ; puis `LOG-0006`. | Déplacer du code ARET, lever `MEM-WALL-001` par hypothèse ou déclarer une parité sans test dans une toolchain admissible. |
 
 ## 6. Gabarit d’entrée future
 

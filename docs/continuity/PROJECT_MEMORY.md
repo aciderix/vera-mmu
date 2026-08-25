@@ -27,6 +27,8 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-BASE-002` | Baseline VERA | VERA-MMU est à `ef707339c245ee1d36b8a78312d1a441c86296dc`, branche `main`, arbre propre au relevé du 25 août 2026. | `OBSERVED` | `git rev-parse HEAD` et `git status --short` | `LOG-0002` |
 | `MEM-SRC-001` | Source | La spécification fournie définit la cible : Core universel, Domain Packs, Project Profiles, Capability/Gate Engine, MCP Compiler, Runtime Adapters et Dashboard. | `OBSERVED` | `UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md`, sections 0–1 et 60, fourni par le propriétaire. | `LOG-0003` |
 | `MEM-SRC-002` | Source | La doctrine ARET impose le cycle baseline → patch minimal → run → evidence → comparison → verdict → record, la non-régression et le fail loud. | `OBSERVED` | `pasted_content.txt`, sections 1–20, fourni par le propriétaire. | `LOG-0003` |
+| `MEM-BASE-003` | Freeze M0.1 | Le baseline ARET a capturé l’inventaire, les hashes, l’environnement, les résultats pytest, la surface MCP/hook, un bundle de mécanique et un bundle Git pour le commit de référence. | `OBSERVED` | `/home/ubuntu/ARET_MMU_M0_1_BASELINE/BASELINE_REPORT.md` ; manifeste `05e9c126425a27d6440cb5e92c367bcae6676ff04b430fe4b3618c7afff7984d`. | `LOG-0006` |
+| `MEM-BASE-004` | Mesures de référence | Le package compte 180 fichiers, 25 fichiers de tests, 90 tests collectés, 6 migrations SQL, 44 outils MCP `aret_*` détectés statiquement et 11 modules de hooks. | `OBSERVED` | Répertoire `ARET_MMU_M0_1_BASELINE/inventory/` et `hashes/`. | `LOG-0006` |
 
 ## 3. Faits d’architecture établis
 
@@ -66,19 +68,20 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-RISK-002` | La spécification cible utilise historiquement `mmu://`, `.mmu/` et `mmu_*`, tandis que VERA-MMU a choisi `vera://`, `.vera-mmu/` et `vera_*`. | `DECISION` avec risque de compatibilité | Les documents et adaptations doivent déclarer les deux couches sans mélange silencieux. | Définir une table de compatibilité et une policy d’alias dans `M1`. | `LOG-0003` |
 | `MEM-RISK-003` | Le statut de licence est `LICENSE-PENDING`. | `RISK` | Une extraction ou distribution de code ARET nécessite une décision explicite de gouvernance. | Ne pas copier de code ARET ; documenter provenance, droits et transformation avant tout import. | `LOG-0002` |
 | `MEM-RISK-004` | Les règles de preuve sont documentées, mais le mécanisme de capture admissible VERA-MMU n’est pas encore implémenté. | `RISK` | Les preuves actuelles de chantier sont des traces de développement, pas des evidence VERA-MMU admissibles. | Qualifier les résultats `OBSERVED` jusqu’à l’existence du store/evidence engine. | `LOG-0003` |
+| `MEM-WALL-001` | Toolchain ARET de baseline incomplète | La suite complète produit 82 passes, 1 échec et 7 skips ; `gcc`, Cargo, Wine, MinGW, Clang, LLD et LLVM DLLTool sont absents, ainsi que le binaire et le script réels de difftest. | `BLOCKED` | `ARET_MMU_M0_1_BASELINE/tests/pytest_full.txt` ; `toolchain/oracle_toolchain_availability.txt`. | Ne pas modifier ARET-MMU ni qualifier les oracles comme validés ; reproduire ultérieurement dans un environnement déclarant cette toolchain. | `LOG-0006` |
 
 ## 7. Reprise active
 
-**Work item actif :** `M0.1 — Freeze ARET et inventaire de compatibilité`.
+**Work item actif :** `M0.2 — Registre de compatibilité ARET`, avec la wall `MEM-WALL-001` maintenue comme précondition ouverte pour toute assertion de parité d’oracle.
 
 | Élément | Valeur de reprise |
 |---|---|
-| Objectif immédiat | Obtenir un baseline ARET complet, reproductible et relié à `MEM-BASE-001`, sans modifier ARET-MMU. |
-| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md). |
-| Préconditions | Clone ARET propre, commit identifié, environnement de test documenté, répertoire d’évidence de baseline séparé de tout dépôt source. |
-| Sorties attendues | Inventaire de fichiers et dépendances, résultats de tests qualifiés, schéma/migrations hashés, surface MCP/hooks décrite, bundle d’exemple si la précondition d’environnement est satisfaite. |
-| Gates de travail | Aucun `PASS` sans commande, sortie, environnement et comparaison enregistrés ; tout échec environnemental devient une wall qualifiée. |
-| Prochaine action | Ouvrir `LOG-0005`, définir le périmètre exact du freeze et capturer les versions/outils avant toute exécution. |
+| Objectif immédiat | Enrichir la matrice de découplage pour chaque surface ARET identifiée, sans déplacer de code ni masquer `MEM-WALL-001`. |
+| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0006`. |
+| Préconditions | Baseline M0.1 disponible dans `ARET_MMU_M0_1_BASELINE/`, clone ARET propre et aucun claim de parité au-delà du périmètre mesuré. |
+| Sorties attendues | Source précise, couplage, abstraction cible, test de parité et stratégie de migration pour chaque ligne de matrice. |
+| Gates de travail | Aucun statut `DONE` sans abstraction, test et démonstration de non-dépendance ARET dans le Core ; les oracles affectés restent liés à `MEM-WALL-001`. |
+| Prochaine action | Ouvrir `LOG-0007`, inspecter la première tranche de couplages d’adressage, store, schéma et surface MCP. |
 
 ## 8. Protocole de mise à jour append-only
 
