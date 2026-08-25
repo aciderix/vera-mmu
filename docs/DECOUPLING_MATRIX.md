@@ -150,3 +150,12 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C03` | L’index n’expose que des identifiants génériques de knowledge et d’asset ; il n’introduit aucun `component`, `function`, symbole ou vocabulaire technique. | Validation d’endpoints VERA, scan ciblé du nouveau Core et wheel isolé ; `LOG-0030`. | Import des composants V1, liens de connaissance spécialisés, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
 
 > M2.9 rend observables les associations directes d’un endpoint exact sans ouvrir de recherche libre, de traversal ou de lecture de contenu. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
+### 2.11. Avancement observé M2.10 — provenance documentaire déclarative des assets
+
+| Couplage | Surface VERA désormais observée | Evidence M2.10 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C02` | Migration `010` et table stricte `asset_source` attachant à un asset existant repository, revision, chemin relatif, lignes, section et SHA-256 déclarés ; aucune ressource externe n’est ouverte. | `tests/test_asset_provenance.py` : migration 9→10, attache/lecture/liste, données/endpoints invalides, duplicat, immuabilité SQL, rollback et asset inchangé ; wheel vérifié ; `LOG-0033`. | Runtime de fichiers, comparaison de contenu source↔asset, checkpoint/policy filesystem, exports, doctor, comportement de stockage V1 et parité ARET. | `SPLIT` |
+| `C16` | `AssetSourceService` enregistre des références documentaires immuables et hashées, avec audit atomique ; les références restent déclaratives et ne confèrent aucune preuve. | Tests de confinement de chemin, hash/plage invalides, rewrite/delete SQL refusés et audit/rollback ; scan ciblé et wheel isolé ; `LOG-0033`. | Evidence/proof, admission `PROVEN`, execution/validator/gate, HMAC, relation générique, traversal, lecture d’asset, import croisé, bundle et parité historique. | `SPLIT` |
+
+> M2.10 rend l’origine documentaire d’un asset explicitement déclarable sans ouvrir le document, vérifier son contenu ou le convertir en preuve. Les lignes C02 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.

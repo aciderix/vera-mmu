@@ -67,8 +67,8 @@ class KnowledgeSupersessionServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_knowledge_supersession(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 9})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 10})
 
     def test_existing_m2_5_store_migrates_to_knowledge_supersession(self) -> None:
         schema = Path(self._directory.name) / "m2_5_schema"

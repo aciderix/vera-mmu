@@ -55,6 +55,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0029` | 2026-08-25 | `HYPOTHESIS` | M2.9 | index direct knowledge–asset, borne, audit existant | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-015`, `MEM-WALL-001` |
 | `LOG-0030` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.9 | index direct knowledge–asset, ordre/borne, sans contenu | `OBSERVED` | `PASS` pour M2.9 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001` |
 | `LOG-0031` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.9 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001` |
+| `LOG-0032` | 2026-08-25 | `HYPOTHESIS` | M2.10 | provenance déclarative asset, immuabilité, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-016`, `MEM-WALL-001` |
+| `LOG-0033` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.10 | provenance déclarative asset, immuabilité, audit | `OBSERVED` | `PASS` pour M2.10 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-016`, `MEM-DEC-016`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -662,3 +664,41 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites | Cette publication ne change pas le verdict M2.9 ni les exclusions : M2 complet et toute parité ARET restent `UNKNOWN`; `MEM-WALL-001` reste actif. |
 | Mémoire liée | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001`. |
 | Suivi | Actualiser les références de reprise qui signalaient la publication en attente, committer ce record documentaire puis vérifier de nouveau la référence publique. |
+
+### LOG-0032 — Hypothèse M2.10 : provenance déclarative des assets
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.10 — Asset Source Registry` |
+| Hypothèse | Le Core peut attacher à un asset existant une référence documentaire déclarative immutable, hashée et bornée par lignes, sans ouvrir, télécharger, vérifier ni comparer la ressource déclarée au contenu de l’asset. |
+| Périmètre | Migration `010` créant `asset_source`; `AssetSource` et `AssetSourceService` dédiés avec attach/get/list_for asset, validations de repository/révision/chemin relatif/plage/section/hash, contraintes de foreign key, unicité de slice, triggers append-only et audit atomique. |
+| Justification | M2.5 a établi la provenance documentaire déclarative des knowledge et M2.7 a établi les assets hashés. M2.10 applique le même contrat de provenance au contenu binaire sans ajouter une règle de vérification ou une relation de preuve. |
+| Exclusions | Aucun fichier ou chemin externe ouvert, fetch, import, comparaison de hash asset↔source, read de bytes, `PROVEN`, evidence/proof, admission, validator, execution, gate, relation générique, traversal, recherche libre, bundle, policy, capability, MCP ou compatibilité ARET. |
+| Baseline | VERA-MMU `main` et `origin/main` à `3b9f4798fd3385c33c53aea2140326e8cd0bc88a`, propres. M2.9 publié `c888958cc184c621b5cf02b95defa0d3fb706b56`. ARET-MMU intact à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, propre. |
+| Invariants | I001, I002, I004, I005, I011, I014, I015. |
+| Tests prévus | Migration 9→10 ; attache/lecture/liste bornée ; endpoints et données invalides ; duplicat ; immuabilité SQL ; rollback audit ; absence de lecture/fetch/comparaison ; wheel isolé. |
+| Verdict | `NOT_RUN` — aucun patch M2.10 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-016` à créer, `MEM-STATE-016`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, écrire les tests M2.10 avant migration et service, puis exécuter les gates complètes. |
+
+### LOG-0033 — Verdict M2.10 : provenance déclarative des assets
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.10 — Asset Source Registry` |
+| Certitude | `OBSERVED` : les tests, la migration, les contrôles statiques et le wheel ont produit les résultats consignés ; une source attachée n’est pas une evidence VERA-MMU. |
+| Baseline | M2.9 publié `c888958cc184c621b5cf02b95defa0d3fb706b56`; `LOG-0032`; VERA `main`/`origin/main` à `3b9f4798fd3385c33c53aea2140326e8cd0bc88a` avant patch. ARET-MMU est resté propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Changement | Migration `010_asset_sources.sql`, table stricte `asset_source`, `AssetSource` et `AssetSourceService`. Une référence porte repository, revision, chemin relatif, plage de lignes, section et SHA-256 déclarés pour un asset existant, avec foreign key, unicité de slice, triggers append-only et audit atomique. |
+| Invariants | I001, I002, I004, I005, I011, I014, I015. La source ne lit ni le document déclaré ni les bytes de l’asset, ne compare aucun hash et ne modifie aucune métadonnée d’asset. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **96 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration 9→10, attache/lecture/liste bornée, données/endpoints invalides, duplicats, immuabilité SQL, asset inchangé et rollback conjoint source+audit. |
+| Contrôles de sûreté | `git diff --check` réussit. Le scan ciblé des nouveaux artefacts M2.10 ne trouve aucune dépendance ARET, admission `PROVEN`, `AssetService`, lecture de bytes, fetch, comparaison, execution, validator, MCP ou réseau. La surface publique se limite à `attach`, `get`, `list_for`; aucun listing global, search, scan, traversal, import, export ou read n’est exposé. |
+| Distribution | Wheel construit via `pip wheel`, installé dans une cible isolée, puis contrôlé par un script hors dépôt qui crée un asset et une provenance déclarative, relit/liste la référence et vérifie le schéma 10. SHA-256 wheel : `19a7c67caabffb6c07fb28b2d1324254536092611a10d657648265a52a3eac6e`; sortie de contrôle : `ee0df256dd021741593177f39a719fe8d22639addc2174a4f86f97e21001efc2`; migration : `bd8dd0c5a41dd056ce9a38f13adb27fe1447915ef7527876522b2eb8cf6d1adb`; service : `c4c41a235a6d31bc9bbc44f8a09f8dbfae9549569187437f33f25e59a8e5692b`. |
+| Comparaison | M2.5 attachait des références documentaires déclaratives à une knowledge ; M2.7 introduisait les assets hashés. M2.10 attache la même forme déclarative à l’asset sans égaler les hashes, sans inspecter l’origine et sans transformer la provenance en preuve. |
+| Limites | Aucun document/fichier externe, fetch, import, comparaison source↔asset, `AssetService.read`, statut `PROVEN`, evidence/proof, admission, validator, execution, gate, relation générique, traversal, recherche libre, bundle, policy, capability, MCP ou compatibilité ARET n’est livré. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.10 et ses gates techniques. `UNKNOWN` pour M2 au total, toute parité ARET et toute sémantique d’evidence ou d’exécution. |
+| Mémoire liée | `MEM-STATE-016`, `MEM-DEC-016`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour mémoire, plan, matrice et README ; relancer les checks finaux, puis committer et publier atomiquement. |
