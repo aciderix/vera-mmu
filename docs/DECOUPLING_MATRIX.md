@@ -141,3 +141,12 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C03` | Les associations portent exclusivement les identifiants génériques de knowledge et d’asset ; elles n’introduisent aucun `component`, `function`, symbole ou vocabulaire technique. | Validation des deux endpoints VERA, scan ciblé du nouveau Core et wheel isolé ; `LOG-0027`. | Import des composants V1, liens de connaissance spécialisés, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
 
 > M2.8 rend la référence knowledge–asset explicite sans qualifier l’asset de preuve, sans mutation de knowledge et sans ouvrir de graph traversal. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
+### 2.10. Avancement observé M2.9 — index borné des associations knowledge–asset
+
+| Couplage | Surface VERA désormais observée | Evidence M2.9 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C16` | Migration `009` et index inversé de `knowledge_asset_link` ; listes directes, ordonnées et bornées par knowledge ou asset existant, retournant uniquement les métadonnées de liaison. | `tests/test_knowledge_asset_index.py` : migration 8→9, ordre, borne, endpoints/limites invalides, endpoint sans lien et absence de contenu ; wheel vérifié ; `LOG-0030`. | Evidence/proof, admission `PROVEN`, validator/execution/gate, relation générique, recherche libre, traversal multi-sauts, lecture de contenu par index, HMAC, import croisé, bundle et parité historique. | `SPLIT` |
+| `C03` | L’index n’expose que des identifiants génériques de knowledge et d’asset ; il n’introduit aucun `component`, `function`, symbole ou vocabulaire technique. | Validation d’endpoints VERA, scan ciblé du nouveau Core et wheel isolé ; `LOG-0030`. | Import des composants V1, liens de connaissance spécialisés, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
+
+> M2.9 rend observables les associations directes d’un endpoint exact sans ouvrir de recherche libre, de traversal ou de lecture de contenu. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.

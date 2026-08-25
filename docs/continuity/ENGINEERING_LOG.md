@@ -52,6 +52,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0026` | 2026-08-25 | `HYPOTHESIS` | M2.8 | association exacte knowledge–asset, immuabilité, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-014`, `MEM-WALL-001` |
 | `LOG-0027` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.8 | association exacte knowledge–asset, immuabilité, audit | `OBSERVED` | `PASS` pour M2.8 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-014`, `MEM-DEC-014`, `MEM-WALL-001` |
 | `LOG-0028` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.8 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-014`, `MEM-DEC-014`, `MEM-WALL-001` |
+| `LOG-0029` | 2026-08-25 | `HYPOTHESIS` | M2.9 | index direct knowledge–asset, borne, audit existant | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-015`, `MEM-WALL-001` |
+| `LOG-0030` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.9 | index direct knowledge–asset, ordre/borne, sans contenu | `OBSERVED` | `PASS` pour M2.9 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -606,3 +608,41 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites | Cette publication ne change pas le verdict M2.8 ni les exclusions : M2 complet et toute parité ARET restent `UNKNOWN`; `MEM-WALL-001` reste actif. |
 | Mémoire liée | `MEM-STATE-014`, `MEM-DEC-014`, `MEM-WALL-001`. |
 | Suivi | Actualiser les références de reprise qui signalaient la publication en attente, committer ce record documentaire puis vérifier de nouveau la référence publique. |
+
+### LOG-0029 — Hypothèse M2.9 : index borné des associations knowledge–asset
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.9 — Bounded Knowledge-Asset Index` |
+| Hypothèse | Le Core peut exposer un index direct, déterministe et borné des associations déjà enregistrées pour un endpoint knowledge ou asset exact, sans restituer les contenus des endpoints, sans graph traversal et sans conférer de sémantique de preuve. |
+| Périmètre | Migration `009` créant l’index SQL nécessaire à la lecture directe inversée par asset ; méthodes `list_for_knowledge` et `list_for_asset` sur `KnowledgeAssetLinkService`, retour limité et ordonné d’objets de liaison existants seulement. |
+| Justification | I002 distingue FIND et READ. Après M2.8, une paire doit être connue à l’avance pour être relue. Un index direct, borné et sans contenu constitue une découverte contrôlée, distincte de la lecture des knowledge ou des bytes d’asset, sans ouvrir un moteur de recherche ni un graphe. |
+| Exclusions | Aucun contenu knowledge/asset, `AssetService.read`, statut knowledge, `PROVEN`, evidence/proof, admission, validator, execution, gate, relation générique, traversal multi-sauts, recherche texte, filtre libre, fetch, fichier externe, bundle, policy, capability, MCP, import/export ou compatibilité ARET. |
+| Baseline | VERA-MMU `main` et `origin/main` à `bb0cf0c428eb4fc324a33563f1ec53cc5ae4dd9a`, propres. M2.8 publié `8982b7855e09db8ed009ca2081021b9210bc8088`. ARET-MMU intact à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, propre. |
+| Invariants | I001, I002, I003, I004, I005, I011, I014, I015. |
+| Tests prévus | Migration 8→9 ; index direct par knowledge et asset ; ordre/borne ; endpoint et limite invalides ; absence de contenu ou de lecture asset ; immuabilité préservée ; wheel isolé. |
+| Verdict | `NOT_RUN` — aucun patch M2.9 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-015` à créer, `MEM-STATE-015`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, écrire les tests M2.9 avant migration et service, puis exécuter les gates complètes. |
+
+### LOG-0030 — Verdict M2.9 : index borné des associations knowledge–asset
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.9 — Bounded Knowledge-Asset Index` |
+| Certitude | `OBSERVED` : les tests, la migration, les contrôles statiques et le wheel ont produit les résultats consignés ; un résultat d’index ne constitue pas une evidence VERA-MMU. |
+| Baseline | M2.8 publié `8982b7855e09db8ed009ca2081021b9210bc8088`; `LOG-0029`; VERA `main`/`origin/main` à `bb0cf0c428eb4fc324a33563f1ec53cc5ae4dd9a` avant patch. ARET-MMU est resté propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Changement | Migration `009_knowledge_asset_link_indexes.sql` ajoutant l’index inversé `(asset_id, knowledge_id)` ; `KnowledgeAssetLinkService.list_for_knowledge` et `.list_for_asset`, retour direct, trié et limité d’objets de liaison uniquement. |
+| Invariants | I001, I002, I003, I004, I005, I011, I014, I015. L’index impose un endpoint existant et une limite bornée, ne lit aucun contenu de knowledge ou d’asset et ne modifie aucun état. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **90 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration 8→9, index direct dans les deux directions, ordre déterministe, borne, endpoint/limite invalides, endpoint existant sans lien et absence de contenu d’endpoint. |
+| Contrôles de sûreté | `git diff --check` réussit. Le scan ciblé des nouveaux artefacts M2.9 ne trouve aucune dépendance ARET, admission `PROVEN`, `AssetService`, lecture de bytes, execution, validator, MCP ou réseau. La surface est limitée à `link`, `get`, `list_for_knowledge`, `list_for_asset` ; aucun filtre libre, search, scan, traversal, import, export ou read n’est exposé. |
+| Distribution | Wheel construit via `pip wheel`, installé dans une cible isolée, puis contrôlé par un script hors dépôt qui crée des liens et vérifie les listes ordonnées/bornées, sans contenu. SHA-256 wheel : `e7bd35c33e1f257fb253c0de6edc67885fdaa2d26d7a5743b8bc413a317558ac`; sortie de contrôle : `a41655c91f394192e51e1e38c962af4e23ed909b248d6721787b5757f46d4111`; migration : `2000ac153a3cd496c8abd13e2b1925e2e2df6149711d7786cce8fe4a3e53325b`; service : `626ecc23cfd074ca65786ffc1a47c326706716ad924b0e67ae7929185142da5c`. |
+| Comparaison | M2.8 permettait uniquement la lecture d’une paire connue. M2.9 rend les associations d’un endpoint exact observables de manière bornée, sans ouvrir un moteur de recherche, un graphe ou une lecture de contenu. |
+| Limites | Aucun contenu endpoint, `AssetService.read`, statut `PROVEN`, evidence/proof, admission, validator, execution, gate, relation générique, traversal multi-sauts, recherche texte, filtre libre, fetch, fichier externe, bundle, policy, capability, MCP, import/export ou compatibilité ARET n’est livré. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.9 et ses gates techniques. `UNKNOWN` pour M2 au total, toute parité ARET et toute sémantique d’evidence ou d’exécution. |
+| Mémoire liée | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour mémoire, plan, matrice et README ; relancer les checks finaux, puis committer et publier atomiquement. |

@@ -9,6 +9,9 @@ from .addressing import AddressError, make_address
 from .store import MemoryStore, StoreError
 
 
+MAX_KNOWLEDGE_ASSET_LINK_INDEX_LIMIT = 100
+
+
 class KnowledgeAssetLinkError(StoreError):
     """Raised when an exact knowledge–asset link is invalid or cannot be recorded."""
 
@@ -80,6 +83,30 @@ class KnowledgeAssetLinkService:
             raise KnowledgeAssetLinkNotFoundError("Association knowledge–asset introuvable.")
         return _link_from_row(row)
 
+    def list_for_knowledge(self, knowledge_id: str, *, limit: int = MAX_KNOWLEDGE_ASSET_LINK_INDEX_LIMIT) -> tuple[KnowledgeAssetLink, ...]:
+        """List a bounded, ordered set of direct links for one exact knowledge endpoint only."""
+        normalized_knowledge_id = _require_identifier(self.store, "knowledge", knowledge_id)
+        normalized_limit = _require_limit(limit)
+        _require_existing(self.store.connection, "knowledge", normalized_knowledge_id)
+        rows = self.store.connection.execute(
+            "SELECT knowledge_id, asset_id, created_at, created_by "
+            "FROM knowledge_asset_link WHERE knowledge_id = ? ORDER BY asset_id LIMIT ?",
+            (normalized_knowledge_id, normalized_limit),
+        ).fetchall()
+        return tuple(_link_from_row(row) for row in rows)
+
+    def list_for_asset(self, asset_id: str, *, limit: int = MAX_KNOWLEDGE_ASSET_LINK_INDEX_LIMIT) -> tuple[KnowledgeAssetLink, ...]:
+        """List a bounded, ordered set of direct links for one exact asset endpoint only."""
+        normalized_asset_id = _require_identifier(self.store, "asset", asset_id)
+        normalized_limit = _require_limit(limit)
+        _require_existing(self.store.connection, "asset", normalized_asset_id)
+        rows = self.store.connection.execute(
+            "SELECT knowledge_id, asset_id, created_at, created_by "
+            "FROM knowledge_asset_link WHERE asset_id = ? ORDER BY knowledge_id LIMIT ?",
+            (normalized_asset_id, normalized_limit),
+        ).fetchall()
+        return tuple(_link_from_row(row) for row in rows)
+
 
 def _require_identifier(store: MemoryStore, resource_type: str, value: str) -> str:
     try:
@@ -96,8 +123,18 @@ def _require_actor(value: str) -> str:
 
 
 def _require_existing(connection: sqlite3.Connection, table: str, identifier: str) -> None:
+    if table not in {"knowledge", "asset"}:
+        raise KnowledgeAssetLinkError("Type d’endpoint knowledge–asset invalide.")
     if connection.execute(f"SELECT 1 FROM {table} WHERE id = ?", (identifier,)).fetchone() is None:
         raise KnowledgeAssetLinkError(f"Endpoint {table} inconnu.")
+
+
+def _require_limit(value: int) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= MAX_KNOWLEDGE_ASSET_LINK_INDEX_LIMIT:
+        raise KnowledgeAssetLinkError(
+            f"limit doit être un entier entre 1 et {MAX_KNOWLEDGE_ASSET_LINK_INDEX_LIMIT}."
+        )
+    return value
 
 
 def _link_from_row(row: sqlite3.Row) -> KnowledgeAssetLink:
