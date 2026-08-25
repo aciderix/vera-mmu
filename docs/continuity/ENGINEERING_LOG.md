@@ -808,3 +808,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites | Cette publication ne change pas le verdict M2.11 ni les exclusions : M2 complet et toute parité ARET restent `UNKNOWN`; `MEM-WALL-001` reste actif. |
 | Mémoire liée | `MEM-STATE-017`, `MEM-DEC-017`, `MEM-DEC-018`, `MEM-WALL-001`. |
 | Suivi | Actualiser les références de reprise qui signalaient la publication en attente, committer ce record documentaire puis vérifier de nouveau la référence publique. |
+
+### LOG-0040 — Décision de cadrage terminal M2 et cadence
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `DECISION` / `ROADMAP` |
+| Déclencheur | Le propriétaire demande un cadrage plus strict et plus efficace : la rigueur ne doit pas produire une succession indéfinie de micro-lots décoratifs. |
+| Source normative | La spécification fournie, section 55, définit M2 comme **Universal Schema** : entity registry, relation registry, symbol, work item, execution et capability registry. Elle place explicitement en M3 runner engine, validators, evidence, gates et work graph. Les sections 10 à 15 distinguent work item, execution, proof et Evidence Store. |
+| Écart observé | VERA livre entity/relations et le socle M2.4–M2.11, mais ne possède encore aucune table `symbol`, `work_item`, `capability` ou `execution`. Le catalogue URI réserve déjà `symbol`, `work-item` et `execution`; il ne les matérialise pas. |
+| Décision de frontière | L’Evidence Store, l’admission `PROVEN`, HMAC, validators, runners, gates et work graph relèvent de M3. M2 ne les anticipe pas. M2 peut uniquement préparer des modèles persistants déclaratifs sans exécuter, valider, promouvoir ou gouverner. |
+| Cadence adoptée | Cesser les index ou raffinements isolés qui ne ferment aucune gate. Regrouper les manques restants en trois **macro-lots fonctionnels** puis un audit de sortie : `M2.12 Symbol Registry`, `M2.13 Work-Item Backbone`, `M2.14 Capability Declaration & Execution Schema`, `M2.EXIT Universal-Schema Gate`. Chaque macro-lot conserve le rituel complet, mais aucun sous-lot décoratif n’est ouvert entre eux. |
+| M2.12 | Registre générique, immutable et référentiellement contraint de symboles attachables à une entity existante : kind, path, identifier, signature déclarative, metadata, lecture exacte et audit. Aucun scan de code, résolution de fichier, FTS, import ARET ou sémantique `function_symbol`. |
+| M2.13 | Backbone générique de work items : création exacte, parent optionnel, types/statuts initiaux sûrs, metadata et audit. Aucun lifecycle mutable, gate, dépendance, traversal, assignation active, exécution ni work graph. |
+| M2.14 | Registre immutable de capability **déclarative** et schéma `execution` réservé au moteur M3. Aucun runner, shell, commande, réseau, policy, validator, écriture d’exécution, verdict de preuve ou admission `PROVEN`. L’API M2 se limite aux déclarations de capability ; l’écriture/lecture opérationnelle d’execution ouvre en M3 avec le runner réel. |
+| Gate M2.EXIT | Les migrations historiques et fresh install couvrent les ressources M2 prévues ; les services M2 exposés restent exacts, bornés et sans effets opérationnels ; FKs, immuabilité/audit et rollback sont testés ; upgrade 001→courant et wheel isolé passent ; scan anti-ARET et barrières no-shell/no-network/no-path/no-`PROVEN` passent ; M3 reste non commencé. Cette gate conclut `PASS` pour **Universal Schema M2**, sans conclure la parité ARET ni l’achèvement du produit. |
+| Invariants | I001–I006, I010, I011, I014, I015 ; plus I004 et I013 pour préparer la frontière capability/execution sans l’ouvrir. |
+| Exclusions confirmées | Aucun Evidence Store, proof, HMAC, admission, `PROVEN`, runner, validator, gate, work graph, lifecycle, policy, shell, réseau, fetch, import ARET, pack ou MCP dans M2 restant. |
+| Statut | `DECIDED` ; aucun code M2.12 n’est ouvert par cette décision. |
+| Mémoire liée | `MEM-DEC-019`, `MEM-WALL-001`. |
+| Suivi | Mettre le workplan et la mémoire en cohérence, publier le cadrage documentaire, puis seulement ouvrir M2.12 par le rituel normal. |

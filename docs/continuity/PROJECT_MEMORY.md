@@ -131,3 +131,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 ## Références
 
 [1]: https://github.com/aciderix/ARET-MMU "ARET-MMU — dépôt de référence"
+
+## 9. Addendum de reprise — cadrage terminal M2
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-019` | Frontière M2/M3 | M2 est désormais borné par le contrat **Universal Schema** de la spécification : entity registry, relation registry, symbol, work item, execution et capability registry. Les deux premiers sont livrés ; les quatre derniers doivent être fermés par trois macro-lots cohérents, puis une gate terminale. Le nombre de micro-lots n’est plus un critère de progression. | `DECISION` | Spécification fournie, §8, §10, §12, §14 et §55 ; [workplan](UNIVERSALIZATION_WORKPLAN.md). | `LOG-0040` |
+| `MEM-DEC-020` | Limite épistémique | Une `execution` est le fait persistant qu’une action s’est produite ; elle n’est ni une proof ni une evidence admissible. L’Evidence Store, HMAC, validators, runners, gates, policy, admission et la promotion `PROVEN` sont explicitement différés à M3. | `DECISION` | Spécification fournie, §11–15 ; invariants I004, I006–I008, I013. | `LOG-0040` |
+| `MEM-DEC-021` | Anti-redondance | Aucun ajout M2 ne peut être admis s’il ne ferme pas une ressource du contrat Universal Schema, une contrainte d’intégrité nécessaire à cette ressource, ou une dépendance strictement démontrée de M3. Le rejet de l’index asset par hash (`MEM-DEC-017`) est le précédent contrôlant de cette règle. | `DECISION` | `MEM-DEC-017`, `LOG-0036`, `LOG-0040`. | `LOG-0040` |
+| `MEM-STATE-018` | Reprise active | Après M2.11, aucun patch M2.12 n’est ouvert. La prochaine action technique, seulement après publication de ce cadrage, est une hypothèse autonome pour le macro-lot `M2.12 — Symbol Registry`. La baseline ARET exhaustive reste `UNKNOWN` sous `MEM-WALL-001` et ne peut être requalifiée par la gate M2. | `OBSERVED` | État de dépôt avant cadrage et décision de feuille de route. | `LOG-0039`, `LOG-0040` |
+
+> **Reprise prioritaire.** Lire `MEM-DEC-019` à `MEM-DEC-021`, puis `LOG-0040`, avant toute proposition de code M2. Les exclusions M3 sont des limites de périmètre, non des fonctionnalités implicites ou partielles.
