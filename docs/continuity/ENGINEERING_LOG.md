@@ -994,3 +994,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Sûreté | Le client ne pourra sélectionner qu’un `capability_id`; aucun contrat n’accepte du shell, une URL, un path ou une commande. Aucun service `run`, écriture d’execution, evidence, HMAC, admission ou `PROVEN` ne sera ajouté dans ce lot. |
 | Tests-first attendus | Migration, FK capability, enums/policies/timeout/JSON, unicité, audit/rollback, immuabilité SQL, lecture exacte et absence expresse de runner/`ExecutionService`/promotion. |
 | Verdict | `PENDING` — aucune capacité M3 n’est encore livrée. |
+
+### LOG-0051 — Publication vérifiée M3.1
+
+| Champ | Valeur |
+|---|---|
+| Lot | `M3.1 — Closed Capability Contract` |
+| Commit | `79a3e188e2645b685866217c89930d93b965792e` — `feat: add closed capability contracts`. |
+| Validation | 129 tests et 14 sous-tests `PASS`; migration 015, FK, enums, audit/rollback et immuabilité SQL couverts. |
+| Publication | `git push origin main` et `git ls-remote` confirment `79a3e188e2645b685866217c89930d93b965792e`; arbre propre et helper supprimé. |
+| Limite | Le seul runner autorisé est `NOOP` et aucune API `run`/execution/evidence/proof/gate n’est présente. |
+| Suivi | Mettre à jour le plan/mémoire, puis ouvrir séparément la baseline du premier runner borné. |
