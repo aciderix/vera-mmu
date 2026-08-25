@@ -33,6 +33,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0007` | 2026-08-25 | `INSPECTION` / `DECISION` | M0.2 | découplage, adressage, store, schéma, MCP, hooks, bundle, VCS | `OBSERVED` | `PASS` pour la cartographie ; `UNKNOWN` pour les parités | `MEM-COMP-001`, `MEM-DEC-005`, `MEM-WALL-001` |
 | `LOG-0008` | 2026-08-25 | `HYPOTHESIS` | M1 | profile, identité, workspace, runtime, `vera://`, no-Git, multi-repo | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-005`, reprise active |
 | `LOG-0009` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M1 | C01/C02/C11, Core universel, distribution | `OBSERVED` | `PASS` pour les gates M1 ; `UNKNOWN` pour la parité ARET | `MEM-STATE-006`, `MEM-DEC-006`, `MEM-WALL-001` |
+| `LOG-0010` | 2026-08-25 | `HYPOTHESIS` | M2.1 | SQLite, migrations, identité de store, audit technique | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-007`, `MEM-WALL-001` |
+| `LOG-0011` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.1 | substrate SQLite, migration, identité, transaction, CLI | `OBSERVED` | `PASS` pour M2.1 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-007`, `MEM-DEC-007`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -199,6 +201,43 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | Mémoire liée | `MEM-STATE-006`, `MEM-DEC-006`, `MEM-RISK-002`, `MEM-WALL-001`. |
 | Suivi | Relire le diff, mettre à jour plan et matrice, puis créer le commit atomique M1. |
 
+### LOG-0010 — Hypothèse M2.1 : substrate de persistance universel
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.1 — Substrate SQLite` |
+| Hypothèse | Le Core peut créer un store SQLite canonique, migrationné de façon déterministe et lié à l’identité M1, sans vocabulaire métier, evidence, pack ou exécution ARET. |
+| Périmètre | Gestionnaire de migrations SQL checksumées, connexion SQLite bornée (`foreign_keys`, WAL, timeout), métadonnées de store, binding de ProjectIdentity et audit technique minimal. |
+| Exclusions | Knowledge append-only, entités/symboles/work items, relations, evidence/proofs, bundles, policies, capabilities, commandes, sync VCS, MCP et tout lecteur/pack ARET. |
+| Baseline | M1 publié au commit `c48efc4ec824a9ec5b1a3742f7022636e9ef082b`; `LOG-0009`; C02/C03/C04/C05/C14/C16 de la matrice. |
+| Invariants | I001, I010, I011, I014, I015. |
+| Tests prévus | Initialisation vide, migration idempotente, checksum modifié, ordre/duplication de migrations, identité projet mismatched, transaction atomique, paramètres SQLite et confinement runtime. |
+| Verdict | `NOT_RUN` — aucun patch M2.1 n’est appliqué. |
+| Mémoire liée | `MEM-STATE-003`, `MEM-DEC-007` à créer, `MEM-WALL-001`. |
+| Suivi | Inspecter le packaging, les APIs M1 et les patterns transactionnels avant de créer les premiers modules Core. |
+
+### LOG-0011 — Verdict M2.1 : substrate SQLite universel
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.1 — Substrate SQLite` |
+| Certitude | `OBSERVED` : résultats produits par tests, CLI et wheel ; aucune evidence canonique VERA métier n’existe encore. |
+| Baseline | M1 publié `c48efc4ec824a9ec5b1a3742f7022636e9ef082b`; `LOG-0010`; schéma/migrations ARET lus comme référence d’invariants, sans import de vocabulaire ni de code. |
+| Changement | Migration `001_core_store.sql`, `MigrationRunner`, `MemoryStore`, métadonnées JSON de format et ProjectIdentity, audit `STORE_INITIALIZED`/`STORE_MIGRATED`, transaction explicite et CLI `vmmu init`. |
+| Invariants | I001, I010, I011, I014, I015. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **31 passés, 14 sous-tests, 0 échec**. Les cas couvrent initialisation, idempotence, checksum altéré, inventaire incomplet/discontinu, identité différente, rollback et échec SQL atomique. |
+| Contrôles de sûreté | Connexion SQLite avec foreign keys, WAL et timeout ; runtime fourni seulement par le profile validé ; `git diff --check` et scan imposé anti-ARET du Core réussis. |
+| Distribution | Wheel construit, installé dans une cible temporaire et exécuté par `vmmu init` sur un projet temporaire. Migration SQL présente dans le wheel. SHA-256 wheel : `10d5ae624e21acae97a4c7e4c3975367beb35a5ec742b9e3abd6f3ac84d482ef`; sortie init : `43820b4c67cc8727b8a7cee94437bce8f02b4d085687d0edcd369a1e81c6e8d7`. |
+| Comparaison | Avant M2.1, VERA n’avait ni migration, ni store, ni identity binding de base. M2.1 ajoute uniquement le substrate sans knowledge, entité, relation, evidence, bundle, policy, capability ou transport. |
+| Limites | Aucun contrat append-only métier, admission `PROVEN`, FTS, artifact read, relation, work item, evidence/proof, bundle ou compatibilité ARET n’est livré. Les critères de parité des lignes C02/C14/C16 demeurent partiels. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.1. `UNKNOWN` pour M2 dans son ensemble et toute parité ARET. |
+| Mémoire liée | `MEM-STATE-007`, `MEM-DEC-007`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour plan, mémoire et matrice ; relire le diff puis committer atomiquement. |
+
 ## 4. Protocole de journalisation d’un changement
 
 Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du work item actif avec : cause supposée, comportement cible, surface de fichiers, baseline, invariants et tests prévus. Après le patch, ajouter des entrées distinctes pour `RUN`, `EVIDENCE`, `COMPARISON` et `VERDICT` si le changement est significatif. Une entrée de verdict doit pouvoir être lue indépendamment et répondre à quatre questions : qu’a-t-on changé, contre quelle baseline, quelle preuve a été produite et quelle limite demeure ?
@@ -214,11 +253,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 
 ## 5. Handoff actif
 
-> **État de reprise :** M1 est clos par son verdict `LOG-0009` et son commit atomique. Les gates techniques C01/C02/C11 passent ; la parité ARET demeure `UNKNOWN` et `MEM-WALL-001` est toujours ouvert. Aucun lot M2 n’est encore ouvert.
+> **État de reprise :** M2.1 est clos par son verdict `LOG-0011` et sera versionné dans son commit atomique. M1 demeure publié ; M2 complet et la parité ARET restent `UNKNOWN`, et `MEM-WALL-001` reste ouvert. Aucun sous-lot M2.2 n’est encore ouvert.
 
 | Reprendre par | Lire ensuite | Ne pas faire avant |
 |---|---|---|
-| `UNIVERSALIZATION_WORKPLAN.md`, état actif puis lot M2 | `PROJECT_MEMORY.md`, sections 4–7 ; `LOG-0008` et `LOG-0009`. | Déclarer une parité ARET, créer un alias `ARET://`, démarrer M2 sans rituel distinct ou lever `MEM-WALL-001` par hypothèse. |
+| `UNIVERSALIZATION_WORKPLAN.md`, état actif puis rituel M2.2 | `PROJECT_MEMORY.md`, sections 4–7 ; `LOG-0010` et `LOG-0011`. | Présenter M2.1 comme une persistance métier complète, déclarer une parité ARET, créer un alias `ARET://`, démarrer M2.2 sans hypothèse distincte ou lever `MEM-WALL-001` par hypothèse. |
 
 ## 6. Gabarit d’entrée future
 

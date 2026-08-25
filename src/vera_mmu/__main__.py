@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import Sequence
 
 from .identity import ProfileError, load_profile, profile_identity, project_identity
+from .migrations import MigrationError
 from .runtime import RuntimeLocator
+from .store import MemoryStore, StoreError
 from .workspace import WorkspaceError, resolve_workspace
 
 
@@ -24,6 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     inspect = subparsers.add_parser("inspect", help="Validate a Project Profile, workspace roots, and runtime confinement.")
     inspect.add_argument("profile", type=Path, help="Path to a project.yaml file.")
+
+    initialize = subparsers.add_parser("init", help="Initialize the profile-bound SQLite substrate and print its ledger.")
+    initialize.add_argument("profile", type=Path, help="Path to a project.yaml file.")
     return parser
 
 
@@ -42,9 +47,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "workspace": workspace.as_dict(),
                 "runtime": RuntimeLocator.from_workspace(profile, workspace).as_dict(),
             }
+        elif args.command == "init":
+            with MemoryStore.open(profile, args.profile) as store:
+                payload = {
+                    "ok": True,
+                    "identity": store.identity.as_dict(),
+                    "migration_checksums": store.migration_checksums,
+                    "metadata": store.metadata(),
+                }
         else:
             raise AssertionError(f"Commande non gérée : {args.command}")
-    except (ProfileError, WorkspaceError) as exc:
+    except (MigrationError, ProfileError, StoreError, WorkspaceError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, sort_keys=True))
         return 2
     print(json.dumps(payload, ensure_ascii=False, sort_keys=True))

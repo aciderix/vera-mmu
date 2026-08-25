@@ -32,5 +32,8 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+vera_mmu = ["schema/*.sql"]
+
 [tool.unittest]
 start-directory = "tests"

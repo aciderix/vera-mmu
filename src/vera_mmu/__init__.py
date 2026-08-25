@@ -11,17 +11,25 @@ from .identity import (
     project_identity,
     validate_profile,
 )
+from .migrations import Migration, MigrationError, MigrationRunner, migration_checksums
 from .runtime import RuntimeLocator, RuntimeLocatorError
+from .store import MemoryStore, StoreError, StoreIdentityError
 from .workspace import Workspace, WorkspaceError, WorkspaceResolver, resolve_workspace
 
 __all__ = [
     "Address",
     "AddressError",
     "CORE_RESOURCE_TYPES",
+    "MemoryStore",
+    "Migration",
+    "MigrationError",
+    "MigrationRunner",
     "ProfileError",
     "ProfileIdentity",
     "ProjectIdentity",
     "RuntimeLocator",
+    "StoreError",
+    "StoreIdentityError",
     "RuntimeLocatorError",
     "Workspace",
     "WorkspaceError",
@@ -29,6 +37,7 @@ __all__ = [
     "canonical_json",
     "load_profile",
     "make_address",
+    "migration_checksums",
     "parse_address",
     "profile_identity",
     "project_identity",

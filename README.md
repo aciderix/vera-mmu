@@ -37,7 +37,7 @@ The composed name must be used consistently in public documentation and tooling.
 
 ## Current status
 
-This repository now contains the **M1 identity Core**: a safely normalized Project Profile, deterministic profile and project identities, a `WorkspaceResolver` for mono-root, multi-root and no-Git projects, a confined `RuntimeLocator`, and strict canonical `vera://` addresses. It does **not** yet provide a production MCP server, a persistent store or migration layer, a generic capability runner, an ARET migration tool, or a dashboard.
+This repository now contains the **M1 identity Core** and the **M2.1 SQLite substrate**: a safely normalized Project Profile, deterministic project identities, a `WorkspaceResolver`, a confined `RuntimeLocator`, strict canonical `vera://` addresses, an immutable migration ledger, a ProjectIdentity-bound SQLite store, and technical audit records. It does **not** yet provide knowledge/entity/relation/evidence services, bundles, a production MCP server, a generic capability runner, an ARET migration tool, or a dashboard.
 
 ## Continuity records
 
@@ -59,9 +59,10 @@ tests/                    # Unit, security, conformance, and compatibility tests
 PYTHONPATH=src python3 -m pytest -q
 PYTHONPATH=src python3 -m vera_mmu identity profiles/minimal/project.yaml
 PYTHONPATH=src python3 -m vera_mmu inspect profiles/minimal/project.yaml
+PYTHONPATH=src python3 -m vera_mmu init profiles/minimal/project.yaml
 ```
 
-The `identity` command validates the profile and prints its deterministic SHA-256 identity. The `inspect` command additionally resolves the project roots, optional local VCS markers, runtime, SQLite location, and artifact directory without opening a store or running Git. The implementation remains deliberately bounded so that persistence, policy, evidence, and execution semantics can be introduced behind explicit tests instead of copied wholesale from a domain-specific system.
+The `identity` command validates the profile and prints its deterministic SHA-256 identity. The `inspect` command resolves project roots, optional local VCS markers, runtime, SQLite location, and artifact directory without opening a store or running Git. The `init` command opens only the profile-bound runtime, applies the checksum-protected migration ledger, records the ProjectIdentity and prints the resulting metadata. The implementation remains deliberately bounded: it adds no knowledge, evidence, policy or execution semantics before their explicit tests and contracts exist.
 
 ## Roadmap
 
@@ -69,7 +70,7 @@ The `identity` command validates the profile and prints its deterministic SHA-25
 |---|---|
 | **M0 — Governance baseline** | Invariants, decoupling matrix, test conventions, provenance rules, naming audit, and independent package namespace. |
 | **M1 — Universal identity and profile** | Canonical Project Profile, profile/project/workspace hashes, confined runtime, mono/multi/no-Git resolution, and generic strict `vera://` addressing. Technical gates verified; ARET parity remains out of scope. |
-| **M2 — Universal persistence** | SQLite migrations, append-only knowledge, entities, work items, executions, evidence, artifacts, bundles, and audit. |
+| **M2 — Universal persistence** | **M2.1 delivered:** SQLite migration ledger, identity binding, format metadata, technical audit, transaction and CLI initialization. Knowledge, entities, relations, evidence, artifacts, bundles and audit métier remain separate future sub-lots. |
 | **M3 — ARET compatibility pack** | Read-only importer, `ARET://` compatibility reader, profile, toolchain declarations, and parity suite. |
 | **M4 — Capabilities and gates** | Closed catalog, policy engine, safe runners, validators, executions, and gate engine. |
 | **M5 — MCP compiler and adapters** | Generated manifest, stable MCP Core API, runtime adapters, instructions, hooks, and doctor. |

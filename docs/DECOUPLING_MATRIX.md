@@ -47,6 +47,16 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > Ces preuves autorisent le verdict technique M1 mais ne satisfont pas les preuves de parité complètes exigées par les lignes mères. Aucun `SPLIT` ne devient `DONE` au titre de ce lot.
 
+### 2.2. Avancement observé M2.1 — substrate SQLite
+
+| Couplage | Surface VERA désormais observée | Evidence M2.1 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C02` | `MemoryStore` ouvre uniquement le runtime validé par M1, active foreign keys/WAL/timeout et lie le store à `ProjectIdentity`. | `tests/test_store.py`, `tests/test_cli.py` ; wheel installé et `vmmu init` validé ; `LOG-0011`. | Override de store, exports, doctor, checkpoint/WAL policy complète, intégration ARET et comportement V1. | `SPLIT` |
+| `C14` | Ledger de migrations ordonnées, continues et checksumées ; métadonnée de format et audit technique de migration. | Initialisation, idempotence, checksum altéré, trou de version et rollback SQL testés ; `LOG-0011`. | Format de bundle, chaîne d’intégrité, import/export, non-fusion, restauration et parité bundle M0.1. | `SPLIT` |
+| `C16` | Métadonnées canoniques du store, audit technique et transaction atomique existent sans taxonomie métier. | Tests de rollback, identité croisée et SQL invalide atomique ; `LOG-0011`. | Knowledge append-only, relations, preuves, admission `PROVEN`, audit métier et import croisé de mémoire. | `SPLIT` |
+
+> M2.1 établit un substrate mais ne met en œuvre aucun objet de persistance métier. Les lignes C02, C14 et C16 restent donc `SPLIT` et la parité ARET reste `UNKNOWN`.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
