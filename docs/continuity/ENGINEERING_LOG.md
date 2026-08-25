@@ -1067,3 +1067,22 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt propre et helper supprimé. |
 | Statut | `PASS` pour la publication M3.3. Admission, HMAC, promotion `PROVEN` et gates restent absents. |
 
+
+### LOG-0059 — Hypothèse M3.4 : Evidence Admission Policy
+
+| Champ | Valeur |
+|---|---|
+| Hypothèse | Une policy d’admission append-only peut décider `ADMIT` ou `REJECT` pour une evidence existante, uniquement si son verdict est `PASS`, avec motif et audit, sans modifier l’evidence elle-même. |
+| Sûreté | `FAIL`, `ERROR`, `SKIPPED` et `UNKNOWN` sont non admissibles. L’admission ne promeut pas encore de knowledge à `PROVEN`; HMAC reste absent tant qu’une policy de projet ne le requiert explicitement. |
+| Statut | `PENDING` — tests-first, relation de décision immutable et validations dédiées à produire. |
+
+
+### LOG-0060 — Verdict M3.4 : Evidence Admission Policy
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 017 et `AdmissionService` : une décision immutable `ADMITTED`/`REJECTED` par evidence, avec motif et audit. `ADMITTED` refuse toute evidence non `PASS`. |
+| Validation | Tests dédiés : 2 `PASS`; suite complète : 136 tests et 14 sous-tests `PASS`; diff et scan de périmètre `PASS`. |
+| Limite | L’evidence conserve son statut `PENDING`; knowledge n’est pas modifiée et aucune promotion `PROVEN`, HMAC ou gate n’est ajoutée. |
+| Verdict | `PASS` pour M3.4 technique; publication à finaliser. |
+
