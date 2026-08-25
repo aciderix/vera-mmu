@@ -2,6 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from typing import Any, Mapping
+from .parameter_validation import ParameterValidationError, validate_parameters
 from .store import MemoryStore, StoreError
 
 class ExecutionError(StoreError): pass
@@ -14,10 +15,12 @@ class ExecutionService:
   if not isinstance(identifier,str) or not identifier or '/' in identifier: raise ExecutionError('Identifiant execution invalide.')
   if not isinstance(parameters,Mapping): raise ExecutionError('Paramètres objet requis.')
   if not isinstance(actor,str) or not actor: raise ExecutionError('Actor requis.')
-  payload=json.dumps(dict(parameters),sort_keys=True,separators=(',',':'))
   with self.store.transaction() as c:
-   row=c.execute("SELECT runner_profile,network_policy,yields_proof FROM capability_contract WHERE capability_id=?",(capability_id,)).fetchone()
+   row=c.execute("SELECT runner_profile,network_policy,yields_proof,parameter_schema_json FROM capability_contract WHERE capability_id=?",(capability_id,)).fetchone()
    if row is None or row['runner_profile']!='NOOP' or row['network_policy']!='DENY_NETWORK' or bool(row['yields_proof']): raise ExecutionError('Contrat NOOP non admissible.')
+   try: validated_parameters=validate_parameters(json.loads(str(row['parameter_schema_json'])),parameters)
+   except (ParameterValidationError, TypeError, ValueError) as exc: raise ExecutionError('Paramètres hors contrat fermé.') from exc
+   payload=json.dumps(validated_parameters,sort_keys=True,separators=(',',':'),allow_nan=False)
    c.execute("INSERT INTO execution(id,capability_id,status,exit_code,parameters_json,environment_json,started_at,finished_at,result_json,created_by) VALUES(?,?, 'COMPLETED',0,?, '{}',strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'),'{}',?)",(identifier,capability_id,payload,actor))
    self.store.append_audit(c,'EXECUTION_RECORDED',{'execution_id':identifier,'capability_id':capability_id,'runner_profile':'NOOP','actor':actor})
-  return Execution(identifier,capability_id,'COMPLETED',0,dict(parameters),None)
+  return Execution(identifier,capability_id,'COMPLETED',0,validated_parameters,None)

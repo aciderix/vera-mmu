@@ -95,6 +95,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0069` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.6 | publication work graph/gate | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-025` |
 | `LOG-0070` | 2026-08-25 | `RUN` / `COMPARISON` / `VERDICT` / `DECISION` | M3.S1.EXIT | migrations 001–019, tests, wheel, frontières, portée | `OBSERVED` / `DECISION` | `PASS` pour M3.S1 ; M3/parité ARET non clos | `MEM-STATE-025`, `MEM-DEC-026`, `MEM-STATE-026`, `MEM-WALL-001` |
 | `LOG-0071` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.S1.EXIT | publication gate, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-026`, `MEM-WALL-001` |
+| `LOG-0072` | 2026-08-25 | `HYPOTHESIS` | M3.7 | parameter schema fermé, validation locale, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-027`, `MEM-DEC-027`, `MEM-WALL-001` |
+| `LOG-0073` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.7 | paramètres, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-027`, `MEM-STATE-028`, `MEM-DEC-027`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1218,3 +1220,27 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; arbre VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication de la gate `M3.S1.EXIT`. M3 global reste `IN_PROGRESS`; `MEM-WALL-001` maintient la parité ARET à `UNKNOWN`. |
 | Suivi | Le prochain lot ne peut porter que sur une exclusion de `MEM-STATE-026`, avec baseline, hypothèse, tests-first et gate distinctes. |
+
+
+### LOG-0072 — Hypothèse M3.7 : validation bornée des paramètres
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `62f388e94e90d6ccfe382ba11db67a097f2a85c0`, `main` propre et alignée; 139 tests et 14 sous-tests `PASS`; `M3.S1.EXIT` publié. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | Le contrat M3.1 persiste un objet JSON `parameter_schema`, mais `run_noop` vérifie seulement que les paramètres sont un `Mapping`. Il faut rejeter tôt les schémas et valeurs hors sous-ensemble admis, sans transformer ce contrôle en moteur de code ou runner. |
+| Hypothèse | Un validateur local et déterministe, limité à un schéma d’objet avec `properties`, `required`, `additionalProperties` et types scalaires fermés, peut valider le schéma lors de sa déclaration puis valider les paramètres avant toute insertion d’execution. |
+| Sûreté | Aucun `eval`, import dynamique, callback, accès fichier, processus, shell, réseau, artefact, validator externe, policy nouvelle ni capability additionnelle. Les schémas non supportés et paramètres invalides échouent bruyamment; le contrat et les executions historiques ne sont jamais réécrits. |
+| Tests-first attendus | Rejet de schema root/type/propriété/required/additionalProperties invalides; acceptation de scalaires valides; refus de clé inconnue, clé requise absente, type erroné et booléen à la place d’un entier; absence d’insertion/audit d’execution au refus. |
+| Invariants | I001, I004, I006–I008, I011, I013–I015. |
+| Verdict | `PENDING` — aucun patch M3.7 n’est encore produit. |
+
+
+### LOG-0073 — Verdict M3.7 : validation bornée des paramètres
+
+| Champ | Valeur |
+|---|---|
+| Résultat | `parameter_validation.py` définit un sous-ensemble local et fermé : racine `object`, `properties`, `required`, `additionalProperties` et propriétés scalaires `string`, `integer`, `number`, `boolean` ou `null`. La déclaration rejette tout schéma hors contrat; `run_noop` relit et valide ce schéma avant l’insertion d’execution. |
+| Validation | Tests-first : 2 échecs attendus avant patch; test ciblé : 4 `PASS`; suite complète : 141 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan sans processus, shell, réseau, I/O, `eval`, import dynamique, mutation knowledge/evidence ni nouvelle insertion d’execution `PASS`; wheel isolé construit/installé et scénario validé/refusé `PASS`. |
+| Atomicité | Un paramètre requis absent, non déclaré ou de type incompatible — notamment `bool` pour `integer` — lève une erreur avant insertion d’execution et sans audit additionnel. |
+| Limite | Cette validation n’implémente ni JSON Schema général, ni `enum`, array, object imbriqué, callback, validator externe, policy `ALLOW`/`DENY`/`CONFIRM`, runner additionnel, réseau, artefact ou gate nouvelle. |
+| Verdict | `PASS` pour M3.7 technique; publication et synchronisation de continuité à finaliser. |

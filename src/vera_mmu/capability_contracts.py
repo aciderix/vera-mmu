@@ -7,6 +7,7 @@ from typing import Any, Mapping
 
 from .capabilities import CapabilityError
 from .identity import canonical_json
+from .parameter_validation import ParameterValidationError, validate_parameter_schema
 from .store import MemoryStore, StoreError
 
 RUNNER_PROFILES = frozenset({"NOOP"})
@@ -46,9 +47,9 @@ class CapabilityContractService:
         if not isinstance(parameter_schema, Mapping):
             raise CapabilityContractError("parameter_schema doit être un objet JSON.")
         try:
-            schema = json.loads(canonical_json(dict(parameter_schema)))
-        except (TypeError, ValueError) as exc:
-            raise CapabilityContractError("parameter_schema non canonique.") from exc
+            schema = validate_parameter_schema(parameter_schema)
+        except ParameterValidationError as exc:
+            raise CapabilityContractError("parameter_schema hors sous-ensemble fermé.") from exc
         try:
             with self.store.transaction() as connection:
                 if connection.execute("SELECT 1 FROM capability WHERE id = ?", (capability_id,)).fetchone() is None:

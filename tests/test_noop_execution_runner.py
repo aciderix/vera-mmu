@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from vera_mmu.capabilities import CapabilityService
-from vera_mmu.capability_contracts import CapabilityContractService
+from vera_mmu.capability_contracts import CapabilityContractError, CapabilityContractService
 from vera_mmu.executions import ExecutionError, ExecutionService
 from vera_mmu.identity import load_profile
 from vera_mmu.store import MemoryStore
@@ -49,5 +49,52 @@ class NoopExecutionRunnerTests(unittest.TestCase):
             with self.assertRaises(ExecutionError): service.run_noop("e-1", "check", {})
             CapabilityContractService(store).declare("check", "NOOP", "DENY_NETWORK", 30, yields_proof=False)
             with self.assertRaises(ExecutionError): service.run_noop("e-1", "check", [])  # type: ignore[arg-type]
+
+    def test_refuses_parameter_schemas_outside_the_closed_subset(self) -> None:
+        invalid_schemas = (
+            {"type": "string"},
+            {"type": "object", "properties": {"scope": {"type": "array"}}},
+            {"type": "object", "properties": {"scope": {"type": "string", "enum": ["core"]}}},
+            {"type": "object", "properties": {"scope": {"type": "string"}}, "required": ["missing"]},
+            {"type": "object", "additionalProperties": "false"},
+            {"type": "object", "unknown": True},
+        )
+        with self._open() as store:
+            CapabilityService(store).create("check", "Check", "CHECK", "1.0.0")
+            contracts = CapabilityContractService(store)
+            for schema in invalid_schemas:
+                with self.assertRaises(CapabilityContractError):
+                    contracts.declare("check", "NOOP", "DENY_NETWORK", 30, parameter_schema=schema)
+            self.assertEqual(store.connection.execute("SELECT COUNT(*) FROM capability_contract").fetchone()[0], 0)
+
+    def test_noop_validates_parameters_before_execution_insertion(self) -> None:
+        schema = {
+            "type": "object",
+            "properties": {
+                "scope": {"type": "string"},
+                "attempt": {"type": "integer"},
+                "enabled": {"type": "boolean"},
+                "ratio": {"type": "number"},
+            },
+            "required": ["scope", "attempt"],
+            "additionalProperties": False,
+        }
+        with self._open() as store:
+            CapabilityService(store).create("check", "Check", "CHECK", "1.0.0")
+            CapabilityContractService(store).declare("check", "NOOP", "DENY_NETWORK", 30, parameter_schema=schema)
+            service = ExecutionService(store)
+            execution = service.run_noop("execution-valid", "check", {"scope": "core", "attempt": 2, "enabled": True, "ratio": 1.5})
+            self.assertEqual(execution.parameters["scope"], "core")
+            audits_before = len(store.audit_events())
+            for identifier, parameters in (
+                ("execution-missing", {"scope": "core"}),
+                ("execution-extra", {"scope": "core", "attempt": 1, "other": "x"}),
+                ("execution-integer", {"scope": "core", "attempt": True}),
+                ("execution-boolean", {"scope": "core", "attempt": 1, "enabled": "yes"}),
+            ):
+                with self.assertRaises(ExecutionError):
+                    service.run_noop(identifier, "check", parameters)
+            self.assertEqual(store.connection.execute("SELECT COUNT(*) FROM execution").fetchone()[0], 1)
+            self.assertEqual(len(store.audit_events()), audits_before)
 
 if __name__ == "__main__": unittest.main()

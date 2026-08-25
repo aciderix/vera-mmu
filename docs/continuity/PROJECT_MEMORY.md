@@ -185,3 +185,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-WALL-001` | Baseline ARET | Statut inchangé : les oracles et la toolchain ARET manquants maintiennent la parité/exécution exhaustive ARET à `UNKNOWN`. Les contrôles de non-modification d’ARET ne créent aucune preuve de parité. | `BLOCKED` | Baseline M0.1 et contrôle Git terminal M3. | `LOG-0006`, `LOG-0070` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-025`, `MEM-DEC-026`, `MEM-STATE-026`, `MEM-WALL-001`, puis `LOG-0070` avant tout lot M3 ultérieur. Le prochain patch doit choisir un seul manque explicite de `MEM-STATE-026` avec une hypothèse et une gate propres.
+
+
+## 15. Addendum de reprise — M3.7 validation de paramètres
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-027` | Validation de paramètres | `SUPERSEDES: MEM-STATE-026` pour cette exclusion précise. Les contrats de capability acceptent désormais un sous-ensemble fermé : root `object`, propriétés scalaires, `required` et `additionalProperties`. Le runner `NOOP` valide les paramètres avant toute insertion d’execution; les erreurs ne créent ni execution ni audit. | `OBSERVED` | `parameter_validation.py`, `capability_contracts.py`, `executions.py`, tests M3.7; 141 tests et 14 sous-tests, wheel isolé. | `LOG-0072`, `LOG-0073` |
+| `MEM-DEC-027` | Frontière M3.7 | Le sous-ensemble de paramètres n’est pas un moteur JSON Schema général : `enum`, array, object imbriqué, callbacks, imports dynamiques et validators externes restent exclus. Ce refus de généralité conserve une validation déterministe, locale et sans capacité d’exécution. | `DECISION` | Contrat M3.7 et invariants I006–I008, I013–I015. | `LOG-0072`, `LOG-0073` |
+| `MEM-STATE-028` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : catalogue de décisions `ALLOW`/`DENY`/`CONFIRM`, framework de validators, runners sûrs additionnels, policy HMAC de projet, gates multi-evidence, lifecycle/traversal de work graph, CLI/MCP et pack ARET. La validation des paramètres n’est plus une exclusion ouverte. | `OBSERVED` | Revue post-M3.7; aucun contrat ou test de ces capacités n’est livré. | `LOG-0073` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-027`, `MEM-DEC-027`, `MEM-STATE-028`, `MEM-WALL-001`, puis `LOG-0072`–`LOG-0073` avant tout lot M3 ultérieur.
