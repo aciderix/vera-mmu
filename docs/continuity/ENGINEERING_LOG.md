@@ -54,6 +54,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0028` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.8 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-014`, `MEM-DEC-014`, `MEM-WALL-001` |
 | `LOG-0029` | 2026-08-25 | `HYPOTHESIS` | M2.9 | index direct knowledge–asset, borne, audit existant | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-015`, `MEM-WALL-001` |
 | `LOG-0030` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.9 | index direct knowledge–asset, ordre/borne, sans contenu | `OBSERVED` | `PASS` pour M2.9 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001` |
+| `LOG-0031` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.9 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -646,3 +647,18 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour le périmètre M2.9 et ses gates techniques. `UNKNOWN` pour M2 au total, toute parité ARET et toute sémantique d’evidence ou d’exécution. |
 | Mémoire liée | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour mémoire, plan, matrice et README ; relancer les checks finaux, puis committer et publier atomiquement. |
+
+### LOG-0031 — Publication M2.9 vérifiée
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RECORD` / `HANDOFF` |
+| Lot | `M2.9 — Publication` |
+| Certitude | `OBSERVED` |
+| Baseline | Verdict technique M2.9 `LOG-0030`; branche VERA locale et distante sur `main`; ARET-MMU inchangé à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, arbre propre. |
+| Commit publié | `c888958cc184c621b5cf02b95defa0d3fb706b56` — `feat: add M2 bounded knowledge asset index`. |
+| Vérification | `git push origin main` a réussi, puis `git ls-remote origin refs/heads/main` a retourné le même SHA que `git rev-parse HEAD`. L’arbre VERA était propre après publication. |
+| Limites | Cette publication ne change pas le verdict M2.9 ni les exclusions : M2 complet et toute parité ARET restent `UNKNOWN`; `MEM-WALL-001` reste actif. |
+| Mémoire liée | `MEM-STATE-015`, `MEM-DEC-015`, `MEM-WALL-001`. |
+| Suivi | Actualiser les références de reprise qui signalaient la publication en attente, committer ce record documentaire puis vérifier de nouveau la référence publique. |
