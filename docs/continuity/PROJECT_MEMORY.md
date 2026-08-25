@@ -165,3 +165,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 |---|---|---|---|---|---|
 | `MEM-STATE-023` | Capability / Execution Schema M2.14 | `SUPERSEDES: MEM-STATE-022` pour la reprise active. Le Core expose `CapabilityService` pour déclarer/lire exactement des capabilities immuables, typées et versionnées avec schémas JSON. Il possède aussi une table `execution` sous FK capability, append-only et non exposée par service M2. | `OBSERVED` | Migration `014_capability_execution_schema.sql`, `capabilities.py`, `tests/test_capabilities.py`. | `LOG-0047`, `LOG-0048` |
 | `MEM-DEC-024` | Limite M2.14 | Une capability M2 ne contient ni runner, commande, policy, réseau, timeout, validator, artefact ni secret. Une execution M2 n’est ni produite/lue opérationnellement ni une proof; M3 seul pourra ajouter runner, validator, Evidence Store, admission et `PROVEN`. | `DECISION` | Invariants I004, I006–I008, I013–I015 ; contrat M2.14. | `LOG-0047`, `LOG-0048` |
+
+## 13. Addendum terminal — M2.EXIT
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-024` | Gate M2.EXIT | `SUPERSEDES: MEM-STATE-023` pour la reprise active. Le contrat **Universal Schema M2** est passé : migrations 001–014, substrat/audit, entités/relations, knowledge/assets, symboles, work items, capabilities déclaratives et structure execution ont été validés. | `OBSERVED` | Upgrade indépendant 001→014, suite 126 tests + 14 sous-tests, roue isolée M2.14 et scans M2. | `LOG-0049` |
+| `MEM-DEC-025` | Frontière terminale M2 | M2.EXIT ne valide ni runner, ni validator, ni Evidence Store, ni admission, ni HMAC, ni `PROVEN`, ni gate, ni work graph. Ces capacités restent exclusivement M3; une execution n’est pas une proof. | `DECISION` | Invariants I004, I006–I008, I013–I015. | `LOG-0049` |
+| `MEM-WALL-001` | Baseline ARET | Statut inchangé : l’exécution exhaustive/parité ARET reste `UNKNOWN` à cause de la toolchain et des oracles absents; M2.EXIT ne convertit aucun `UNKNOWN`/`SKIPPED` en `PASS`. | `BLOCKED` | Baseline M0.1. | `LOG-0006`, `LOG-0049` |

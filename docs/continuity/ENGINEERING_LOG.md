@@ -971,3 +971,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour M2.14 ; `UNKNOWN` pour M2.EXIT et toute parité ARET. |
 | Mémoire liée | `MEM-STATE-023`, `MEM-DEC-024`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour mémoire, plan, README et matrice ; publier M2.14 puis exécuter l’audit M2.EXIT séparé. |
+
+### LOG-0049 — Gate terminale M2.EXIT
+
+| Champ | Valeur |
+|---|---|
+| Type | `RUN` / `COMPARISON` / `VERDICT` |
+| Périmètre | Contrat Universal Schema M2 : migrations 001–014, entity, relation, symbol, work item, capability et execution structurelle. |
+| Contrôles | Upgrade indépendant 001→014 `PASS`; création d’entity/symbol/work item/capability après upgrade `PASS`; execution reste vide et sans service. Suite complète : 126 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scans M2 sans shell/réseau/I/O externe/ARET et sans runner/`ExecutionService` `PASS`. |
+| Verdict | `PASS` pour **M2 Universal Schema**. `UNKNOWN` pour la parité ARET exhaustive sous `MEM-WALL-001`; M3 reste non commencé. |
+| Limites | Evidence Store, runner, validator, policy, admission, HMAC, `PROVEN`, gates et work graph sont explicitement différés à M3. |
+| Suivi | Mettre à jour mémoire/plan/README, publier le record terminal, puis ouvrir M3 seulement sous un plan et une hypothèse distincts. |
