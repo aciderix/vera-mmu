@@ -159,3 +159,12 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C16` | `AssetSourceService` enregistre des références documentaires immuables et hashées, avec audit atomique ; les références restent déclaratives et ne confèrent aucune preuve. | Tests de confinement de chemin, hash/plage invalides, rewrite/delete SQL refusés et audit/rollback ; scan ciblé et wheel isolé ; `LOG-0033`. | Evidence/proof, admission `PROVEN`, execution/validator/gate, HMAC, relation générique, traversal, lecture d’asset, import croisé, bundle et parité historique. | `SPLIT` |
 
 > M2.10 rend l’origine documentaire d’un asset explicitement déclarable sans ouvrir le document, vérifier son contenu ou le convertir en preuve. Les lignes C02 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
+### 2.12. Avancement observé M2.11 — index exact des sources knowledge par hash
+
+| Couplage | Surface VERA désormais observée | Evidence M2.11 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C16` | Migration `011` et index `knowledge_source(source_hash, knowledge_id, id)` ; liste directe, ordonnée et bornée des références déclaratives partageant un hash exact, sans lire aucune knowledge ou document. | `tests/test_knowledge_source_hash_index.py` : migration 10→11, hash partagé sur knowledge distinctes, ordre, borne, hash/limites invalides, résultat vide et absence d’audit ; wheel vérifié ; `LOG-0038`. | Evidence/proof, admission `PROVEN`, validator/execution/gate, ouverture/fetch/import de document, comparaison de hash, recherche textuelle, préfixe de hash, traversal, HMAC, bundle et parité historique. | `SPLIT` |
+| `C03` | L’index ne retourne que des références génériques `knowledge_source` et des identifiants knowledge ; il n’introduit aucun `component`, `function`, symbole ou vocabulaire technique. | Validation SHA-256/bornes, scan ciblé du nouveau Core et wheel isolé ; `LOG-0038`. Le candidat d’index d’assets a été rejeté comme redondant dans `LOG-0036`. | Import des composants V1, liens de connaissance spécialisés, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
+
+> M2.11 rend découvrables les références déclaratives qui partagent un hash exact sans lire les knowledge liées, ouvrir un document ou assimiler cette corrélation à une preuve. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.

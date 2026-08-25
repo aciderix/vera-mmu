@@ -58,6 +58,10 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0032` | 2026-08-25 | `HYPOTHESIS` | M2.10 | provenance déclarative asset, immuabilité, audit | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-016`, `MEM-WALL-001` |
 | `LOG-0033` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.10 | provenance déclarative asset, immuabilité, audit | `OBSERVED` | `PASS` pour M2.10 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-016`, `MEM-DEC-016`, `MEM-WALL-001` |
 | `LOG-0034` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.10 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-016`, `MEM-DEC-016`, `MEM-WALL-001` |
+| `LOG-0035` | 2026-08-25 | `HYPOTHESIS` | M2.11 | index exact assets par hash, borne, sans bytes | `HYPOTHESIS` | `REJECTED` comme redondant | `MEM-DEC-017`, `MEM-WALL-001` |
+| `LOG-0036` | 2026-08-25 | `COMPARISON` / `RECORD` | M2.11 | rejet d’index asset par hash redondant | `OBSERVED` | `REJECTED` | `MEM-DEC-018`, `MEM-WALL-001` |
+| `LOG-0037` | 2026-08-25 | `HYPOTHESIS` | M2.11 | index exact sources knowledge par hash, borne, sans contenu | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-018`, `MEM-WALL-001` |
+| `LOG-0038` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.11 | index exact sources knowledge par hash, borne, sans contenu | `OBSERVED` | `PASS` pour M2.11 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-017`, `MEM-DEC-017`, `MEM-DEC-018`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -718,3 +722,73 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites | Cette publication ne change pas le verdict M2.10 ni les exclusions : M2 complet et toute parité ARET restent `UNKNOWN`; `MEM-WALL-001` reste actif. |
 | Mémoire liée | `MEM-STATE-016`, `MEM-DEC-016`, `MEM-WALL-001`. |
 | Suivi | Actualiser les références de reprise qui signalaient la publication en attente, committer ce record documentaire puis vérifier de nouveau la référence publique. |
+
+### LOG-0035 — Hypothèse M2.11 : index exact d’assets par hash
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.11 — Bounded Asset Hash Index` |
+| Hypothèse | Le Core peut lister les métadonnées d’assets existants partageant un SHA-256 exact, dans un ordre déterministe et une borne explicite, sans restituer leurs bytes ni créer de sémantique de déduplication, d’évidence ou de preuve. |
+| Périmètre | Migration `011` ajoutant seulement un index SQL sur `asset(content_hash, id)` ; extension minimale de `AssetService` avec une lecture d’index par hash exact et limite validée ; aucune nouvelle table ni mutation. |
+| Justification | M2.7 a séparé `AssetService.get` (métadonnées) de `read` (bytes hash-vérifiés), et M2.9 a établi le patron de liste directe, ordonnée et bornée. M2.11 rend le hash exact utilisable comme index sans ouvrir une recherche textuelle ou une lecture de contenu. |
+| Exclusions | Aucun `read`, contenu binaire, déduplication, fusion, suppression, mutation, fetch, import/export, preuve/evidence, admission `PROVEN`, validator, execution, gate, relation générique, traversal, filtre libre, préfixe/substring de hash, policy, capability, MCP ou compatibilité ARET. |
+| Baseline | VERA-MMU `main` et `origin/main` à `2ca3235b33d4e0493cce7e9513ac60b3a49f2bab`, propres. M2.10 publié `e568cd5fe8bda80b4d9434836a9173ad0195d9f0`. ARET-MMU intact à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, propre. |
+| Invariants | I001, I002, I004, I005, I011, I014, I015. |
+| Tests prévus | Migration 10→11 ; multiple assets au même hash ; ordre/borne ; hash/limite invalides ; résultat vide ; aucune byte exposée ; non-mutation/audit absent ; wheel isolé. |
+| Verdict | `NOT_RUN` — aucun patch M2.11 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-017` à créer, `MEM-STATE-017`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour la mémoire active, écrire les tests M2.11 avant migration et service, puis exécuter les gates complètes. |
+
+### LOG-0036 — Rejet contrôlé du candidat M2.11 initial
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `COMPARISON` / `RECORD` |
+| Candidat rejeté | Index exact et borné d’assets par `content_hash`. |
+| Observation | `007_asset_registry.sql` déclare déjà `asset.content_hash TEXT NOT NULL UNIQUE`. SQLite maintient donc déjà un index d’unicité et interdit plusieurs assets pour un même hash. Le test rouge a confirmé que l’enregistrement de deux contenus identiques échoue par contrainte d’unicité. |
+| Verdict | `REJECTED` — ne pas ajouter la migration `011_asset_hash_indexes.sql` ni une API de liste multi-résultats redondante. Aucun patch de production M2.11 n’a été appliqué ; le test exploratoire est retiré. |
+| Motif de sûreté | Une migration/index supplémentaire ne fournirait pas de nouvelle capacité et risquerait de présenter à tort un mécanisme de déduplication ou de recherche. La doctrine impose un patch minimal fondé sur une différence observée. |
+| Conséquence | Réouvrir la phase d’hypothèse M2.11. Le candidat suivant doit rester déclaratif, borné et sans lecture de contenu ni preuve. |
+| Mémoire liée | `MEM-DEC-017` est remplacé par `MEM-DEC-018` ; `MEM-WALL-001` inchangé. |
+
+### LOG-0037 — Hypothèse M2.11 révisée : index exact des sources knowledge par hash
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.11 — Bounded Knowledge-Source Hash Index` |
+| Hypothèse | Le Core peut lister les métadonnées de références `knowledge_source` ayant un SHA-256 source exact, dans un ordre déterministe et une borne explicite, sans lire la knowledge cible, ouvrir le document, vérifier la source ou conférer une preuve. |
+| Périmètre | Migration `011` ajoutant seulement un index SQL sur `knowledge_source(source_hash, knowledge_id, id)` ; extension minimale de `KnowledgeSourceService` avec une liste par hash exact et limite validée ; aucune nouvelle table ni mutation. |
+| Justification | `knowledge_source.source_hash` n’est pas unique : plusieurs knowledge peuvent déclarer le même slice hash. M2.5 a établi les références documentaires déclaratives et M2.9 le patron de liste directe, ordonnée et bornée. L’index ajoute donc une différence réelle sans toucher au contenu des knowledge. |
+| Exclusions | Aucun `KnowledgeService.get`, contenu knowledge, ouverture/fetch/import de document, comparaison de hash, preuve/evidence, admission `PROVEN`, validator, execution, gate, relation générique, traversal, recherche textuelle, préfixe/substring de hash, policy, capability, MCP ou compatibilité ARET. |
+| Baseline | VERA-MMU `main` et `origin/main` à `2ca3235b33d4e0493cce7e9513ac60b3a49f2bab`, propres. M2.10 publié `e568cd5fe8bda80b4d9434836a9173ad0195d9f0`. Le candidat `LOG-0035` est rejeté par `LOG-0036`. ARET-MMU intact à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, propre. |
+| Invariants | I001, I002, I004, I011, I014, I015. |
+| Tests prévus | Migration 10→11 ; mêmes hash déclarés sur knowledge distinctes ; ordre/borne ; hash/limite invalides ; résultat vide ; absence de contenu knowledge/audit/mutation ; wheel isolé. |
+| Verdict | `NOT_RUN` — aucun patch de production M2.11 n’est appliqué. |
+| Mémoire liée | `MEM-DEC-018`, `MEM-STATE-017`, `MEM-WALL-001`. |
+| Suivi | Remplacer le record de décision actif en mémoire, écrire les tests M2.11 révisés avant migration et service, puis exécuter les gates complètes. |
+
+### LOG-0038 — Verdict M2.11 : index exact des sources knowledge par hash
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.11 — Bounded Knowledge-Source Hash Index` |
+| Certitude | `OBSERVED` : les tests, la migration, les contrôles statiques et le wheel ont produit les résultats consignés ; une source indexée n’est pas une evidence VERA-MMU. |
+| Rejet préalable | Le candidat `LOG-0035` d’index d’assets par hash a été rejeté : `asset.content_hash` est déjà `UNIQUE`, ce qui rend une liste multi-résultats et un index supplémentaire redondants (`LOG-0036`). Aucun code de ce candidat n’est présent. |
+| Baseline | M2.10 publié `e568cd5fe8bda80b4d9434836a9173ad0195d9f0`; `LOG-0037`; VERA `main`/`origin/main` à `2ca3235b33d4e0493cce7e9513ac60b3a49f2bab` avant patch. ARET-MMU est resté propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Changement | Migration `011_knowledge_source_hash_indexes.sql` créant `idx_knowledge_source_hash_knowledge`; `KnowledgeSourceService.list_by_source_hash` impose un SHA-256 complet et une borne, retourne des `KnowledgeSource` dans l’ordre `knowledge_id`, chemin, lignes, id et ne modifie aucun état. |
+| Invariants | I001, I002, I004, I011, I014, I015. La méthode ne lit ni knowledge cible ni document source, ne vérifie ni ne compare aucun contenu et n’insère aucun audit. |
+| Run | `PYTHONPATH=src python3 -m pytest -q` : **100 passés, 14 sous-tests, 0 échec**. Les cas couvrent migration 10→11, mêmes hash sur knowledge distinctes, ordre, borne, hash/limites invalides, résultat vide, absence de contenu knowledge et absence d’audit de lecture. |
+| Contrôles de sûreté | `git diff --check` réussit. Le scan ciblé de M2.11 ne trouve aucune dépendance ARET, admission `PROVEN`, `KnowledgeService`, lecture de contenu, fetch, comparaison, execution, validator, MCP ou réseau. La surface ajoutée se limite à `list_by_source_hash`; aucun search, scan, traversal, import, export ou read n’est exposé. |
+| Distribution | Wheel construit via `pip wheel`, installé dans une cible isolée, puis contrôlé par un script hors dépôt qui crée deux knowledge et deux sources partageant le même hash déclaré, lit l’index et vérifie le schéma 11. SHA-256 wheel : `e24cb7f767386044da53a7faf0ec41f42dd8eaf25dc4e57accd3bfc2c89ea577`; sortie de contrôle : `6e15849e95fa383f09ed7e3bb49651c569a78c450a815a7b01c61b86b928e82c`; migration : `f5cd619752b1b10f5c7ea77c53a2cf1bd012f3606c360eb4e26da471d8170e0c`; service : `6764969733fe40bdebc7952133facacd2afc81c6c1a92eab92b14a0e79f19dcb`. |
+| Comparaison | M2.5 listait les sources d’une knowledge exacte ; M2.11 inverse cette vue uniquement par hash déclaré exact, sans traverser vers la knowledge ni changer la qualité épistémique. Le rejet préalable d’un index d’asset redondant montre que le sous-lot final ajoute une capacité observée et non un index décoratif. |
+| Limites | Aucun contenu knowledge/document, `KnowledgeService.get`, ouverture/fetch/import, comparaison de hash, `PROVEN`, evidence/proof, admission, validator, execution, gate, relation générique, traversal, recherche textuelle, préfixe de hash, bundle, policy, capability, MCP ou compatibilité ARET n’est livré. `MEM-WALL-001` reste inchangé. |
+| Verdict | `PASS` pour le périmètre M2.11 révisé et ses gates techniques. `UNKNOWN` pour M2 au total, toute parité ARET et toute sémantique d’evidence ou d’exécution. |
+| Mémoire liée | `MEM-STATE-017`, `MEM-DEC-017`, `MEM-DEC-018`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour mémoire, plan, matrice et README ; relancer les checks finaux, puis committer et publier atomiquement. |

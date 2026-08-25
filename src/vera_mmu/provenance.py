@@ -146,6 +146,19 @@ class KnowledgeSourceService:
         ).fetchall()
         return tuple(_source_from_row(row) for row in rows)
 
+    def list_by_source_hash(self, source_hash: str, *, limit: int = 100) -> tuple[KnowledgeSource, ...]:
+        """List declared source metadata for one full hash, without reading knowledge or source content."""
+        normalized_hash = _require_hash(source_hash)
+        normalized_limit = _require_limit(limit)
+        rows = self.store.connection.execute(
+            "SELECT id, knowledge_id, source_repository, source_revision, source_path, source_start_line, "
+            "source_end_line, source_section, source_hash, created_at, created_by "
+            "FROM knowledge_source WHERE source_hash = ? "
+            "ORDER BY knowledge_id, source_path, source_start_line, source_end_line, id LIMIT ?",
+            (normalized_hash, normalized_limit),
+        ).fetchall()
+        return tuple(_source_from_row(row) for row in rows)
+
 
 def _require_source_identifier(value: str) -> str:
     if not isinstance(value, str) or not SOURCE_ID_RE.fullmatch(value):
