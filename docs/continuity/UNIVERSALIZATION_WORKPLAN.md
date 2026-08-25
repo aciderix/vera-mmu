@@ -66,15 +66,16 @@ Le rituel se termine par une confirmation explicite : **ce qui est prouvé, obse
 | Exclusions actuelles | Pas encore de serveur MCP de production, Capability Engine générique, importeur ARET, migration SQL universelle ou dashboard. | `OBSERVED` | [README](../../README.md) ; mémoire `MEM-STATE-001`. |
 | Baseline M0.1 | Inventaire, hashes, tests, surface statique, hooks/reprise, bundle et bundle Git capturés dans `ARET_MMU_M0_1_BASELINE/`. | `OBSERVED` ; exécution exhaustive `UNKNOWN` | Journal `LOG-0006` ; mémoire `MEM-BASE-003`. |
 | Wall active | Toolchain des oracles ARET indisponible dans l’environnement de baseline ; ne pas confondre `SKIPPED` et validation. | `BLOCKED` | Mémoire `MEM-WALL-001` ; journal `LOG-0006`. |
-| Lot suivant | **M0.2 — Registre de compatibilité ARET.** | `READY` avec wall préservée | Section 6 ; journal `LOG-0006`. |
+| Registre M0.2 | Seize couplages documentés avec sources, frontière Core/pack, stratégie et tests de parité ; C07/C08 restent bloqués par la toolchain. | `PASS` pour la cartographie ; parité `UNKNOWN` | [Matrice](../DECOUPLING_MATRIX.md) ; journal `LOG-0007`. |
+| Lot suivant | **M1 — Core d’identité : C01, C02 et C11.** | `READY` avec wall préservée | Section 6 ; mémoire `MEM-DEC-005`. |
 
 ## 6. Roadmap de transformation et gates de sortie
 
 | ID | Lot | Objectif borné | Gate minimale de sortie | Invariants principaux | État |
 |---|---|---|---|---|---|
 | `M0.1` | Freeze ARET | Figer commit, dépendances, schéma, tests, hooks, comportement MCP et bundle de référence. | Inventaire hashé et baseline reproductible ; écarts connus explicitement listés. | I001, I004, I010, I014 | `CAPTURED` ; exécution exhaustive `UNKNOWN` (wall M0.1-W001) |
-| `M0.2` | Registre de compatibilité | Compléter la matrice de découplage par source, portée, test de parité et stratégie de migration. | Chaque couplage ARET est `TODO`, `BLOCKED` ou `SPLIT`, jamais implicite. | I014, I015 | `READY` |
-| `M1` | Core d’identité | Project Profile validé, identité de projet, workspace multi-racines, adressage `vera://`. | Tests de stabilité, rejet du traversal, no-Git et multi-repo. | I009, I011, I012, I014 | `PLANNED` |
+| `M0.2` | Registre de compatibilité | Compléter la matrice de découplage par source, portée, test de parité et stratégie de migration. | Chaque couplage ARET est `TODO`, `BLOCKED` ou `SPLIT`, jamais implicite. | I014, I015 | `PASS` pour la cartographie ; 14 `SPLIT`, 2 `BLOCKED`, parités `UNKNOWN` |
+| `M1` | Core d’identité | Project Profile validé, identité de projet, workspace multi-racines, adressage `vera://`. | Tests de stabilité, rejet du traversal, no-Git et multi-repo. | I009, I011, I012, I014 | `READY` — limité à C01/C02/C11 |
 | `M2` | Persistence universelle | Schéma générique, services séparés et migrations append-only. | Migrations checksumées, intégrité référentielle et audit validés. | I001–I006, I010, I014 | `PLANNED` |
 | `M3` | Capability / Evidence / Gates | Catalogue fermé, runners bornés, executions persistées, validators et gates. | Aucun shell arbitraire ; une gate ne passe que sur une exécution et une preuve réelles. | I004–I008, I013, I014 | `PLANNED` |
 | `M4` | Pack ARET | Compatibilité de lecture, import hors ligne, pipelines, playbook et toolchain ARET isolés. | Parité ARET mesurée contre baseline, Core installable sans dépendance ARET. | I004, I006–I008, I015 | `PLANNED` |

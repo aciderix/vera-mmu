@@ -29,6 +29,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-SRC-002` | Source | La doctrine ARET impose le cycle baseline → patch minimal → run → evidence → comparison → verdict → record, la non-régression et le fail loud. | `OBSERVED` | `pasted_content.txt`, sections 1–20, fourni par le propriétaire. | `LOG-0003` |
 | `MEM-BASE-003` | Freeze M0.1 | Le baseline ARET a capturé l’inventaire, les hashes, l’environnement, les résultats pytest, la surface MCP/hook, un bundle de mécanique et un bundle Git pour le commit de référence. | `OBSERVED` | `/home/ubuntu/ARET_MMU_M0_1_BASELINE/BASELINE_REPORT.md` ; manifeste `05e9c126425a27d6440cb5e92c367bcae6676ff04b430fe4b3618c7afff7984d`. | `LOG-0006` |
 | `MEM-BASE-004` | Mesures de référence | Le package compte 180 fichiers, 25 fichiers de tests, 90 tests collectés, 6 migrations SQL, 44 outils MCP `aret_*` détectés statiquement et 11 modules de hooks. | `OBSERVED` | Répertoire `ARET_MMU_M0_1_BASELINE/inventory/` et `hashes/`. | `LOG-0006` |
+| `MEM-COMP-001` | Registre M0.2 | Seize couplages ARET ont une source, une frontière Core/pack, une stratégie de migration et un test de parité nommés : 14 sont `SPLIT` et 2 (`C07`, `C08`) restent `BLOCKED` par `MEM-WALL-001`. | `OBSERVED` | [Matrice de découplage](../DECOUPLING_MATRIX.md), sections 1–3. | `LOG-0007` |
 
 ## 3. Faits d’architecture établis
 
@@ -59,6 +60,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-DEC-002` | Utiliser `vera://` comme schéma de ressource canonique et conserver `ARET://` seulement en lecture de compatibilité ultérieure. | `DECISION` | Différencier le nouveau Core tout en préservant une voie de migration contrôlée. | Tests de round-trip et lecteur V1 requis avant tout claim de compatibilité. | `LOG-0002` |
 | `MEM-DEC-003` | Utiliser ces trois documents comme système de continuité de transition. | `DECISION` | Le store universel n’existe pas encore, mais le chantier exige mémoire, provenance et reprise dès maintenant. | Chaque lot met à jour plan, mémoire et journal avant son commit atomique. | `LOG-0003` |
 | `MEM-DEC-004` | Commencer par `M0.1 — Freeze ARET` plutôt que par une extraction de code. | `DECISION` | Toute parité future requiert un baseline mesuré de schéma, tests, hooks, MCP, bundle et dépendances. | Aucun déplacement de primitive ARET avant l’inventaire de compatibilité. | `LOG-0003` |
+| `MEM-DEC-005` | Démarrer M1 par les couplages C01, C02 et C11 : adressage VERA, Project Profile/runtime configurable et workspace sûr. | `DECISION` | Ces primitives rendent possible la persistance, les packs et la compilation ultérieurs sans introduire de dépendance ARET dans le Core. | Le premier patch M1 ne doit importer aucun module ARET ni connaître `ARET://`, `.aret-memory`, binaire ou toolchain ARET. | `LOG-0007` |
 
 ## 6. Risques, incertitudes et blocages
 
@@ -72,16 +74,16 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 ## 7. Reprise active
 
-**Work item actif :** `M0.2 — Registre de compatibilité ARET`, avec la wall `MEM-WALL-001` maintenue comme précondition ouverte pour toute assertion de parité d’oracle.
+**Work item actif :** `M1 — Core d’identité`, borné à C01/C02/C11 ; `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
 
 | Élément | Valeur de reprise |
 |---|---|
-| Objectif immédiat | Enrichir la matrice de découplage pour chaque surface ARET identifiée, sans déplacer de code ni masquer `MEM-WALL-001`. |
-| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0006`. |
-| Préconditions | Baseline M0.1 disponible dans `ARET_MMU_M0_1_BASELINE/`, clone ARET propre et aucun claim de parité au-delà du périmètre mesuré. |
-| Sorties attendues | Source précise, couplage, abstraction cible, test de parité et stratégie de migration pour chaque ligne de matrice. |
-| Gates de travail | Aucun statut `DONE` sans abstraction, test et démonstration de non-dépendance ARET dans le Core ; les oracles affectés restent liés à `MEM-WALL-001`. |
-| Prochaine action | Ouvrir `LOG-0007`, inspecter la première tranche de couplages d’adressage, store, schéma et surface MCP. |
+| Objectif immédiat | Construire les primitives Core `ProjectProfile`, `ProjectIdentity`, `WorkspaceResolver`, `RuntimeLocator` et adressage strict `vera://`, sans pack ARET. |
+| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0007`. |
+| Préconditions | M0.1 et M0.2 sont enregistrés ; C01/C02/C11 sont `SPLIT`; aucune dépendance ARET ne sera importée dans `src/vera_mmu/`. |
+| Sorties attendues | Profile validé, identité stable, workspace mono/multi/no-Git, runtime `.vera-mmu/`, adresses VERA strictes et tests de rejet. |
+| Gates de travail | Tests de stabilité, traversal, symlink, no-Git et multi-repo ; `grep` d’absence de `ARET`, `aret_memory`, `ARET_MEMORY_DIR` et `ARET://` dans le nouveau Core. |
+| Prochaine action | Ouvrir `LOG-0008`, formuler l’hypothèse M1 et inspecter l’API actuelle de profil/identité avant le premier patch. |
 
 ## 8. Protocole de mise à jour append-only
 

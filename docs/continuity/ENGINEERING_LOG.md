@@ -30,7 +30,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0004` | 2026-08-25 | `INSPECTION` | M0.0 | continuité, liens croisés, Git, reprise, format | `OBSERVED` | `PASS` | `MEM-DEC-003`, reprise active |
 | `LOG-0005` | 2026-08-25 | `BASELINE` | M0.1 | ouverture, environnement, périmètre, préconditions | `OBSERVED` | `NOT_RUN` | `MEM-RISK-001`, reprise active |
 | `LOG-0006` | 2026-08-25 | `BASELINE` / `WALL` | M0.1 | inventaire, pytest, hooks, MCP, bundle, toolchain, intégrité | `OBSERVED` | `UNKNOWN` | `MEM-BASE-003`, `MEM-BASE-004`, `MEM-WALL-001` |
-| `LOG-0007` | À ouvrir | `INSPECTION` | M0.2 | découplage, adressage, store, schéma, MCP | `PLANNED` | `NOT_RUN` | Reprise active |
+| `LOG-0007` | 2026-08-25 | `INSPECTION` / `DECISION` | M0.2 | découplage, adressage, store, schéma, MCP, hooks, bundle, VCS | `OBSERVED` | `PASS` pour la cartographie ; `UNKNOWN` pour les parités | `MEM-COMP-001`, `MEM-DEC-005`, `MEM-WALL-001` |
+| `LOG-0008` | À ouvrir | `HYPOTHESIS` | M1 | profile, identité, workspace, runtime, `vera://` | `PLANNED` | `NOT_RUN` | Reprise active |
 
 ## 3. Entrées append-only
 
@@ -139,7 +140,25 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | Comparaison | Première mesure : les exécutions futures doivent comparer les comptes, hashes, résultats et la disponibilité de toolchain à cette capture. |
 | Verdict | `UNKNOWN` pour un baseline d’exécution exhaustif ; `PASS` pour la capture de référence, l’intégrité des artefacts, les hooks/reprises testés et la mécanique de bundle. |
 | Mémoire liée | `MEM-BASE-003`, `MEM-BASE-004`, `MEM-WALL-001`. |
-| Suivi | Ouvrir `LOG-0007` pour `M0.2 — Registre de compatibilité`; maintenir `MEM-WALL-001` comme précondition des claims d’oracle/parité. |
+| Suivi | Le registre et la décision de séquencement M1 sont consignés dans `LOG-0007`; maintenir `MEM-WALL-001` comme précondition des claims d’oracle/parité. |
+
+### LOG-0007 — M0.2 : registre de compatibilité ARET
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `INSPECTION` / `DECISION` / `VERDICT` |
+| Lot | `M0.2 — Registre de compatibilité ARET` |
+| Certitude | `OBSERVED` pour les sources et le registre ; `DECISION` pour l’ordre d’implémentation. |
+| Baseline | `LOG-0006`, commit ARET `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, archive de baseline M0.1. |
+| Périmètre | Adressage, runtime/store, entités, symboles, roadmap, pipelines, oracles, toolchain, instructions, API MCP, workspace, playbook, VCS, bundles, hooks de reprise, knowledge/evidence/audit. |
+| Résultat | La matrice détaille 16 couplages. C01–C06 et C09–C16 sont `SPLIT`; C07 et C08 restent `BLOCKED` par `MEM-WALL-001`. Chaque ligne référence une source, une abstraction cible, une stratégie de migration et des assertions de parité. |
+| Contrôles | Sources ARET lues sans modification ; état Git ARET conservé propre ; registre contrôlé par `git diff --check`. |
+| Décision | Le premier code M1 portera seulement C01/C02/C11 : profile, identité, workspace, runtime et `vera://`; il ne doit importer aucun module, nom, chemin, binaire ou toolchain ARET. |
+| Invariants | I001, I004–I015 ; principalement I008, I011, I014 et I015. |
+| Verdict | `PASS` pour le registre de compatibilité ; `UNKNOWN` pour toute parité de comportement, non encore implémentée ni exécutée. |
+| Mémoire liée | `MEM-COMP-001`, `MEM-DEC-005`, `MEM-WALL-001`. |
+| Suivi | Ouvrir `LOG-0008` avant le premier patch M1 et revalider le profile/identité existant. |
 
 ## 4. Protocole de journalisation d’un changement
 
@@ -156,11 +175,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 
 ## 5. Handoff actif
 
-> **État de reprise :** `M0.1` est capturé dans `LOG-0006` avec verdict `UNKNOWN` pour l’exécution exhaustive à cause de `MEM-WALL-001`, mais les sources, hashes, suite de tests, hooks/reprise et bundle de mécanique sont enregistrés. Le travail actif devient `M0.2 — Registre de compatibilité ARET`. La prochaine action est d’ouvrir `LOG-0007` et d’examiner la première tranche de couplages sans déplacer de code.
+> **État de reprise :** `M0.2` est enregistré dans `LOG-0007`. Les 16 couplages sont cartographiés ; C07/C08 demeurent bloqués par `MEM-WALL-001`. Le travail actif devient `M1 — Core d’identité`, strictement limité à C01/C02/C11. La prochaine action est d’ouvrir `LOG-0008` avant tout patch.
 
 | Reprendre par | Lire ensuite | Ne pas faire avant |
 |---|---|---|
-| `UNIVERSALIZATION_WORKPLAN.md`, section 5 | `PROJECT_MEMORY.md`, sections 2, 5, 6 et 7 ; puis `LOG-0006`. | Déplacer du code ARET, lever `MEM-WALL-001` par hypothèse ou déclarer une parité sans test dans une toolchain admissible. |
+| `UNIVERSALIZATION_WORKPLAN.md`, section 5 | `PROJECT_MEMORY.md`, sections 2, 5, 6 et 7 ; puis `LOG-0007`. | Importer ARET dans le Core, créer un alias `ARET://` dans M1, lever `MEM-WALL-001` par hypothèse ou déclarer une parité sans evidence. |
 
 ## 6. Gabarit d’entrée future
 
