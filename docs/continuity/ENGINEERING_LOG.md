@@ -1150,3 +1150,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt propre et helper supprimé. |
 | Statut | `PASS` pour la publication M3.5. Gates et work graph restent un lot distinct; la parité ARET demeure `UNKNOWN`. |
 
+
+### LOG-0068 — Verdict M3.6 : Work Graph & Admission Gate
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 019 et `GateService` : dépendance directe de work items append-only avec détection de cycle, gate immutable liée à une evidence, évaluation `FAIL` sans admission puis `PASS` avec décision `ADMITTED`. |
+| Validation | Test dédié : 1 `PASS`; suite complète : 139 tests et 14 sous-tests `PASS`; diff et scan de périmètre `PASS`. |
+| Limite | La gate lit des décisions existantes : elle n’exécute aucune capability, n’admet aucune evidence, ne modifie pas de knowledge et ne promulgue aucun état. |
+| Verdict | `PASS` pour M3.6 technique; publication à finaliser. |
+
