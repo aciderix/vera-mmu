@@ -69,6 +69,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0043` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.12 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-019`, `MEM-STATE-020`, `MEM-WALL-001` |
 | `LOG-0044` | 2026-08-25 | `HYPOTHESIS` | M2.13 | work item, parent, statut initial, immuabilité, no-graph | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-020`, `MEM-WALL-001` |
 | `LOG-0045` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.13 | work item, migration 013, parent, audit, wheel | `OBSERVED` | `PASS` pour M2.13 ; M2 restant/parité ARET `UNKNOWN` | `MEM-STATE-021`, `MEM-DEC-023`, `MEM-STATE-022`, `MEM-WALL-001` |
+| `LOG-0046` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.13 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-021`, `MEM-STATE-022`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -919,3 +920,17 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Verdict | `PASS` pour M2.13 ; `UNKNOWN` pour M2 restant et toute parité ARET. |
 | Mémoire liée | `MEM-STATE-021`, `MEM-DEC-023`, `MEM-STATE-022`, `MEM-WALL-001`. |
 | Suivi | Mettre à jour la matrice, la mémoire, le plan et le README ; committer/publier atomiquement, puis ouvrir la baseline/hypothèse distincte M2.14. |
+
+### LOG-0046 — Publication vérifiée M2.13
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RECORD` / `HANDOFF` |
+| Lot | `M2.13 — Work-Item Backbone` |
+| Commit fonctionnel | `c1db7e1e6140e100c8702b49b0ef18e7b05a3abc` — `feat: add immutable work item backbone`. |
+| Publication | `git push origin main` a publié `4896289..c1db7e1`; `git ls-remote origin refs/heads/main` retourne `c1db7e1e6140e100c8702b49b0ef18e7b05a3abc`. |
+| État final | `main...origin/main` propre après publication ; helper d’authentification éphémère supprimé. ARET reste propre au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Verdict | `PASS` pour la publication M2.13. |
+| Mémoire liée | `MEM-STATE-021`, `MEM-STATE-022`, `MEM-WALL-001`. |
+| Suivi | Publier ce record documentaire, puis établir la baseline M2.14 sans ouvrir runner, validator, Evidence Store, gate, policy ou admission `PROVEN`. |
