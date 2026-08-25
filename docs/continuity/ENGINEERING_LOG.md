@@ -103,6 +103,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0077` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.8 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-030`, `MEM-WALL-001` |
 | `LOG-0078` | 2026-08-25 | `HYPOTHESIS` | M3.9 | policy HMAC projet, secret en mémoire, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-031`, `MEM-DEC-029`, `MEM-WALL-001` |
 | `LOG-0079` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.9 | policy HMAC, non-persistance secret, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-031`, `MEM-STATE-032`, `MEM-DEC-029`, `MEM-WALL-001` |
+| `LOG-0080` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.9 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-032`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1318,3 +1319,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Atomicité | L’absence de policy, un secret manquant lorsque requis, ou un secret fourni lorsque non requis échouent avant insertion de `knowledge_proof` et audit de preuve. Le knowledge historique reste inchangé. |
 | Limite | La policy ne gère ni rotation/révocation de secret, ni expiration, ni plusieurs algorithmes, ni plusieurs policies de projet, ni validator, runner, réseau, artefact ou gate nouvelle. |
 | Verdict | `PASS` pour M3.9 technique; publication et synchronisation de continuité à finaliser. |
+
+
+### LOG-0080 — Publication vérifiée M3.9
+
+| Champ | Valeur |
+|---|---|
+| Commit | `492821da74c5b37519f234cd76fa2272e24fde55` — `feat: add project proof hmac policy`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication M3.9. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Suivi | Cadrer séparément un framework de validators fermé, sans oracle ARET, runner additionnel, réseau implicite ni exécution de commande. |
