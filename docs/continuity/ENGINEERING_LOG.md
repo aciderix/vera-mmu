@@ -1058,3 +1058,12 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limite | Aucun mécanisme d’admission, HMAC, promotion de knowledge ou `PROVEN` n’est présent. |
 | Verdict | `PASS` pour M3.3 technique; publication à finaliser. |
 
+
+### LOG-0058 — Publication vérifiée M3.3
+
+| Champ | Valeur |
+|---|---|
+| Commit | `a7b29168c49515e543832a6829c4d4ebade584f1` — `feat: add hashed evidence store`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt propre et helper supprimé. |
+| Statut | `PASS` pour la publication M3.3. Admission, HMAC, promotion `PROVEN` et gates restent absents. |
+
