@@ -1086,3 +1086,12 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limite | L’evidence conserve son statut `PENDING`; knowledge n’est pas modifiée et aucune promotion `PROVEN`, HMAC ou gate n’est ajoutée. |
 | Verdict | `PASS` pour M3.4 technique; publication à finaliser. |
 
+
+### LOG-0061 — Publication vérifiée M3.4
+
+| Champ | Valeur |
+|---|---|
+| Commit | `fda5154035af0d7859a652e432c9a330dba681e3` — `feat: add evidence admission policy`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt propre et helper supprimé. |
+| Statut | `PASS` pour la publication M3.4. HMAC, lien evidence↔knowledge, promotion `PROVEN`, gates et work graph restent à concevoir séparément. |
+
