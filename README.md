@@ -39,6 +39,10 @@ The composed name must be used consistently in public documentation and tooling.
 
 This repository is at the **M0/M1 foundation**. It establishes the namespace, declared invariants, profile format, architecture boundary, and a minimal deterministic identity utility. It does **not** yet provide a production MCP server, a generic capability runner, an ARET migration tool, or a dashboard.
 
+## Continuity records
+
+The universalization programme is governed through three linked, versioned documents. The [living work plan](docs/continuity/UNIVERSALIZATION_WORKPLAN.md) controls scope and gates; the [factual project memory](docs/continuity/PROJECT_MEMORY.md) preserves durable facts, decisions, risks, and the active resume; and the [engineering log](docs/continuity/ENGINEERING_LOG.md) records searchable chronology, runs, evidence, comparisons, walls, and handoffs. These records must be read before material work after an interruption or context compaction.
+
 ## Repository layout
 
 ```text
