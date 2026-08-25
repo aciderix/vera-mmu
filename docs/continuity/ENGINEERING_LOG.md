@@ -63,6 +63,9 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0037` | 2026-08-25 | `HYPOTHESIS` | M2.11 | index exact sources knowledge par hash, borne, sans contenu | `HYPOTHESIS` | `NOT_RUN` | `MEM-DEC-018`, `MEM-WALL-001` |
 | `LOG-0038` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.11 | index exact sources knowledge par hash, borne, sans contenu | `OBSERVED` | `PASS` pour M2.11 ; `UNKNOWN` pour M2 complet/parité ARET | `MEM-STATE-017`, `MEM-DEC-017`, `MEM-DEC-018`, `MEM-WALL-001` |
 | `LOG-0039` | 2026-08-25 | `RECORD` / `HANDOFF` | M2.11 | commit, publication, vérification distante | `OBSERVED` | `PASS` pour la publication | `MEM-STATE-017`, `MEM-DEC-017`, `MEM-DEC-018`, `MEM-WALL-001` |
+| `LOG-0040` | 2026-08-25 | `DECISION` / `ROADMAP` | Cadrage M2 | gate terminale, M2/M3, anti-redondance, macro-lots | `DECISION` | `PASS` pour le cadrage | `MEM-DEC-019` à `MEM-DEC-021`, `MEM-STATE-018`, `MEM-WALL-001` |
+| `LOG-0041` | 2026-08-25 | `HYPOTHESIS` | M2.12 | symbol, entity FK, immuabilité, audit, no-scan | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-DEC-022`, `MEM-WALL-001` |
+| `LOG-0042` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M2.12 | symbol, migration 012, URI, audit, wheel | `OBSERVED` | `PASS` pour M2.12 ; M2 restant/parité ARET `UNKNOWN` | `MEM-STATE-019`, `MEM-DEC-022`, `MEM-STATE-020`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -829,3 +832,38 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Statut | `DECIDED` ; aucun code M2.12 n’est ouvert par cette décision. |
 | Mémoire liée | `MEM-DEC-019`, `MEM-WALL-001`. |
 | Suivi | Mettre le workplan et la mémoire en cohérence, publier le cadrage documentaire, puis seulement ouvrir M2.12 par le rituel normal. |
+
+### LOG-0041 — Hypothèse M2.12 : Symbol Registry générique
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `HYPOTHESIS` |
+| Lot | `M2.12 — Symbol Registry` |
+| Baseline | VERA `b1b6704bf97b081b45f9b7fb972e0a07b0360e05`, `main` propre et alignée à `origin/main`; ARET `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, `main` propre et non modifié. Baseline VERA : 100 tests et 14 sous-tests `PASS`; schéma courant 001–011. |
+| Écart contractuel | La spécification Universal Schema requiert `symbol`; `CORE_RESOURCE_TYPES` autorise déjà `symbol`, mais aucune table, migration, modèle ni service correspondant n’existe. |
+| Hypothèse | Si VERA ajoute un `SymbolService` append-only avec la migration 012, un symbole référant obligatoirement une `entity` existante, `kind`, `path`, `identifier`, `signature`, metadata JSON canonique, création/lecture exacte, unicité sémantique et audit atomique, alors le Core ferme la ressource déclarative `symbol` de M2 sans importer le modèle ARET `function_symbol` ni ouvrir une capacité M3. |
+| Décision de modélisation | La colonne est nommée `entity_id` plutôt que `component_id` : son endpoint est une entity universelle, pas un vocabulaire de composant. Une entity propriétaire est obligatoire pour garantir l’intégrité référentielle du registre et empêcher un espace de symboles non rattaché. `path` est un locator déclaratif strict, jamais un chemin ouvert ou résolu. |
+| Tests-first attendus | Migration 001→012 et installation fresh ; création/lecture et URI `vera://…/symbol/…`; FK owner inconnue ; identifiant/kind/path/JSON invalides ; doublon sémantique ; audit atomique et rollback ; refus des UPDATE/DELETE ; absence de scan, lecture de fichier, réseau, FTS/FIND, preuve, relation automatique ou vocabulaire ARET. |
+| Invariants | I001, I002, I003, I011, I014, I015. |
+| Non-objectifs | Aucun scanner de source, parser, résolution de fichier, FTS/FIND, import ARET, traversal, relation automatique, evidence, execution, validator, gate, policy, shell, réseau ni promotion `PROVEN`. |
+| Verdict | `PENDING` — tests et patch minimal à produire; aucune capacité n’est encore livrée. |
+
+### LOG-0042 — Verdict M2.12 : Symbol Registry
+
+| Champ | Valeur |
+|---|---|
+| Date | 25 août 2026 |
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Lot | `M2.12 — Symbol Registry` |
+| Changement minimal | Migration `012_symbol_registry.sql`; module `symbols.py`; exports publics `Symbol`, `SymbolError`, `SymbolNotFoundError`, `SymbolService`; tests-first `test_symbols.py`; ajustement mécanique des attentes de baseline globale 11→12. Aucune CLI, capability, policy, runner, evidence, gate, réseau, fichier externe ou dépendance ARET n’est ajoutée. |
+| Exécution ciblée | `PYTHONPATH=src python3 -m pytest -q tests/test_symbols.py` : 9 tests `PASS`. |
+| Exécution Core | `PYTHONPATH=src python3 -m pytest -q` : 109 tests et 14 sous-tests `PASS`. |
+| Distribution | Wheel construit avec `python3 -m pip wheel --no-deps --no-build-isolation`; SHA-256 `c2a674fccc719c3c6e890cebae8bd27d2aa9e8dc1d987beba9031da6089456ab`. Installation hors arbre source dans `/tmp/vera-m212-install` et script d’intégration : migration 012, entity propriétaire et symbole vérifiés `PASS`. |
+| Contrôles | `git diff --check` `PASS`; scan ciblé de `symbols.py` et migration 012 sans vocabulaire ARET, `function_symbol`, shell, réseau ni ouverture de fichier `PASS`. |
+| Comparaison | Baseline M2.11 : 100 tests et 14 sous-tests `PASS`, schéma 011. Résultat : 109 tests et 14 sous-tests `PASS`, schéma 012. Les neuf tests additionnels couvrent migration, création/lecture exacte, URI, FK, entrées invalides, unicité, audit/rollback et immuabilité SQL. |
+| Invariants | I001, I002, I003, I011, I014, I015. |
+| Limites | Le `path` reste déclaratif ; aucune lecture, recherche, résolution, import V1, relation automatique, proof, execution, validator, gate ou admission `PROVEN` n’existe. C04/C16 restent `SPLIT`; la parité ARET exhaustive reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Verdict | `PASS` pour M2.12 ; `UNKNOWN` pour M2 restant et toute parité ARET. |
+| Mémoire liée | `MEM-STATE-019`, `MEM-DEC-022`, `MEM-STATE-020`, `MEM-WALL-001`. |
+| Suivi | Mettre à jour le plan et le README, committer/publier atomiquement, puis ouvrir la baseline/hypothèse distincte M2.13. |

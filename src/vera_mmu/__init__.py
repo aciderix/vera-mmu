@@ -33,6 +33,7 @@ from .provenance import KnowledgeSource, KnowledgeSourceError, KnowledgeSourceNo
 from .relations import Relation, RelationError, RelationNotFoundError, RelationService, RelationType
 from .runtime import RuntimeLocator, RuntimeLocatorError
 from .store import MemoryStore, StoreError, StoreIdentityError
+from .symbols import Symbol, SymbolError, SymbolNotFoundError, SymbolService
 from .supersession import (
     KnowledgeSupersession,
     KnowledgeSupersessionError,
@@ -93,6 +94,10 @@ __all__ = [
     "RuntimeLocator",
     "StoreError",
     "StoreIdentityError",
+    "Symbol",
+    "SymbolError",
+    "SymbolNotFoundError",
+    "SymbolService",
     "RuntimeLocatorError",
     "Workspace",
     "WorkspaceError",

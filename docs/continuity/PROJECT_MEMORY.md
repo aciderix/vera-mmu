@@ -142,3 +142,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-018` | Reprise active | Après M2.11, aucun patch M2.12 n’est ouvert. La prochaine action technique, seulement après publication de ce cadrage, est une hypothèse autonome pour le macro-lot `M2.12 — Symbol Registry`. La baseline ARET exhaustive reste `UNKNOWN` sous `MEM-WALL-001` et ne peut être requalifiée par la gate M2. | `OBSERVED` | État de dépôt avant cadrage et décision de feuille de route. | `LOG-0039`, `LOG-0040` |
 
 > **Reprise prioritaire.** Lire `MEM-DEC-019` à `MEM-DEC-021`, puis `LOG-0040`, avant toute proposition de code M2. Les exclusions M3 sont des limites de périmètre, non des fonctionnalités implicites ou partielles.
+
+## 10. Addendum de reprise — résultat M2.12
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-019` | Symbol Registry M2.12 | `SUPERSEDES: MEM-STATE-018` pour la reprise active. Le Core expose `SymbolService` et `Symbol` pour créer/lire exactement des symboles déclaratifs immuables liés par FK à une entity existante. Chaque record contient `kind`, locator `path`, identifiant, signature, metadata JSON canonique, URI `vera://…/symbol/…` et audit atomique. L’unicité `(entity_id, path, identifier)` et les triggers SQLite refusent duplication sémantique, UPDATE et DELETE. | `OBSERVED` | Migration `012_symbol_registry.sql`, `symbols.py`, `tests/test_symbols.py`; validation M2.12. | `LOG-0041`, `LOG-0042` |
+| `MEM-DEC-022` | Limite M2.12 | Le `path` de symbole est un locator déclaratif canonique : il n’est jamais ouvert, résolu, scanné ni interprété comme chemin de fichier. Un symbole ne confère ni relation automatique, ni evidence, ni execution, ni admission `PROVEN`. | `DECISION` | Invariants I001, I002, I003, I011, I014, I015 ; contrat M2.12. | `LOG-0041`, `LOG-0042` |
+| `MEM-STATE-020` | Prochaine reprise | Après M2.12, le prochain macro-lot est `M2.13 — Work-Item Backbone`; il exige sa propre baseline et hypothèse. `MEM-WALL-001` demeure `BLOCKED`, et la parité ARET exhaustive demeure `UNKNOWN`. | `OBSERVED` | Gate M2.12 passée sous limites documentées. | `LOG-0042` |

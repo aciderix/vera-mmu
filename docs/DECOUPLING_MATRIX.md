@@ -168,3 +168,12 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C03` | L’index ne retourne que des références génériques `knowledge_source` et des identifiants knowledge ; il n’introduit aucun `component`, `function`, symbole ou vocabulaire technique. | Validation SHA-256/bornes, scan ciblé du nouveau Core et wheel isolé ; `LOG-0038`. Le candidat d’index d’assets a été rejeté comme redondant dans `LOG-0036`. | Import des composants V1, liens de connaissance spécialisés, symboles, migration de données et parité fonctionnelle ARET. | `SPLIT` |
 
 > M2.11 rend découvrables les références déclaratives qui partagent un hash exact sans lire les knowledge liées, ouvrir un document ou assimiler cette corrélation à une preuve. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
+
+### 2.13. Avancement observé M2.12 — Symbol Registry générique
+
+| Couplage | Surface VERA désormais observée | Evidence M2.12 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C04` | Migration `012` et `symbol` immutable, obligatoirement rattaché à une `entity`, avec `kind`, locator déclaratif `path`, `identifier`, signature et metadata JSON. L’unicité `(entity_id, path, identifier)`, la lecture exacte et l’audit atomique sont établis sans type `component` ni modèle `function_symbol`. | `tests/test_symbols.py` : migration 11→12, création/lecture exacte, URI, owner inconnu, doublon sémantique, entrées invalides, rollback d’audit et refus SQL des UPDATE/DELETE ; suite complète et wheel isolé validés ; `LOG-0042`. | Import V1 `function_symbol → symbol`, conservation des IDs/source provenance, relation ou type configurable de pack, scan/résolution de code, lecteur `ARET://function`, rollback de migration de données et parité fonctionnelle ARET. | `SPLIT` |
+| `C16` | Le registre ajoute une mutation métier append-only : FK d’owner, audit dans la même transaction et triggers anti-réécriture/suppression. | `tests/test_symbols.py` : doublon, FK, audit/rollback, immuabilité SQL ; `LOG-0042`. | Audit des couches Evidence/Execution/Gate, import/bundle et parité historique. | `SPLIT` |
+
+> M2.12 ferme une ressource déclarative `symbol` du schéma universel ; il ne lit pas de fichier, ne recherche pas, ne résout pas de code et ne constitue aucune compatibilité ou preuve ARET. Les lignes C04 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
