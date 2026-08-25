@@ -88,7 +88,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 ## 7. Reprise active
 
-**État de reprise :** `M2.6 — Knowledge Supersession Registry` a atteint son verdict technique `PASS` dans `LOG-0021` et attend son commit/publication atomique. Le prochain sous-lot n’est pas ouvert : il requiert un nouveau rituel d’hypothèse. `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
+**État de reprise :** `M2.6 — Knowledge Supersession Registry` a atteint son verdict technique `PASS` dans `LOG-0021` et est publié au commit `e6afb43e1f840cbf5c909f6522d65c351ae62411`, vérifié par `LOG-0022`. Le prochain sous-lot n’est pas ouvert : il requiert un nouveau rituel d’hypothèse. `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
 
 | Élément | Valeur de reprise |
 |---|---|
@@ -99,10 +99,10 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Baseline M2.3 | Registre de types de relation, arêtes immuables entre entités, contraintes déclaratives source/cible, lecture exacte, audit de création et migration M2.2→M2.3, publié au commit `5e68a9694137dd1e49f6a8b4a1700c7ca2e40764`. |
 | Baseline M2.4 | Registre knowledge, assertions append-only hashées, statuts initiaux sûrs, lecture exacte, audit de création et migration M2.3→M2.4, publié au commit `a783d3efefafe0b1e80c5454e8649f082858611e`. |
 | Baseline M2.5 | Références documentaires à une knowledge existante : repository, revision, chemin relatif, section, lignes, SHA-256, lecture exacte bornée, audit de création et migration M2.4→M2.5, publié au commit `fc34cccf867c3044203085ca1618b9095c2cfa44`. |
-| Baseline M2.6 | Supersession directe immutable entre knowledge existantes : unicité de prédécesseur/successeur, anti-cycle, lecture exacte dans les deux sens et audit de création, avec migration M2.5→M2.6. Verdict technique `PASS` dans `LOG-0021`; publication en attente. |
+| Baseline M2.6 | Supersession directe immutable entre knowledge existantes : unicité de prédécesseur/successeur, anti-cycle, lecture exacte dans les deux sens et audit de création, avec migration M2.5→M2.6. Verdict technique `PASS` dans `LOG-0021`, publié au commit `e6afb43e1f840cbf5c909f6522d65c351ae62411` et vérifié dans `LOG-0022`. |
 | Limites explicites | Pas encore de fetch/vérification de document, import/migration batch, mutation de statut/supersession complète, promotion `PROVEN`, evidence, traversal/lifecycle relationnel, symbole, FTS/FIND, policy, capability, bundle, adapter MCP, dashboard, pack ARET ni compatibilité de lecteur historique. L’absence de vocabulaire ARET du Core ne démontre pas de parité comportementale ARET. |
-| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0021`. |
-| Prochaine action | Relire le diff final M2.6, valider les documents modifiés, committer et publier ; ne pas ouvrir M2.7 sans nouvelle hypothèse explicitement bornée. |
+| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0021` et `LOG-0022`. |
+| Prochaine action | Ne pas ouvrir M2.7 sans nouveau rituel d’hypothèse explicitement borné ; vérifier d’abord les limites résiduelles et `MEM-WALL-001`. |
 
 ## 8. Protocole de mise à jour append-only
 
