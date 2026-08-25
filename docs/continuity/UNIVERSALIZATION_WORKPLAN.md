@@ -62,12 +62,12 @@ Le rituel se termine par une confirmation explicite : **ce qui est prouvé, obse
 | Produit | VERA-MMU — *Verifiable Epistemics & Relational Architecture*. | `PROVEN` par le contenu du dépôt. | [Identité](../IDENTITY.md) ; journal `LOG-0002`. |
 | Révision VERA-MMU | `ef707339c245ee1d36b8a78312d1a441c86296dc` sur `main`, arbre propre au relevé initial. | `OBSERVED` | Journal `LOG-0002`. |
 | Révision ARET-MMU de référence | `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4` sur `main`, arbre propre au relevé initial. | `OBSERVED` | Journal `LOG-0001`. |
-| Capacité actuelle | Fondation de namespace, profil minimal déterministe, invariants et frontière Core/Domain Pack. | `PROVEN` par tests de fondation antérieurs et contenu local ; à revalider avant extension. | [README](../../README.md) ; mémoire `MEM-ARCH-001`. |
+| Capacité actuelle | Core d’identité universel : Profile normalisé/hashé, ProjectIdentity, URI `vera://` strictes, roots contrôlées, no-Git/multi-repo et runtime local confiné. | `OBSERVED` : 21 tests et 14 sous-tests passent ; wheel isolé et `vmmu inspect` validés. | Journal `LOG-0009` ; mémoire `MEM-STATE-006`. |
 | Exclusions actuelles | Pas encore de serveur MCP de production, Capability Engine générique, importeur ARET, migration SQL universelle ou dashboard. | `OBSERVED` | [README](../../README.md) ; mémoire `MEM-STATE-001`. |
 | Baseline M0.1 | Inventaire, hashes, tests, surface statique, hooks/reprise, bundle et bundle Git capturés dans `ARET_MMU_M0_1_BASELINE/`. | `OBSERVED` ; exécution exhaustive `UNKNOWN` | Journal `LOG-0006` ; mémoire `MEM-BASE-003`. |
 | Wall active | Toolchain des oracles ARET indisponible dans l’environnement de baseline ; ne pas confondre `SKIPPED` et validation. | `BLOCKED` | Mémoire `MEM-WALL-001` ; journal `LOG-0006`. |
 | Registre M0.2 | Seize couplages documentés avec sources, frontière Core/pack, stratégie et tests de parité ; C07/C08 restent bloqués par la toolchain. | `PASS` pour la cartographie ; parité `UNKNOWN` | [Matrice](../DECOUPLING_MATRIX.md) ; journal `LOG-0007`. |
-| Lot suivant | **M1 — Core d’identité : C01, C02 et C11.** | `READY` avec wall préservée | Section 6 ; mémoire `MEM-DEC-005`. |
+| Lot suivant | Aucun lot actif ; M2 ne peut être armé que par un rituel séparé après vérification du commit M1. | `READY_FOR_M2_RITUAL` ; `MEM-WALL-001` préservée | Journal `LOG-0009` ; mémoire section 7. |
 
 ## 6. Roadmap de transformation et gates de sortie
 
@@ -75,7 +75,7 @@ Le rituel se termine par une confirmation explicite : **ce qui est prouvé, obse
 |---|---|---|---|---|---|
 | `M0.1` | Freeze ARET | Figer commit, dépendances, schéma, tests, hooks, comportement MCP et bundle de référence. | Inventaire hashé et baseline reproductible ; écarts connus explicitement listés. | I001, I004, I010, I014 | `CAPTURED` ; exécution exhaustive `UNKNOWN` (wall M0.1-W001) |
 | `M0.2` | Registre de compatibilité | Compléter la matrice de découplage par source, portée, test de parité et stratégie de migration. | Chaque couplage ARET est `TODO`, `BLOCKED` ou `SPLIT`, jamais implicite. | I014, I015 | `PASS` pour la cartographie ; 14 `SPLIT`, 2 `BLOCKED`, parités `UNKNOWN` |
-| `M1` | Core d’identité | Project Profile validé, identité de projet, workspace multi-racines, adressage `vera://`. | Tests de stabilité, rejet du traversal, no-Git et multi-repo. | I009, I011, I012, I014 | `READY` — limité à C01/C02/C11 |
+| `M1` | Core d’identité | Project Profile validé, identité de projet avec fingerprint de workspace, workspace multi-racines/no-Git, runtime confiné et adressage `vera://`. | Tests de stabilité, URI canonique, traversal/symlink/lecteur Windows, no-Git, multi-repo ; wheel et CLI isolés ; scan anti-ARET. | I008, I009, I011, I012, I014, I015 | `PASS` pour les gates techniques ; parité ARET explicitement `UNKNOWN` |
 | `M2` | Persistence universelle | Schéma générique, services séparés et migrations append-only. | Migrations checksumées, intégrité référentielle et audit validés. | I001–I006, I010, I014 | `PLANNED` |
 | `M3` | Capability / Evidence / Gates | Catalogue fermé, runners bornés, executions persistées, validators et gates. | Aucun shell arbitraire ; une gate ne passe que sur une exécution et une preuve réelles. | I004–I008, I013, I014 | `PLANNED` |
 | `M4` | Pack ARET | Compatibilité de lecture, import hors ligne, pipelines, playbook et toolchain ARET isolés. | Parité ARET mesurée contre baseline, Core installable sans dépendance ARET. | I004, I006–I008, I015 | `PLANNED` |

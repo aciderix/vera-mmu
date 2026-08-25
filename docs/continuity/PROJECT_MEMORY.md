@@ -51,6 +51,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-003` | Persistence universelle | Les migrations SQL universelles, le store générique, les entités, relations, work items, executions, gates et bundles V2 ne sont pas encore implémentés. | `OBSERVED` | Aucun statut d’avancement ne peut les présenter comme partiellement « faits » sans preuves dédiées. |
 | `MEM-STATE-004` | Compatibilité ARET | Il n’existe pas encore de pack ARET, d’importeur hors ligne, de lecteur `ARET://` ni de suite de parité dans VERA-MMU. | `OBSERVED` | La compatibilité est une cible critique, non une capacité actuelle. |
 | `MEM-STATE-005` | Exécution et UI | Capability Engine, Gate Engine, compilateur MCP, adapters de runtime, CLI complète et Dashboard restent à construire. | `OBSERVED` | Ils doivent être introduits par lots séparés, testés et policy-gated. |
+| `MEM-STATE-006` | Core M1 | Le Core contient un Project Profile canonique, `ProjectIdentity` avec fingerprint de topologie, adressage strict `vera://`, résolution mono/multi/no-Git et `RuntimeLocator` confiné. | `OBSERVED` | 21 tests et 14 sous-tests passent ; le Core n’ouvre encore aucun store, gate, evidence, bundle, MCP adapter ou pack. | `LOG-0009` |
 
 ## 5. Décisions actives
 
@@ -61,6 +62,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-DEC-003` | Utiliser ces trois documents comme système de continuité de transition. | `DECISION` | Le store universel n’existe pas encore, mais le chantier exige mémoire, provenance et reprise dès maintenant. | Chaque lot met à jour plan, mémoire et journal avant son commit atomique. | `LOG-0003` |
 | `MEM-DEC-004` | Commencer par `M0.1 — Freeze ARET` plutôt que par une extraction de code. | `DECISION` | Toute parité future requiert un baseline mesuré de schéma, tests, hooks, MCP, bundle et dépendances. | Aucun déplacement de primitive ARET avant l’inventaire de compatibilité. | `LOG-0003` |
 | `MEM-DEC-005` | Démarrer M1 par les couplages C01, C02 et C11 : adressage VERA, Project Profile/runtime configurable et workspace sûr. | `DECISION` | Ces primitives rendent possible la persistance, les packs et la compilation ultérieurs sans introduire de dépendance ARET dans le Core. | Le premier patch M1 ne doit importer aucun module ARET ni connaître `ARET://`, `.aret-memory`, binaire ou toolchain ARET. | `LOG-0007` |
+| `MEM-DEC-006` | Le catalogue initial d’adresses est strictement générique et fermé ; aucune forme d’adresse historique n’est interprétée par le Core. | `DECISION` | Préserver I014/I015 et éviter un renommage cosmétique ou une compatibilité implicite. | `parse_address` accepte exclusivement les URI canoniques `vera://<project>/<resource>/<id>` ; un lecteur historique éventuel est hors M1. | `LOG-0009` |
 
 ## 6. Risques, incertitudes et blocages
 
@@ -74,16 +76,15 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 ## 7. Reprise active
 
-**Work item actif :** `M1 — Core d’identité`, borné à C01/C02/C11 ; `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
+**État de reprise :** `M1 — Core d’identité` est techniquement terminé ; son commit atomique versionne ce verdict. Aucun lot M2 n’est ouvert et `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
 
 | Élément | Valeur de reprise |
 |---|---|
-| Objectif immédiat | Construire les primitives Core `ProjectProfile`, `ProjectIdentity`, `WorkspaceResolver`, `RuntimeLocator` et adressage strict `vera://`, sans pack ARET. |
-| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0007`. |
-| Préconditions | M0.1 et M0.2 sont enregistrés ; C01/C02/C11 sont `SPLIT`; aucune dépendance ARET ne sera importée dans `src/vera_mmu/`. |
-| Sorties attendues | Profile validé, identité stable, workspace mono/multi/no-Git, runtime `.vera-mmu/`, adresses VERA strictes et tests de rejet. |
-| Gates de travail | Tests de stabilité, traversal, symlink, no-Git et multi-repo ; `grep` d’absence de `ARET`, `aret_memory`, `ARET_MEMORY_DIR` et `ARET://` dans le nouveau Core. |
-| Prochaine action | Ouvrir `LOG-0008`, formuler l’hypothèse M1 et inspecter l’API actuelle de profil/identité avant le premier patch. |
+| État vérifié | C01/C02/C11 disposent de primitives génériques testées : URI VERA canonique, profile/identités hashés, roots contrôlées, no-Git, multi-repo, détection VCS sans appel Git et runtime confiné. |
+| Evidence M1 | `PYTHONPATH=src python3 -m pytest -q` : 21 passés, 14 sous-tests ; build/install wheel et `vmmu inspect` réussis ; `git diff --check` et scan anti-ARET réussis. Hash wheel : `92078ad9018f0a26d5b6999fcfe25f32dd6ca1699b6b49c501b7bc12c8f13e1e`. |
+| Limites explicites | Pas de store, migration, evidence, policy, capability, bundle, adapter MCP, dashboard, pack ARET ni compatibilité de lecteur historique. L’absence de vocabulaire ARET du Core ne démontre pas de parité comportementale ARET. |
+| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0008` et `LOG-0009`. |
+| Prochaine action | Vérifier le commit atomique M1 ; seulement ensuite, si le chantier reprend, effectuer le rituel complet d’un lot M2 séparé sans lever `MEM-WALL-001`. |
 
 ## 8. Protocole de mise à jour append-only
 

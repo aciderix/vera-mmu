@@ -37,7 +37,7 @@ The composed name must be used consistently in public documentation and tooling.
 
 ## Current status
 
-This repository is at the **M0/M1 foundation**. It establishes the namespace, declared invariants, profile format, architecture boundary, and a minimal deterministic identity utility. It does **not** yet provide a production MCP server, a generic capability runner, an ARET migration tool, or a dashboard.
+This repository now contains the **M1 identity Core**: a safely normalized Project Profile, deterministic profile and project identities, a `WorkspaceResolver` for mono-root, multi-root and no-Git projects, a confined `RuntimeLocator`, and strict canonical `vera://` addresses. It does **not** yet provide a production MCP server, a persistent store or migration layer, a generic capability runner, an ARET migration tool, or a dashboard.
 
 ## Continuity records
 
@@ -56,18 +56,19 @@ tests/                    # Unit, security, conformance, and compatibility tests
 ## Local start
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 -m vera_mmu identity profiles/minimal/project.yaml
+PYTHONPATH=src python3 -m pytest -q
+PYTHONPATH=src python3 -m vera_mmu identity profiles/minimal/project.yaml
+PYTHONPATH=src python3 -m vera_mmu inspect profiles/minimal/project.yaml
 ```
 
-The current `identity` command validates the minimal profile shape and prints a deterministic SHA-256 profile identity. The implementation is deliberately small so that migration, policy, and execution semantics can be introduced behind explicit tests instead of copied wholesale from a domain-specific system.
+The `identity` command validates the profile and prints its deterministic SHA-256 identity. The `inspect` command additionally resolves the project roots, optional local VCS markers, runtime, SQLite location, and artifact directory without opening a store or running Git. The implementation remains deliberately bounded so that persistence, policy, evidence, and execution semantics can be introduced behind explicit tests instead of copied wholesale from a domain-specific system.
 
 ## Roadmap
 
 | Milestone | Outcome |
 |---|---|
 | **M0 — Governance baseline** | Invariants, decoupling matrix, test conventions, provenance rules, naming audit, and independent package namespace. |
-| **M1 — Universal identity and profile** | Canonical project profile, profile hash, project identity, workspace resolution, and generic `vera://` addressing. |
+| **M1 — Universal identity and profile** | Canonical Project Profile, profile/project/workspace hashes, confined runtime, mono/multi/no-Git resolution, and generic strict `vera://` addressing. Technical gates verified; ARET parity remains out of scope. |
 | **M2 — Universal persistence** | SQLite migrations, append-only knowledge, entities, work items, executions, evidence, artifacts, bundles, and audit. |
 | **M3 — ARET compatibility pack** | Read-only importer, `ARET://` compatibility reader, profile, toolchain declarations, and parity suite. |
 | **M4 — Capabilities and gates** | Closed catalog, policy engine, safe runners, validators, executions, and gate engine. |

@@ -1,6 +1,6 @@
 # Registre de découplage ARET-MMU → VERA-MMU
 
-> **Statut :** registre M0.2 — couplages cartographiés ; **aucun code ARET n’a été déplacé**.
+> **Statut :** registre M0.2, complété par l’avancement M1 pour C01/C02/C11 — couplages cartographiés ; **aucun code ARET n’a été déplacé**.
 >
 > **Baseline :** ARET-MMU `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, capturé dans `/home/ubuntu/ARET_MMU_M0_1_BASELINE/`.
 > **Wall active :** `MEM-WALL-001` interdit toute affirmation de parité pour les oracles qui requièrent la toolchain ARET absente.
@@ -36,6 +36,16 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 | `C14` | Bundle V1 capture mémoire, artefacts et métadonnées d’import, avec non-fusion, idempotence et détection d’altération. | `core/repository.py:2326–2510`; `schema/003_bundle_imports.sql`; `tests/test_operational_extensions.py:138–170`; baseline `bundle/bundle_result.json`. | Bundle V2 : identité projet, profile/packs/hashes, mémoire, migrations, artefacts et policy d’import. | Ajouter un format V2 distinct ; conserver l’import V1 en lecture/convertisseur explicite ; ne jamais fusionner une mémoire non vide. | Manifest/hash chain, altération, import idempotent, incompatibilité d’identité, non-fusion et restauration du bundle M0.1. | I005, I010, I011, I014 | `SPLIT` |
 | `C15` | Hooks SessionStart/PostCompact/PreToolUse/Stop et Resume Guard stockent un état éphémère sous `.aret-memory/runtime/`, lié à un hash de contrat et à six champs rituels. | `hooks/resume_guard.py:25–274`; `hooks/common.py`; `integration/INSTALL.md:13–40`; `tests/test_resume_guard*.py`, `tests/test_resume_observations_v13.py`. | `RuntimeAdapter` généré + `ResumeContract` hashé ; état de session séparé de la mémoire canonique ; kill-switch policy-gated. | Modéliser la machine d’état avant de générer les hooks ; conserver les wrappers ARET comme adapter de compatibilité jusqu’aux tests de reprise VERA. | Fresh session, PostCompact, mode dégradé, acknowledgement expiré, identité absente, kill-switch et Stop one-shot. | I001, I009, I011–I014 | `SPLIT` |
 | `C16` | Knowledge, proof, relation, audit et règles `PROVEN`/append-only sont implémentés avec tables, triggers et méthodes ARET. | `schema/001_initial.sql:49–200`; `core/repository.py:1477–1800`; `tests/test_repository.py`, `tests/test_relation_*.py`. | Evidence Store, audit append-only, relation registry et knowledge registry universels ; taxonomies ARET déplacées dans le pack/profil. | Extraire les invariants et migrations avant les vocabulaires ; importer les types/relations ARET dans des registries déclaratifs sans affaiblir les triggers. | Promotion sans preuve, HMAC, hash d’artefact, rewrite append-only, relation lifecycle/supersession, audit et import croisé refusé. | I001–I006, I010, I011, I014, I015 | `SPLIT` |
+
+### 2.1. Avancement observé M1 — sous-ensembles C01/C02/C11
+
+| Couplage | Surface VERA désormais observée | Evidence M1 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C01` | Construction et parsing stricts de `vera://<project>/<resource>/<id>` ; ressources Core génériques fermées ; rejet des URI non canoniques. | `tests/test_addressing.py` ; 21 tests et 14 sous-tests au total ; scan Core anti-ARET ; `LOG-0009`. | Lecteur `ARET://`, fixtures de round-trip historique et parité avec les adresses V1. | `SPLIT` |
+| `C02` | Profile normalisé/hashé, roots contrôlées et `RuntimeLocator` confinant runtime, SQLite et artefacts sous `.vera-mmu/` configurable. | `tests/test_runtime.py`, `tests/test_workspace.py` ; wheel installé et `vmmu inspect` validé ; `LOG-0009`. | Création du store, WAL, checkpoint, doctor, override de store et comportement de stockage ARET. | `SPLIT` |
+| `C11` | Workspace mono/multi/no-Git, détection de marqueur VCS sans exécuter Git, fingerprint topologique et rejet traversal/symlink. | `tests/test_workspace.py` ; 21 tests et 14 sous-tests ; `LOG-0009`. | Adaptateur d’intégration mono-racine ARET, identité mismatched contre store et installation MCP non polluante. | `SPLIT` |
+
+> Ces preuves autorisent le verdict technique M1 mais ne satisfont pas les preuves de parité complètes exigées par les lignes mères. Aucun `SPLIT` ne devient `DONE` au titre de ce lot.
 
 ## 3. Ordre d’extraction autorisé
 

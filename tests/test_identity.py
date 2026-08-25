@@ -56,8 +56,19 @@ mmu:
         reordered_identity = profile_identity(load_profile(self._profile_file(reordered)))
         self.assertEqual(original_identity.profile_hash, reordered_identity.profile_hash)
 
+    def test_semantic_profile_change_changes_identity_hash(self) -> None:
+        changed = PROFILE.replace('domain: "generic"', 'domain: "research"')
+        original_identity = profile_identity(load_profile(self._profile_file(PROFILE)))
+        changed_identity = profile_identity(load_profile(self._profile_file(changed)))
+        self.assertNotEqual(original_identity.profile_hash, changed_identity.profile_hash)
+
     def test_project_id_must_be_bounded_slug(self) -> None:
         invalid = PROFILE.replace('id: "demo-project"', 'id: "Demo Project"')
+        with self.assertRaises(ProfileError):
+            load_profile(self._profile_file(invalid))
+
+    def test_windows_drive_path_is_rejected_cross_platform(self) -> None:
+        invalid = PROFILE.replace('root: "."', 'root: "C:outside"')
         with self.assertRaises(ProfileError):
             load_profile(self._profile_file(invalid))
 
