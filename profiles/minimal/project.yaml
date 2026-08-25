@@ -1,0 +1,77 @@
+mmu:
+  version: "2.0"
+
+project:
+  id: "example-project"
+  name: "Example Project"
+  description: "Minimal deterministic profile for VeriChronicle foundation tests."
+  domain: "generic"
+
+workspace:
+  root: "."
+  additional_roots: []
+
+storage:
+  memory_dir: ".mmu"
+  sqlite_file: "memory.sqlite"
+  artifacts_dir: "artifacts"
+  max_context_bytes: 18500
+  max_resume_bytes: 12500
+
+identity:
+  include_vcs_revision: true
+  include_profile_hash: true
+
+knowledge:
+  types:
+    - RULE
+    - DECISION
+    - OBSERVATION
+    - HYPOTHESIS
+    - STATE
+    - MEASUREMENT
+    - DISCOVERY
+    - ARCHITECTURE
+
+entities:
+  types: []
+
+relations:
+  types:
+    - VERIFIED_BY
+    - SUPERSEDES
+    - INFORMED_BY
+    - BLOCKED_BY
+    - IMPLEMENTS
+    - DERIVED_FROM
+    - CONCERNS
+    - APPLIES_TO
+    - CAUSED_BY
+    - EVOLVES_TO
+
+work:
+  enabled: true
+
+capabilities:
+  catalog: ".mmu/capabilities.yaml"
+
+gates:
+  catalog: ".mmu/gates.yaml"
+
+policies:
+  file: ".mmu/policies.yaml"
+
+resume:
+  sections:
+    - id: rules
+      required: true
+    - id: current_state
+      required: true
+    - id: validated_facts
+      required: true
+    - id: risks
+      required: true
+    - id: next_action
+      required: true
+
+integrations: {}

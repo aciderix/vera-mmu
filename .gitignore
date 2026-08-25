@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local project runtime
+.mmu/memory.sqlite
+.mmu/memory.sqlite-shm
+.mmu/memory.sqlite-wal
+.mmu/artifacts/
+.mmu/runtime/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+
+# Secrets and local overrides
+.env
+.env.*
+*.pem
+*.key
+secrets/

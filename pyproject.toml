@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "verichronicle"
+version = "0.1.0"
+description = "Deterministic project memory, provenance, evidence, and continuity engine for AI-assisted work"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "VeriChronicle contributors" },
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: Other/Proprietary License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  "PyYAML>=6.0,<7.0",
+]
+
+[project.scripts]
+mmu = "verichronicle.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.unittest]
+start-directory = "tests"
