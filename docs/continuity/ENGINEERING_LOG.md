@@ -97,6 +97,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0071` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.S1.EXIT | publication gate, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-026`, `MEM-WALL-001` |
 | `LOG-0072` | 2026-08-25 | `HYPOTHESIS` | M3.7 | parameter schema fermé, validation locale, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-027`, `MEM-DEC-027`, `MEM-WALL-001` |
 | `LOG-0073` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.7 | paramètres, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-027`, `MEM-STATE-028`, `MEM-DEC-027`, `MEM-WALL-001` |
+| `LOG-0074` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.7 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-028`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1244,3 +1245,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Atomicité | Un paramètre requis absent, non déclaré ou de type incompatible — notamment `bool` pour `integer` — lève une erreur avant insertion d’execution et sans audit additionnel. |
 | Limite | Cette validation n’implémente ni JSON Schema général, ni `enum`, array, object imbriqué, callback, validator externe, policy `ALLOW`/`DENY`/`CONFIRM`, runner additionnel, réseau, artefact ou gate nouvelle. |
 | Verdict | `PASS` pour M3.7 technique; publication et synchronisation de continuité à finaliser. |
+
+
+### LOG-0074 — Publication vérifiée M3.7
+
+| Champ | Valeur |
+|---|---|
+| Commit | `b85a791fbb66f6f1a657cbdafeeb02bdaa5374c4` — `feat: validate bounded capability parameters`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication M3.7. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Suivi | Cadrer séparément la policy explicite `ALLOW`/`DENY`/`CONFIRM`, sans modifier le runner `NOOP` ni rendre le réseau implicite. |
