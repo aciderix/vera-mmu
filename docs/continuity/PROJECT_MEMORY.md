@@ -99,7 +99,7 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 ## 7. Reprise active
 
-**État de reprise :** `M2.11 — Bounded Knowledge-Source Hash Index` a atteint son verdict technique `PASS` dans `LOG-0038` et attend son commit/publication atomique. Le rejet documenté du candidat asset redondant (`LOG-0036`) demeure une contrainte de reprise. Le prochain sous-lot n’est pas ouvert : il exige un nouveau rituel d’hypothèse. `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
+**État de reprise :** `M2.11 — Bounded Knowledge-Source Hash Index` a atteint son verdict technique `PASS` dans `LOG-0038` et est publié au commit `34d9c2595ab93c1e041c88fb213451b2b1794929`, vérifié par `LOG-0039`. Le rejet documenté du candidat asset redondant (`LOG-0036`) demeure une contrainte de reprise. Le prochain sous-lot n’est pas ouvert : il exige un nouveau rituel d’hypothèse. `MEM-WALL-001` demeure une précondition ouverte pour les futures assertions d’oracle et de capability ARET.
 
 | Élément | Valeur de reprise |
 |---|---|
@@ -115,10 +115,10 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Baseline M2.8 | Sidecar `knowledge_asset_link` immutable entre une knowledge et un asset existants : lecture d’une paire exacte, unicité de paire et audit atomique, avec migration M2.7→M2.8. Aucun contenu de l’asset n’est lu par ce lien, qui n’est pas une evidence. Verdict technique `PASS` dans `LOG-0027`, publié au commit `8982b7855e09db8ed009ca2081021b9210bc8088` et vérifié dans `LOG-0028`. |
 | Baseline M2.9 | Index direct, ordonné et borné de liaisons knowledge–asset pour une knowledge ou un asset exacts, avec migration M2.8→M2.9. Les résultats ne contiennent que les métadonnées de liaison ; aucun contenu d’endpoint n’est lu ou exposé. Verdict technique `PASS` dans `LOG-0030`, publié au commit `c888958cc184c621b5cf02b95defa0d3fb706b56` et vérifié dans `LOG-0031`. |
 | Baseline M2.10 | Sidecar `asset_source` immutable attachant à un asset existant repository, revision, chemin relatif, section, lignes et hash de source, avec migration M2.9→M2.10. Les références restent déclaratives et ne sont ni ouvertes ni comparées au contenu de l’asset. Verdict technique `PASS` dans `LOG-0033`, publié au commit `e568cd5fe8bda80b4d9434836a9173ad0195d9f0` et vérifié dans `LOG-0034`. |
-| Baseline M2.11 | Index direct, ordonné et borné de références `knowledge_source` pour un SHA-256 déclaré complet exact, avec migration M2.10→M2.11. Les résultats sont des métadonnées déclaratives et ne lisent ni knowledge ni document. Le candidat initial d’index d’assets a été rejeté comme redondant. Verdict technique `PASS` dans `LOG-0038`; publication en attente. |
+| Baseline M2.11 | Index direct, ordonné et borné de références `knowledge_source` pour un SHA-256 déclaré complet exact, avec migration M2.10→M2.11. Les résultats sont des métadonnées déclaratives et ne lisent ni knowledge ni document. Le candidat initial d’index d’assets a été rejeté comme redondant. Verdict technique `PASS` dans `LOG-0038`, publié au commit `34d9c2595ab93c1e041c88fb213451b2b1794929` et vérifié dans `LOG-0039`. |
 | Limites explicites | Pas encore de fetch/vérification de document, import/migration batch, mutation de statut/supersession complète, promotion `PROVEN`, evidence, traversal/lifecycle relationnel, symbole, FTS/FIND, policy, capability, bundle, adapter MCP, dashboard, pack ARET ni compatibilité de lecteur historique. L’absence de vocabulaire ARET du Core ne démontre pas de parité comportementale ARET. |
-| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0036` et `LOG-0038`. |
-| Prochaine action | Relire le diff final M2.11, valider les documents modifiés, committer et publier ; ne pas ouvrir M2.12 sans nouvelle hypothèse explicitement bornée. |
+| Entrées à relire | [Plan](UNIVERSALIZATION_WORKPLAN.md), cette mémoire, [journal](ENGINEERING_LOG.md), [invariants](../INVARIANTS.md), [matrice](../DECOUPLING_MATRIX.md), puis `LOG-0036`, `LOG-0038` et `LOG-0039`. |
+| Prochaine action | Ne pas ouvrir M2.12 sans nouveau rituel d’hypothèse explicitement borné ; vérifier d’abord les limites résiduelles, le rejet `LOG-0036` et `MEM-WALL-001`. |
 
 ## 8. Protocole de mise à jour append-only
 
