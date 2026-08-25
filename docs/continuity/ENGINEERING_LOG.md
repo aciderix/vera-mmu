@@ -1141,3 +1141,12 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Validation | Tests dédiés : 2 `PASS`; suite complète : 138 tests et 14 sous-tests `PASS`; diff et scan de périmètre `PASS`. |
 | Verdict | `PASS` pour M3.5 technique; publication à finaliser. |
 
+
+### LOG-0067 — Publication vérifiée M3.5
+
+| Champ | Valeur |
+|---|---|
+| Commit | `7a91b80c9c800ae81755a196e81ed06012c576fc` — `feat: add derived knowledge proofs`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt propre et helper supprimé. |
+| Statut | `PASS` pour la publication M3.5. Gates et work graph restent un lot distinct; la parité ARET demeure `UNKNOWN`. |
+
