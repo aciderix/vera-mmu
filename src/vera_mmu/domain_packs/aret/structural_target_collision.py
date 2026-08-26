@@ -171,7 +171,15 @@ def check_aret_v1_structural_target_clear(
         resource_kind, lifecycle_state = "SYMBOL", "NOT_APPLICABLE"
     else:
         drafts = _require_work_item_projection(projection, checked_preflight)
-        component_ids = tuple(sorted({str(draft.metadata["source"].get("component_id")) for draft in drafts if draft.metadata["source"].get("component_id") is not None}))
+        component_ids = tuple(
+            sorted(
+                {
+                    f"aret-component--{draft.metadata['source']['component_id']}"
+                    for draft in drafts
+                    if draft.metadata["source"].get("component_id") is not None
+                }
+            )
+        )
         _require_existing_entities(store, component_ids)
         resource_count = int(store.connection.execute("SELECT COUNT(*) FROM work_item").fetchone()[0])
         resource_kind, lifecycle_state = "WORK_ITEM", "DEFERRED_NOT_EXECUTABLE"

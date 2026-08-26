@@ -134,6 +134,45 @@ def test_work_item_collision_check_requires_clear_resource_target_and_preserves_
             )
 
 
+def test_work_item_collision_check_resolves_legacy_component_to_projected_vera_parent_without_writing(tmp_path: Path) -> None:
+    with _store(tmp_path) as store:
+        _component_parent(store)
+        projection = AretV1BrickProjection(
+            store.identity,
+            "brick-request-001",
+            "a" * 64,
+            (
+                AretV1WorkItemDraft(
+                    "aret-brick--brick-001",
+                    "WORK_ITEM",
+                    "Brick",
+                    "Description",
+                    3,
+                    {
+                        "source": {
+                            "domain_pack": "aret-v1",
+                            "legacy_table": "brick",
+                            "source_id": "brick-001",
+                            "source_snapshot_sha256": "a" * 64,
+                            "component_id": "component",
+                            "state": "ACTIVE",
+                        }
+                    },
+                ),
+            ),
+        )
+        before = store.audit_events()
+
+        result = check_aret_v1_structural_target_clear(
+            preflight=_preflight(store, table="brick"), projection=projection, target_store=store
+        )
+
+        assert result.resource_kind == "WORK_ITEM"
+        assert result.checked_parent_entity_count == 1
+        assert result.clear_state == "TARGET_CLEAR_NOT_WRITABLE"
+        assert store.audit_events() == before
+
+
 def test_structural_collision_check_rejects_binding_or_projection_drift(tmp_path: Path) -> None:
     with _store(tmp_path) as store:
         _component_parent(store)
