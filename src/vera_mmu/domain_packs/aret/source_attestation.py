@@ -7,6 +7,11 @@ import stat
 
 from .import_preparation import AretComponentImportPreparation
 from .runtime import legacy_runtime_layout
+from .runtime_resolution import (
+    AretRuntimeResolutionError,
+    AretV1RuntimeResolution,
+    AretV1RuntimeSnapshotSafety,
+)
 from .schema import aret_v1_schema_manifest
 
 
@@ -29,6 +34,9 @@ class AretV1ComponentSourceAttestation:
     source_schema_version: int
     source_access_mode: str = "READ_ONLY_SNAPSHOT"
     attestation_state: str = "ATTESTED_SNAPSHOT_ONLY"
+    source_root: Path | None = None
+    runtime_resolution_basis: str = "DEFAULT_RUNTIME_LAYOUT"
+    runtime_wal_state: str = "UNVERIFIED_RUNTIME_POLICY"
 
 
 def _require_baseline_revision(value: object) -> str:
@@ -76,6 +84,29 @@ def _expected_snapshot_path(source_root: str | Path) -> Path:
     return snapshot
 
 
+def _runtime_snapshot_binding(
+    source_root: Path,
+    runtime_resolution: object | None,
+    runtime_safety: object | None,
+) -> tuple[Path, str, str]:
+    if runtime_resolution is None and runtime_safety is None:
+        return _expected_snapshot_path(source_root), "DEFAULT_RUNTIME_LAYOUT", "UNVERIFIED_RUNTIME_POLICY"
+    if not isinstance(runtime_resolution, AretV1RuntimeResolution) or not isinstance(runtime_safety, AretV1RuntimeSnapshotSafety):
+        raise AretRuntimeResolutionError("runtime_resolution et runtime_safety doivent être fournis ensemble pour attester un runtime ARET V1.")
+    if (
+        runtime_resolution.source_root != source_root
+        or runtime_safety.source_root != source_root
+        or runtime_safety.runtime_dir != runtime_resolution.runtime_dir
+        or runtime_safety.snapshot_path != runtime_resolution.snapshot_path
+        or runtime_safety.wal_state != "NO_WAL_SIDECARS"
+        or runtime_safety.snapshot_access_mode != "READ_ONLY_IMMUTABLE_SNAPSHOT"
+        or runtime_safety.safety_state != "RUNTIME_SNAPSHOT_SAFE"
+        or runtime_resolution.resolution_state != "RUNTIME_RESOLVED_READ_ONLY"
+    ):
+        raise AretRuntimeResolutionError("La résolution runtime et la safety WAL doivent rester exactement liées à la racine source attestée.")
+    return runtime_resolution.snapshot_path, runtime_resolution.resolution_basis, runtime_safety.wal_state
+
+
 def _hash_stable_regular_file(snapshot: Path) -> tuple[str, int]:
     before = snapshot.stat()
     if not stat.S_ISREG(before.st_mode):
@@ -107,11 +138,16 @@ def attest_aret_v1_component_source(
     source_root: str | Path,
     expected_legacy_revision: str,
     preparation: AretComponentImportPreparation,
+    runtime_resolution: AretV1RuntimeResolution | None = None,
+    runtime_safety: AretV1RuntimeSnapshotSafety | None = None,
 ) -> AretV1ComponentSourceAttestation:
     """Attest one expected snapshot only; no SQLite is opened and no legacy row or VERA store is touched."""
     _require_baseline_revision(expected_legacy_revision)
     pending = _require_pending_component_preparation(preparation)
-    snapshot = _expected_snapshot_path(source_root)
+    root = Path(source_root)
+    if not root.is_absolute() or root != root.resolve() or root.is_symlink() or not root.is_dir():
+        raise AretSourceAttestationError("source_root doit être un répertoire absolu, canonique, existant et non lié.")
+    snapshot, resolution_basis, wal_state = _runtime_snapshot_binding(root, runtime_resolution, runtime_safety)
     snapshot_sha256, snapshot_size = _hash_stable_regular_file(snapshot)
     if snapshot_sha256 != pending.source_snapshot_sha256:
         raise AretSourceAttestationError("Le hash du snapshot ne correspond pas à la déclaration du pré-contrat.")
@@ -125,4 +161,7 @@ def attest_aret_v1_component_source(
         source_size_bytes=snapshot_size,
         expected_legacy_revision=ARET_V1_BASELINE_REVISION,
         source_schema_version=manifest.migration_versions[-1],
+        source_root=root,
+        runtime_resolution_basis=resolution_basis,
+        runtime_wal_state=wal_state,
     )

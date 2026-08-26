@@ -28,6 +28,7 @@ class AretV1GitSourceIdentity:
     source_snapshot_sha256: str
     working_tree_state: str = "CLEAN"
     identity_state: str = "VERIFIED_CLEAN_BASELINE"
+    source_path: Path | None = None
 
 
 def _canonical_source_root(value: str | Path) -> Path:
@@ -42,9 +43,16 @@ def _require_snapshot_binding(
 ) -> AretV1ComponentSourceAttestation:
     if not isinstance(value, AretV1ComponentSourceAttestation):
         raise AretGitSourceIdentityError("source_attestation doit être une attestation M4.7 ARET V1.")
-    expected_snapshot = source_root / ".aret-memory" / "aret_memory.sqlite"
+    default_snapshot = source_root / ".aret-memory" / "aret_memory.sqlite"
+    expected_snapshot = value.source_path if value.runtime_resolution_basis == "ARET_MEMORY_DIR_OVERRIDE" else default_snapshot
     if (
-        value.source_path != expected_snapshot
+        value.source_root not in {None, source_root}
+        or value.runtime_resolution_basis not in {"DEFAULT_RUNTIME_LAYOUT", "ARET_MEMORY_DIR_OVERRIDE"}
+        or value.runtime_resolution_basis == "DEFAULT_RUNTIME_LAYOUT" and value.source_path != default_snapshot
+        or not expected_snapshot.is_absolute()
+        or expected_snapshot != expected_snapshot.resolve()
+        or expected_snapshot.is_symlink()
+        or not expected_snapshot.is_file()
         or value.expected_legacy_revision != ARET_V1_BASELINE_REVISION
         or value.source_schema_version != 6
         or value.source_access_mode != "READ_ONLY_SNAPSHOT"
@@ -124,4 +132,5 @@ def verify_aret_v1_git_source_identity(
         commit_hash=commit_hash,
         expected_legacy_revision=ARET_V1_BASELINE_REVISION,
         source_snapshot_sha256=attestation.source_snapshot_sha256,
+        source_path=attestation.source_path,
     )

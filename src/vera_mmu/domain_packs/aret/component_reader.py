@@ -46,10 +46,13 @@ def _require_schema_inspection(source_root: str | Path, value: object) -> tuple[
         raise AretComponentSourceReadError("source_root doit être un répertoire absolu, canonique, existant et non lié.")
     if not isinstance(value, AretV1SchemaSnapshotInspection):
         raise AretComponentSourceReadError("schema_inspection doit être une inspection M4.9 ARET V1 vérifiée.")
-    snapshot = root / ".aret-memory" / "aret_memory.sqlite"
+    snapshot = value.source_path
     manifest = aret_v1_schema_manifest()
     if (
         value.source_path != snapshot
+        or value.source_root not in {None, root}
+        or not snapshot.is_absolute()
+        or snapshot != snapshot.resolve()
         or value.migration_versions != manifest.migration_versions
         or value.application_tables != manifest.application_tables
         or value.source_access_mode != "SQLITE_READ_ONLY_SCHEMA"

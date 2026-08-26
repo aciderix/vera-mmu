@@ -28,6 +28,7 @@ class AretV1SchemaSnapshotInspection:
     application_tables: tuple[str, ...]
     source_access_mode: str = "SQLITE_READ_ONLY_SCHEMA"
     inspection_state: str = "SCHEMA_MANIFEST_VERIFIED"
+    source_root: Path | None = None
 
 
 def _require_verified_source_identity(source_root: str | Path, value: object) -> tuple[Path, AretV1GitSourceIdentity]:
@@ -36,9 +37,11 @@ def _require_verified_source_identity(source_root: str | Path, value: object) ->
         raise AretSqliteSchemaInspectionError("source_root doit être un répertoire absolu, canonique, existant et non lié.")
     if not isinstance(value, AretV1GitSourceIdentity):
         raise AretSqliteSchemaInspectionError("source_identity doit être une identité Git ARET V1 vérifiée.")
-    snapshot = root / ".aret-memory" / "aret_memory.sqlite"
+    snapshot = value.source_path if value.source_path is not None else root / ".aret-memory" / "aret_memory.sqlite"
     if (
         value.source_root != root
+        or not snapshot.is_absolute()
+        or snapshot != snapshot.resolve()
         or value.expected_legacy_revision != ARET_V1_BASELINE_REVISION
         or value.commit_hash != ARET_V1_BASELINE_REVISION
         or value.working_tree_state != "CLEAN"
@@ -111,4 +114,5 @@ def inspect_aret_v1_schema_snapshot(
         source_snapshot_sha256=before_hash,
         migration_versions=migration_versions,
         application_tables=application_tables,
+        source_root=identity.source_root,
     )
