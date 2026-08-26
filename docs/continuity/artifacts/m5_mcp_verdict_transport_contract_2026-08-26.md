@@ -1,7 +1,7 @@
-# M5 — Façade MCP, manifeste, registry, adapter Pack, instructions, configuration, hooks, adapter hôte et installation — jalons M5-A/B/C/D/E/F/G/H/I — 2026-08-26
+# M5 — Façade MCP, manifeste, registries, adapters, lifecycle et installations — jalons M5-A/B/C/D/E/F/G/H/I/J/K/L — 2026-08-26
 
-> **Statut :** `M5-A/B/C/D/E/F/G/H/I/J/K PASS` — façade `5ffe182`, manifeste `5de260d`, registry `50cc79a`, adapter Pack `e073fa2`, instructions `9010293`, config `5dab574`, hooks `ea7235a`, plan hôte `8b38b1b`, installateur `674929c`, Lifecycle Core `e576b1a`, registry/acquittement `df73425`.
-> **Portée :** transport fermé, manifeste, registries runtime/lifecycle, runtime de Pack, doctrine, config, cycle SessionStart, revue hôte, installation MCP opt-in et acquittement contextualisé. L’installation de hooks et les adapters hôte concrets restent hors des jalons réalisés.
+> **Statut :** `M5-A/B/C/D/E/F/G/H/I/J/K/L PASS` — façade `5ffe182`, manifeste `5de260d`, registry `50cc79a`, adapter Pack `e073fa2`, instructions `9010293`, config `5dab574`, hooks `ea7235a`, plan hôte `8b38b1b`, installateur `674929c`, Lifecycle Core `e576b1a`, registry/acquittement `df73425`, adapter Claude local `45fe9af`.
+> **Portée :** transport fermé, manifeste, registries runtime/lifecycle, runtime de Pack, doctrine, config, cycle SessionStart, revue hôte, installation MCP opt-in et acquittement contextualisé. L’installation cloud et les adapters d’hôtes autres que Claude local restent hors des jalons réalisés.
 
 ## 1. Décision de portage
 
@@ -26,6 +26,7 @@ ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transpor
 | Installateur Claude Code | `claude_code_installer.py` applique le seul serveur attesté après confirmation | Ajouté en M5-I ; `.mcp.json` seulement, sans hook. |
 | Lifecycle Core | `session_lifecycle.py` porte dossier, état local et garde hard/soft | Ajouté en M5-J ; aucun hôte ni hook. |
 | Adapter lifecycle attesté | `lifecycle_adapters.py` compile/résout un plan manifest-bound et `mcp_server.py` acquitte le seul état armé du contexte hôte | Ajouté en M5-K ; fixture de preuve seulement, sans adapter installable. |
+| Adapter Claude local | `claude_code_local.py` lie hooks project-local, liaison de session runtime, serveur MCP local, installateur et doctor à M5-J/K | Ajouté en M5-L ; opt-in, session locale unique, sans cloud/Pack/réseau. |
 
 ## 2. Surface M5-A livrée
 
@@ -102,12 +103,15 @@ Les erreurs métier sont retournées sous l’enveloppe stable `{ok, operation, 
 | Lifecycle Core M5-J | Dossier project/profile-bound, état runtime atomique, garde hard/soft anti-deadlock et acquittement hashé. | `438 passed, 37 subtests passed`. |
 | Plan/registry M5-K | `vera-lifecycle-adapter-plan/v1` stable et manifest-bound ; adapter absent/dupliqué/version/mode divergent, plan stale/tampered ou bootstrap partiel refusés. | `22 passed, 7 subtests passed` ciblés ; suite `444 passed, 37 subtests passed`. |
 | Vrai client stdio M5-K | Fixture générique fixe la session côté serveur ; `mmu_acknowledge_resume` n’expose que `sections`, relit le hash local et refuse contexte hôte absent ou sections injectées. | `PASS`; aucun Pack, hook ou hôte réel n’est utilisé. |
+| Plan Claude local M5-L | Plan `vera-claude-code-local/v1` lié aux snapshots M5-B/E/F/G/H/K, hooks fixes `SessionStart`/`PreToolUse`/`PostToolUse`/compaction/`Stop`, serveur MCP local et doctor. | `7 passed` ciblés ; suite `451 passed, 37 subtests passed`. |
+| Conformance M5-L réelle | Hook stdin/stdout arme la session; vrai `ClientSession` stdio appelle l’acquittement local puis PreToolUse devient autorisé. | `PASS`; aucune capability Pack n’est exécutable. |
+| Installation M5-L | `confirm=True`, fusion non destructive de `.claude/settings.json`, remplacement du seul serveur VERA M5-I et état runtime attesté. | Idempotence, conflit, symlink et doctor sans écriture testés ; aucune écriture home/cloud. |
 
 ## 6. Limites et suite M5
 
-`M5-A/B/C/D/E/F/G/H/I/J/K` ne prétend pas que l’entry point MCP générique puisse exécuter ARET sans configuration d’hôte : il demeure fail-closed. M5-D ajoute le premier adapter de Pack, mais son hôte reste explicitement construit avec une référence toolkit, des dépendances et un registry côté serveur. La fixture d’intégration ne sert qu’à démontrer ce **transport MCP** ; elle ne rend pas le runner de test configurable par le client.
+`M5-A/B/C/D/E/F/G/H/I/J/K/L` ne prétend pas que l’entry point MCP générique puisse exécuter ARET sans configuration d’hôte : il demeure fail-closed. M5-D ajoute le premier adapter de Pack, mais son hôte reste explicitement construit avec une référence toolkit, des dépendances et un registry côté serveur. La fixture d’intégration ne sert qu’à démontrer ce **transport MCP** ; elle ne rend pas le runner de test configurable par le client.
 
-M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. M5-C livre le registry qui résout ces symboles vers des objets explicitement fournis par l’hôte, sans import dynamique ni commande. M5-D livre `AretClosedOracleMCPAdapter` et `build_aret_mcp_runtime`, tous deux dans le Pack : le premier délègue exclusivement à `run_closed_oracle`; le second refuse tout catalogue `ALLOW` que l’adapter ne couvre pas. M5-E livre `vera-mcp-instructions/v1`, M5-F `vera-mcp-integration/v1`, M5-G `vera-mcp-hooks/v1`, M5-H `vera-claude-code-integration/v1` et M5-I l’unique write-path `.mcp.json`. M5-I recompile les cinq snapshots, exige confirmation explicite et fusionne seulement le serveur attesté; il refuse les symlinks/conflits et n’installe aucun hook. M5-J apporte le Lifecycle Core; M5-K lie un plan/registry lifecycle au manifeste et ajoute l’acquittement MCP contextualisé sans accepter session, adapter ou hash client. La traduction d’un hook exécutable et tout adapter d’hôte concret restent des lots distincts. M6 fournira ensuite CLI, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A/B/C/D/E/F/G/H/I/J/K.
+M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. M5-C livre le registry qui résout ces symboles vers des objets explicitement fournis par l’hôte, sans import dynamique ni commande. M5-D livre `AretClosedOracleMCPAdapter` et `build_aret_mcp_runtime`, tous deux dans le Pack : le premier délègue exclusivement à `run_closed_oracle`; le second refuse tout catalogue `ALLOW` que l’adapter ne couvre pas. M5-E livre `vera-mcp-instructions/v1`, M5-F `vera-mcp-integration/v1`, M5-G `vera-mcp-hooks/v1`, M5-H `vera-claude-code-integration/v1` et M5-I l’unique write-path `.mcp.json`. M5-I recompile les cinq snapshots, exige confirmation explicite et fusionne seulement le serveur attesté; il refuse les symlinks/conflits et n’installe aucun hook. M5-J apporte le Lifecycle Core; M5-K lie un plan/registry lifecycle au manifeste et ajoute l’acquittement MCP contextualisé sans accepter session, adapter ou hash client. M5-L livre l’adapter Claude Code **local** : hooks project-local fixes, liaison d’une session active par projet, serveur MCP local limité à l’acquittement, installation confirmée et doctor sans effet de bord. L’adapter Claude Code cloud, tout fichier home/trust/setup, le support multi-session et chaque autre hôte restent des lots distincts. M6 fournira ensuite CLI, doctor et expérience opératoire. Aucune capacité cloud, multi-session ou multi-hôte ne peut être déduite de M5-A/B/C/D/E/F/G/H/I/J/K/L.
 
 ## Références
 
@@ -135,3 +139,6 @@ M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité d
 [22]: ../../../tests/test_claude_code_integration_adapter.py "Conformance de traduction et refus Claude Code"
 [23]: ../../../src/vera_mmu/claude_code_installer.py "Installateur MCP Claude Code opt-in et attesté"
 [24]: ../../../tests/test_claude_code_mcp_installer.py "Conformance de fusion, idempotence et refus d’installation"
+[25]: ../../../src/vera_mmu/claude_code_local.py "Adapter Claude Code local attesté"
+[26]: ../../../tests/test_claude_code_local_adapter.py "Plan, hooks, installation et doctor Claude local"
+[27]: ../../../tests/test_claude_code_local_mcp_runtime.py "Conformance hook local vers MCP stdio réel"

@@ -2569,3 +2569,21 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Verdict | `M5-K = PASS`; M5 reste `IN_PROGRESS`. |
 | Limite | Aucun adapter réellement installable, hook, `.claude`, `.mcp.json`, wrapper, doctor, bootstrap cloud ou événement host lifecycle n’est livré. M5-L reste l’adapter Claude Code local séparé et opt-in. |
 | Référence | `df73425`; `MEM-DEC-140`; `tests/test_lifecycle_adapter_registry.py`; `tests/test_mcp_lifecycle_acknowledgement.py`; contrat M5 lifecycle et registre M5 central. |
+
+### LOG-0194 — 2026-08-26 — M5-L : adapter Claude Code local attesté, hooks opt-in et doctor
+| Champ | Valeur |
+|---|---|
+| Type | `BASELINE` / `HYPOTHESIS` / `PATCH` / `TEST` / `VERDICT` |
+| But | Livrer le premier adapter d’hôte concret sans transférer le bootstrap/sync/cloud ARET : Claude Code local project-bound, SessionStart/PreToolUse/compaction/Stop, installateur opt-in et doctor observationnel. |
+| Sources hôte | La documentation Claude vérifiée décrit `SessionStart`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact`, `Stop`, JSON stdin/stdout et `permissionDecision: deny`; les settings projet sont `.claude/settings.json`. Les scopes home/cloud sont volontairement exclus. |
+| Rouge | `5 failed` : `vera_mmu.claude_code_local` absent ; aucun plan/hook/installateur/doctor local n’était disponible. |
+| Patch | `45fe9af` ajoute `claude_code_local.py`, `vmmu-claude-code-local-hook` et `vmmu-claude-code-local-mcp`. Le plan `vera-claude-code-local/v1` est hashé et lie manifeste, instructions, config, hook plan, revue, lifecycle et bindings d’adapters. |
+| Hooks | SessionStart lie une session locale unique au runtime, arme M5-J et injecte le dossier. PreToolUse bloque par `permissionDecision: deny` tant que le dossier n’est pas acquitté, en autorisant seulement le nom MCP exact `mmu_acknowledge_resume`; Pre/PostCompact réarment; Stop nudges puis libère la liaison. |
+| MCP | Le serveur local relit l’état installé, recrée le manifeste depuis les bindings attestés et résout l’adapter session local. Il ne sélectionne aucun Pack et conserve `DenyRuntimeAdapter` pour toutes capabilities. Le client MCP ne fournit toujours ni session, adapter, hash, verdict, commande ou chemin. |
+| Installation | `confirm=True` requis; fusion atomique non destructive des seuls hooks VERA dans `.claude/settings.json`; remplacement uniquement du serveur VERA générique par le serveur local attesté dans `.mcp.json`; état install hashé sous runtime. Conflit, JSON ambigu, symlink ou état divergent : refus sans écriture. |
+| Doctor | `NOT_INSTALLED`/`DEGRADED`/`READY`, sans création de `.claude` ou du runtime, ni installation/téléchargement/approbation. `READY` requiert settings, MCP, état et les deux entry points disponibles. |
+| Conformance | `test_claude_code_local_adapter.py` couvre plan, stale, hard guard, exception d’acquittement, compaction, session conflict, merge, idempotence, symlink et doctor. `test_claude_code_local_hook_cli.py` exécute le hook stdin/stdout; `test_claude_code_local_mcp_runtime.py` prouve hook→vrai stdio MCP→acquittement→PreTool allow. |
+| Contrôles | Ciblés : `7 passed`. Suite complète : `451 passed, 37 subtests passed`. `py_compile`, scans anti-domaines/réseau/shell/bootstrap, `git diff --check` : `PASS`. Roue isolée : module et `vmmu`, `vmmu-mcp`, hook local, MCP local : `PASS`. |
+| Verdict | `M5-L = PASS`; M5 reste `IN_PROGRESS`. |
+| Limite | Une session locale active par projet est supportée et les conflits sont refusés; aucun cloud, home settings, trust/setup, réseau, bootstrap, sync/push, Pack réel ou autre IA n’est livré. |
+| Référence | `45fe9af`; `MEM-DEC-141`; contrat lifecycle M5; registre MCP M5. |

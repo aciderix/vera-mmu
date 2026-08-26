@@ -868,3 +868,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Limite | M5-K n’installe ni hook, `.claude`, `.mcp.json`, wrapper, bootstrap cloud ni événement hôte. L’adapter de fixture ne sert qu’à prouver le transport d’un contexte serveur. Aucun adapter Claude/Codex/Gemini/Antigravity n’est livré ni annoncé prêt. |
 | État | `M5-K PASS`; M5 reste `IN_PROGRESS`. Le prochain lot autorisé est M5-L, adapter Claude Code local séparé, opt-in et testé. |
 | Références | `src/vera_mmu/lifecycle_adapters.py`; `src/vera_mmu/session_lifecycle.py`; `src/vera_mmu/mcp_server.py`; `tests/test_lifecycle_adapter_registry.py`; `tests/test_mcp_lifecycle_acknowledgement.py`; `LOG-0193`. |
+
+### MEM-DEC-141 — M5-L : adapter Claude Code local attesté, opt-in et sérialisé
+| Champ | Valeur |
+|---|---|
+| Décision | `45fe9af` introduit `claude_code_local.py`, un plan `vera-claude-code-local/v1` lié aux snapshots M5-B/E/F/G/H/K, des hooks Claude project-local, deux entry points fixes, un installateur opt-in et un doctor sans effet de bord. |
+| Plan | Le plan lie `mcp_build_hash`, hashes instructions/config/hook/review/lifecycle, bindings capability→adapter et serveur local `vmmu-claude-code-local-mcp`. Il traduit exactement `SessionStart`, `PreToolUse`, `PostToolUse` de l’acquittement, `PreCompact`, `PostCompact` et `Stop`; aucune référence ARET/cloud/autre hôte n’est incluse. |
+| Lifecycle | SessionStart arme M5-J et injecte le Resume Dossier. PreToolUse refuse chaque action jusqu’à l’acquittement, à l’exception du tool MCP `mmu_acknowledge_resume` exactement nommé. Pre/PostCompact réarment; Stop produit un nudge si nécessaire et libère la liaison active. |
+| Session | Claude fournit `session_id` seulement au hook local. Une liaison runtime project-bound est créée par SessionStart et lue par le serveur MCP local ; le client MCP ne fournit jamais session/adapter/hash. M5-L prend en charge une seule session locale active par projet : un second `SessionStart` distinct est refusé sans écraser l’état, et cette limite est explicite. |
+| Installation | `confirm=True` est obligatoire. Seuls `<project>/.claude/settings.json`, `<project>/.mcp.json` et l’état runtime VERA sont touchés. Les hooks VERA sont fusionnés non destructivement; le seul serveur VERA générique M5-I peut être remplacé par le serveur local attesté. JSON ambigu, symlink, conflit VERA ou état divergent sont refusés. L’opération est idempotente. |
+| Doctor | Observation seule : `NOT_INSTALLED`, `DEGRADED` ou `READY`; ne crée ni `.claude`, ni état runtime, ni dépendance, ni confiance, ni approbation. `READY` exige configuration exacte, état attesté et deux entry points trouvables. |
+| Preuve | Rouge : `5 failed` (module absent). Vert : `7 passed` ciblés, incluant subprocess hook stdin/stdout et vrai `ClientSession` stdio hook→MCP→acquittement→PreTool autorisé; suite complète `451 passed, 37 subtests passed`; compilation, scans, `git diff --check`, roue isolée et quatre entry points `PASS`. |
+| Limite | Aucun fichier home `~/.claude`, cloud/trust/setup, réseau, `pip`, bootstrap, synchronisation/push, Pack réel ou support Codex/Gemini/Antigravity n’est livré. Le serveur local refuse toujours l’exécution de capability. |
+| État | `M5-L PASS`; M5 reste `IN_PROGRESS`. Le prochain lot est M5-M, adapter Claude Code cloud strictement séparé et non commencé. |
+| Références | `src/vera_mmu/claude_code_local.py`; `tests/test_claude_code_local_adapter.py`; `tests/test_claude_code_local_hook_cli.py`; `tests/test_claude_code_local_mcp_runtime.py`; `LOG-0194`. |
