@@ -60,6 +60,16 @@ from .knowledge_projection import (
     AretV1KnowledgeProjection,
     project_aret_v1_knowledge_page,
 )
+from .knowledge_source_projection import (
+    AretKnowledgeSourceProjectionError,
+    AretKnowledgeSourceReadError,
+    AretV1KnowledgeSourceDraft,
+    AretV1KnowledgeSourceProjection,
+    AretV1KnowledgeSourceSourcePage,
+    AretV1KnowledgeSourceSourceRecord,
+    project_aret_v1_knowledge_source_page,
+    read_aret_v1_knowledge_source_page,
+)
 from .authorized_knowledge_import import (
     AretAuthorizedKnowledgeImportError,
     AretKnowledgeImportAuthorizationError,
@@ -234,6 +244,14 @@ __all__ = [
     "import_authorized_aret_v1_knowledge_page",
     "post_validate_authorized_aret_v1_knowledge_page",
     "prepare_aret_v1_knowledge_import",
+    "AretKnowledgeSourceProjectionError",
+    "AretKnowledgeSourceReadError",
+    "AretV1KnowledgeSourceDraft",
+    "AretV1KnowledgeSourceProjection",
+    "AretV1KnowledgeSourceSourcePage",
+    "AretV1KnowledgeSourceSourceRecord",
+    "project_aret_v1_knowledge_source_page",
+    "read_aret_v1_knowledge_source_page",
     "AretComponentSourceReadError",
     "AretV1ComponentSourcePage",
     "AretV1ComponentSourceRecord",
