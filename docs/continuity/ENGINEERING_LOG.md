@@ -1526,3 +1526,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites préservées | Aucun shell, processus, filesystem, réseau, oracle externe, artefact, promotion de knowledge, admission ou preuve n’est introduit. Le runner est une execution locale de validation d’intégrité, non un oracle de contenu ni une admission implicite. `yields_proof` reste `false`. |
 | Verdict | `PASS` pour M3.14. M3 global reste `IN_PROGRESS`; `C06` reste `SPLIT`, `C07` reste `BLOCKED` sous `MEM-WALL-001`, et la parité exhaustive ARET reste `UNKNOWN`. |
 | Suite | Publier atomiquement ce lot; le lot suivant doit rester distinct et borné parmi validator de contenu/oracle explicitement cadré, runner sûr additionnel, politiques/gates avancées ou surface CLI/MCP. |
+
+
+### LOG-0097 — Publication et handoff M3.14
+
+| Champ | Valeur |
+|---|---|
+| Commit publié | `703d7a234a83066457402baf0efef76976473e35` — `feat: add evidence hash validation runner`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `703d7a234a83066457402baf0efef76976473e35`. |
+| État de reprise | M3.14 est publié avec migration 026. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C06 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
+| Prochain choix | Choisir explicitement un seul gap M3 borné; candidats : validator de contenu/oracle sous policy distincte, runner sûr additionnel, politiques/gates avancées ou surface CLI/MCP. Ne pas étendre implicitement le runner `EVIDENCE_HASH`. |
