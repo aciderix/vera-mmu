@@ -53,8 +53,8 @@ class SymbolServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_symbol_registry(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 34})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 35})
 
     def test_existing_m2_11_store_migrates_to_symbol_registry(self) -> None:
         schema = Path(self._directory.name) / "m2_11_schema"

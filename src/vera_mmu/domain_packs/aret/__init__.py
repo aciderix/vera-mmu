@@ -48,6 +48,18 @@ from .function_symbol_reader import (
     AretV1FunctionSymbolSourceRecord,
     read_aret_v1_function_symbol_page,
 )
+from .knowledge_reader import (
+    AretKnowledgeReadError,
+    AretV1KnowledgeSourcePage,
+    AretV1KnowledgeSourceRecord,
+    read_aret_v1_knowledge_page,
+)
+from .knowledge_projection import (
+    AretKnowledgeProjectionError,
+    AretV1KnowledgeDraft,
+    AretV1KnowledgeProjection,
+    project_aret_v1_knowledge_page,
+)
 from .component_reader import (
     AretComponentSourceReadError,
     AretV1ComponentSourcePage,
@@ -180,6 +192,14 @@ __all__ = [
     "AretV1FunctionSymbolSourcePage",
     "AretV1FunctionSymbolSourceRecord",
     "read_aret_v1_function_symbol_page",
+    "AretKnowledgeReadError",
+    "AretV1KnowledgeSourcePage",
+    "AretV1KnowledgeSourceRecord",
+    "read_aret_v1_knowledge_page",
+    "AretKnowledgeProjectionError",
+    "AretV1KnowledgeDraft",
+    "AretV1KnowledgeProjection",
+    "project_aret_v1_knowledge_page",
     "AretComponentSourceReadError",
     "AretV1ComponentSourcePage",
     "AretV1ComponentSourceRecord",
