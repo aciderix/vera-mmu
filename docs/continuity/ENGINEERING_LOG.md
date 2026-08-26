@@ -2106,3 +2106,20 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Règle de sortie | `M4.EXIT` est interdit tant qu’une gate est `SPLIT`, `BLOCKED` ou `UNKNOWN`. Les responsabilités M5/M6 sont distinguées de leurs dépendances de preuve qui bloquent néanmoins la compatibilité ARET. |
 | Wall | `MEM-WALL-001` rend C07/C08 `BLOCKED` : la restauration mesurable des oracles/toolchain ARET dans un environnement de référence est une condition explicite, et non un travail contournable par simulation. |
 | Verdict | Le registre est `ACTIVE`; M4 est `NOT_ELIGIBLE` pour clôture globale. |
+
+### LOG-0154 — Verdict M4-A : ledger Core et migration paginée `component`
+| Champ | Valeur |
+|---|---|
+| Portée livrée | Le Core reçoit `EntityService.create_batch_for_registered_type` et le ledger générique migration 033 `import_batch`/`import_batch_entity`, append-only, fingerprinté et idempotent. Le pack ARET reçoit la conformité SQLite read-only de `component` et l’autorisation explicite de page, qui délègue toute écriture au ledger Core. |
+| Commits fonctionnels | `1ea116faeac58958311e6f135a6c68df8e6a5a53` — batch Core sur type enregistré ; `e3105b00a6d6152c5a833d0b7bafcd579442062c` — ledger d’import ; `cdf65f7150023d6dd57739f991db8c1ac93aeba2` — conformité `component` ; `8263d40b709acce40b946bd575cf8f648ae842b3` — série de pages ARET. Tous publiés et vérifiés sur `main`. |
+| Invariants | Une page exige hash source, préflight, projection, conformité des colonnes, identité cible et autorisation liés. La première page exige une cible vide ; une page suivante exige le même snapshot/mapping/type dans le ledger. Collision, type manuel, binding divergent ou fingerprint divergent sont refusés; le ledger rollbacke intégralement le batch. Aucun chemin ne crée evidence, proof, admission ou promotion. |
+| Gates | Tests-first rouges puis ciblés : batch type existant `4 passed`, ledger `6 passed`, conformité `component` `6 passed`, pages `7 passed`. Suite complète finale : `284 passed, 14 subtests passed`. Scans Core/pack, `git diff --check` et roues isolées : `PASS`. |
+| Intégration réelle bornée | La chaîne attestée de la baseline ARET a lu la page de 17 composants en lecture seule. Dans un store VERA temporaire uniquement : 17 entities, 17 liens de ledger, replay exact sans écriture, `0` evidence et `0` proof link. ARET-MMU est resté propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Verdict | `PASS borné` pour les sous-contrats M4-A publiés. Il ne valide ni resolver/WAL, ni conformance multi-table, ni source réelle multi-pages, ni imports `function_symbol`/`brick`, ni données sémantiques, capabilities, toolchain, runtime/MCP/hooks/bundles/VCS ou parité ARET. M4 reste `IN_PROGRESS`; C01–C06/C16 `SPLIT`; C07/C08 `BLOCKED — MEM-WALL-001`; parité `UNKNOWN`. |
+
+### LOG-0155 — Handoff documentaire M4-A
+| Champ | Valeur |
+|---|---|
+| Registre | `M4_COMPLETION_REGISTER.md` est enrichi des résultats M4-A, de leurs preuves et des gates résiduelles M4-EXIT-01 à M4-EXIT-03. |
+| Matrice et plan | La matrice documente les quatre sous-lots publiés et leurs hashes de commit. Le plan vivant pointe vers la révision fonctionnelle `8263d40b709acce40b946bd575cf8f648ae842b3`, migration 033 et la prochaine frontière. |
+| Reprise | Avant M4-B, relire `MEM-STATE-099` à `MEM-STATE-101`, `LOG-0154`, ce registre et la matrice. Le prochain lot doit fermer un contrat distinct : soit resolver/WAL/post-validation M4-A, soit la chaîne structurelle `function_symbol→symbol` avec ses dépendances component déjà importées. |

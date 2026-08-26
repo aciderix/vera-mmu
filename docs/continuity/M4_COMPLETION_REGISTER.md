@@ -2,7 +2,7 @@
 
 > **Statut :** `ACTIVE` — M4 reste `IN_PROGRESS`.
 >
-> **État factuel au 26 août 2026 :** M4.1–M4.15 sont `PASS` dans leurs contrats bornés. Le premier import autorisé `component → entity` est démontré sur une page de 17 lignes d’un snapshot ARET V1 attesté, dans un store VERA temporaire, avec transaction atomique et zéro promotion. Ce fait **ne vaut ni migration complète, ni compatibilité ARET, ni parité**.
+> **État factuel au 26 août 2026 :** M4.1–M4.15 sont `PASS` dans leurs contrats bornés. Le sous-lot M4-A ajoute un ledger Core générique append-only/idempotent, une conformité profonde read-only de la table `component` et une autorisation explicite de page qui importe via ce ledger. La page réelle baseline de 17 composants a été importée dans un store VERA temporaire avec 17 liens de ledger, replay sans écriture, zéro evidence et zéro proof link. Ces faits **ne valent ni compatibilité ARET complète, ni parité, ni M4.EXIT**.
 >
 > **Source de dérivation :** spécification finale, sections 37–45, 50–58 et annexe B ; matrice C01–C16 ; état M4 publié et M3 terminal. [1] [2] [3]
 
@@ -25,7 +25,7 @@ Ce registre est la liste contrôlable des gates restant à satisfaire avant d’
 | Élément | Fait actuellement démontré | Ce qui ne peut pas en être déduit |
 |---|---|---|
 | Baseline source | Snapshot SQLite ARET V1 hashé, manifesté, lu en lecture seule et lié à un dépôt Git propre au commit de référence. | Origine distante/signature, cohérence WAL complète, ni comportement runtime/MCP. |
-| Chaîne `component` | Préparation → attestation → identité Git → manifeste SQLite → page raw → préflight → projection → clear-check → batch Core → autorisation M4.15. | Import complet de toutes les pages, reprise/idempotence, migration des liens ou de toute autre table. |
+| Chaîne `component` | Préparation → attestation → identité Git → manifeste SQLite → conformité profonde `component` → page raw → préflight → projection → autorisation de page → ledger Core idempotent → audits ; page baseline de 17 records importée dans un store VERA temporaire avec replay sans écriture. | Cohérence WAL/runtime, import effectif de sources multi-pages, migration des liens ou de toute autre table, compatibilité et parité. |
 | M4.15 | Autorisation explicite liée, recheck de collision, création atomique type+entities par le Core, audits `ENTITY_TYPE_REGISTERED`/`ENTITY_CREATED`, rollback sur conflit, état `IMPORTED_NO_PROMOTION`. | Merge, preuve, admission, `PROVEN`, rollback d’un import déjà committé, import dans ARET, ou parité ARET. |
 | Core VERA | Core générique sans import du pack ARET ; M1–M3 clos dans leurs contrats. | Compatibilité legacy ; M3 ne doit pas être rouvert. |
 | Wall | `MEM-WALL-001` : oracles/toolchain ARET non disponibles pour une exécution de parité. | Aucun `SKIPPED`, `UNKNOWN` ou test synthétique ne permet d’affirmer C07/C08 ou M4.EXIT. |
@@ -36,9 +36,9 @@ Les numéros ci-dessous sont des **gates de clôture**, pas des autorisations d�
 
 | Gate | Couplages | Livrable vérifiable restant | Preuve minimale d’acceptation | Dépendances et état |
 |---|---|---|---|---|
-| `M4-EXIT-01` Source admission et identité | C01, C02, C16 | Résolveur runtime ARET V1 borné : `ARET_MEMORY_DIR`/layout par défaut, politique de chemin, identité source, cohérence snapshot/WAL et cycle d’attestation. | Tests read-only de chemin, override, symlink/traversal, WAL/checkpoint selon policy, snapshot stable avant/après ; échecs bruyants et sans écriture source. | M4.1–M4.10 préparent des manifestes/lectures ; **reste requis**. |
-| `M4-EXIT-02` Conformance profonde du schéma source | C03, C04, C05, C16 | Manifeste V1 étendu aux colonnes, contraintes, index, triggers, séquences, FTS et sémantiques nécessaires à chaque import. | Fixtures portant divergence de colonne/contrainte/index/trigger ; rapport de conformité hashé ; refus avant toute écriture VERA. | M4.9 ne contrôle que migrations et noms de tables ; **reste requis**. |
-| `M4-EXIT-03` Import `component → entity` complet et réexécutable | C03, C16 | Contrat de pagination totale, ledger de batch/import, idempotence sûre, provenance de lot, post-validation, audit de bout en bout et stratégie explicite de non-fusion. | Import multi-pages ; stop/reprise ; second passage ; conflits préexistants et courses ; rollback complet ; conservation exacte des IDs/champs/métadonnées ; aucune écriture ARET. | M4.15 couvre une page 1–100 seulement et une transaction ; **reste requis**. |
+| `M4-EXIT-01` Source admission et identité | C01, C02, C16 | Résolveur runtime ARET V1 borné : `ARET_MEMORY_DIR`/layout par défaut, politique de chemin, identité source, cohérence snapshot/WAL et cycle d’attestation. | Tests read-only de chemin, override, symlink/traversal, WAL/checkpoint selon policy, snapshot stable avant/après ; échecs bruyants et sans écriture source. | Attestation/Git/hash de snapshot et lecture immutable sont prouvés ; runtime resolver et politique WAL **restent requis**. |
+| `M4-EXIT-02` Conformance profonde du schéma source | C03, C04, C05, C16 | Manifeste V1 étendu aux colonnes, contraintes, index, triggers, séquences, FTS et sémantiques nécessaires à chaque import. | Fixtures portant divergence de colonne/contrainte/index/trigger ; rapport de conformité hashé ; refus avant toute écriture VERA. | Colonnes/ordre/nullabilité/PK/default de `component` sont prouvés ; contraintes profondes et tables restantes **restent requis**. |
+| `M4-EXIT-03` Import `component → entity` complet et réexécutable | C03, C16 | Contrat de pagination totale, ledger de batch/import, idempotence sûre, provenance de lot, post-validation, audit de bout en bout et stratégie explicite de non-fusion. | Import multi-pages ; stop/reprise ; second passage ; conflits préexistants et courses ; rollback complet ; conservation exacte des IDs/champs/métadonnées ; aucune écriture ARET. | Ledger Core append-only, page initiale/suivante, idempotence, collision/rollback, audit et import baseline 17 records sont prouvés ; conformance multi-pages source et post-validation exhaustive **restent requis**. |
 | `M4-EXIT-04` Import `function_symbol → symbol` | C04, C16 | Lecteur V1 borné, projection vers `symbol`, liaison exacte aux entities importées, unicité et provenance source. | Tests source/cible de colonnes, parent manquant, unicité, pagination, conflit, rollback et reprise ; comparaison de cardinalité et liens. | Mapping M4.5 uniquement ; **non commencé**. |
 | `M4-EXIT-05` Import `brick → work_item` | C05, C16 | Lecteur V1 borné, projection de statut/type/priorité/milestone/platforme/parent et liens, avec provenance et politique de statut explicite. | Tests de tous statuts, hiérarchie, ordre roadmap, liens component, cycles/parents impossibles, rollback/reprise et comparaison de cardinalité. | Mapping M4.5 uniquement ; **non commencé**. |
 | `M4-EXIT-06` Migration des données et invariants associés | C03–C05, C16 | Contrats isolés pour `knowledge`, `knowledge_source`, tags, relations, proofs/proof links, assets/associations, audit, front, séquences, métadonnées et ledger de migration. | Pour chaque table : mapping versionné, provenance `source_type/repository/revision/import_batch_id`, règles de conflit/non-merge, FK/cycles, cardinalité, no-loss, append-only, refus cross-project et rollback. | Aucun import hors `component` M4.15 ; **non commencé**. |
@@ -52,7 +52,22 @@ Les numéros ci-dessous sont des **gates de clôture**, pas des autorisations d�
 | `M4-EXIT-14` Suite de parité et conformance ARET | C01–C16 | Harnais exécutable qui compare baseline et pack VERA sur les comportements critiques, pas seulement la structure. | Suites source et cible, fixtures, snapshots, diff de surface MCP, imports répétables, no-loss/no-merge/no-cross-project, sécurité, roue/installation propre. | Impossible de conclure avec C07/C08 bloqués ; **reste requis**. |
 | `M4-EXIT-15` Contrat public et décision de sortie | Tous | Rapport M4.EXIT, matrice mise à jour, états de parité, compatibilité, limites, migrations, guide opératoire et stratégie de dépréciation. | Aucun C pertinent `SPLIT/BLOCKED/UNKNOWN`; preuves référencées ; revue de diff, publication distante et arbres propres. | **Interdit** avant satisfaction de `M4-EXIT-01` à `M4-EXIT-14`. |
 
-## 4. Règles transverses à chaque gate de migration
+## 4. Macro-lots d’exécution autorisés
+
+Le regroupement accélère les itérations, non les verdicts : chaque ligne de la section 3 conserve sa preuve propre. Un macro-lot n’est publié que lorsque toutes ses gates internes sont satisfaites ou lorsque le blocage est constaté et documenté sans ambiguïté.
+
+| Macro-lot | Gates regroupées | Cohérence technique | Sortie exigée avant le lot suivant | État au 26 août 2026 |
+|---|---|---|---|---|
+| `M4-A` — admission et migration de composants | `M4-EXIT-01` à `M4-EXIT-03` | Même chaîne snapshot → schema → lecture → ledger → transaction → post-validation pour `component`. | Source stable/WAL contrôlé, conformité de colonnes, import paginé réexécutable/no-merge, ledger/provenance/audit et reprise démontrés. | `IN_PROGRESS` : ledger 033, conformité `component`, pages initiale/suivante, rollback/idempotence et baseline 17 records sont prouvés ; WAL/runtime et preuves multi-pages source/post-validation restent ouverts. |
+| `M4-B` — objets structurels liés | `M4-EXIT-04` et `M4-EXIT-05` | `function_symbol` et `brick` sont les deux mappings structurels restants ; ils dépendent des components de `M4-A` et des mêmes politiques de batch/provenance. | Imports `symbol` et `work_item` sans perte, avec FKs/hiérarchie/statuts/liens, rollback et reprise. | `NOT_STARTED`. |
+| `M4-C` — données sémantiques et invariants | `M4-EXIT-06` et `M4-EXIT-07` | Knowledge, provenance, relations, assets, audit, front et proof links exigent une décision unique de non-fusion, provenance de lot et barrières épistémiques. | Mappings déclarés table par table, no-loss/no-cross-project, append-only, HMAC/admissibilité et zéro raccourci `PROVEN`. | `NOT_STARTED`. |
+| `M4-D` — capacités et contenu ARET | `M4-EXIT-08`, `M4-EXIT-09`, `M4-EXIT-10`, `M4-EXIT-11` | Catalogue, playbook, dépendances et exécutions ARET forment le contenu opérationnel cohérent du pack. Les oracles ne peuvent cependant pas être déduits du catalogue. | Catalogue/version/hash, playbook/hash, doctor et oracles réels dans un environnement de référence ; C07/C08 exécutables. | `BLOCKED` pour les oracles/toolchain par `MEM-WALL-001`; catalogue/playbook peuvent avancer séparément mais ne lèvent pas le blocage. |
+| `M4-E` — compatibilité opérationnelle | `M4-EXIT-12` et `M4-EXIT-13` | Aliases, adapter/runtime, hooks, VCS et bundles concernent la session et la portabilité de la mémoire ARET. | Surfaces générées/testées, Resume Guard, policies, WAL, bundles et restauration V1/V2 comparés. | `WAITING_ON_M5_M6` : les plateformes génériques sont hors M4 mais leurs preuves restent des dépendances de M4.EXIT. |
+| `M4-F` — parité et sortie | `M4-EXIT-14` et `M4-EXIT-15` | La parité compare les sorties de tous les macro-lots et fonde la seule décision M4.EXIT. | Harnais de comparaison exécutable, écarts expliqués/acceptés, C01–C16 `DONE`, `MEM-WALL-001` levée et audit M4.EXIT. | `NOT_ELIGIBLE`. |
+
+> **Ordre strict :** `M4-A → M4-B → M4-C → M4-D → M4-E → M4-F`. `M4-D` et `M4-E` peuvent préparer leurs artefacts en parallèle conceptuel, mais ni leur verdict ni M4.EXIT ne peut contourner les sorties de `M4-A` à `M4-C`, la wall C07/C08 ou les dépendances M5/M6.
+
+## 5. Règles transverses à chaque gate de migration
 
 | Contrôle transversal | Exigence non négociable |
 |---|---|
@@ -64,7 +79,7 @@ Les numéros ci-dessous sont des **gates de clôture**, pas des autorisations d�
 | Sécurité | Pas de shell arbitraire, réseau implicite, lecture hors racines, secret en logs, SQL d’écriture brut du pack, ni contournement des policies/gates. |
 | Reproductibilité | Un snapshot, un manifest, un mapping et une cible vide identiques donnent le même résultat et les mêmes hashes/audits attendus ; l’installation de roue isolée reste testée. |
 
-## 5. Frontières M4, M5 et M6
+## 6. Frontières M4, M5 et M6
 
 M4 est propriétaire du **contenu ARET** : manifests, runtime adapter de compatibilité, mappings, données, catalogue de capabilities, dépendances/toolchain, playbook, aliases et harnais de parité. M5 est propriétaire de l’infrastructure générique qui compile les manifests en MCP/instructions/hooks/config. M6 est propriétaire de la CLI, de l’installation, de `doctor` et de l’expérience opératoire générique. Aucun lot M4 ne doit réimplémenter ces plateformes dans le pack.
 
@@ -77,7 +92,7 @@ Cependant, une dépendance de réalisation n’efface pas une condition de sorti
 | CLI, install, doctor, création de profile | M6 | Oui, pour C02/C08/C11/C13/C15 | La spécification exige un runtime vérifiable et une installation non polluante. |
 | Conformance multi-domaines | M7 | Non pour la parité ARET ciblée ; Oui pour la Definition of Done globale | M4 exige ARET ; l’universalité multi-domaines est une sortie ultérieure du programme. |
 
-## 6. Conditions exactes de `M4.EXIT`
+## 7. Conditions exactes de `M4.EXIT`
 
 Le verdict `M4 = PASS` est autorisé uniquement si les conditions suivantes sont simultanément vraies.
 
@@ -89,11 +104,12 @@ Le verdict `M4 = PASS` est autorisé uniquement si les conditions suivantes sont
 6. Une roue VERA installée proprement exécute les contrats de compatibilité sans injecter de dépendance ARET dans le Core ; ARET source demeure inchangé et propre.
 7. Le rapport final déclare séparément la compatibilité ARET prouvée, les domaines hors compatibilité et la Definition of Done globale, qui reste soumise aux jalons M5–M8.
 
-## 7. Verdict actuel et prochain travail autorisé
+## 8. Verdict actuel et prochain travail autorisé
 
 | Verdict | État |
 |---|---|
 | M4.15 | `PASS borné` : premier import atomic autorisé de la page `component` baseline dans un store VERA temporaire ; zéro promotion ; 17 entities créées, 18 audits nouveaux. |
+| M4-A extension | `PASS borné` pour le ledger Core 033, la conformité read-only `component` et l’import de page explicite/réexécutable ; baseline 17 records, 17 liens de ledger, replay sans écriture, zéro evidence et zéro proof link dans un store temporaire. |
 | M4 global | `IN_PROGRESS`. |
 | Parité ARET | `UNKNOWN`. |
 | C07 / C08 | `BLOCKED — MEM-WALL-001`. |
