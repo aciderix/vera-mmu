@@ -2293,3 +2293,15 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Intégration source | Le snapshot ARET attesté et stable `85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5`, Git `CLEAN`, runtime `NO_WAL_SIDECARS`, a été importé vers un store `/tmp` : 532 knowledge en six pages. Les pages 2 à 6 ont toutes la série `MATCHING_PRIOR_SERIES_REQUIRED`; post-validation et replay sont read-only. Résultat archivé sous `continuity/artifacts/m4c_multi_page_knowledge_integration_2026-08-26.json`, SHA-256 `567cdf8ccd06ee714c2220548e9677c0ad25d384a73286a57117be482f47ac1c`. |
 | Contrôles | Ciblés `10 passed`; suite `372 passed, 14 subtests passed`; `git diff --check`, scan Core anti-ARET et roue installée isolément : `PASS`. Commit fonctionnel local : `88e56d5`. |
 | Verdict | `OBSERVED_MULTI_PAGE_KNOWLEDGE_IMPORT_NO_PROMOTION`. Aucun claim de ligne de supersession, de provenance attachée, de tag, relation, preuve, Front, audit importé, compatibilité intégrale ou parité n’est autorisé. |
+
+### LOG-0135 — 2026-08-26 — M4.EXIT — Audit complet, restauration impossible et verdict fail-closed
+
+| Champ | Valeur |
+|---|---|
+| Type | `RUN` / `COMPARISON` / `WALL` / `VERDICT` |
+| Baseline | VERA `873fad9`; ARET `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, worktree propre. |
+| Hypothèse | Les gates M4 restantes pourraient être satisfaites ou la toolchain/oracles pourrait être restaurée à partir d’une référence versionnée accessible. |
+| Vérifications | Audit gate par gate dans `artifacts/m4_exit_precondition_audit_2026-08-26.md`; inspection passive des dépendances, artefacts, références Git locales et quatre branches publiques dans `artifacts/m4_exit_toolchain_restoration_check_2026-08-26.md`; suite VERA finale : `378 passed, 14 subtests passed`. |
+| Observation | `gcc`, Cargo, Wine, MinGW, Clang/LLVM et `zstd` sont absents; `target/release/aret`, `bench/*`, `Cargo.toml` et `src/cpudiff.rs` sont absents du checkout et de toutes les branches publiques accessibles. |
+| Verdict | `M4.EXIT = NOT_ELIGIBLE`. Les migrations restantes, la wall C07/C08, les surfaces M5/M6 et le harnais de parité ne peuvent pas être remplacés par des fixtures ou assertions locales. |
+| Suivi | Attendre un bundle/révision ARET attesté contenant corpus, scripts et build/binaire reproductible; poursuivre ensuite M4-C, M5/M6 et la parité avant un nouvel audit de sortie. |
