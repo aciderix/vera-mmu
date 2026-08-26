@@ -842,3 +842,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | Audit en lecture seule d’ARET et VERA ; documentation hôte consultée le 26 août 2026 ; arbres VERA, ARET-MMU et toolkit propres au contrôle terminal. |
 | État | `M5-J PLANNED`; M5 reste `IN_PROGRESS`; M5-A à M5-I restent `PASS`. |
 | Références | `artifacts/m5_universal_lifecycle_adapter_contract_2026-08-26.md`; `LOG-0191`; `aret-memory/hooks/resume_guard.py`; `src/vera_mmu/mcp_hooks.py`. |
+
+### MEM-DEC-139 — M5-J : Lifecycle Core universel et garde de reprise locale
+| Champ | Valeur |
+|---|---|
+| Décision | `e576b1a` introduit `session_lifecycle.py` : Resume Dossier canonique, état local de session, garde `HARD`/`SOFT`, acquittement lié au hash et décisions normalisées. Le module reste transport-neutre et ne traduit aucun protocole Claude/Codex/Gemini/Antigravity. |
+| Dossier | `ResumeDossierService` reçoit des exigences de sections déclarées par appelant, exige les sections exactes et bornées, lie le JSON canonique aux hashes project/profile et produit `resume_contract_hash`. Aucun vocabulaire ARET, Pack ou playbook spécifique n’est intégré. |
+| État | `ResumeGuardService` stocke l’état éphémère sous `<runtime>/lifecycle/<sha256>.json`, project-/adapter-/session-bound, avec écriture atomique et refus de symlink, état non régulier, JSON/format/hash/identité ambigu. L’état ne va ni dans Git ni dans la connaissance SQLite. |
+| Garde | En `HARD`, l’action est refusée jusqu’à un acquittement réussi qui porte le hash exact du dossier et respecte les bornes enregistrées. En `SOFT`, l’état dégradé est visible, produit un nudge borné à l’arrêt, mais ne bloque jamais les actions : la voie anti-deadlock ARET est préservée. |
+| Transition | `RESUME` préserve un acquittement vivant ; `CONTEXT_RESTORED` réarme. Les états de sessions et adapters distincts ne se croisent pas. Les armements/acquittements écrivent seulement des records d’audit techniques, sans recopier le récapitulatif complet dans SQLite. |
+| Sécurité | Le Core ne contient ni MCP, hook, commande, shell, réseau, Pack, import ARET, trust, installation, bootstrap cloud ou sélection adapter par client. `precheck` refuse une identité de session absente et un état corrompu en mode dur. |
+| Preuve | Rouge : 8 échecs `ModuleNotFoundError`. Vert : `9 passed` ciblés ; suite complète `438 passed, 37 subtests passed` ; compilation Python, scan anti-domain/shell/réseau/transport, `git diff --check` et roue isolée avec dépendances/points d’entrée `PASS`. |
+| Limite | M5-J ne fournit pas d’outil MCP d’acquittement, registry d’adapters lifecycle, config/hooks installables, doctor, adapter Claude local/cloud ni support Codex/Gemini/Antigravity. Ces responsabilités commencent à M5-K. |
+| État | `M5-J PASS`; M5 reste `IN_PROGRESS`. |
+| Références | `src/vera_mmu/session_lifecycle.py`; `tests/test_session_lifecycle.py`; `LOG-0192`; artefact lifecycle M5 du 26 août 2026. |

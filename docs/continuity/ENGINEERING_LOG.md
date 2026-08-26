@@ -2538,3 +2538,19 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Contrôles | `git status --short` propre pour VERA, ARET-MMU et toolkit au contrôle terminal ; `HEAD` VERA = `f234fc6`, identique à `origin/main`. |
 | Verdict | `M5-LIFECYCLE-CADRAGE = PASS` comme décision documentée ; `M5-J = PLANNED`; M5 reste `IN_PROGRESS`. |
 | Référence | `MEM-DEC-138`; `artifacts/m5_universal_lifecycle_adapter_contract_2026-08-26.md`; sources hôte référencées dans l’artefact. |
+
+### LOG-0192 — 2026-08-26 — M5-J : Lifecycle Core et Resume Guard universels
+| Champ | Valeur |
+|---|---|
+| Type | `BASELINE` / `HYPOTHESIS` / `PATCH` / `TEST` / `VERDICT` |
+| But | Extraire le mécanisme de dossier et de garde de reprise fonctionnelle ARET dans un Core VERA sans adopter un protocole d’hôte, un script ou une doctrine de Pack. |
+| Hypothèse | Un dossier canonique project-bound, un état local hashé par projet/adapter/session et des décisions fermées `ALLOW`/`ALLOW_WITH_NOTICE`/`DENY`/`NUDGE` suffisent à préserver les garanties de reprise avant M5-K, sans avoir besoin d’un hook réellement installé. |
+| Rouge | `tests/test_session_lifecycle.py` a d’abord produit `8 failed` par absence attendue de `vera_mmu.session_lifecycle`. |
+| Patch | `e576b1a` ajoute `session_lifecycle.py` et 9 tests. `ResumeDossierService` valide sections exactes et bornées, sérialise canoniquement `vera-resume-dossier/v1`, le lie à `project_hash`/`profile_hash` et produit un SHA-256. `ResumeGuardService` écrit un état éphémère atomique sous runtime, auditant armement/acquittement sans persister le texte du récapitulatif dans SQLite. |
+| Hard/soft | Mode `HARD` : pré-action refusée jusqu’à un acquittement du hash de dossier et des sections attendues. Mode `SOFT` : notice/nudge bruyant, mais action autorisée pour éviter le deadlock. `RESUME` conserve un acquittement vivant ; `CONTEXT_RESTORED` réarme. |
+| Fermeture | Session/adaptor différents sont isolés par clé hashée. Identité de session absente, dossier falsifié, hash divergent, adapter divergent, état JSON corrompu, symlink ou état non régulier sont refusés ou ne lèvent jamais la garde. |
+| Frontière | Aucun import ARET/Pack, MCP, Claude, shell, commande, réseau, subprocess ou bootstrap n’est présent dans le nouveau module. Aucun fichier `.mcp.json`, `.claude/` ou script hôte n’est créé. |
+| Contrôles | Ciblés : `9 passed`. Suite complète : `438 passed, 37 subtests passed`. `py_compile`, scans Core, `git diff --check` : `PASS`. `uv build --wheel`, installation isolée avec dépendances déclarées, présence du module dans la roue et `vmmu`/`vmmu-mcp --help` : `PASS`. |
+| Note packaging | Une première installation délibérément `--no-deps` a échoué à l’entrée CLI faute de PyYAML ; la roue déclare cette dépendance. La validation isolée réexécutée avec dépendances déclarées est `PASS`; ce n’est pas une régression M5-J. |
+| Verdict | `M5-J = PASS`; M5 reste `IN_PROGRESS`. |
+| Référence | `e576b1a`; `tests/test_session_lifecycle.py`; `src/vera_mmu/session_lifecycle.py`; `MEM-DEC-139`; `artifacts/m5_universal_lifecycle_adapter_contract_2026-08-26.md`. |
