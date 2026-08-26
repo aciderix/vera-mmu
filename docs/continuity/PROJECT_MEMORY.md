@@ -759,3 +759,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | `e073fa2`; ciblé `21 passed, 12 subtests passed`; suite `413 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0185`. |
 | État | `M5-D PASS`; M5 global `IN_PROGRESS`. |
 | Références | `src/vera_mmu/domain_packs/aret/mcp_adapter.py`; `src/vera_mmu/domain_packs/aret/mcp_runtime.py`; `LOG-0185`. |
+
+### MEM-DEC-133 — M5-E rend les instructions MCP dérivées et attestées
+| Champ | Valeur |
+|---|---|
+| Décision | Toute instruction MCP fournie à une façade manifest-bound doit être la recompilation exacte de `vera-mcp-manifest/v1` contre le Store courant. Elle est une vue dérivée, jamais une source de policy ou de preuve. |
+| Format | `vera-mcp-instructions/v1` contient `project_id`, `mcp_build_hash`, `instructions_hash` et texte. Le hash est SHA-256 des octets UTF-8 du texte canonique. |
+| Doctrine | Le texte décrit les invariants universels : SQLite/evidence/policy/gate comme source de vérité; `FIND != READ`; `PASS` admis seulement pour proof/gate; interdiction de toute commande, chemin, sortie, code, score, verdict ou artifact client; refus fail-closed des états non-PASS. |
+| Entrées | Uniquement le Store et un manifeste déjà vérifié. Le compilateur ne lit pas de playbook, fichier, Pack, adapter, sortie de processus ou donnée client. Les capabilities sont ordonnées par le manifeste et exposent seulement leurs attributs déclaratifs. |
+| Application | La façade compare l’objet d’instructions présenté à la recompilation exacte avant `MCPServer`. L’hôte ARET M5-D le joint explicitement; l’entrée générique non configurée reste fail-closed et conserve son texte bootstrap. |
+| Rejets | Manifeste périmé, instruction étrangère, texte/hash modifié, identité ou catalogue divergent, instruction sans manifeste et type non conforme sont refusés avant le démarrage. |
+| Limite | Playbook de projet, resume protocol, hooks et configuration d’installation ne sont pas encore générés. Aucun contenu ARET n’entre dans `mcp_instructions.py`. |
+| Preuve | `9010293`; ciblé `6 passed`; suite `416 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0186`. |
+| État | `M5-E PASS`; M5 global `IN_PROGRESS`. |
+| Références | `src/vera_mmu/mcp_instructions.py`; `tests/test_mcp_instructions.py`; `LOG-0186`. |

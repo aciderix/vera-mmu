@@ -2443,3 +2443,18 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | L’hôte est une API de composition Python attestée, pas encore une configuration installable issue d’un profile. La fixture stdio utilise un runner déterministe de test; elle ne démontre pas la réussite locale des oracles ARET ni ne modifie ARET-MMU. |
 | Verdict | `M5-D = PASS`; M5 reste `IN_PROGRESS`. La façade générique demeure fail-closed sans hôte de Pack explicitement assemblé. |
 | Référence | `e073fa2`; `tests/test_aret_mcp_adapter.py`; `tests/test_aret_mcp_runtime.py`; `tests/test_aret_mcp_stdio_runtime.py`; `MEM-DEC-132`. |
+
+### LOG-0186 — 2026-08-26 — M5-E : instructions MCP manifest-bound et vérifiées
+| Champ | Valeur |
+|---|---|
+| Type | `PATCH` / `TEST` / `VERDICT` |
+| But | Remplacer, pour les runtimes explicitement assemblés, la doctrine MCP générique non attestée par une instruction compilée depuis le snapshot M5-B courant. |
+| Patch | `9010293` ajoute `mcp_instructions.py` et le format `vera-mcp-instructions/v1`. Le compilateur vérifie d’abord le manifeste contre le Store puis produit un texte canonique et `instructions_hash=SHA-256(text)`. |
+| Contenu | Le texte contient seulement l’identité projet du manifeste, son `mcp_build_hash`, la doctrine universelle VERA et les capacités manifestées sous la forme `id | kind | runner | network | timeout | adapter`. Il ne lit aucun fichier, playbook, Pack, runtime ou résultat externe. |
+| Fermeture | Le compilateur refuse store/manifest invalides ou périmés. `create_server` refuse toute instruction sans manifeste, d’un autre type ou distincte de la recompilation exacte. Ni un client MCP ni un hôte ne peuvent substituer un texte qui ne correspond pas au snapshot attesté. |
+| Application | `build_aret_mcp_runtime` compile et attache les instructions M5-E avant de créer la façade; l’entry point générique conserve son texte statique seulement lorsqu’aucun manifeste/hôte n’est configuré et demeure incapable d’exécuter. |
+| Tests | Rouge : module absent, puis option façade absente. Vert : stabilité texte/hash, identité et `mcp_build_hash` inclus, absence de vocabulaire ARET, manifeste périmé refusé, hash de manifeste discordant refusé par la façade, runtime ARET et vrai client stdio non régressés. |
+| Contrôles | Ciblés : `6 passed`. Suite complète : `416 passed, 37 subtests passed`. Scan `mcp_instructions.py` sans Pack/ARET/shell/réseau; roue isolée avec module et entry points : `PASS`; `git diff --check` : `PASS`. |
+| Limite | Les instructions de playbook, de reprise, hooks et configuration d’installation ne sont pas encore compilées. M5-E établit la couche universelle minimale attestée; aucune doctrine spécifique ARET n’est transférée au Core. |
+| Verdict | `M5-E = PASS`; M5 reste `IN_PROGRESS`. |
+| Référence | `9010293`; `tests/test_mcp_instructions.py`; `src/vera_mmu/mcp_instructions.py`; `MEM-DEC-133`. |
