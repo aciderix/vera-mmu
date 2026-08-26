@@ -2138,3 +2138,19 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 |---|---|
 | Registre | `M4_COMPLETION_REGISTER.md` marque runtime default/override et refus WAL/SHM comme prouvés, mais conserve l’intégration de l’override et le cycle d’attestation comme sorties obligatoires. |
 | Reprise | Avant toute extension de l’attestation, lire `MEM-STATE-102` à `MEM-STATE-104`, `LOG-0156` et les conditions M4-EXIT-01 du registre. Le prochain patch doit soit lier le resolver à chaque maillon read-only de la chaîne, soit ouvrir M4-B sous un contrat structurel indépendant. |
+
+### LOG-0158 — Verdict M4-A3 : chaînage runtime default/override vers le reader
+| Champ | Valeur |
+|---|---|
+| Portée livrée | M4.7 accepte facultativement une résolution runtime et une safety WAL liées. M4.8 transporte le chemin de snapshot attesté; M4.9 puis M4.10 inspectent/lisent ce chemin exact. Un layout default garde le chemin V1 exact; un chemin divergent n’est possible que sous `ARET_MEMORY_DIR_OVERRIDE` explicite. |
+| Gates | Tests-first rouges : nouvelles interfaces absentes; ciblés M4.7–M4.10 et chaîne : `31 passed`; suite complète : `301 passed, 14 subtests passed`; scans read-only/Core anti-ARET et roue isolée : `PASS`. |
+| Intégration | Sur une copie temporaire du snapshot baseline : resolution `ARET_MEMORY_DIR_OVERRIDE` → `NO_WAL_SIDECARS` → attestation → identité Git baseline propre → manifeste SQLite → page component, soit 17 records. ARET-MMU est demeuré propre au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Sécurité | La chaîne ne crée aucun runtime, n’ouvre pas de write-path ARET et ne permet aucun snapshot custom sous un layout default. Le reader suit le snapshot inspecté lié à l’identité, jamais un chemin reconstruit sans attestation. |
+| Publication | Commit fonctionnel `4f9d1ed0c881d41b7e98a01e228f05903e65a408` — `feat(aret-pack): bind runtime overrides to source chain` — publié et vérifié sur `main`. |
+| Verdict | `PASS borné` pour M4-A3. La conformance des tables, les sources réellement multi-pages, post-validation, les imports structurels, les données sémantiques, toolchain/oracles, intégrations et la parité ARET restent hors contrat. M4 demeure `IN_PROGRESS`. |
+
+### LOG-0159 — Handoff documentaire M4-A3
+| Champ | Valeur |
+|---|---|
+| Registre | M4-EXIT-01 reflète le resolver et le chaînage override prouvés, mais ne conclut aucune compatibilité runtime ni parité. |
+| Reprise | Avant le prochain sous-lot, relire `MEM-STATE-105` à `MEM-STATE-107`, `LOG-0158` et les gates M4-EXIT-02/M4-EXIT-03. Le prochain changement prioritaire peut fermer la conformance profonde de `component` ou ouvrir M4-B (`function_symbol→symbol`) sous contrat séparé. |
