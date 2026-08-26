@@ -143,26 +143,26 @@ def normalize_oracle_result(
     output = f"{stdout}\n{stderr}"
     if spec.name == "difftest":
         match = re.search(r"differential equivalence:\s*(\d+)\s*/\s*(\d+)\s+functions", output)
-        if exit_code == 0 and match and int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0:
-            return "PASS"
+        if exit_code == 0 and match:
+            return "PASS" if int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0 else "FAIL"
     elif spec.name == "transpilediff":
         match = re.search(r"transpile-pipeline equivalence:\s*(\d+)\s*/\s*(\d+)\s+opt-levels", output)
-        if exit_code == 0 and match and int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0:
-            return "PASS"
+        if exit_code == 0 and match:
+            return "PASS" if int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0 else "FAIL"
     elif spec.name == "stdcall_audit" and exit_code == 0 and re.search(r"stdcall-pop audit:\s*PASS", output):
         return "PASS"
     elif spec.name == "winediff":
         match = re.search(r"OS-API \(Wine\) equivalence:\s*(\d+)\s*/\s*(\d+)\s+programs", output)
-        if exit_code == 0 and match and int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0:
-            return "PASS"
+        if exit_code == 0 and match:
+            return "PASS" if int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0 else "FAIL"
     elif spec.name == "ehdiff":
         match = re.search(r"MSVC EH differential:\s*(\d+)\s*/\s*(\d+)\s+fixtures", output)
-        if exit_code == 0 and match and int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0:
-            return "PASS"
+        if exit_code == 0 and match:
+            return "PASS" if int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0 else "FAIL"
     elif spec.name == "gnuehdiff":
         match = re.search(r"GNU/Itanium C\+\+ EH differential:\s*(\d+)\s*/\s*(\d+)\s+fixtures", output)
-        if exit_code == 0 and match and int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0:
-            return "PASS"
+        if exit_code == 0 and match:
+            return "PASS" if int(match.group(1)) == int(match.group(2)) and int(match.group(2)) > 0 else "FAIL"
     elif spec.name == "funcdiff" and exit_code == 0 and re.search(r"funcdiff corpus gate:\s*PASS", output):
         return "PASS"
     elif spec.name == "cpudiff" and exit_code == 0 and re.search(r"test result:\s*ok", output):
