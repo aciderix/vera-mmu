@@ -1644,3 +1644,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Tests-first : erreur d’import attendue. Tests ciblés : `3 passed`; suite complète : `172 passed, 14 subtests passed`; scan sans I/O/écriture/ARET et wheel isolée passent. |
 | Limites | Aucun traversal transitif, agrégation de gates, scheduler, orchestration, mutation automatique, oracle, réseau ou shell n’est introduit. |
 | Verdict | `PASS` pour M3.19. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
+
+
+### LOG-0107 — Publication et handoff M3.19
+
+| Champ | Valeur |
+|---|---|
+| Commit publié | `af6fa4526f0fff74a18cd6a6810eadf9438fbfbd` — `feat: add pure work dependency blockers`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `af6fa4526f0fff74a18cd6a6810eadf9438fbfbd`. |
+| État de reprise | M3.19 est publié. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
+| Prochain choix | Choisir explicitement un seul gap M3 : traversal/graph avancé, validator/oracle métier sous policy distincte, runner sûr additionnel ou surface CLI/MCP. Ne pas faire du diagnostic un scheduler ou une orchestration. |
