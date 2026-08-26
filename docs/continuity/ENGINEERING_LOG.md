@@ -2400,3 +2400,17 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | Le point d’entrée générique `vmmu-mcp` est intentionnellement fail-closed : sans adapter déclaré par un manifeste/configuration future, il permet les lectures mais refuse toute exécution. L’adapter de scénario est exclusivement une fixture de test et ne constitue pas un runtime ARET de production. |
 | Verdict | `M5-A = PASS` : premier transport MCP universel et vérifié. M5 global, compilateur/manifeste immutable, configuration/hook et adapters de production restent `IN_PROGRESS` / `PLANNED`. |
 | Référence | `5ffe182`; `tests/test_mcp_stdio_verdict_transport.py`; `tests/mcp_verdict_fixture_server.py`; `MEM-DEC-129`. |
+
+### LOG-0183 — 2026-08-26 — M5-B : manifeste MCP canonique et vérifié
+| Champ | Valeur |
+|---|---|
+| Type | `BASELINE` / `PATCH` / `TEST` / `VERDICT` |
+| But | Fermer I007/I008/I011/I012 après M5-A : la façade MCP doit pouvoir être bornée par une configuration déclarative, project-bound, canonicalisée et non réutilisable après dérive du store. |
+| Patch | `5de260d` ajoute `mcp_manifest.py`. `compile_mcp_manifest` produit `vera-mcp-manifest/v1` depuis identité de projet, checksums de migrations, outils M5-A, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est `mcp_build_hash`. |
+| Fermeture | Chaque capability visible exige exactement un binding; binding absent, supplémentaire ou ressemblant à un chemin/une commande est refusé. Le manifeste ne contient ni commande, stdout/stderr, code de sortie, verdict ni artifact client. |
+| Vérification | `verify_mcp_manifest` recompile le snapshot depuis le store courant. Un projet distinct, un catalogue/policy/migration modifié, un binding divergent ou un hash incohérent est refusé bruyamment. |
+| Façade | `create_server(..., manifest=...)` vérifie le manifest au démarrage, limite le catalogue au snapshot et refuse une capability dont l’`adapter_id` runtime ne correspond pas au binding attesté. La fixture stdio M5-A passe désormais par cette voie. |
+| Contrôles | Rouge : module puis vérificateur absents; vert : `5 passed` manifeste et `2 passed, 7 subtests passed` MCP. Suite complète : `404 passed, 32 subtests passed`. Frontière sans Pack/ARET/shell/réseau : `PASS`; roue isolée, inclusion de `mcp_manifest.py` et entry points : `PASS`; diff : `PASS`. |
+| Limite | Les bindings restent symboliques : registry/adapters de production, instructions/hooks/config générés et snapshots d’installation sont des lots M5 suivants. Aucun adapter de test n’est promu en runtime ARET. |
+| Verdict | `M5-B = PASS`. M5 reste `IN_PROGRESS`; M5-A/B n’autorise ni exécution implicite ni injection client de résultat. |
+| Référence | `5de260d`; `tests/test_mcp_manifest.py`; `tests/test_mcp_stdio_verdict_transport.py`; `MEM-DEC-130`. |

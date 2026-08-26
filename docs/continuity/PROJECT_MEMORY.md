@@ -720,3 +720,16 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | Rouge initial SDK MCP absent; `2 passed, 7 subtests passed` MCP; suite complète `399 passed, 32 subtests passed`; roue isolée et points d’entrée validés; `LOG-0182`. |
 | État | `M5-A PASS`; manifeste immutable / `mcp_build_hash`, compilation d’adapters/instructions/hooks/config et runtime production restent en attente des tranches M5 suivantes. M4.EXIT reste `NOT_ELIGIBLE` pour ses gates globales restantes, indépendamment de la réussite de ce transport. |
 | Références | `artifacts/m5_mcp_verdict_transport_contract_2026-08-26.md`; `src/vera_mmu/mcp_server.py`; `tests/test_mcp_stdio_verdict_transport.py`; `LOG-0182`. |
+
+### MEM-DEC-130 — M5-B atteste le catalogue MCP par manifeste canonique
+| Champ | Valeur |
+|---|---|
+| Décision | La façade M5-A ne doit pas être câblée par une configuration implicite. M5-B compile `vera-mcp-manifest/v1`, le lie à l’identité complète du projet et aux migrations, puis vérifie ce snapshot au démarrage de la façade. |
+| Contenu hashé | Outils M5-A, capabilities `ALLOW`, contrats, policies, schémas/metadata, identité projet, checksums de migrations et bindings symboliques d’adapter sont canonicalisés; SHA-256 de cette forme = `mcp_build_hash`. |
+| Fermeture | Chaque capability visible a exactement un adapter ID fermé. Binding absent/supplémentaire, adapter ressemblant à une commande ou divergence entre adapter runtime et manifest déclenchent un refus explicite. Le client ne configure ni le manifest ni l’adapter. |
+| Vérification | Recompilation contre le store courant : un manifest étranger, périmé, altéré ou contradictoire avec catalogue/policy/migration est refusé. Le catalogue MCP est borné au snapshot attesté. |
+| Conformance | Tests I007/I008/I011/I012 : ordre de bindings indépendant, hash stable, hash modifié après capability nouvelle, refus foreign/stale et injection absente. La vraie session stdio M5-A utilise désormais un manifest vérifié. |
+| Limite | M5-B ne fournit pas encore registry/adapters de production, instructions/hooks/config générés ni installation. Les IDs d’adapter sont des symboles attestés, non des commandes. |
+| Preuve | `5de260d`; `5 passed` manifeste, `2 passed, 7 subtests passed` MCP, suite `404 passed, 32 subtests passed`, roue isolée et `LOG-0183`. |
+| État | `M5-B PASS`; M5 global `IN_PROGRESS`. |
+| Références | `src/vera_mmu/mcp_manifest.py`; `tests/test_mcp_manifest.py`; `LOG-0183`. |

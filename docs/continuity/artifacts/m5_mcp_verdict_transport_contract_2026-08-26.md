@@ -1,7 +1,7 @@
-# M5 — Façade MCP de transport des verdicts — jalon M5-A — 2026-08-26
+# M5 — Façade MCP et manifeste de transport des verdicts — jalons M5-A/B — 2026-08-26
 
-> **Statut :** `M5-A PASS` — première façade MCP stdio VERA livrée dans `5ffe182`.
-> **Portée :** transport universel fermé et testable. Le compilateur de manifestes, les adapters configurés de production, les instructions/hooks générés et la configuration d’installation restent hors de ce jalon.
+> **Statut :** `M5-A/B PASS` — façade MCP stdio dans `5ffe182`, compilateur/vérificateur de manifeste dans `5de260d`.
+> **Portée :** transport universel fermé et manifeste déterministe attesté. Les adapters configurés de production, les instructions/hooks générés et la configuration d’installation restent hors des jalons réalisés.
 
 ## 1. Décision de portage
 
@@ -16,6 +16,7 @@ ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transpor
 | Oracles et pipelines ARET | Adapter de fixture déclaré côté serveur uniquement | Gardé hors du Core ; l’adapter réel relève d’un manifest/Pack postérieur. |
 | Front, handoff, knowledge, hooks spécifiques ARET | Aucun portage mécanique | À généraliser dans les lots M5/M6 suivants. |
 | Services universels capability, evidence, validation, admission et gate | Appelés par la façade sans dupliquer leur sémantique | Réutilisés. |
+| Catalogue/policies/contracts/adapters déclarés | `mcp_manifest.py` compile une forme canonique liée au projet et aux migrations | Ajouté en M5-B, sans shell ni runtime implicite. |
 
 ## 2. Surface M5-A livrée
 
@@ -29,7 +30,7 @@ ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transpor
 | `mmu_decide_admission` | `evidence_id`, `validation_id` exacts | admission `ADMITTED` ou refus structuré | promotion d’un non-`PASS`. |
 | `mmu_evaluate_gate` | `gate_id` exact | statut dérivé des admissions persistées | gate `PASS` synthétique. |
 
-La façade n’importe aucun Domain Pack. Elle n’exécute aucun subprocess, n’ouvre aucun réseau et n’utilise aucun shell. L’exécution est déléguée à un **adapter configuré côté serveur**. Sans cet adapter, l’entry point générique `vmmu-mcp` refuse l’exécution : il est volontairement fail-closed.
+La façade n’importe aucun Domain Pack. Elle n’exécute aucun subprocess, n’ouvre aucun réseau et n’utilise aucun shell. Lorsqu’un manifeste est fourni, celui-ci est recompilé et vérifié contre l’identité du store, ses migrations, ses capabilities, contrats et policies; son catalogue borne les tools et chaque capability doit correspondre à l’identifiant de l’**adapter configuré côté serveur**. Sans adapter, l’entry point générique `vmmu-mcp` refuse l’exécution : il est volontairement fail-closed.
 
 ## 3. Matrice de conformance exécutée
 
@@ -60,16 +61,17 @@ Les erreurs métier sont retournées sous l’enveloppe stable `{ok, operation, 
 | Rouge initial | SDK MCP absent, puis dépendance explicitement ajoutée au paquet. |
 | Matrice MCP réelle | `2 passed, 7 subtests passed`. |
 | Régressions ciblées Pack/Core | `5 passed, 15 subtests passed`. |
-| Suite complète VERA | `399 passed, 32 subtests passed`. |
+| Suite complète VERA | `404 passed, 32 subtests passed` après M5-B. |
 | Frontière Core | Aucun import ARET/Pack, subprocess, shell ou réseau dans `mcp_server.py`. |
 | Intégrité Git | `git diff --check` : `PASS`. |
-| Packaging | Roue isolée construite ; `vmmu --help` et `vmmu-mcp --help` : `PASS`. |
+| Packaging | Roues isolées M5-A et M5-B construites ; `vmmu --help`, `vmmu-mcp --help` et inclusion de `mcp_manifest.py` : `PASS`. |
+| Manifeste M5-B | Canonique quel que soit l’ordre des bindings, lié à l’identité projet et aux checksums de migrations; toute divergence de catalogue, policy, binding ou projet est refusée. |
 
 ## 6. Limites et suite M5
 
-`M5-A` ne prétend pas que le serveur générique peut déjà exécuter ARET en production. La fixture ne sert qu’à prouver le **transport MCP** à partir des mêmes contrats que M4 ; elle n’est ni installée dans le paquet ni utilisable par un client.
+`M5-A/B` ne prétend pas que le serveur générique peut déjà exécuter ARET en production. La fixture ne sert qu’à prouver le **transport MCP** à partir des mêmes contrats que M4 ; elle n’est ni installée dans le paquet ni utilisable par un client.
 
-Les tranches suivantes de M5 devront fournir un manifeste immuable, son hash de build, la compilation du catalogue/adapters/instructions/config, un adapter production explicitement déclaré par le manifest, et les snapshots nécessaires à la reproductibilité. M6 fournira ensuite CLI, installation, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A.
+M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. Les tranches suivantes devront compiler instructions/hooks/config et fournir un registry/adapters de production explicitement déclarés par ce manifest. M6 fournira ensuite CLI, installation, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A/B.
 
 ## Références
 
@@ -80,3 +82,5 @@ Les tranches suivantes de M5 devront fournir un manifeste immuable, son hash de 
 [5]: ../../../src/vera_mmu/validators.py "Validation `EVIDENCE_ASSET`"
 [6]: ../../../src/vera_mmu/admission.py "Admission policy-gated"
 [7]: ../../../src/vera_mmu/gates.py "Évaluation de gate dérivée"
+[8]: ../../../src/vera_mmu/mcp_manifest.py "Compilation et vérification de manifeste MCP"
+[9]: ../../../tests/test_mcp_manifest.py "Conformance I007/I008/I011/I012 du manifeste"
