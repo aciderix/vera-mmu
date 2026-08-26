@@ -2154,3 +2154,17 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 |---|---|
 | Registre | M4-EXIT-01 reflète le resolver et le chaînage override prouvés, mais ne conclut aucune compatibilité runtime ni parité. |
 | Reprise | Avant le prochain sous-lot, relire `MEM-STATE-105` à `MEM-STATE-107`, `LOG-0158` et les gates M4-EXIT-02/M4-EXIT-03. Le prochain changement prioritaire peut fermer la conformance profonde de `component` ou ouvrir M4-B (`function_symbol→symbol`) sous contrat séparé. |
+
+### LOG-0160 — Verdict M4-A : post-validation read-only de page component
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `component_post_validation.py` relit le batch `import_batch`, les liens `import_batch_entity` et les entités génériques après l’import de page autorisé. Il exige le binding autorisation/projection/résultat/store, le mapping/source snapshot exacts et l’égalité type/titre/description/métadonnées des entités avec les drafts. |
+| Gates | Tests-first rouge : surface absente ; ciblés : `4 passed`; suite complète : `305 passed, 14 subtests passed`; scans no-source-I/O/no-write/no-proof, roue isolée et `git diff --check` : `PASS`. |
+| Sécurité | Le contrôle ne crée aucun audit, evidence, proof link, admission ou promotion. Une projection/liaison ledger divergente est refusée; les triggers append-only ont également refusé la tentative de corruption directe de fixture. |
+| Publication | Commit fonctionnel `2d237f05e762dd9cffc89a1c1c9a8c9be1da5ea9` — `feat(aret-pack): post-validate imported component pages` — publié et vérifié sur `main`; ARET-MMU reste propre au commit baseline. |
+| Verdict | `PASS borné` pour post-validation d’une page component. Les sources multi-pages réelles, la post-validation exhaustive, les imports structurels/sémantiques, toolchain, M5/M6 et parité restent requis; M4 demeure `IN_PROGRESS`. |
+
+### LOG-0161 — Handoff documentaire post-validation M4-A
+| Champ | Valeur |
+|---|---|
+| Reprise | Lire `MEM-STATE-108`/`MEM-STATE-109`, `LOG-0160` et M4-EXIT-02/03. Le prochain sous-lot prioritaire est la conformance profonde de `component` ou l’ouverture contrôlée de M4-B. |
