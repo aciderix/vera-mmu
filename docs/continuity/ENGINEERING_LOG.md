@@ -113,6 +113,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0087` | 2026-08-26 | `HYPOTHESIS` | M3.12 | lifecycle dérivé, événements fermés, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-037`, `MEM-DEC-032`, `MEM-WALL-001` |
 | `LOG-0088` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.12 | transitions, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-037`, `MEM-STATE-038`, `MEM-DEC-032`, `MEM-WALL-001` |
 | `LOG-0089` | 2026-08-26 | `RECORD` / `HANDOFF` | M3.12 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-038`, `MEM-WALL-001` |
+| `LOG-0090` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.S2.EXIT | chaîne M3.7–M3.12, wheel, frontières | `OBSERVED` | `PASS` de tranche; M3 global ouvert | `MEM-STATE-039`, `MEM-DEC-033`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1440,3 +1441,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication M3.12. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
 | Suivi | Définir une gate de tranche M3 supplémentaire et bornée, distinguant les primitives livrées des validators métier, runners sûrs, CLI/MCP et compatibilité ARET encore absents. |
+
+
+### LOG-0090 — Gate M3.S2 : slice de sûreté policy, validation, gate et lifecycle
+
+| Champ | Valeur |
+|---|---|
+| Périmètre fermé | M3.7–M3.12 seulement : paramètres fermés, policy `ALLOW`/`DENY`/`CONFIRM`, policy HMAC singleton sans secret persistant, `EVIDENCE_HASH`, gate conjonctive multi-evidence et lifecycle dérivé. Le seul runner demeure `NOOP` sous `DENY_NETWORK`. |
+| Gate intégrée | Wheel isolé, migrations 001→024, profil neuf, refus atomique de paramètre requis absent, policy `ALLOW`, execution NOOP, deux evidences `PASS`, validator local, gate `FAIL` puis `PASS` après les deux admissions, preuve dérivée HMAC sans mutation de knowledge, lifecycle `START`→`COMPLETE` sans mutation de `work_item.status`. |
+| Contrôles | Suite complète : 151 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan des modules M3.7–M3.12 sans processus, shell, réseau, I/O, `eval`, import dynamique `PASS`; VERA et ARET propres. |
+| Verdict | `M3.S2.EXIT = PASS` pour la tranche livrée. Ce verdict ne ferme pas M3 global, ne déclare aucune parité ARET et ne transforme pas `MEM-WALL-001` en `PASS`. |
+| Exclusions structurantes | Pas de runner externe sûr, validator métier/externe, JSON Schema général, confirmation interactive, rotation HMAC, quorum/disjonction, orchestration/réouverture de lifecycle, traversal de graph, CLI/MCP de production, pack ARET ou parité ARET. |

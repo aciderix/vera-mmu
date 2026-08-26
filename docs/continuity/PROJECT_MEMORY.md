@@ -251,3 +251,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-038` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validator de contenu explicitement borné, runners sûrs additionnels, politiques/gates avancées sous lot séparé, CLI/MCP et pack ARET. Pause/reprise, réouverture, propagation et orchestration de lifecycle restent hors M3.12. | `OBSERVED` | Revue post-M3.12; aucun contrat ou test de ces capacités n’est livré. | `LOG-0088` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-037`, `MEM-DEC-032`, `MEM-STATE-038`, `MEM-WALL-001`, puis `LOG-0087`–`LOG-0088` avant tout lot M3 ultérieur.
+
+
+## 21. Gate de tranche — M3.S2
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-039` | Gate M3.S2 | La tranche M3.S2 couvre M3.7–M3.12 : paramètres fermés, policies de capability et de preuve, validator local, gate conjonctive multi-evidence et lifecycle dérivé. Son intégration isolée migrations 001→024 est validée. | `OBSERVED` | Wheel isolé, profil neuf et chaîne complète; 151 tests et 14 sous-tests. | `LOG-0090` |
+| `MEM-DEC-033` | Signification de sortie | `M3.S2.EXIT = PASS` signifie uniquement que la tranche M3.7–M3.12 est intégrée et validée. Il ne signifie ni M3 global terminé, ni parité ARET, ni levée de `MEM-WALL-001`. | `DECISION` | Scope/contrôles M3.S2. | `LOG-0090` |
+| `MEM-STATE-040` | Reprise active | M3 reste `IN_PROGRESS`. Les prochaines décisions doivent choisir un lot séparé parmi validator de contenu borné, runner sûr additionnel, politiques/gates avancées, CLI/MCP ou pack ARET; aucune capacité absente ne doit être supposée livrée. | `OBSERVED` | Exclusions explicites de M3.S2. | `LOG-0090` |
+
+> **Reprise prioritaire.** Lire `MEM-STATE-039`, `MEM-DEC-033`, `MEM-STATE-040`, `MEM-WALL-001` et `LOG-0090` avant tout lot M3 suivant.
