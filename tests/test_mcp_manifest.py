@@ -84,6 +84,7 @@ class MCPManifestTests(unittest.TestCase):
                     "mmu_validate_evidence",
                     "mmu_decide_admission",
                     "mmu_evaluate_gate",
+                    "mmu_acknowledge_resume",
                 ))
 
     def test_i012_changes_to_declared_capability_change_build_hash(self) -> None:

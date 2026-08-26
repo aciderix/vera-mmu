@@ -247,6 +247,27 @@ class ResumeGuardService:
             )
         return True
 
+    def acknowledge_current(
+        self,
+        session_identity: str,
+        adapter_id: str,
+        sections: Mapping[str, str],
+    ) -> bool:
+        """Acknowledge only the contract currently armed in local state.
+
+        This is the path intended for an adapter-owned transport: no caller can submit a
+        contract hash because it is read from the already project/session-bound state.
+        """
+        if not _is_session_identity(session_identity) or not _ADAPTER_ID_RE.fullmatch(adapter_id):
+            return False
+        try:
+            state = self._read_existing(self.state_path(session_identity, adapter_id), session_identity, adapter_id)
+        except LifecycleError:
+            return False
+        if state is None:
+            return False
+        return self.acknowledge(session_identity, adapter_id, state.resume_contract_hash, sections)
+
     def precheck(self, session_identity: str, adapter_id: str) -> GuardOutcome:
         if not _is_session_identity(session_identity):
             return GuardOutcome(GuardDecision.DENY, "resume guard: session identity missing")

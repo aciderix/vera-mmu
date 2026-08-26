@@ -24,8 +24,10 @@ from .evidence import EvidenceService
 from .gates import GateService
 from .identity import load_profile
 from .mcp_adapters import RuntimeAdapterRegistry
+from .lifecycle_adapters import LifecycleAdapterPlan, LifecycleAdapterRegistry
 from .mcp_instructions import MCPInstructions, compile_mcp_instructions
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
+from .session_lifecycle import ResumeGuardService
 from .store import MemoryStore, StoreError
 from .validators import ValidatorService
 
@@ -176,10 +178,12 @@ def create_server(
     adapter_registry: RuntimeAdapterRegistry | None = None,
     manifest: MCPManifest | None = None,
     instructions: MCPInstructions | None = None,
+    lifecycle_adapter_registry: LifecycleAdapterRegistry | None = None,
+    lifecycle_adapter_plan: LifecycleAdapterPlan | None = None,
     asset_validator_id: str = DEFAULT_ASSET_VALIDATOR_ID,
     actor: str = "vera-mcp",
 ) -> MCPServer:
-    """Crée la façade MCP VERA avec exactement sept tools publics et bornés."""
+    """Crée la façade MCP VERA avec exactement huit tools publics et bornés."""
     if not isinstance(actor, str) or not actor or actor != actor.strip() or "/" in actor:
         raise ValueError("Actor MCP invalide.")
     if not isinstance(asset_validator_id, str) or not asset_validator_id or "/" in asset_validator_id:
@@ -188,6 +192,10 @@ def create_server(
         raise ValueError("Adapter direct et registry MCP sont mutuellement exclusifs.")
     if adapter_registry is not None and manifest is None:
         raise ValueError("Un registry MCP exige un manifeste vérifié.")
+    if (lifecycle_adapter_registry is None) != (lifecycle_adapter_plan is None):
+        raise ValueError("Registry lifecycle et plan lifecycle doivent être fournis ensemble.")
+    if lifecycle_adapter_registry is not None and manifest is None:
+        raise ValueError("Un registry lifecycle exige un manifeste vérifié.")
     if instructions is not None:
         if manifest is None:
             raise ValueError("Des instructions MCP compilées exigent un manifeste vérifié.")
@@ -203,6 +211,11 @@ def create_server(
     )
     registry_adapters = (
         {} if adapter_registry is None else adapter_registry.resolve_manifest(manifest)
+    )
+    lifecycle_adapter = (
+        None
+        if lifecycle_adapter_registry is None
+        else lifecycle_adapter_registry.resolve_plan(store, manifest, lifecycle_adapter_plan)
     )
     server = MCPServer(
         SERVER_NAME,
@@ -311,6 +324,30 @@ def create_server(
     async def mmu_evaluate_gate(gate_id: str) -> dict[str, object]:
         """Évalue une gate depuis les admissions persistées, sans promotion implicite."""
         return _call("evaluate_gate", lambda: asdict(GateService(store).evaluate(gate_id)))
+
+    @server.tool(name="mmu_acknowledge_resume", structured_output=True)
+    async def mmu_acknowledge_resume(sections: dict[str, str]) -> dict[str, object]:
+        """Acquitte le seul dossier armé dans le contexte de session fourni par l’hôte.
+
+        Le client fournit uniquement les sections du rituel. L’adapter lié au serveur fournit
+        l’identité de session et le Core relit le hash déjà armé : ni adapter, ni session,
+        ni hash, ni verdict ne sont des entrées MCP.
+        """
+        def acknowledge() -> Mapping[str, object]:
+            if lifecycle_adapter is None:
+                raise StoreError("Aucun adapter lifecycle attesté n’est configuré pour ce serveur MCP.")
+            if not isinstance(sections, dict) or any(not isinstance(key, str) or not isinstance(value, str) for key, value in sections.items()):
+                raise StoreError("Sections de reprise MCP invalides.")
+            session_identity = lifecycle_adapter.session_identity()
+            if not isinstance(session_identity, str) or not session_identity:
+                raise StoreError("Adapter lifecycle : identité de session hôte indisponible.")
+            if not ResumeGuardService(store).acknowledge_current(
+                session_identity, lifecycle_adapter.adapter_id, sections
+            ):
+                raise StoreError("Acquittement de reprise refusé par l’état lifecycle persistant.")
+            return {"acknowledged": True}
+
+        return _call("acknowledge_resume", acknowledge)
 
     return server
 

@@ -26,6 +26,7 @@ TOOL_NAMES = (
     "mmu_validate_evidence",
     "mmu_decide_admission",
     "mmu_evaluate_gate",
+    "mmu_acknowledge_resume",
 )
 _ADAPTER_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,127}")
 
