@@ -2192,3 +2192,28 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Tests-first rouge ; ciblés `2 passed`; suite complète `314 passed, 14 subtests passed`; scans no-I/O/no-write/no-WorkItemService et roue isolée : `PASS`. |
 | Publication | Commit `568d9fb296c2d8a03f525f3c1312260eb6287b83` publié sur `main`. |
 | Verdict | `PASS borné` pour projection sans écriture. La sémantique de statut cible, le binding component, l’autorisation, l’import atomique, rollback/reprise et parité restent requis. |
+
+### LOG-0165 — Verdict Core : batch générique de ressources structurelles
+| Champ | Valeur |
+|---|---|
+| Portée | Migration Core `034_resource_import_batch_ledger.sql` et `ImportBatchService.commit_resource_import_batch` pour les seuls kinds fermés `SYMBOL` et `WORK_ITEM`. Les payloads sont préparés/fingerprintés canoniquement, les ressources sont créées exclusivement par `SymbolService` ou `WorkItemService`, puis liées à un batch/record append-only. Les transactions imbriquées du Core composent désormais par savepoint. |
+| Gates | Tests-first rouges puis ciblés : `10 passed` pour le ledger 034 et `20 passed` avec le store ; suite complète : `325 passed, 14 subtests passed`. Tests : kind inconnu, prérequis parent, conflit sémantique, rollback, fingerprint divergent, replay sans écriture, migration réelle 033→034, immutabilité et savepoint imbriqué. |
+| Sécurité | Aucun terme ARET dans le Core, aucune I/O source ou réseau, aucun SQL d’écriture du pack. Les ledger rows sont immuables ; une ressource inconnue, un payload incomplet, un conflit ou un parent absent rollbackent le lot. Le batch n’écrit ni evidence, ni admission, ni proof/proof link, ni promotion. |
+| Distribution | `git diff --check`, scan Core anti-ARET et wheel isolée : `PASS`; l’API et la migration 034 sont présentes dans la wheel. |
+| Publication | Commit fonctionnel `77591e586d8dfa60bb0b49dd06f1c056d11658a0` — `feat(core): add atomic generic resource import batches` — publié et vérifié sur `origin/main`. ARET-MMU reste propre au commit baseline `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Verdict | `PASS borné` pour la primitive Core générique uniquement. Aucun contrat de conformance source, préflight, collision de série, autorisation, import ou post-validation ARET `function_symbol→symbol` / `brick→work_item` n’est encore livré ; M4-B reste `IN_PROGRESS`, M4 global `IN_PROGRESS`, parité `UNKNOWN`. |
+
+### LOG-0166 — Handoff documentaire Core 034 vers M4-B
+| Champ | Valeur |
+|---|---|
+| Reprise | Lire `MEM-STATE-113`, `LOG-0165`, M4-EXIT-04/05 et le registre de clôture M4. Le prochain sous-lot autorisé est la conformance source et le préflight read-only propres à `function_symbol` et `brick`, avant toute authorisation ou écriture du pack. |
+| Interdits maintenus | Ne pas modifier ARET ; ne pas importer de données sémantiques, evidence, proof, admission ou promotion ; ne pas contourner `MEM-WALL-001`; ne pas déclarer de compatibilité ni de parité. |
+
+### LOG-0167 — Correctif Core 034 : refus de coercition implicite de payload
+| Champ | Valeur |
+|---|---|
+| Constat | La revue a relevé que le dispatcher de batch pouvait convertir implicitement certains scalaires de payload via `str(...)` avant l’appel au service cible. Un test tests-first a démontré qu’un titre numérique de `WORK_ITEM` était accepté. |
+| Correctif | Le préflight exige désormais que tous les champs textuels déclarés de `SYMBOL` et de `WORK_ITEM` soient déjà des chaînes avant toute transaction. Aucun payload non typé ne peut donc devenir valide par coercition implicite. |
+| Gates | Test rouge ciblé puis vert ; contrats `resource_import_batches` + `store` : `21 passed`; suite complète : `326 passed, 14 subtests passed`; `git diff --check` et scan Core anti-ARET : `PASS`. |
+| Publication | Commit fonctionnel `8e0d56692c3f1a5b19d9e2ac1d40678f10c7c7fc` — `fix(core): reject coerced resource batch payloads` — publié et vérifié sur `origin/main`. |
+| Verdict | Durcissement `PASS` du contrat Core 034. Il ne modifie aucun état M4-B, aucune autorisation ARET, aucune parité, ni les blocages `MEM-WALL-001`. |
