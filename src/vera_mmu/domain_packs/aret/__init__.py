@@ -75,6 +75,23 @@ from .component_schema_conformance import (
     AretV1ComponentSchemaConformance,
     inspect_aret_v1_component_schema,
 )
+from .structural_schema_conformance import (
+    AretStructuralSchemaConformanceError,
+    AretV1BrickSchemaConformance,
+    AretV1FunctionSymbolSchemaConformance,
+    inspect_aret_v1_brick_schema,
+    inspect_aret_v1_function_symbol_schema,
+)
+from .structural_import_preparation import (
+    AretStructuralImportPreparation,
+    AretStructuralImportPreparationError,
+    structural_import_preparation,
+)
+from .structural_import_preflight import (
+    AretStructuralImportPreflightError,
+    AretV1StructuralImportPreflight,
+    structural_import_preflight,
+)
 from .component_post_validation import (
     AretComponentPostValidationError,
     AretV1ComponentPostValidation,
@@ -160,6 +177,17 @@ __all__ = [
     "AretComponentSchemaConformanceError",
     "AretV1ComponentSchemaConformance",
     "inspect_aret_v1_component_schema",
+    "AretStructuralSchemaConformanceError",
+    "AretV1BrickSchemaConformance",
+    "AretV1FunctionSymbolSchemaConformance",
+    "inspect_aret_v1_brick_schema",
+    "inspect_aret_v1_function_symbol_schema",
+    "AretStructuralImportPreparation",
+    "AretStructuralImportPreparationError",
+    "structural_import_preparation",
+    "AretStructuralImportPreflightError",
+    "AretV1StructuralImportPreflight",
+    "structural_import_preflight",
     "AretComponentPostValidationError",
     "AretV1ComponentPostValidation",
     "post_validate_authorized_aret_v1_component_page",
