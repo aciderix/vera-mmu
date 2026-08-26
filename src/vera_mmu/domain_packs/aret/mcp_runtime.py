@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ...mcp_adapters import RuntimeAdapterRegistry
+from ...mcp_instructions import MCPInstructions, compile_mcp_instructions
 from ...mcp_manifest import MCPManifest, compile_mcp_manifest
 from ...mcp_server import MCPServer, create_server
 from ...store import MemoryStore
@@ -25,6 +26,7 @@ class AretMCPRuntime:
     adapter: AretClosedOracleMCPAdapter
     registry: RuntimeAdapterRegistry
     manifest: MCPManifest
+    instructions: MCPInstructions
     server: MCPServer
 
 
@@ -69,5 +71,18 @@ def build_aret_mcp_runtime(
     adapter = AretClosedOracleMCPAdapter(repository, **adapter_options)
     registry = RuntimeAdapterRegistry((adapter,))
     manifest = compile_mcp_manifest(store, adapter_bindings=_aret_adapter_bindings(store, adapter.adapter_id))
-    server = create_server(store, adapter_registry=registry, manifest=manifest, actor="vera-mcp-aret")
-    return AretMCPRuntime(adapter=adapter, registry=registry, manifest=manifest, server=server)
+    instructions = compile_mcp_instructions(store, manifest)
+    server = create_server(
+        store,
+        adapter_registry=registry,
+        manifest=manifest,
+        instructions=instructions,
+        actor="vera-mcp-aret",
+    )
+    return AretMCPRuntime(
+        adapter=adapter,
+        registry=registry,
+        manifest=manifest,
+        instructions=instructions,
+        server=server,
+    )

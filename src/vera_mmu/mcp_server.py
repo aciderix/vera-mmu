@@ -24,6 +24,7 @@ from .evidence import EvidenceService
 from .gates import GateService
 from .identity import load_profile
 from .mcp_adapters import RuntimeAdapterRegistry
+from .mcp_instructions import MCPInstructions, compile_mcp_instructions
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
 from .store import MemoryStore, StoreError
 from .validators import ValidatorService
@@ -174,6 +175,7 @@ def create_server(
     *,
     adapter_registry: RuntimeAdapterRegistry | None = None,
     manifest: MCPManifest | None = None,
+    instructions: MCPInstructions | None = None,
     asset_validator_id: str = DEFAULT_ASSET_VALIDATOR_ID,
     actor: str = "vera-mcp",
 ) -> MCPServer:
@@ -186,6 +188,14 @@ def create_server(
         raise ValueError("Adapter direct et registry MCP sont mutuellement exclusifs.")
     if adapter_registry is not None and manifest is None:
         raise ValueError("Un registry MCP exige un manifeste vérifié.")
+    if instructions is not None:
+        if manifest is None:
+            raise ValueError("Des instructions MCP compilées exigent un manifeste vérifié.")
+        if not isinstance(instructions, MCPInstructions):
+            raise ValueError("Instructions MCP compilées invalides.")
+        expected_instructions = compile_mcp_instructions(store, manifest)
+        if instructions != expected_instructions:
+            raise ValueError("Instructions MCP périmées, altérées ou liées à un autre manifeste.")
     adapter = runtime_adapter if runtime_adapter is not None else DenyRuntimeAdapter()
     allowed_capability_ids = None if manifest is None else verify_mcp_manifest(store, manifest)
     adapter_bindings = (
@@ -198,7 +208,7 @@ def create_server(
         SERVER_NAME,
         title="VERA Memory Management Unit",
         description="Façade MCP universelle, fermée et policy-gated de VERA-MMU.",
-        instructions=SERVER_INSTRUCTIONS,
+        instructions=SERVER_INSTRUCTIONS if instructions is None else instructions.text,
         version=SERVER_VERSION,
     )
 
