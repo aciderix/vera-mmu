@@ -10,6 +10,7 @@ from .addressing import (
 from .runtime import AretLegacyRuntimeLayout, legacy_runtime_layout
 from .schema import AretLegacySchemaManifest, aret_v1_schema_manifest
 from .profile import AretCompatibilityProfile, aret_v1_compatibility_profile
+from .mapping import AretStructuralMapping, aret_v1_structural_mappings
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -23,4 +24,6 @@ __all__ = [
     "aret_v1_schema_manifest",
     "AretCompatibilityProfile",
     "aret_v1_compatibility_profile",
+    "AretStructuralMapping",
+    "aret_v1_structural_mappings",
 ]
