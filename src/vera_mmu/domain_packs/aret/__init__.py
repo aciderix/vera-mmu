@@ -27,6 +27,11 @@ from .git_identity import (
     AretV1GitSourceIdentity,
     verify_aret_v1_git_source_identity,
 )
+from .sqlite_schema import (
+    AretSqliteSchemaInspectionError,
+    AretV1SchemaSnapshotInspection,
+    inspect_aret_v1_schema_snapshot,
+)
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -52,4 +57,7 @@ __all__ = [
     "AretGitSourceIdentityError",
     "AretV1GitSourceIdentity",
     "verify_aret_v1_git_source_identity",
+    "AretSqliteSchemaInspectionError",
+    "AretV1SchemaSnapshotInspection",
+    "inspect_aret_v1_schema_snapshot",
 ]
