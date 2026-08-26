@@ -240,3 +240,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-036` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validators de contenu explicitement bornés, runners sûrs additionnels, lifecycle/traversal de work graph, politiques/gates plus riches sous lot séparé, CLI/MCP et pack ARET. Aucun oracle externe, fichier, URL, réseau ou shell n’est livré par M3.11. | `OBSERVED` | Revue post-M3.11; aucun contrat ou test de ces capacités n’est livré. | `LOG-0085` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-035`, `MEM-DEC-031`, `MEM-STATE-036`, `MEM-WALL-001`, puis `LOG-0084`–`LOG-0085` avant tout lot M3 ultérieur.
+
+
+## 20. Addendum de reprise — M3.12 lifecycle dérivé
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-037` | Lifecycle de work item | `SUPERSEDES: MEM-STATE-036` pour cette exclusion précise. Des événements append-only `START`/`COMPLETE`/`CANCEL` dérivent l’état `PLANNED`/`ACTIVE`/`COMPLETED`/`CANCELLED`; `work_item.status` reste historiquement `PLANNED`. | `OBSERVED` | Migration `024_work_lifecycle.sql`, `work_lifecycle.py`, tests M3.12; 151 tests et 14 sous-tests, wheel isolé. | `LOG-0087`, `LOG-0088` |
+| `MEM-DEC-032` | Frontière lifecycle | Une transition de lifecycle est un fait de travail, non une execution, admission, preuve, promotion `PROVEN` ou validation de gate. Les transitions sont fermées et terminales; l’état et l’historique sont lus sans effet. | `DECISION` | Contrat M3.12 et invariants I004–I008, I013–I015. | `LOG-0087`, `LOG-0088` |
+| `MEM-STATE-038` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validator de contenu explicitement borné, runners sûrs additionnels, politiques/gates avancées sous lot séparé, CLI/MCP et pack ARET. Pause/reprise, réouverture, propagation et orchestration de lifecycle restent hors M3.12. | `OBSERVED` | Revue post-M3.12; aucun contrat ou test de ces capacités n’est livré. | `LOG-0088` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-037`, `MEM-DEC-032`, `MEM-STATE-038`, `MEM-WALL-001`, puis `LOG-0087`–`LOG-0088` avant tout lot M3 ultérieur.

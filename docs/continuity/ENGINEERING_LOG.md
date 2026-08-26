@@ -110,6 +110,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0084` | 2026-08-25 | `HYPOTHESIS` | M3.11 | gate multi-evidence conjonctive, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-035`, `MEM-DEC-031`, `MEM-WALL-001` |
 | `LOG-0085` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.11 | exigences, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-035`, `MEM-STATE-036`, `MEM-DEC-031`, `MEM-WALL-001` |
 | `LOG-0086` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.11 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-036`, `MEM-WALL-001` |
+| `LOG-0087` | 2026-08-26 | `HYPOTHESIS` | M3.12 | lifecycle dérivé, événements fermés, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-037`, `MEM-DEC-032`, `MEM-WALL-001` |
+| `LOG-0088` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.12 | transitions, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-037`, `MEM-STATE-038`, `MEM-DEC-032`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1403,3 +1405,27 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication M3.11. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
 | Suivi | Cadrer séparément un lifecycle de work item minimal ou un validator de contenu explicitement borné, sans oracle ARET, runner additionnel, réseau implicite ni exécution de commande. |
+
+
+### LOG-0087 — Hypothèse M3.12 : lifecycle dérivé de work item
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `b8b7b22631212600f4fb5019f78d5fd1828d2751`, `main` propre et alignée; 149 tests et 14 sous-tests `PASS`; M3.11 publié. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | Le registre `work_item` conserve volontairement `PLANNED` de manière immutable. Les dépendances et gates n’établissent aucun état de travail visible ou historique pour une activité démarrée, terminée ou annulée. |
+| Hypothèse | Des événements append-only `START`, `COMPLETE` et `CANCEL`, avec séquence calculée par work item, peuvent dériver un état `PLANNED`/`ACTIVE`/`COMPLETED`/`CANCELLED` sans jamais modifier `work_item`. Les transitions admises sont fermées : `PLANNED→ACTIVE`, `ACTIVE→COMPLETED`, `PLANNED|ACTIVE→CANCELLED`. |
+| Sûreté | Aucun événement ne lance de capability, n’admet d’evidence, ne crée de preuve, ne modifie une gate, knowledge, evidence, execution ou work item. Une complétion est un état de travail dérivé, jamais une promotion `PROVEN` ou un résultat de gate implicite. |
+| Tests-first attendus | Migration/FK/enum/séquence/immutabilité/audit/rollback; état initial `PLANNED`; transitions admises; refus de transition inverse/terminale; historique exact; work item historique reste `PLANNED`; lecture sans effet. |
+| Invariants | I001, I004–I008, I011, I013–I015. |
+| Verdict | `PENDING` — aucun patch M3.12 n’est encore produit. |
+
+
+### LOG-0088 — Verdict M3.12 : lifecycle dérivé de work item
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 024 et `WorkLifecycleService` ajoutent des événements append-only `START`/`COMPLETE`/`CANCEL` séquencés par work item. L’état `PLANNED`/`ACTIVE`/`COMPLETED`/`CANCELLED` est calculé à la lecture; le `work_item.status` historique reste `PLANNED`. |
+| Validation | Tests-first : import absent attendu; tests ciblés : 2 `PASS`; suite complète : 151 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan sans processus, shell, réseau, I/O, `eval`, import dynamique, insertion d’execution ni mutation work item/knowledge/evidence `PASS`; wheel isolé avec migration 024, transitions valides, refus terminal et work item inchangé `PASS`. |
+| Atomicité | Work item inconnu, événement hors catalogue ou transition interdite refusent avant insertion et audit. Les séquences sont uniques par work item; état et historique sont des lectures sans effet. |
+| Limite | Le lifecycle ne requiert aucune gate, ne gère ni pause/reprise, réouverture, échéance, assignation, propagation parent/enfant, ordre de dépendance, exécution ou preuve. Une complétion n’est pas `PROVEN`. |
+| Verdict | `PASS` pour M3.12 technique; publication et synchronisation de continuité à finaliser. |
