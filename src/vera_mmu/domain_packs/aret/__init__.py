@@ -43,6 +43,12 @@ from .component_import_preflight import (
     AretV1ComponentImportPreflight,
     component_import_preflight,
 )
+from .component_entity_projection import (
+    AretComponentEntityProjectionError,
+    AretV1ComponentEntityProjection,
+    AretV1EntityDraft,
+    project_aret_v1_component_entities,
+)
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -78,4 +84,8 @@ __all__ = [
     "AretComponentImportPreflightError",
     "AretV1ComponentImportPreflight",
     "component_import_preflight",
+    "AretComponentEntityProjectionError",
+    "AretV1ComponentEntityProjection",
+    "AretV1EntityDraft",
+    "project_aret_v1_component_entities",
 ]
