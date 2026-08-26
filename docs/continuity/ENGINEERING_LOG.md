@@ -1990,3 +1990,21 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `ef7f45e89790012669211d488f5ddd3ebe96d44a` avant le handoff documentaire. |
 | Reprise | Un lot M4 futur doit isoler un premier lecteur de lignes `component` avec pagination, collision policy, batch/provenance/audit/rollback et zéro promotion, ou préciser d’abord ces contrats. La seule inspection de manifeste ne l’autorise pas implicitement. |
+
+### LOG-0141 — Verdict M4.10 : lecture paginée brute de `component` ARET V1
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.component_reader` expose `read_aret_v1_component_page`. La fonction exige le snapshot inspecté M4.9, applique un hash avant/après et retourne seulement des pages keyset ordonnées de colonnes raw `component` : `id`, `title`, `description`, `created_at`, `created_by`. |
+| Invariant | SQLite est ouvert en `mode=ro&immutable=1` avec `query_only`. La seule requête métier est paramétrée, ordonnée par `id`, limitée à 100 et bornée par `after_id`; hash, inspection, chemin, curseur et limite divergents sont refusés. |
+| Observation ponctuelle | Contre le snapshot baseline au hash `85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5`, une page `limit=100` observe 17 composants, sans afficher ni persister leur contenu; aucun curseur suivant n’est requis et le hash est inchangé avant/après. |
+| Isolation | Le Core n’importe pas le pack. Le module ne lit aucune autre table, ne construit ni `entity` ni mapping, ne réalise aucune normalisation/collision, et ne crée ni transaction VERA, audit, evidence, proof, admission, import ou écriture. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : surface absente; ciblé : `9 passed`; Core : `238 passed, 14 subtests passed`; scans de frontière, lecture read-only ponctuelle et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.10 uniquement. Le lot rend des lignes source observables, non des ressources VERA importées; il n’affirme ni conversion, provenance de lot, preuve, écriture réversible ou parité ARET. M4 reste `IN_PROGRESS`. |
+
+### LOG-0142 — Publication fonctionnelle et handoff M4.10
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `f2a97e5c88c5ecd5c8924a7bea789ad239ec0f5f` — `feat: read ARET V1 component source pages`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `f2a97e5c88c5ecd5c8924a7bea789ad239ec0f5f` avant le handoff documentaire. |
+| Reprise | Un lot M4 futur doit définir séparément la projection `component→entity`, les identifiants cibles, collision/non-fusion, le batch transactionnel, provenance/audit, rollback et l’admission. La présence d’un lecteur ne déclenche ni n’autorise implicitement un import. |

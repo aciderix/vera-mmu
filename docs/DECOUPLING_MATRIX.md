@@ -165,6 +165,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.9 vérifie une structure de manifeste, pas les données qui s’y trouvent. Il n’exécute que des requêtes `SELECT` de métadonnées nominatives; aucune ligne des tables applicatives, aucun contenu de connaissance, preuve, composant ou brick n’est lu, converti ou écrit.
 
+### 2.16. Avancement observé M4.10 — lecture paginée brute de `component`
+
+| Couplages | Surface VERA désormais observée | Evidence M4.10 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C04`, `C05`, `C16` | `vera_mmu.domain_packs.aret.component_reader` lit exclusivement les colonnes source `id`, `title`, `description`, `created_at`, `created_by` de `component`, via pages keyset strictement ordonnées par `id`, bornées à 100 et liées à l’inspection M4.9 ainsi qu’au hash de snapshot stable. | `tests/test_aret_component_source_reader.py` : page brute, ordre/pagination, limites/cursor, hash/inspection/chemin divergents et interdictions mapping/import; suite `238 passed, 14 subtests passed`, wheel isolée; lecture ponctuelle de 17 composants baseline sans afficher le contenu; `LOG-0141`. | Mapping vers `entity`, politique de collision/non-fusion, normalisation de champs, identité VERA cible, transaction/rollback, provenance/audit, evidence/proof, admission, écriture de lot, autres tables et parité ARET. | `SPLIT` |
+
+> M4.10 rend observables des lignes legacy brutes, non des entités VERA. Chaque champ est retourné tel que lu depuis `component`; aucune décision de conversion, de qualité, de statut, de fusion, d’admission ou de promotion n’est prise.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
