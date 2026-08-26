@@ -7,6 +7,7 @@ from .addressing import (
     make_aret_address,
     parse_aret_address,
 )
+from .runtime import AretLegacyRuntimeLayout, legacy_runtime_layout
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -14,4 +15,6 @@ __all__ = [
     "AretAddressCompatibilityError",
     "make_aret_address",
     "parse_aret_address",
+    "AretLegacyRuntimeLayout",
+    "legacy_runtime_layout",
 ]
