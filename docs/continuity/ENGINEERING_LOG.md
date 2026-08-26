@@ -1688,3 +1688,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Tests-first : module absent; tests ciblés : `6 passed`; suite complète : `174 passed, 14 subtests passed`; scan sans I/O/écriture/ARET et wheel isolée passent. |
 | Limites | Aucun traversal de gates, diagnostic composite dependency+gate, pondération/temporalité, scheduler, orchestration ou mutation automatique. |
 | Verdict | `PASS` pour M3.21. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
+
+
+### LOG-0111 — Publication et handoff M3.21
+
+| Champ | Valeur |
+|---|---|
+| Commit publié | `b0cd1cc365091a6283bf6fd246b8d3a2c63b9bac` — `feat: add pure gate blockers`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `b0cd1cc365091a6283bf6fd246b8d3a2c63b9bac`. |
+| État de reprise | M3.21 est publié. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
+| Prochain choix | Choisir explicitement un seul gap M3 : diagnostic composite, graph/lifecycle avancé, validator/oracle métier sous policy distincte, runner sûr additionnel ou surface CLI/MCP. Ne pas rendre le diagnostic actif. |
