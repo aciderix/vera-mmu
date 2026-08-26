@@ -2176,3 +2176,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Tests-first rouges ; ciblés `5 passed`; suite complète `310 passed, 14 subtests passed`; scans Core anti-ARET/pack no-write/no-network et roue isolée : `PASS`. |
 | Publication | Commit fonctionnel `fb5a04db57f3dd00feca81724157df08502eb0ca` — `feat(aret-pack): read structural function and brick pages` — publié et vérifié sur `main`. ARET-MMU reste propre au baseline fixé. |
 | Verdict | `PASS borné` pour les lecteurs seulement. Les projections, conformance profonde, authorisations, imports, rollback/reprise et sémantiques de statut restent non livrés ; M4-B reste `IN_PROGRESS`, M4 global `IN_PROGRESS`, parité `UNKNOWN`. |
+
+### LOG-0163 — Verdict M4-B : projection pure function_symbol vers symbol
+| Champ | Valeur |
+|---|---|
+| Portée | Projection déterministe `function_symbol→symbol` : owner component VERA, `FUNCTION`, module→path, symbole→identifier, convention/provenance source conservées. |
+| Gates | Tests-first rouge ; ciblés `2 passed`; suite complète `312 passed, 14 subtests passed`; scans no-I/O/no-write/no-SymbolService et roue isolée : `PASS`. |
+| Publication | Commit `e0a75c441c617000334cc2b275b5dcdd68e2bbcf` publié sur `main`. |
+| Verdict | `PASS borné` pour projection sans écriture. Conformance source, binding à components importés, autorisation, import atomique, rollback/reprise et parité restent requis. |

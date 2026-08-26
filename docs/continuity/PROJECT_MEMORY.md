@@ -557,3 +557,5 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-STATE-110` | M4-B | Les tables ARET V1 `function_symbol` et `brick` disposent désormais de lecteurs paginés/hashés en SQLite immutable, liés au snapshot inspecté et sans write-path. Aucun symbole ni work item n’est encore projeté ou importé. | `OBSERVED` | Tests readers, commit `fb5a04db57f3dd00feca81724157df08502eb0ca`. | `LOG-0162` |
+
+| `MEM-STATE-111` | M4-B projection | La projection `function_symbol→symbol` est déterministe, relie chaque fonction à `aret-component--<component_id>`, conserve module/symbole/convention dans la provenance et retourne `PROJECTED_NOT_WRITABLE`. Aucun symbole VERA n’est écrit. | `OBSERVED` | Tests projection, commit `e0a75c441c617000334cc2b275b5dcdd68e2bbcf`. | `LOG-0163` |
