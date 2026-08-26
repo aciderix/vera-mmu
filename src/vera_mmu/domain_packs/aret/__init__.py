@@ -39,6 +39,7 @@ from .sqlite_schema import (
     AretV1SchemaSnapshotInspection,
     inspect_aret_v1_schema_snapshot,
 )
+from .function_symbol_projection import AretFunctionSymbolProjectionError, AretV1FunctionSymbolProjection, AretV1SymbolDraft, project_aret_v1_function_symbol_page
 from .brick_reader import AretBrickReadError, AretV1BrickSourcePage, AretV1BrickSourceRecord, read_aret_v1_brick_page
 from .function_symbol_reader import (
     AretFunctionSymbolReadError,
@@ -125,6 +126,10 @@ __all__ = [
     "AretSqliteSchemaInspectionError",
     "AretV1SchemaSnapshotInspection",
     "inspect_aret_v1_schema_snapshot",
+    "AretFunctionSymbolProjectionError",
+    "AretV1FunctionSymbolProjection",
+    "AretV1SymbolDraft",
+    "project_aret_v1_function_symbol_page",
     "AretBrickReadError",
     "AretV1BrickSourcePage",
     "AretV1BrickSourceRecord",
