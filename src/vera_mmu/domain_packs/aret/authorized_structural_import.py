@@ -50,7 +50,10 @@ def _require_authorization(
         or value.source_first_id != preflight.source_first_id
         or value.source_last_id != preflight.source_last_id
         or value.lifecycle_policy != preflight.lifecycle_policy
-        or value.target_series_state != "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED"
+        or value.target_series_state not in {
+            "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED",
+            "MATCHING_PRIOR_SERIES_REQUIRED",
+        }
         or value.collision_policy != "REJECT_EXISTING_TARGET"
         or value.merge_policy != "FORBID"
         or value.promotion_policy != "FORBID"
@@ -135,13 +138,17 @@ def import_authorized_aret_v1_structural_page(
     service = ImportBatchService(target_store)
     if service.get_resource_import_batch(checked_authorization.authorization_id) is None:
         try:
-            check_aret_v1_structural_target_clear(
+            current_clear = check_aret_v1_structural_target_clear(
                 preflight=preflight,
                 projection=projection,
                 target_store=target_store,
             )
         except AretStructuralTargetCollisionError as exc:
             raise AretAuthorizedStructuralImportError("La cible structurelle a dérivé ou n’est plus non fusionnelle.") from exc
+        if current_clear.target_series_state != checked_authorization.target_series_state:
+            raise AretAuthorizedStructuralImportError(
+                "La série structurelle cible a changé entre l’autorisation et l’écriture de la page."
+            )
     inputs = _resource_inputs(preflight, projection)
     try:
         committed = service.commit_resource_import_batch(
@@ -153,7 +160,9 @@ def import_authorized_aret_v1_structural_page(
                 resource_kind=checked_authorization.resource_kind,
                 resources=inputs,
                 actor=checked_authorization.authorized_by,
-                require_empty_target=True,
+                require_empty_target=(
+                    checked_authorization.target_series_state == "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED"
+                ),
             )
         )
     except ImportBatchError as exc:

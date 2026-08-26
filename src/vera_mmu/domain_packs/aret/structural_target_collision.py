@@ -154,6 +154,50 @@ def _require_existing_entities(store: MemoryStore, entity_ids: tuple[str, ...]) 
         raise AretStructuralTargetCollisionError("Un parent component VERA requis est absent : le préflight interdit l’import.")
 
 
+def _target_series_state(
+    store: MemoryStore,
+    *,
+    resource_table: str,
+    resource_kind: str,
+    mapping_id: str,
+    source_snapshot_sha256: str,
+) -> str:
+    resource_count = int(store.connection.execute(f"SELECT COUNT(*) FROM {resource_table}").fetchone()[0])
+    matching_batch_count = int(
+        store.connection.execute(
+            "SELECT COUNT(*) FROM resource_import_batch WHERE source_system = 'aret-v1' "
+            "AND source_snapshot_sha256 = ? AND mapping_id = ? AND resource_kind = ?",
+            (source_snapshot_sha256, mapping_id, resource_kind),
+        ).fetchone()[0]
+    )
+    other_series_count = int(
+        store.connection.execute(
+            "SELECT COUNT(*) FROM resource_import_batch WHERE resource_kind = ? "
+            "AND (source_system <> 'aret-v1' OR source_snapshot_sha256 <> ? OR mapping_id <> ?)",
+            (resource_kind, source_snapshot_sha256, mapping_id),
+        ).fetchone()[0]
+    )
+    matching_resource_count = int(
+        store.connection.execute(
+            "SELECT COUNT(DISTINCT record.target_identifier) "
+            "FROM resource_import_batch_record AS record "
+            "JOIN resource_import_batch AS batch ON batch.id = record.batch_id "
+            "WHERE batch.source_system = 'aret-v1' AND batch.source_snapshot_sha256 = ? "
+            "AND batch.mapping_id = ? AND batch.resource_kind = ?",
+            (source_snapshot_sha256, mapping_id, resource_kind),
+        ).fetchone()[0]
+    )
+    if resource_count == 0:
+        if matching_batch_count or other_series_count or matching_resource_count:
+            raise AretStructuralTargetCollisionError("Le ledger structurel est incohérent : une série référence une cible vide.")
+        return "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED"
+    if not matching_batch_count or other_series_count or matching_resource_count != resource_count:
+        raise AretStructuralTargetCollisionError(
+            "La surface ressource cible ne correspond pas exactement à une série ARET V1 compatible et non fusionnelle."
+        )
+    return "MATCHING_PRIOR_SERIES_REQUIRED"
+
+
 def check_aret_v1_structural_target_clear(
     *,
     preflight: AretV1StructuralImportPreflight,
@@ -167,8 +211,14 @@ def check_aret_v1_structural_target_clear(
         drafts = _require_symbol_projection(projection, checked_preflight)
         parents = tuple(sorted({draft.owner_entity_id for draft in drafts}))
         _require_existing_entities(store, parents)
-        resource_count = int(store.connection.execute("SELECT COUNT(*) FROM symbol").fetchone()[0])
         resource_kind, lifecycle_state = "SYMBOL", "NOT_APPLICABLE"
+        target_series_state = _target_series_state(
+            store,
+            resource_table="symbol",
+            resource_kind=resource_kind,
+            mapping_id="aret-v1-function-symbol-to-symbol-v1",
+            source_snapshot_sha256=checked_preflight.source_snapshot_sha256,
+        )
     else:
         drafts = _require_work_item_projection(projection, checked_preflight)
         component_ids = tuple(
@@ -181,15 +231,19 @@ def check_aret_v1_structural_target_clear(
             )
         )
         _require_existing_entities(store, component_ids)
-        resource_count = int(store.connection.execute("SELECT COUNT(*) FROM work_item").fetchone()[0])
         resource_kind, lifecycle_state = "WORK_ITEM", "DEFERRED_NOT_EXECUTABLE"
-    if resource_count:
-        raise AretStructuralTargetCollisionError("La surface ressource cible n’est pas vide : le préflight interdit toute fusion.")
+        target_series_state = _target_series_state(
+            store,
+            resource_table="work_item",
+            resource_kind=resource_kind,
+            mapping_id="aret-v1-brick-to-work-item-v1",
+            source_snapshot_sha256=checked_preflight.source_snapshot_sha256,
+        )
     return AretV1StructuralTargetClearCheck(
         target_identity=store.identity,
         resource_kind=resource_kind,
         checked_resource_count=len(drafts),
         checked_parent_entity_count=len(parents) if checked_preflight.legacy_table == "function_symbol" else len(component_ids),
-        target_series_state="INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED",
+        target_series_state=target_series_state,
         lifecycle_state=lifecycle_state,
     )

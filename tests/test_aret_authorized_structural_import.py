@@ -12,6 +12,7 @@ from vera_mmu.domain_packs.aret import (
     authorize_aret_v1_structural_import,
     check_aret_v1_structural_target_clear,
     import_authorized_aret_v1_structural_page,
+    post_validate_authorized_aret_v1_structural_page,
 )
 from vera_mmu.symbols import SymbolService
 from tests.test_aret_structural_target_collision import _brick_projection, _component_parent, _preflight, _store, _symbol_projection
@@ -69,6 +70,135 @@ def test_authorized_function_symbol_import_commits_audited_batch_and_replays_exa
         assert replay.was_already_imported is True
         assert replay.resources == result.resources
         assert store.audit_events() == replay_before
+
+
+def test_authorized_structural_symbol_import_accepts_a_following_page_only_for_the_matching_aret_series(tmp_path: Path) -> None:
+    with _store(tmp_path) as store:
+        _component_parent(store)
+        first_preflight, first_projection, first_authorization = _authorize_symbol(store)
+        import_authorized_aret_v1_structural_page(
+            preflight=first_preflight,
+            projection=first_projection,
+            authorization=first_authorization,
+            target_store=store,
+        )
+        first_draft = first_projection.drafts[0]
+        following_draft = replace(
+            first_draft,
+            target_identifier="aret-symbol--component-pkg-stop",
+            identifier="stop",
+            metadata={
+                "source": {
+                    **first_draft.metadata["source"],
+                    "source_id": "component:pkg!stop",
+                }
+            },
+        )
+        following_projection = replace(first_projection, drafts=(following_draft,))
+        following_preflight = replace(
+            first_preflight,
+            preflight_id="function-symbol-preflight-002",
+            source_first_id="component:pkg!stop",
+            source_last_id="component:pkg!stop",
+        )
+
+        clear = check_aret_v1_structural_target_clear(
+            preflight=following_preflight,
+            projection=following_projection,
+            target_store=store,
+        )
+        authorization = authorize_aret_v1_structural_import(
+            preflight=following_preflight,
+            projection=following_projection,
+            clear_check=clear,
+            target_store=store,
+            authorization_id="function-import-authorization-002",
+            authorized_by="fixture",
+        )
+        result = import_authorized_aret_v1_structural_page(
+            preflight=following_preflight,
+            projection=following_projection,
+            authorization=authorization,
+            target_store=store,
+        )
+
+        assert clear.target_series_state == "MATCHING_PRIOR_SERIES_REQUIRED"
+        assert authorization.target_series_state == "MATCHING_PRIOR_SERIES_REQUIRED"
+        assert result.was_already_imported is False
+        post_validation = post_validate_authorized_aret_v1_structural_page(
+            authorization=authorization,
+            projection=following_projection,
+            import_result=result,
+            target_store=store,
+        )
+
+        assert [resource.id for resource in result.resources] == ["aret-symbol--component-pkg-stop"]
+        assert post_validation.validation_state == "POST_VALIDATED_NO_PROMOTION"
+        assert store.connection.execute("SELECT COUNT(*) FROM resource_import_batch").fetchone()[0] == 2
+
+
+def test_authorized_structural_brick_import_accepts_a_following_page_only_for_the_matching_aret_series(tmp_path: Path) -> None:
+    with _store(tmp_path) as store:
+        first_preflight, first_projection, first_authorization = _authorize_brick(store)
+        import_authorized_aret_v1_structural_page(
+            preflight=first_preflight,
+            projection=first_projection,
+            authorization=first_authorization,
+            target_store=store,
+        )
+        first_draft = first_projection.drafts[0]
+        following_draft = replace(
+            first_draft,
+            target_identifier="aret-brick--brick-002",
+            title="Brick Two",
+            metadata={
+                "source": {
+                    **first_draft.metadata["source"],
+                    "source_id": "brick-002",
+                }
+            },
+        )
+        following_projection = replace(first_projection, drafts=(following_draft,))
+        following_preflight = replace(
+            first_preflight,
+            preflight_id="brick-preflight-002",
+            source_first_id="brick-002",
+            source_last_id="brick-002",
+        )
+
+        clear = check_aret_v1_structural_target_clear(
+            preflight=following_preflight,
+            projection=following_projection,
+            target_store=store,
+        )
+        authorization = authorize_aret_v1_structural_import(
+            preflight=following_preflight,
+            projection=following_projection,
+            clear_check=clear,
+            target_store=store,
+            authorization_id="brick-import-authorization-002",
+            authorized_by="fixture",
+        )
+        result = import_authorized_aret_v1_structural_page(
+            preflight=following_preflight,
+            projection=following_projection,
+            authorization=authorization,
+            target_store=store,
+        )
+
+        assert clear.target_series_state == "MATCHING_PRIOR_SERIES_REQUIRED"
+        assert authorization.target_series_state == "MATCHING_PRIOR_SERIES_REQUIRED"
+        assert result.was_already_imported is False
+        post_validation = post_validate_authorized_aret_v1_structural_page(
+            authorization=authorization,
+            projection=following_projection,
+            import_result=result,
+            target_store=store,
+        )
+
+        assert [resource.id for resource in result.resources] == ["aret-brick--brick-002"]
+        assert post_validation.validation_state == "POST_VALIDATED_NO_PROMOTION"
+        assert store.connection.execute("SELECT COUNT(*) FROM resource_import_batch").fetchone()[0] == 2
 
 
 def test_authorized_brick_import_preserves_legacy_state_metadata_without_lifecycle_promotion(tmp_path: Path) -> None:

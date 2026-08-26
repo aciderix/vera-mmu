@@ -187,7 +187,7 @@ def test_structural_collision_check_rejects_binding_or_projection_drift(tmp_path
 
 def test_structural_collision_module_is_read_only_and_has_no_authorization_or_import_capability() -> None:
     source = (Path(__file__).parents[1] / "src" / "vera_mmu" / "domain_packs" / "aret" / "structural_target_collision.py").read_text(encoding="utf-8")
-    for required in ("SELECT COUNT(*) FROM symbol", "SELECT COUNT(*) FROM work_item", "TARGET_CLEAR_NOT_WRITABLE"):
+    for required in ("SELECT COUNT(*) FROM {resource_table}", "resource_import_batch", "TARGET_CLEAR_NOT_WRITABLE"):
         assert required in source
     for forbidden in ("INSERT", "UPDATE", "DELETE", "ImportBatchService", "authorize_", "subprocess", "requests", "urllib.", "socket", "os.system"):
         assert forbidden not in source

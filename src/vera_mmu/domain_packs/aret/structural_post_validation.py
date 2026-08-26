@@ -36,7 +36,10 @@ def _require_authorization(value: object) -> AretV1StructuralImportAuthorization
     if (
         value.legacy_table not in {"function_symbol", "brick"}
         or value.resource_kind not in {"SYMBOL", "WORK_ITEM"}
-        or value.target_series_state != "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED"
+        or value.target_series_state not in {
+            "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED",
+            "MATCHING_PRIOR_SERIES_REQUIRED",
+        }
         or value.collision_policy != "REJECT_EXISTING_TARGET"
         or value.merge_policy != "FORBID"
         or value.promotion_policy != "FORBID"

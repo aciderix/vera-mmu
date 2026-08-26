@@ -74,7 +74,10 @@ def _require_clear_check(
         value.target_identity != preflight.target_identity
         or value.resource_kind != preflight.resource_kind
         or value.checked_resource_count != preflight.source_record_count
-        or value.target_series_state != "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED"
+        or value.target_series_state not in {
+            "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED",
+            "MATCHING_PRIOR_SERIES_REQUIRED",
+        }
         or value.clear_state != "TARGET_CLEAR_NOT_WRITABLE"
     ):
         raise AretStructuralImportAuthorizationError("clear_check doit être le contrôle de collision exact, courant et non écrivable.")
