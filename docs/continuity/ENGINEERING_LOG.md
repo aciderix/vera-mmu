@@ -2458,3 +2458,19 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | Les instructions de playbook, de reprise, hooks et configuration d’installation ne sont pas encore compilées. M5-E établit la couche universelle minimale attestée; aucune doctrine spécifique ARET n’est transférée au Core. |
 | Verdict | `M5-E = PASS`; M5 reste `IN_PROGRESS`. |
 | Référence | `9010293`; `tests/test_mcp_instructions.py`; `src/vera_mmu/mcp_instructions.py`; `MEM-DEC-133`. |
+
+### LOG-0187 — 2026-08-26 — M5-F : prévisualisation d’intégration MCP manifest-bound
+| Champ | Valeur |
+|---|---|
+| Type | `PATCH` / `TEST` / `VERDICT` |
+| But | Produire la première configuration MCP project-localisée depuis les snapshots M5-B/E, sans écrire `.mcp.json`, hooks ou code métier avant l’existence d’un installateur attesté. |
+| Patch | `5dab574` ajoute `mcp_integration.py` et le format `vera-mcp-integration/v1`. Il vérifie manifeste et instructions, puis produit JSON canonique et `config_hash=SHA-256(json_text)`. |
+| Sortie | La prévisualisation contient un unique serveur `vera-mmu-<project_id>`, `command: vmmu-mcp`, `args: [--profile, ${CLAUDE_PROJECT_DIR:-.}/<profile relatif>]` et environnement descriptif `VERA_PROJECT_ID`, `VERA_MCP_BUILD_HASH`, `VERA_MCP_INSTRUCTIONS_HASH`. |
+| Confinement | Le seul write-path est `<runtime>/generated/mcp.json`, créé en mode exclusif. Une seconde écriture échoue; `.mcp.json`, `.claude/`, le profil et le code métier ne sont jamais modifiés. |
+| Fermeture | Le compilateur refuse Store, manifeste, instruction, identité, profile path ou snapshot incohérents. La configuration ne transporte ni commande libre, chemin d’exécutable, adapter, verdict, résultat, artifact, secret ou hook. |
+| Portée réelle | Le JSON cible l’entry point générique VERA, donc fail-closed sans hôte Pack explicite. Les variables de hash sont descriptives dans cette tranche; aucun lanceur/installeur n’est encore autorisé à les substituer à la vérification server-side M5-B/E. |
+| Tests | Rouge : module absent. Vert : JSON stable, champs standard bornés, manifest+instruction liés, dérive de catalogue refusée, preview runtime exclusive et zéro `.mcp.json` créée. |
+| Contrôles | Ciblés : `3 passed`. Suite complète : `419 passed, 37 subtests passed`. Scan de `mcp_integration.py` sans Pack/ARET/shell/réseau; roue isolée et entry points : `PASS`; `git diff --check` : `PASS`. |
+| Limite | Hooks, fusion/idempotence de `.mcp.json`, configuration d’hôte Pack installable, validation du client configuré et approbations runtime restent ouverts. |
+| Verdict | `M5-F = PASS`; M5 reste `IN_PROGRESS`. |
+| Référence | `5dab574`; `tests/test_mcp_integration_config.py`; `src/vera_mmu/mcp_integration.py`; `MEM-DEC-134`. |

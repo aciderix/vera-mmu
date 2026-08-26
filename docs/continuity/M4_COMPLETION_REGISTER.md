@@ -114,9 +114,9 @@ Le verdict `M4 = PASS` est autorisé uniquement si les conditions suivantes sont
 | M4-B intégration | `OBSERVED` : snapshot attesté, import/post-validation temporaire de 9 symbols en 3 pages et 13 work items en 5 pages, replay sans écriture, 8 resource batches, 22 liens structurels et zéro evidence/proof/admission/promotion. Le correctif local de résolution des parents brick et les séries non fusionnelles sont couverts par tests. |
 | M4 global | `IN_PROGRESS`. |
 | Parité ARET | `UNKNOWN`. |
-| C07 / C08 | `IN_PROGRESS` : catalogue, préflight, normalisation, runner sandboxé, doctor et chaîne capability→execution→asset→evidence→validation→admission→proof/gate sont testés. M5-A/B/C/D/E transporte ces scénarios par vrai client MCP sous manifeste, registry, adapter Pack fermé et instructions attestées. Hooks/config/install, corpus comparable et parité complète restent hors clôture. |
+| C07 / C08 | `IN_PROGRESS` : catalogue, préflight, normalisation, runner sandboxé, doctor et chaîne capability→execution→asset→evidence→validation→admission→proof/gate sont testés. M5-A/B/C/D/E/F transporte ces scénarios par vrai client MCP sous manifeste, registry, adapter Pack fermé, instructions attestées et config prévisualisée. Hooks/install, corpus comparable et parité complète restent hors clôture. |
 | M4.EXIT | `NOT_ELIGIBLE` : l’audit `artifacts/m4_exit_precondition_audit_2026-08-26.md` confirme que des gates restent `IN_PROGRESS`, la parité est `UNKNOWN`, et les imports/playbook/bundles/compatibilités ainsi que M5/M6 restent incomplets. Le score local `winediff 255/264` demeure une observation Pack, non un critère de transport VERA. |
-| Prochain lot autorisé | En M5, compiler test-first hooks/config et une installation déclarative attestée à partir de M5-B/C/D/E; conserver la façade fail-closed hors hôte Pack explicitement assemblé. Les divergences Wine et `win32_winsock` restent une investigation ARET distincte, sans rouvrir le Core pour les masquer. |
+| Prochain lot autorisé | En M5, compiler test-first hooks et une installation déclarative attestée à partir de M5-B/C/D/E/F; conserver la façade fail-closed hors hôte Pack explicitement assemblé. Les divergences Wine et `win32_winsock` restent une investigation ARET distincte, sans rouvrir le Core pour les masquer. |
 
 ## Références
 

@@ -773,3 +773,16 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | `9010293`; ciblé `6 passed`; suite `416 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0186`. |
 | État | `M5-E PASS`; M5 global `IN_PROGRESS`. |
 | Références | `src/vera_mmu/mcp_instructions.py`; `tests/test_mcp_instructions.py`; `LOG-0186`. |
+
+### MEM-DEC-134 — M5-F produit une prévisualisation d’intégration sans installer
+| Champ | Valeur |
+|---|---|
+| Décision | La première configuration MCP VERA est compilée et écrite seulement comme prévisualisation runtime. Elle ne modifie ni `.mcp.json`, ni `.claude/`, ni le profil et ne prétend pas installer un runtime Pack. |
+| Format | `vera-mcp-integration/v1` comprend `project_id`, `mcp_build_hash`, `instructions_hash`, `config_hash` et un JSON standard `mcpServers` déterministe. |
+| Commande générée | La config cible uniquement le point d’entrée installé `vmmu-mcp` avec `--profile` relatif au projet. Elle ne transporte pas un chemin binaire, un script, un shell, un adapter, une capability ou une donnée de résultat. |
+| Liaison | Manifeste M5-B et instructions M5-E sont recompilés contre le Store avant la sortie. Une dérive d’identité, de capability/policy, de manifeste ou d’instruction est refusée. |
+| Confinement | `write_mcp_integration_preview` crée seulement `<runtime>/generated/mcp.json` en création exclusive. Cela évite tout écrasement et toute pollution du code/projet avant l’installateur attesté. |
+| Limite | Le serveur générique ainsi décrit reste fail-closed sans hôte de Pack. Fusion idempotente, installation opt-in, hooks, approbations runtime et validation d’un client configuré sont des lots ultérieurs. |
+| Preuve | `5dab574`; ciblé `3 passed`; suite `419 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0187`. |
+| État | `M5-F PASS`; M5 global `IN_PROGRESS`. |
+| Références | `src/vera_mmu/mcp_integration.py`; `tests/test_mcp_integration_config.py`; `LOG-0187`. |
