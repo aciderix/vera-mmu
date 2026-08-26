@@ -409,3 +409,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-069` | Compatibilité ARET | Le Domain Pack `vera_mmu.domain_packs.aret` fournit un parseur/constructeur strict de la surface V1 fermée : `knowledge`, `component`, `function`, `brick`, `proof`, `relation`, `asset`, `pipeline` et le singleton `front/current`. Il accepte uniquement la forme canonique `ARET://` pour lecture de compatibilité. | `OBSERVED` | `test_aret_address_compatibility.py`, suite Core `192 passed, 14 subtests passed`, wheel isolée. | `LOG-0123` |
 | `MEM-DEC-049` | Frontière M4.1 | M4.1 ne résout aucune adresse dans un store, ne lit ni n’écrit ARET/VERA, ne migre ni ne convertit d’ID, et ne rend pas `ARET://` générable par le Core. Le module est isolé du Core et ne contient aucune dépendance de toolchain ARET. | `DECISION` | Contrat M4.1 et scans de frontière. | `LOG-0123` |
 | `MEM-STATE-070` | État M4 | M4 est `IN_PROGRESS`. C01 reste `SPLIT` : les fixtures de round-trip canonique sont couvertes, mais lecteur connecté au store, import de données et parité historique restent non prouvés. C02/C03–C16, `MEM-WALL-001` et la parité ARET restent inchangés. | `OBSERVED` | Matrice de découplage et verdict M4.1. | `LOG-0123` |
+
+
+## 38. Addendum — M4.2 manifeste déclaratif du runtime ARET V1
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-071` | Runtime ARET | Le Domain Pack expose un manifeste immutable des conventions V1 : override `ARET_MEMORY_DIR`, runtime `.aret-memory`, base `aret_memory.sqlite`, répertoires `artifacts` et `exports`. Il ne résout ni variable ni chemin. | `OBSERVED` | `test_aret_runtime_manifest.py`, suite Core `194 passed, 14 subtests passed`, wheel isolée. | `LOG-0125` |
+| `MEM-DEC-050` | Frontière M4.2 | Le manifeste est une description de compatibilité, pas un `StoreLocator`, un adaptateur de migration, une policy ou une lecture de secret. Il ne crée aucun dossier, n’ouvre aucune SQLite et ne connecte pas le runtime V1 au Core VERA. | `DECISION` | Contrat M4.2 et scans de frontière. | `LOG-0125` |
+| `MEM-STATE-072` | État M4 | M4 reste `IN_PROGRESS`. C02 reste `SPLIT` : conventions de layout déclarées, mais résolution bornée, WAL/checkpoint, doctor, store V1 et parité sont non implémentés/non prouvés. Les autres couplages et `MEM-WALL-001` sont inchangés. | `OBSERVED` | Matrice de découplage et verdict M4.2. | `LOG-0125` |

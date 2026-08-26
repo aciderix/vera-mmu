@@ -101,6 +101,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.1 établit seulement un lecteur de syntaxe V1 dans le Domain Pack. Il ne rend aucune ressource ARET lisible dans VERA, ne migre aucune donnée et ne peut justifier une parité ARET.
 
+### 2.8. Avancement observé M4.2 — manifeste du runtime ARET V1
+
+| Couplage | Surface VERA désormais observée | Evidence M4.2 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C02` | `vera_mmu.domain_packs.aret.runtime` déclare sans I/O les conventions V1 : override `ARET_MEMORY_DIR`, `.aret-memory`, `aret_memory.sqlite`, `artifacts` et `exports`. | `tests/test_aret_runtime_manifest.py` : valeurs exactes, immuabilité, membres relatifs et indépendance du Core ; suite `194 passed, 14 subtests passed` et wheel isolée ; `LOG-0125`. | Résolution bornée, override contrôlé, création de runtime, ouverture du store V1, WAL/checkpoint, doctor, migration, compatibilité de données et parité baseline ARET. | `SPLIT` |
+
+> M4.2 décrit le layout V1 seulement. Il ne consulte pas l’environnement, ne résout ni ne crée de chemin et ne peut constituer une preuve de compatibilité de runtime ou de store.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

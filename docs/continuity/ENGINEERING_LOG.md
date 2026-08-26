@@ -1835,3 +1835,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `fc91a1c202cc507666c38535c11d3d40a0045aae` avant le handoff documentaire. |
 | Reprise | Le prochain lot M4 doit être contractuellement borné contre la matrice de découplage; il ne peut pas inférer la parité ARET à partir de M4.1. |
+
+
+### LOG-0125 — Verdict M4.2 : manifeste du runtime ARET V1
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.runtime` déclare immuablement les conventions legacy : `ARET_MEMORY_DIR`, `.aret-memory`, `aret_memory.sqlite`, `artifacts` et `exports`. |
+| Invariant | La surface ne lit pas l’environnement, ne résout ni ne crée de chemin, n’ouvre aucune SQLite, n’applique aucune migration et ne lit aucun secret. Elle est une donnée de pack, distincte du `RuntimeLocator` Core. |
+| Isolation | Le Core n’importe pas le pack; le manifeste ne contient ni filesystem, store, SQLite, réseau, shell ni toolchain ARET. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : module absent; ciblé : `6 passed` avec M4.1; Core : `194 passed, 14 subtests passed`; `git diff --check`, scans de frontière et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.2 uniquement. C02 reste `SPLIT`; aucune résolution de runtime, compatibilité de store, WAL, doctor ou parité ARET n’est affirmée. M4 reste `IN_PROGRESS`. |
+
+
+### LOG-0126 — Publication et handoff M4.2
+
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `e023a12ab506c5ce44a1566f2b221e2aba88b8bc` — `feat: declare legacy ARET runtime layout`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `e023a12ab506c5ce44a1566f2b221e2aba88b8bc` avant le handoff documentaire. |
+| Reprise | Le lot M4 suivant doit rester lié à un couplage de la matrice et séparer strictement description de layout, résolution de runtime et migration de données. |
