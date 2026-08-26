@@ -1,7 +1,9 @@
-"""Cloud planning and preinstalled-runtime diagnosis for Claude Code.
+"""Cloud planning, staged lifecycle, and project-local host configuration for Claude Code.
 
-M5-M.1 deliberately compiles and observes only.  It does not install packages, access the
-network, launch a hook, write user settings, inspect secret values, or claim live-cloud readiness.
+M5-M.1 deliberately compiled and observed only; M5-M.2 added runtime-confined staging/hook/MCP;
+M5-M.3a adds an explicitly confirmed project-local configuration merge.  This module never
+installs packages, accesses the network, reads or writes user settings, inspects secret values,
+or claims live-cloud readiness.
 """
 
 from __future__ import annotations
@@ -38,6 +40,9 @@ CLAUDE_CODE_CLOUD_ADAPTER_ID = "claude-code-cloud-v1"
 CLAUDE_CODE_CLOUD_ADAPTER_VERSION = "1.0.0"
 CLAUDE_CODE_CLOUD_MAXIMUM_GUARD_MODE = "HARD"
 CLOUD_RUNTIME_FORMAT = "vera-claude-code-cloud-runtime/v1"
+CLOUD_HOST_CONFIG_FORMAT = "vera-claude-code-cloud-host-config/v1"
+CLOUD_CONFIG_ENTRYPOINT = "vmmu-claude-code-cloud-config"
+_CLOUD_USER_SCOPE_TARGET = "$HOME/.claude/settings.json"
 _EVENTS = ("SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "PostCompact", "Stop")
 _TRUST_STATUSES = frozenset(("TRUST_PENDING", "TRUSTED", "DISABLED", "UNVERIFIABLE"))
 
@@ -87,6 +92,33 @@ class ClaudeCodeCloudStageResult:
     status: str
     state_path: Path
     plan_hash: str
+
+
+@dataclass(frozen=True)
+class ClaudeCodeCloudHostConfigPreview:
+    """Attested project-local host configuration; user-scope trust is deliberately absent."""
+
+    status: str
+    settings_path: Path
+    mcp_path: Path
+    state_path: Path
+    settings_json_text: str
+    mcp_json_text: str
+    plan_hash: str
+    user_scope_target: str
+    user_scope_status: str
+
+
+@dataclass(frozen=True)
+class ClaudeCodeCloudHostConfigApplyResult:
+    """Result of a confirmed project-local host configuration write only."""
+
+    status: str
+    settings_path: Path
+    mcp_path: Path
+    state_path: Path
+    plan_hash: str
+    user_scope_status: str
 
 
 @dataclass(frozen=True)
@@ -303,6 +335,90 @@ def stage_claude_code_cloud_runtime(
     return ClaudeCodeCloudStageResult("STAGED", target, plan.plan_hash)
 
 
+def preview_claude_code_cloud_host_config(
+    store: MemoryStore,
+    existing_settings: Mapping[str, Any],
+    existing_mcp: Mapping[str, Any],
+) -> ClaudeCodeCloudHostConfigPreview:
+    """Compile a no-write project host preview from the only staged cloud runtime.
+
+    The caller provides project-file snapshots explicitly.  This function never resolves a home
+    directory, reads user settings, or treats a project declaration as a cloud trust decision.
+    """
+    if not isinstance(store, MemoryStore):
+        raise ClaudeCodeCloudError("Store invalide pour le preview hôte Claude cloud.")
+    settings = _json_object_copy(existing_settings, "settings Claude cloud")
+    mcp = _json_object_copy(existing_mcp, "configuration MCP cloud")
+    runtime = _load_staged_cloud_runtime(store)
+    desired_hooks = _cloud_hook_commands(runtime.plan)
+    desired_server = _cloud_mcp_server(runtime.plan)
+    generic_server = _cloud_generic_server(store, runtime.manifest, runtime.instructions)
+    merged_settings, _ = _merge_cloud_hooks(settings, desired_hooks)
+    merged_mcp, _ = _merge_cloud_server(mcp, desired_server, generic_server)
+    settings_text = _canonical_json(merged_settings)
+    mcp_text = _canonical_json(merged_mcp)
+    plan_hash = sha256((settings_text + "\\0" + mcp_text).encode("utf-8")).hexdigest()
+    return ClaudeCodeCloudHostConfigPreview(
+        status="PREVIEW",
+        settings_path=_cloud_host_settings_path(store, create=False),
+        mcp_path=_cloud_host_mcp_path(store),
+        state_path=_cloud_host_state_path(store, create=False),
+        settings_json_text=settings_text,
+        mcp_json_text=mcp_text,
+        plan_hash=plan_hash,
+        user_scope_target=_CLOUD_USER_SCOPE_TARGET,
+        user_scope_status="NOT_DELIVERED",
+    )
+
+
+def apply_claude_code_cloud_host_config(
+    store: MemoryStore,
+    preview: ClaudeCodeCloudHostConfigPreview,
+    *,
+    confirm: bool,
+) -> ClaudeCodeCloudHostConfigApplyResult:
+    """Write only a verified project preview after explicit confirmation.
+
+    This deliberately has no user-scope argument or code path.  A future, separately approved
+    operation must handle user-scope trust; this function cannot be repurposed for it.
+    """
+    if confirm is not True:
+        raise ClaudeCodeCloudError("Application hôte Claude cloud refusée sans confirmation explicite.")
+    if not isinstance(preview, ClaudeCodeCloudHostConfigPreview):
+        raise ClaudeCodeCloudError("Preview hôte Claude cloud invalide.")
+    settings_path = _cloud_host_settings_path(store, create=False)
+    mcp_path = _cloud_host_mcp_path(store)
+    state_path = _cloud_host_state_path(store, create=False)
+    expected = preview_claude_code_cloud_host_config(
+        store,
+        _load_json_object(settings_path, "settings Claude cloud"),
+        _load_json_object(mcp_path, "configuration MCP cloud"),
+    )
+    if preview != expected:
+        raise ClaudeCodeCloudError("Preview hôte Claude cloud périmé, altéré ou divergent.")
+    state_text = _cloud_host_state_text(preview)
+    existing_state = _read_optional_text(state_path)
+    if existing_state is not None and existing_state != state_text:
+        raise ClaudeCodeCloudError("État hôte Claude cloud divergent : refus sans écriture.")
+    settings_current = _read_optional_text(settings_path)
+    mcp_current = _read_optional_text(mcp_path)
+    if settings_current != preview.settings_json_text:
+        _atomic_write(settings_path, preview.settings_json_text, ".vera-claude-cloud-settings-")
+    if mcp_current != preview.mcp_json_text:
+        _atomic_write(mcp_path, preview.mcp_json_text, ".vera-claude-cloud-mcp-")
+    if existing_state != state_text:
+        _atomic_write(state_path, state_text, ".vera-claude-cloud-host-")
+    status = "UNCHANGED" if settings_current == preview.settings_json_text and mcp_current == preview.mcp_json_text and existing_state == state_text else "APPLIED_PROJECT_LOCAL"
+    return ClaudeCodeCloudHostConfigApplyResult(
+        status=status,
+        settings_path=settings_path,
+        mcp_path=mcp_path,
+        state_path=state_path,
+        plan_hash=preview.plan_hash,
+        user_scope_status="NOT_DELIVERED",
+    )
+
+
 def handle_claude_code_cloud_hook(
     store: MemoryStore,
     lifecycle: LifecycleAdapterPlan,
@@ -395,6 +511,206 @@ def claude_code_cloud_mcp_main(argv: Sequence[str] | None = None) -> None:
             actor="vera-claude-code-cloud",
         )
         server.run("stdio")
+
+
+def _cloud_plan_payload(plan: ClaudeCodeCloudPlan) -> dict[str, Any]:
+    if not isinstance(plan, ClaudeCodeCloudPlan) or plan.plan_hash != sha256(plan.json_text.encode("utf-8")).hexdigest():
+        raise ClaudeCodeCloudError("Plan Claude cloud altéré.")
+    try:
+        payload = json.loads(plan.json_text)["claudeCodeCloud"]
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise ClaudeCodeCloudError("Plan Claude cloud illisible.") from exc
+    if not isinstance(payload, dict):
+        raise ClaudeCodeCloudError("Plan Claude cloud hors format fermé.")
+    return payload
+
+
+def _cloud_hook_commands(plan: ClaudeCodeCloudPlan) -> dict[str, list[dict[str, object]]]:
+    server = _cloud_mcp_server(plan)
+    server_id = _cloud_plan_payload(plan).get("mcpServer", {}).get("id")
+    profile_argument = server.get("args", [None, None])[1] if isinstance(server.get("args"), list) else None
+    if not isinstance(server_id, str) or not server_id.startswith("vera-mmu-") or not isinstance(profile_argument, str):
+        raise ClaudeCodeCloudError("Serveur MCP cloud attesté invalide pour les hooks.")
+
+    def group(event: str, *, matcher: str | None = None) -> dict[str, object]:
+        command = f'{CLOUD_HOOK_ENTRYPOINT} --profile "{profile_argument}" --event {event}'
+        payload: dict[str, object] = {"hooks": [{"command": command, "timeout": 10, "type": "command"}]}
+        if matcher is not None:
+            payload["matcher"] = matcher
+        return payload
+
+    return {
+        "PostCompact": [group("PostCompact")],
+        "PostToolUse": [group("PostToolUse", matcher=f"mcp__{server_id}__mmu_acknowledge_resume")],
+        "PreCompact": [group("PreCompact")],
+        "PreToolUse": [group("PreToolUse")],
+        "SessionStart": [group("SessionStart")],
+        "Stop": [group("Stop")],
+    }
+
+
+def _cloud_mcp_server(plan: ClaudeCodeCloudPlan) -> dict[str, object]:
+    payload = _cloud_plan_payload(plan)
+    server = payload.get("mcpServer")
+    if not isinstance(server, dict):
+        raise ClaudeCodeCloudError("Serveur MCP cloud absent du plan attesté.")
+    server_id = server.get("id")
+    command = server.get("command")
+    args = server.get("args")
+    env = server.get("env")
+    if not isinstance(server_id, str) or not server_id or command != CLOUD_MCP_ENTRYPOINT or not isinstance(args, list) or not isinstance(env, dict):
+        raise ClaudeCodeCloudError("Serveur MCP cloud attesté invalide.")
+    return {"id": server_id, "command": command, "args": list(args), "env": dict(env)}
+
+
+def _cloud_generic_server(store: MemoryStore, manifest: MCPManifest, instructions: MCPInstructions) -> dict[str, object]:
+    integration = compile_mcp_integration(store, manifest, instructions)
+    try:
+        servers = json.loads(integration.json_text)["mcpServers"]
+        if not isinstance(servers, dict) or len(servers) != 1:
+            raise ValueError("servers")
+        server_id, server = next(iter(servers.items()))
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ClaudeCodeCloudError("Serveur MCP générique attesté illisible.") from exc
+    if not isinstance(server_id, str) or not isinstance(server, dict):
+        raise ClaudeCodeCloudError("Serveur MCP générique attesté invalide.")
+    return {"id": server_id, **server}
+
+
+def _merge_cloud_hooks(existing: dict[str, Any], desired: object) -> tuple[dict[str, Any], bool]:
+    if not isinstance(desired, dict):
+        raise ClaudeCodeCloudError("Hooks Claude cloud attestés invalides.")
+    existing_hooks = existing.get("hooks", {})
+    if not isinstance(existing_hooks, dict):
+        raise ClaudeCodeCloudError("hooks Claude cloud existant doit être un objet JSON.")
+    merged = dict(existing)
+    hooks = {key: list(value) if isinstance(value, list) else value for key, value in existing_hooks.items()}
+    changed = False
+    for event, groups in desired.items():
+        if not isinstance(event, str) or not isinstance(groups, list):
+            raise ClaudeCodeCloudError("Groupe de hook Claude cloud invalide.")
+        current = hooks.get(event, [])
+        if not isinstance(current, list):
+            raise ClaudeCodeCloudError("Événement de hooks cloud existant doit être une liste.")
+        for group in current:
+            if _contains_vera_lifecycle_hook(group) and group not in groups:
+                raise ClaudeCodeCloudError("Conflit : hook lifecycle VERA existant divergent.")
+        additions = [group for group in groups if group not in current]
+        if additions:
+            hooks[event] = [*current, *additions]
+            changed = True
+    if changed:
+        merged["hooks"] = hooks
+    return merged, changed
+
+
+def _contains_vera_lifecycle_hook(group: object) -> bool:
+    if not isinstance(group, dict):
+        return False
+    handlers = group.get("hooks")
+    return isinstance(handlers, list) and any(
+        isinstance(handler, dict) and isinstance(handler.get("command"), str) and handler["command"].startswith("vmmu-claude-code-")
+        for handler in handlers
+    )
+
+
+def _merge_cloud_server(existing: dict[str, Any], desired: object, generic: Mapping[str, object]) -> tuple[dict[str, Any], bool]:
+    if not isinstance(desired, dict):
+        raise ClaudeCodeCloudError("Serveur MCP Claude cloud attesté invalide.")
+    server_id = desired.get("id")
+    server = {key: value for key, value in desired.items() if key != "id"}
+    generic_server = {key: value for key, value in generic.items() if key != "id"}
+    if not isinstance(server_id, str) or not server_id:
+        raise ClaudeCodeCloudError("Identifiant serveur MCP Claude cloud invalide.")
+    servers = existing.get("mcpServers", {})
+    if not isinstance(servers, dict):
+        raise ClaudeCodeCloudError("mcpServers cloud existant doit être un objet JSON.")
+    current = servers.get(server_id)
+    if current == server:
+        return existing, False
+    if current is not None and current != generic_server:
+        raise ClaudeCodeCloudError("Conflit : serveur MCP VERA cloud existant divergent.")
+    merged = dict(existing)
+    merged_servers = dict(servers)
+    merged_servers[server_id] = server
+    merged["mcpServers"] = merged_servers
+    return merged, True
+
+
+def _json_object_copy(value: Mapping[str, Any], label: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ClaudeCodeCloudError(f"{label} doit être un objet JSON.")
+    try:
+        copied = json.loads(json.dumps(dict(value), ensure_ascii=False))
+    except (TypeError, ValueError) as exc:
+        raise ClaudeCodeCloudError(f"{label} non sérialisable en JSON.") from exc
+    if not isinstance(copied, dict):
+        raise ClaudeCodeCloudError(f"{label} doit être un objet JSON.")
+    return copied
+
+
+def _cloud_host_settings_path(store: MemoryStore, *, create: bool) -> Path:
+    directory = store.workspace.project_root / ".claude"
+    if directory.is_symlink():
+        raise ClaudeCodeCloudError("Répertoire .claude cloud symlinké refusé.")
+    if create:
+        _safe_parent(directory, "répertoire .claude cloud")
+    elif directory.exists() and not directory.is_dir():
+        raise ClaudeCodeCloudError("Répertoire .claude cloud ambigu ou non régulier.")
+    target = directory / "settings.json"
+    if target.is_symlink():
+        raise ClaudeCodeCloudError("La cible .claude/settings.json cloud ne peut pas être un lien symbolique.")
+    return target
+
+
+def _cloud_host_mcp_path(store: MemoryStore) -> Path:
+    target = store.workspace.project_root / ".mcp.json"
+    if target.is_symlink():
+        raise ClaudeCodeCloudError("La cible .mcp.json cloud ne peut pas être un lien symbolique.")
+    return target
+
+
+def _cloud_host_state_path(store: MemoryStore, *, create: bool) -> Path:
+    target = store.locator.runtime_dir / "generated" / "claude-code-cloud-host-config.json"
+    if target.parent.is_symlink():
+        raise ClaudeCodeCloudError("Runtime hôte cloud symlinké refusé.")
+    if create:
+        _safe_parent(target.parent, "runtime hôte cloud")
+    elif target.parent.exists() and not target.parent.is_dir():
+        raise ClaudeCodeCloudError("Runtime hôte cloud ambigu ou non régulier.")
+    if target.is_symlink():
+        raise ClaudeCodeCloudError("État hôte Claude cloud symlinké refusé.")
+    return target
+
+
+def _load_json_object(target: Path, label: str) -> dict[str, Any]:
+    if not target.exists():
+        return {}
+    if target.is_symlink() or not target.is_file():
+        raise ClaudeCodeCloudError(f"La cible {label} doit être un fichier régulier.")
+    try:
+        value = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ClaudeCodeCloudError(f"La cible {label} n’est pas un JSON lisible.") from exc
+    if not isinstance(value, dict):
+        raise ClaudeCodeCloudError(f"La cible {label} doit contenir un objet JSON.")
+    return value
+
+
+def _cloud_host_state_text(preview: ClaudeCodeCloudHostConfigPreview) -> str:
+    if preview.plan_hash != sha256((preview.settings_json_text + "\\0" + preview.mcp_json_text).encode("utf-8")).hexdigest():
+        raise ClaudeCodeCloudError("Preview hôte Claude cloud altéré.")
+    return _canonical_json(
+        {
+            "cloudHostConfig": {
+                "format": CLOUD_HOST_CONFIG_FORMAT,
+                "mcpSha256": sha256(preview.mcp_json_text.encode("utf-8")).hexdigest(),
+                "planHash": preview.plan_hash,
+                "settingsSha256": sha256(preview.settings_json_text.encode("utf-8")).hexdigest(),
+                "userScope": "NOT_DELIVERED",
+            }
+        }
+    )
 
 
 def _verify_cloud_runtime(store: MemoryStore, lifecycle: LifecycleAdapterPlan, plan: ClaudeCodeCloudPlan) -> None:
@@ -614,6 +930,50 @@ def _atomic_write(target: Path, text: str, prefix: str) -> None:
             except OSError:
                 pass
         raise ClaudeCodeCloudError("Écriture atomique Claude cloud impossible.") from exc
+
+
+def claude_code_cloud_config_main(argv: Sequence[str] | None = None) -> int:
+    """Preview, or explicitly apply, the project-only Claude cloud configuration."""
+    parser = argparse.ArgumentParser(description="Configuration hôte Claude Code cloud VERA-MMU")
+    parser.add_argument("--profile", type=Path, required=True)
+    parser.add_argument("--apply-project", action="store_true")
+    parser.add_argument("--confirm", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        from .identity import load_profile
+
+        with MemoryStore.open(load_profile(args.profile), args.profile) as store:
+            preview = preview_claude_code_cloud_host_config(
+                store,
+                _load_json_object(_cloud_host_settings_path(store, create=False), "settings Claude cloud"),
+                _load_json_object(_cloud_host_mcp_path(store), "configuration MCP cloud"),
+            )
+            if args.apply_project:
+                result = apply_claude_code_cloud_host_config(store, preview, confirm=args.confirm)
+                payload = {
+                    "ok": True,
+                    "mcpPath": str(result.mcp_path),
+                    "planHash": result.plan_hash,
+                    "settingsPath": str(result.settings_path),
+                    "statePath": str(result.state_path),
+                    "status": result.status,
+                    "userScope": result.user_scope_status,
+                }
+            else:
+                payload = {
+                    "mcpPath": str(preview.mcp_path),
+                    "ok": True,
+                    "planHash": preview.plan_hash,
+                    "settingsPath": str(preview.settings_path),
+                    "status": preview.status,
+                    "userScope": preview.user_scope_status,
+                    "userScopeTarget": preview.user_scope_target,
+                }
+    except StoreError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, sort_keys=True))
+        return 2
+    print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    return 0
 
 
 def claude_code_cloud_stage_main(argv: Sequence[str] | None = None) -> int:

@@ -145,6 +145,123 @@ class ClaudeCodeCloudRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 unchanged = stage_claude_code_cloud_runtime(store, manifest, instructions, integration, hooks, review, lifecycle, local, cloud, confirm=True)
                 self.assertEqual(unchanged.status, "UNCHANGED")
 
+    async def test_i007_i011_cloud_host_preview_is_deterministic_and_preserves_unrelated_entries(self) -> None:
+        from vera_mmu.claude_code_cloud import preview_claude_code_cloud_host_config
+
+        with TemporaryDirectory() as directory:
+            project = Path(directory)
+            profile = self._prepare(project)
+            existing_settings = {
+                "hooks": {
+                    "Stop": [
+                        {
+                            "hooks": [
+                                {"command": "third-party-stop", "type": "command"}
+                            ]
+                        }
+                    ]
+                },
+                "model": "claude-sonnet",
+            }
+            existing_mcp = {
+                "mcpServers": {
+                    "third-party": {"command": "third-party-mcp", "args": []}
+                }
+            }
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                first = preview_claude_code_cloud_host_config(store, existing_settings, existing_mcp)
+                second = preview_claude_code_cloud_host_config(store, existing_settings, existing_mcp)
+            self.assertEqual(first, second)
+            self.assertEqual(first.status, "PREVIEW")
+            self.assertIn("third-party-stop", first.settings_json_text)
+            self.assertIn("claude-sonnet", first.settings_json_text)
+            self.assertIn("third-party-mcp", first.mcp_json_text)
+            self.assertIn("vmmu-claude-code-cloud-hook", first.settings_json_text)
+            self.assertIn("vmmu-claude-code-cloud-mcp", first.mcp_json_text)
+            self.assertEqual(first.user_scope_status, "NOT_DELIVERED")
+            self.assertFalse((project / ".claude").exists())
+            self.assertFalse((project / ".mcp.json").exists())
+
+    async def test_i007_i011_cloud_host_preview_refuses_conflicting_vera_entries(self) -> None:
+        from vera_mmu.claude_code_cloud import ClaudeCodeCloudError, preview_claude_code_cloud_host_config
+
+        with TemporaryDirectory() as directory:
+            project = Path(directory)
+            profile = self._prepare(project)
+            conflicting_settings = {
+                "hooks": {
+                    "SessionStart": [
+                        {
+                            "hooks": [
+                                {
+                                    "command": "vmmu-claude-code-cloud-hook --profile foreign.yaml --event SessionStart",
+                                    "type": "command",
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                with self.assertRaises(ClaudeCodeCloudError):
+                    preview_claude_code_cloud_host_config(store, conflicting_settings, {})
+            self.assertFalse((project / ".claude").exists())
+            self.assertFalse((project / ".mcp.json").exists())
+
+    async def test_i007_i011_cloud_host_preview_refuses_conflicting_vera_server(self) -> None:
+        from vera_mmu.claude_code_cloud import ClaudeCodeCloudError, preview_claude_code_cloud_host_config
+
+        with TemporaryDirectory() as directory:
+            project = Path(directory)
+            profile = self._prepare(project)
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                baseline = preview_claude_code_cloud_host_config(store, {}, {})
+                server_id = next(iter(json.loads(baseline.mcp_json_text)["mcpServers"]))
+                conflicting_mcp = {"mcpServers": {server_id: {"command": "foreign-mcp", "args": []}}}
+                with self.assertRaises(ClaudeCodeCloudError):
+                    preview_claude_code_cloud_host_config(store, {}, conflicting_mcp)
+            self.assertFalse((project / ".claude").exists())
+            self.assertFalse((project / ".mcp.json").exists())
+
+    async def test_i007_i011_cloud_host_apply_refuses_symlinked_project_target(self) -> None:
+        from vera_mmu.claude_code_cloud import ClaudeCodeCloudError, apply_claude_code_cloud_host_config, preview_claude_code_cloud_host_config
+
+        with TemporaryDirectory() as directory:
+            project = Path(directory)
+            profile = self._prepare(project)
+            target = project / "outside-settings.json"
+            target.write_text("{}", encoding="utf-8")
+            (project / ".claude").mkdir()
+            (project / ".claude" / "settings.json").symlink_to(target)
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                with self.assertRaises(ClaudeCodeCloudError):
+                    preview_claude_code_cloud_host_config(store, {}, {})
+                with self.assertRaises(ClaudeCodeCloudError):
+                    apply_claude_code_cloud_host_config(store, object(), confirm=True)
+            self.assertEqual(target.read_text(encoding="utf-8"), "{}")
+
+    async def test_i007_i011_cloud_host_apply_requires_confirmation_and_never_targets_user_scope(self) -> None:
+        from vera_mmu.claude_code_cloud import ClaudeCodeCloudError, apply_claude_code_cloud_host_config, preview_claude_code_cloud_host_config
+
+        with TemporaryDirectory() as directory:
+            project = Path(directory)
+            profile = self._prepare(project)
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                preview = preview_claude_code_cloud_host_config(store, {}, {})
+                with self.assertRaises(ClaudeCodeCloudError):
+                    apply_claude_code_cloud_host_config(store, preview, confirm=False)
+                result = apply_claude_code_cloud_host_config(store, preview, confirm=True)
+            self.assertEqual(result.status, "APPLIED_PROJECT_LOCAL")
+            self.assertEqual(result.settings_path, project / ".claude" / "settings.json")
+            self.assertEqual(result.mcp_path, project / ".mcp.json")
+            self.assertTrue(result.settings_path.is_file())
+            self.assertTrue(result.mcp_path.is_file())
+            self.assertTrue(result.state_path.is_file())
+            self.assertNotIn(str(Path.home()), str(result.settings_path))
+            self.assertNotIn(str(Path.home()), str(result.mcp_path))
+            self.assertIn("vmmu-claude-code-cloud-hook", result.settings_path.read_text(encoding="utf-8"))
+            self.assertIn("vmmu-claude-code-cloud-mcp", result.mcp_path.read_text(encoding="utf-8"))
+
     async def test_hook_to_cloud_mcp_acknowledgement_to_pretool_allow(self) -> None:
         with TemporaryDirectory() as directory:
             project = Path(directory)
