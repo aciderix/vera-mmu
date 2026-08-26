@@ -786,3 +786,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | `5dab574`; ciblé `3 passed`; suite `419 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0187`. |
 | État | `M5-F PASS`; M5 global `IN_PROGRESS`. |
 | Références | `src/vera_mmu/mcp_integration.py`; `tests/test_mcp_integration_config.py`; `LOG-0187`. |
+
+### MEM-DEC-135 — M5-G compile un plan SessionStart sans créer de hook runtime
+| Champ | Valeur |
+|---|---|
+| Décision | VERA génère un plan de cycle de session, non un hook exécutable. Cette séparation préserve le Core d’une dépendance Claude/ARET et interdit de transformer un JSON de configuration en exécution implicite. |
+| Format | `vera-mcp-hooks/v1` contient `project_id`, `mcp_build_hash`, `instructions_hash`, `config_hash`, `hook_plan_hash` et un JSON `hookPlan` canonique. |
+| Événement | Le seul événement M5-G est `SessionStart`, avec livraison requise par un adapter hôte et source `ATTESTED_MCP_INSTRUCTIONS`. Son mode est explicitement `DECLARATIVE_ONLY`. |
+| Liaison | Manifest M5-B, instructions M5-E et config M5-F sont recompilés contre le Store avant la sortie. Toute divergence rend le plan invalide. |
+| Interdits | Aucune commande, script, chemin, capability, résultat, verdict, artifact ou secret ne peut figurer dans le plan. Il n’y a ni resume guard, ni checkpoint, ni acknowledgement en M5-G. |
+| Confinement | Seule la prévisualisation `<runtime>/generated/hooks.json` est écrite en création exclusive. Les fichiers `.claude/` et `.mcp.json` restent intacts. |
+| Limite | Un adapter d’intégration spécifique et un installateur opt-in devront traduire ce plan vers un runtime donné après validation; cette exécution n’est pas attestée par ce jalon. |
+| Preuve | `ea7235a`; ciblé `3 passed`; suite `422 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0188`. |
+| État | `M5-G PASS`; M5 global `IN_PROGRESS`. |
+| Références | `src/vera_mmu/mcp_hooks.py`; `tests/test_mcp_hook_plan.py`; `LOG-0188`. |

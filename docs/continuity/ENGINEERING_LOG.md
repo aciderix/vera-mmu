@@ -2474,3 +2474,19 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | Hooks, fusion/idempotence de `.mcp.json`, configuration d’hôte Pack installable, validation du client configuré et approbations runtime restent ouverts. |
 | Verdict | `M5-F = PASS`; M5 reste `IN_PROGRESS`. |
 | Référence | `5dab574`; `tests/test_mcp_integration_config.py`; `src/vera_mmu/mcp_integration.py`; `MEM-DEC-134`. |
+
+### LOG-0188 — 2026-08-26 — M5-G : plan de hook SessionStart déclaratif
+| Champ | Valeur |
+|---|---|
+| Type | `PATCH` / `TEST` / `VERDICT` |
+| But | Préparer le cycle de session à partir des artefacts MCP attestés, sans importer les scripts/hooks ARET et sans faire croire qu’un hook runtime existe déjà dans VERA. |
+| Audit | VERA ne possède ni resume service ni hook runtime. La forme ARET comporte des commandes spécifiques `SessionStart`, compactage, garde de reprise et stop; aucune ne peut être portée mécaniquement dans le Core universel. |
+| Patch | `ea7235a` ajoute `mcp_hooks.py` et `vera-mcp-hooks/v1`. `compile_mcp_hook_plan` revalide manifest, instructions et config M5-F, puis produit un JSON canonique contenant seulement `hookPlan.SessionStart`. |
+| Contrat | L’événement déclare `mode=DECLARATIVE_ONLY`, `delivery=HOST_ADAPTER_REQUIRED`, `instruction_source=ATTESTED_MCP_INSTRUCTIONS`. Il ne comprend aucune commande, script, chemin, capability, résultat, verdict, artifact ou secret. |
+| Confinement | La prévisualisation ne peut écrire que `<runtime>/generated/hooks.json` en mode création exclusive. Elle ne crée ni `.claude/settings.json`, ni script, ni sous-dossier hooks, ni modification de code métier. |
+| Fermeture | Toute divergence de Store, manifeste, instructions ou configuration fait échouer la compilation. Une seconde écriture de preview échoue; le plan ne peut pas être traité comme un hook exécutable. |
+| Tests | Rouge : module absent. Vert : stabilité du texte/hash, valeurs SessionStart exactes, absence de `command`/ARET, config périmée refusée, preview runtime exclusive et zéro réglage Claude créé. |
+| Contrôles | Ciblés : `3 passed`. Suite complète : `422 passed, 37 subtests passed`. Scan `mcp_hooks.py` sans Pack/ARET/shell/réseau; roue isolée et entry points : `PASS`; `git diff --check` : `PASS`. |
+| Limite | Un adapter spécifique à l’hôte et un installateur opt-in doivent encore traduire ce plan en hooks réellement exécutables. Resume, acknowledgement et checkpoint ne sont pas revendiqués par M5-G. |
+| Verdict | `M5-G = PASS`; M5 reste `IN_PROGRESS`. |
+| Référence | `ea7235a`; `tests/test_mcp_hook_plan.py`; `src/vera_mmu/mcp_hooks.py`; `MEM-DEC-135`. |
