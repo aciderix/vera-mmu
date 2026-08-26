@@ -2247,3 +2247,16 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 |---|---|
 | Reprise | Lire `MEM-STATE-118`, `LOG-0170`, M4-EXIT-04/05. Le prochain lot peut définir les write-paths distincts `function_symbol→symbol` et `brick→work_item` à condition de consommer l’autorisation exacte, de recontrôler les collisions à l’écriture, de déléguer exclusivement au Core 034 et de post-valider sans écriture. |
 | Interdits maintenus | Pas de SQL d’écriture dans le pack, pas de modification ARET, pas de merge, aucune evidence/proof/admission/promotion, aucun claim de parité ; la garde Front `ACTIVE` demeure un contrat lifecycle séparé. |
+
+
+### LOG-0172 — Intégration temporaire M4-B et correction de parent `brick`
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA part de `8772f871fe8120e06be03ef30229ed6576a0656a`, tests initiaux `359 passed, 14 subtests passed`. ARET reste au commit propre `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Hypothèse | Le mapping M4-A crée les parents `component` avec l’identifiant VERA déterministe `aret-component--<source_id>` ; un `brick.component_id` legacy doit être résolu vers cette même identité avant le contrôle des parents. |
+| Observation initiale | L’intégration temporaire a attesté le snapshot, importé/post-validé 17 components et 9 symbols, puis le contrôle `brick` a refusé les parents `CORE`/`LIFT` sous leur identifiant source brut. Une requête SQLite read-only a confirmé que ces deux components existent bien dans la source et que leurs entités VERA projetées sont `aret-component--CORE` et `aret-component--LIFT`. |
+| Correctif minimal | Le Domain Pack résout maintenant uniquement les `brick.component_id` non nuls en `aret-component--<component_id>` avant `_require_existing_entities`. Le Core reste sans ARET et aucun SQL d’écriture de pack n’est ajouté. Un nouveau test reproduit le défaut, vérifie la résolution du parent et confirme l’absence d’audit supplémentaire. Commit fonctionnel local : `2ab13fb4d8b6cb7558c824f6d405c4d7b27e95db`. |
+| Intégration réelle | Dans `/tmp/vera-m4b-real-integration-_k5hvo49`, la source a été attestée au SHA-256 `85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5`, taille `11 280 384`, runtime `NO_WAL_SIDECARS`, Git `CLEAN`; le manifest 001→006 est conforme. La page complète 17 components a été importée/post-validée et replayée sans écriture ; 9 symbols puis 13 work items ont suivi la chaîne conformance→preparation→preflight→projection→collision→autorisation→ledger Core→post-validation et chacun a été replayé sans écriture. |
+| Contrôles | Ciblés : `27 passed`. Suite complète : `360 passed, 14 subtests passed`. `git diff --check`, scan Core anti-ARET, scans de write-path/post-validation et roue isolée : `PASS`. ARET demeure propre, sans WAL/SHM. |
+| Limites et verdict | `OBSERVED_INTEGRATION_SUCCESS_NO_PROMOTION` seulement. Les work items Core sont tous `PLANNED`; les états legacy restent dans les métadonnées. Zéro `evidence`, `evidence_admission`, `knowledge_proof`, admission ou promotion. M4/M4-B restent `IN_PROGRESS`; C01–C06/C16 `SPLIT`; C07/C08 `BLOCKED — MEM-WALL-001`; parité `UNKNOWN`; `M4.EXIT` `NOT_ELIGIBLE`. |
+| Publication | Aucun push n’a été effectué. Toute publication distante attend la validation explicite du propriétaire après remise du rapport. |
