@@ -1772,3 +1772,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `14fda1f972745eaada9b8f30806dedd7ac58fe43` avant le handoff documentaire. |
 | État de reprise | M3.24 est fonctionnellement publié. M3.25 est le seul lot suivant autorisé par le contrat M3.EXIT; conserver les limites et états de parité existants. |
+
+
+### LOG-0119 — Verdict M3.25 : catalogue fermé runner-validator-schema
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `runner_validator_compatibility.py` ferme le catalogue aux paires `EVIDENCE_HASH`/`EVIDENCE_HASH` et `EVIDENCE_FIELDS`/`EVIDENCE_FIELDS`, sous un schéma exact `validator_id`/`evidence_id`. Les runners existants consultent ce catalogue avant toute validation/execution. |
+| Sémantique | Les chemins valides conservent leurs verdicts `PASS`/`FAIL`. Les incompatibilités cross-kind, profil hors catalogue ou schéma différent échouent avant validation, execution et audit; aucune admission ni preuve n’est créée. |
+| Gates | Tests-first : module absent; tests ciblés : `8 passed`; suite complète : `186 passed, 14 subtests passed`; matrice profile×validator×schema×policy, rollback, scans Core no-shell/no-network/no-filesystem/no-ARET/no-mutation et wheel isolée passent. |
+| Limites | Aucun runner générique, JSON Schema général, oracle, fichier, réseau, shell, admission ou preuve automatique. |
+| Verdict | `PASS` pour M3.25. Les lots fonctionnels M3.22–M3.25 sont `PASS`; M3 reste `IN_PROGRESS` jusqu’à la seule gate restante, M3.EXIT. C05/C06/C16 `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
+
+
+### LOG-0120 — Publication et handoff M3.25
+
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `a67d0dd05102b1d14341bd299d9fc62ce6029e2e` — `feat: close runner validator compatibility`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `a67d0dd05102b1d14341bd299d9fc62ce6029e2e` avant le handoff documentaire. |
+| État de reprise | M3.25 est fonctionnellement publié. M3.EXIT est la seule action M3 autorisée; ne pas introduire de lot ou extension supplémentaire. |

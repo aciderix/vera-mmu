@@ -382,3 +382,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-063` | Admission stricte | Sous `VALIDATED_PASS_EVIDENCE`, une admission `ADMITTED` exige désormais un `validation_id` explicite, `PASS` et lié à la même evidence. Le binding persistant est FK/unique/append-only; le mode `PASS_EVIDENCE` reste permissif et sans binding. | `OBSERVED` | Migration 032, tests M3.24 : `184 passed, 14 subtests passed`; upgrade 031→032 et wheel isolée validés. | `LOG-0117` |
 | `MEM-DEC-046` | Frontière admission-validation | Le binding ne déclenche jamais de validation, n’admet pas automatiquement et ne crée ni execution, evidence, knowledge ni preuve. Les refus absent/cross-evidence/`FAIL`/duplicat sont atomiques avant admission, binding et audit. | `DECISION` | Contrat M3.24, triggers SQL et contrôles transactionnels. | `LOG-0117` |
 | `MEM-STATE-064` | Reprise active | M3 reste `IN_PROGRESS`. Le seul prochain lot autorisé est M3.25, catalogue fermé runner-validator-schema; `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et la parité ARET `UNKNOWN` sont inchangés. | `OBSERVED` | Contrat M3.EXIT approuvé. | `LOG-0117` |
+
+
+## 35. Addendum de reprise — M3.25 catalogue fermé runner-validator-schema
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-065` | Compatibilité runner-validator | Le catalogue local accepte uniquement `EVIDENCE_HASH` avec validator `EVIDENCE_HASH` et `EVIDENCE_FIELDS` avec validator `EVIDENCE_FIELDS`, sous le schéma exact `validator_id`/`evidence_id`. Les deux runners vérifient ce catalogue avant toute validation ou execution. | `OBSERVED` | Module/tests M3.25 : `186 passed, 14 subtests passed`; wheel isolée validée. | `LOG-0119` |
+| `MEM-DEC-047` | Frontière catalogue | Le catalogue ne constitue ni un runner générique, ni JSON Schema général, ni un oracle. Les incompatibilités profile/kind/schema échouent atomiquement et ne créent ni validation, execution, evidence, admission ni preuve. | `DECISION` | Contrat M3.25 et contrôles de rollback. | `LOG-0119` |
+| `MEM-STATE-066` | Reprise active | M3.25 est le dernier lot fonctionnel autorisé. Seule M3.EXIT reste à exécuter; `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et la parité ARET `UNKNOWN` sont inchangés. | `OBSERVED` | Contrat M3.EXIT approuvé. | `LOG-0119` |
