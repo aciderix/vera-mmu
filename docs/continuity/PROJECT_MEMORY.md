@@ -662,3 +662,15 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Contrôles | Tests test-first ciblés et suite `390 passed, 17 subtests passed`; migration fresh/upgrade 001→037, scan Core anti-ARET, `git diff --check` et roue isolée : `PASS`. |
 | Décision | C07/C08 restent `IN_PROGRESS`; parité ARET `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. La prochaine tranche autorisée est validator → admission/proof/gate, doctor/image versionnée, puis investigation non filtrante de `win32_winsock` et des divergences Wine. |
 | Référence | `docs/continuity/artifacts/m4d_closed_oracle_pipeline_integration_2026-08-26.md`. |
+
+### MEM-STATE-125 — Chaîne universelle de verdict démontrée sur un `PASS` ARET réel
+| Champ | Valeur |
+|---|---|
+| Supersession documentaire | `SUPERSEDES: MEM-STATE-124` uniquement pour l’absence déclarée de validator/admission/proof/gate. Les limites Wine, de doctor, de parité et de M4.EXIT restent applicables. |
+| Primitive Core | Le commit `7365ba8` ajoute la migration 038 et le validator générique fermé `EVIDENCE_ASSET`. Il vérifie que l’evidence déclare un asset existant, que le hash déclaré est le hash de cet asset et que l’execution liée a le même `artifact_hash`. Le Core ne contient aucun terme ARET. |
+| Matrice négative | Les tests couvrent `FAIL`, `ERROR`, `SKIPPED`, `UNKNOWN` et un `PASS` avec hash d’asset altéré. Les verdicts non-`PASS` ne sont pas admissibles malgré un asset valide; le `PASS` altéré a une validation `FAIL`. Aucun de ces cas ne peut contribuer à une proof ni à une gate `PASS`. |
+| Run réel positif | Dans `/tmp/vera-aret-universal-chain`, `difftest` réel a produit `PASS 272/272`, asset SHA-256 `aba12da0f0279ffcb2b834df6aba0db8a0966d271b288e1c368dc3c5286911fe`, validation `PASS`, admission stricte `ADMITTED`, proof `PROVEN` avec policy HMAC et gate `PASS`. Le toolkit et ARET-MMU restent non modifiés. |
+| Frontière de certitude | La proof ne concerne que cette observation de run dans un store temporaire et ne prouve ni la compatibilité ARET complète, ni Wine, ni M4.EXIT. Le corpus Wine historique demeure `FAIL 255/264`; le corpus sandboxé complet reste interrompu sans verdict. |
+| Contrôles | Red test initial, ciblés `15 passed, 4 subtests passed`, suite `391 passed, 21 subtests passed`, migration 001→038, scan Core anti-ARET, `git diff --check` et roue isolée : `PASS`. |
+| Décision | C07/C08 restent `IN_PROGRESS`; parité ARET `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. La prochaine tranche légitime est doctor/image/corpus versionnés et evidence réelles non-`PASS` contrôlées, sans modifier les oracles ni leurs fixtures. |
+| Référence | `docs/continuity/artifacts/m4d_universal_verdict_chain_2026-08-26.md`; `LOG-0178`. |

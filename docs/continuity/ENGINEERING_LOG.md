@@ -2335,3 +2335,16 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Contrôles | Suite complète : `390 passed, 17 subtests passed`; scan Core anti-ARET, `git diff --check` et installation de roue isolée : `PASS`. |
 | Verdict | `OBSERVED_CLOSED_ORACLE_PIPELINE_NO_ADMISSION`. C07/C08 sont `IN_PROGRESS`, jamais `PASS` : validator, admission HMAC, proof/gate, doctor, corpus Wine complet et parité restent requis. `M4.EXIT = NOT_ELIGIBLE`. |
 | Référence | `artifacts/m4d_closed_oracle_pipeline_integration_2026-08-26.md`; `MEM-STATE-124`; registre M4 et matrice C07/C08. |
+
+### LOG-0178 — 2026-08-26 — M4-D : matrice universelle de verdict et chaîne stricte `PASS`
+| Champ | Valeur |
+|---|---|
+| Type | `HYPOTHESIS` / `PATCH` / `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Hypothèse | VERA peut traiter universellement un résultat de capability sans connaître ARET : seul un `PASS` normalisé, lié à son artifact et validé peut atteindre admission → proof → gate; toutes les autres classes restent non promouvables. |
+| Test rouge | `tests/test_evidence_asset_validator.py` échoue initialement car le kind fermé `EVIDENCE_ASSET` n’existe pas. Il couvre `PASS`, `FAIL`, `ERROR`, `SKIPPED`, `UNKNOWN` et un `PASS` dont le hash d’asset est altéré. |
+| Patch Core | `7365ba8` ajoute migration 038, le validator générique `EVIDENCE_ASSET` et la reconstruction sécurisée du binding admission-validation afin de préserver les clés étrangères et les triggers append-only. Aucun vocabulaire, script ou dépendance ARET n’entre dans le Core. |
+| Matrice vérifiée | Un asset correctement lié ne rend pas un verdict fonctionnel admissible : `FAIL`/`ERROR`/`SKIPPED`/`UNKNOWN` sont refusés par `AdmissionService`; `PASS` à asset altéré échoue au validator; aucun ne crée proof ni gate `PASS`. |
+| Run réel | `difftest` via toolkit verrouillé, binaire attesté et sandbox réseau : `PASS 272/272`; asset `aba12da0f0279ffcb2b834df6aba0db8a0966d271b288e1c368dc3c5286911fe`; validator `PASS`; admission `ADMITTED` stricte; proof HMAC `PROVEN`; gate `PASS`, dans `/tmp/vera-aret-universal-chain`. |
+| Contrôles | Ciblés : `15 passed, 4 subtests passed`; suite : `391 passed, 21 subtests passed`; migration 001→038, scan Core anti-ARET, `git diff --check` et roue isolée : `PASS`. |
+| Non-déduction | Cette proof de runtime temporaire démontre le mécanisme, non la parité ARET. `winediff 255/264` reste `FAIL`; le corpus Wine sandboxé bloqué n’a aucun verdict; C07/C08 restent `IN_PROGRESS`, parité `UNKNOWN`, M4.EXIT `NOT_ELIGIBLE`. |
+| Référence | `artifacts/m4d_universal_verdict_chain_2026-08-26.md`; `MEM-STATE-125`. |
