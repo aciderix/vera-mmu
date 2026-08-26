@@ -157,6 +157,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.8 établit une identité Git locale, propre et explicitement figée pour un snapshot déjà attesté. Elle ne rend pas le contenu SQLite lisible, ne certifie pas l’auteur/le remote/la signature du commit et ne déclenche aucun import.
 
+### 2.15. Avancement observé M4.9 — inspection SQLite read-only du manifeste V1
+
+| Couplages | Surface VERA désormais observée | Evidence M4.9 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C02`, `C03`, `C04`, `C05`, `C16` | `vera_mmu.domain_packs.aret.sqlite_schema` ouvre seulement le snapshot M4.7/M4.8 via `mode=ro&immutable=1`, active `query_only`, lit les versions de `schema_migrations` et les seuls noms de tables applicatives de `sqlite_schema`, puis exige l’égalité exacte avec le manifeste V1. | `tests/test_aret_sqlite_schema_inspection.py` : manifest exact, hash divergent, migrations/tables divergentes, liaison d’identité et SQL fermé; suite `229 passed, 14 subtests passed`, wheel isolée; inspection ponctuelle de la baseline, hash stable; `LOG-0139`. | Colonnes, contraintes, index, triggers, FTS détaillé, toutes lignes métier, mapping de champs/statuts, transaction VERA, provenance/audit, collisions, rollback, evidence/proof, validation post-import et parité ARET. | `SPLIT` |
+
+> M4.9 vérifie une structure de manifeste, pas les données qui s’y trouvent. Il n’exécute que des requêtes `SELECT` de métadonnées nominatives; aucune ligne des tables applicatives, aucun contenu de connaissance, preuve, composant ou brick n’est lu, converti ou écrit.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

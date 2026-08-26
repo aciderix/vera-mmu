@@ -1972,3 +1972,21 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `86281dd0e718083a958c071929a81102f61859c9` avant le handoff documentaire. |
 | Reprise | Un lot M4 futur peut, séparément, inspecter le schéma SQLite en mode read-only et sous contrat borné, ou définir l’admission transactionnelle d’un unique composant. Il ne doit ni déduire une signature/provenance Git inexistante, ni lire/importer une ligne par simple existence de M4.8. |
+
+### LOG-0139 — Verdict M4.9 : inspection SQLite read-only du manifeste ARET V1
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.sqlite_schema` expose `inspect_aret_v1_schema_snapshot`. La fonction exige une identité M4.8 propre liée au snapshot attendu, vérifie le hash avant/après et ouvre SQLite seulement en `mode=ro&immutable=1` avec `query_only`. |
+| Invariant | Les seules requêtes SQL lisent `schema_migrations.version` ordonné et les noms de tables applicatives depuis `sqlite_schema`, en excluant tables système et FTS `knowledge_fts*`. Les tuples obtenus doivent correspondre exactement au manifeste V1 M4.3; tout hash, migration, table, chemin ou identité divergent est refusé. |
+| Observation ponctuelle | Contre le snapshot baseline au hash `85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5`, l’inspection read-only retourne les migrations `(1, 2, 3, 4, 5, 6)` et les 18 tables applicatives manifestées; le hash est identique avant/après. |
+| Isolation | Le Core n’importe pas le pack. Le module ne lit aucune ligne métier, colonne, contrainte, index, trigger ni détail FTS; il n’exécute aucune requête mutante, shell ou réseau, et ne crée ni transaction VERA, audit, evidence, proof, import ou écriture. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : surface absente; ciblé : `5 passed`; Core : `229 passed, 14 subtests passed`; scans de frontière, inspection read-only ponctuelle et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.9 uniquement. Le lot confirme le manifeste du snapshot, non le contenu de ses tables, les données métier, leur compatibilité, un import, une preuve ou une parité ARET. M4 reste `IN_PROGRESS`. |
+
+### LOG-0140 — Publication fonctionnelle et handoff M4.9
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `ef7f45e89790012669211d488f5ddd3ebe96d44a` — `feat: inspect ARET V1 schema snapshots`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `ef7f45e89790012669211d488f5ddd3ebe96d44a` avant le handoff documentaire. |
+| Reprise | Un lot M4 futur doit isoler un premier lecteur de lignes `component` avec pagination, collision policy, batch/provenance/audit/rollback et zéro promotion, ou préciser d’abord ces contrats. La seule inspection de manifeste ne l’autorise pas implicitement. |
