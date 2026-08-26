@@ -1,0 +1,6 @@
+  -O0: ok (H=19acad982194bf07)
+  -O1: ok (H=19acad982194bf07)
+  -O2: ok (H=19acad982194bf07)
+  -O3: ok (H=19acad982194bf07)
+------------------------------------------
+transpile-pipeline equivalence: 4/4 opt-levels (58 functions, ref H=19acad982194bf07)

@@ -1,0 +1,7 @@
+  -O0: 68/68
+  -O1: 68/68
+  -O2: 68/68
+  -O3: 68/68
+------------------------------------------
+incomplete (unmodelled instructions, not tested): 0
+differential equivalence: 272/272 functions

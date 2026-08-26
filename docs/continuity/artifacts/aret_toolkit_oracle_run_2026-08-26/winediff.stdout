@@ -1,0 +1,316 @@
+  ok    argv_echo
+  ok    bt_mem_reg
+  ok    comctl32_class_reg
+  ok    comctl32_imagelist
+  ok    comctl32_ordinal
+  ok    comctl32_progress
+  ok    comctl_imagelist
+  ok    comctl_loadbitmap
+  ok    console_cp
+  ok    console_tty
+  ok    crt_assert
+  ok    crt_console_cluster
+  ok    crt_console_cluster2
+  ok    crt_controlfp
+  ok    crt_ctime_fp
+  ok    crt_ctype_table
+  ok    crt_findfirst
+  ok    crt_leftovers
+  ok    crt_lwr_s
+  ok    crt_mem_s
+  ok    crt_ncpy_s
+  ok    crt_nlen
+  ok    crt_printf_i64
+  ok    crt_secure_path
+  ok    crt_snwprintf_s
+  ok    crt_sopen_leadbyte
+  ok    crt_sscanf
+  ok    crt_stat
+  ok    crt_stdin
+  ok    crt_strcpy_s
+  ok    crt_subprocess
+  ok    crt_swprintf_s
+  ok    crt_swscanf
+  ok    crt_wcscat_s
+  ok    crt_wcscoll
+  ok    crt_wcsscan
+  ok    crt_wideprintf
+  ok    crt_widestr
+  ok    crt_wlocale
+  ok    crt_wpath
+  ok    crt_xcptfilter
+  ok    ctype_str
+  ok    dll_lifting
+  ok    fileio
+  ok    gdi_bitblt_rop
+  ok    gdi_charsetinfo
+  ok    gdi_cp1252
+  ok    gdi_dcstate
+  ok    gdi_dib
+  ok    gdi_drawedge
+  ok    gdi_drawedge_etched
+  ok    gdi_drawtext
+  ok    gdi_drawtext_amp
+  ok    gdi_drawtext_ml
+  ok    gdi_enumfonts
+  ok    gdi_exttextout
+  ok    gdi_focusrect
+  ok    gdi_framecontrol
+  ok    gdi_framecontrol_check
+  ok    gdi_framecontrol_radio
+  ok    gdi_framerect
+  ok    gdi_lineto
+  ok    gdi_mapmode
+  ok    gdi_palette
+  ok    gdi_polyline
+  ok    gdi_rectangle
+  ok    gdi_tabbedtext
+  ok    gdi_textaa
+  ok    gdi_textalign
+  ok    gdi_textout
+  ok    gdi_textunicode
+  ok    gdi_uifont
+  ok    gdi_underline
+DIFF  gui_paint_text
+        2c2
+        < text_pixels=186 bbox=4,7,76,18
+        ---
+        > text_pixels=0 bbox=999,999,-1,-1
+  ok    interlocked
+  ok    lift_autolift
+  ok    lift_fpocmp
+  ok    lift_libgcc
+  ok    lift_tlscb
+  ok    lift_zlib
+  ok    liftntreg
+  ok    locale_cp
+  ok    lz_decompress
+  ok    mallocs
+  ok    math_more
+  ok    mathfns
+  ok    ntdll_rtlstr
+DIFF  ole_mlang
+        5,9d4
+        < GetNumberOfCodePageInfo hr=0x0 n=73
+        < GetCodePageInfo(1252) hr=0x0 cp=1252 family=1252
+        <   desc=Western European (Windows) webcs=windows-1252
+        < ConvertStringToUnicode hr=0x0 srcn=2 dstn=2 [65 122]
+        < Release=0
+  ok    ole_mlang_activate
+  ok    ole_mlang_family
+  ok    ole_mlang_getcpinfo
+  ok    path_ops
+  ok    printf_fmt
+  ok    qsort_bsearch
+  ok    rand_seq
+  ok    recov_epilog_ret
+  ok    rep_strings
+  ok    seh_handler4
+  ok    seh_hwfault
+  ok    seh_raise
+  ok    seh_unwind
+  ok    shell_folders
+  ok    signed_magicdiv
+  ok    sscanf_conv
+  ok    stdio_getc
+  ok    stdio_more
+  ok    stdlib_more
+  ok    str_copy
+  ok    str_direction
+  ok    str_more
+  ok    str_repcmps
+  ok    str_search
+  ok    str_time_interval
+  ok    strings
+  ok    thread_critsec
+  ok    thread_event
+  ok    thread_join
+  ok    thread_mutex_sem
+  ok    thread_pool
+  ok    thread_pool2
+  ok    thread_srwlock
+  ok    time_fixed
+  ok    tls_test
+  ok    user32_bmsetcheck
+  ok    user32_button_paint
+  ok    user32_cbthook
+DIFF  user32_classex
+        3,4c3,4
+        < bg=2D1E0F
+        < readback bg=2D1E0F fg=F0B45A
+        ---
+        > bg=FFFFFFFF
+        > readback bg=FFFFFFFF fg=FFFFFFFF
+  ok    user32_ctrl_focus_text
+DIFF  user32_dbuffer
+        1c1
+        < bg=090807 fg=3C82F0
+        ---
+        > bg=FFFFFFFF fg=FFFFFFFF
+  ok    user32_desktop
+  ok    user32_dialog
+  ok    user32_dlgcontrols
+  ok    user32_dlgfocus
+  ok    user32_dlgindirect
+  ok    user32_dlgitemmsg
+  ok    user32_dlgpaint
+  ok    user32_dlgradio
+  ok    user32_dlgunits
+  ok    user32_edit_paint
+DIFF  user32_erasebg
+        1,2c1,2
+        < bg_at_paint=C89603
+        < bg=C89603 fg=1932C8
+        ---
+        > bg_at_paint=FFFFFFFF
+        > bg=FFFFFFFF fg=FFFFFFFF
+  ok    user32_focusmsg
+  ok    user32_getclassinfo
+  ok    user32_getdlgcode
+  ok    user32_getwindow
+  ok    user32_helpers
+  ok    user32_isdlgmsg
+  ok    user32_listbox
+  ok    user32_menu
+DIFF  user32_menu2
+        1,2c1,2
+        < cxcheck=11 cycheck=11
+        < checkdim=000b000b cx=11 cy=11
+        ---
+        > cxcheck=13 cycheck=13
+        > checkdim=000d000d cx=13 cy=13
+  ok    user32_messagebox
+  ok    user32_msgwindow
+  ok    user32_msgwindow_a
+  ok    user32_ncm
+DIFF  user32_paint
+        2c2
+        < px=21160B
+        ---
+        > px=FFFFFFFF
+  ok    user32_propmisc
+  ok    user32_resources
+DIFF  user32_sdlwindow
+        4,5c4,5
+        < px=1E140A,3264C8,030201
+        < paint=46505A
+        ---
+        > px=FFFFFFFF,FFFFFFFF,FFFFFFFF
+        > paint=FFFFFFFF
+  ok    user32_spi
+  ok    user32_spi_uieffects
+  ok    user32_static_paint
+  ok    user32_subclass
+  ok    user32_winbatch
+  ok    user32_windowstate_a
+  ok    user32_wmcreate
+  ok    version_info
+  ok    wide_fileattr
+  ok    wide_mbcs
+  ok    win16_file
+  ok    win32_atom
+  ok    win32_capture_scroll
+  ok    win32_charoem
+  ok    win32_comalloc
+  ok    win32_console_ole
+  ok    win32_convlocale
+  ok    win32_createprocess
+  ok    win32_crtreg
+  ok    win32_dde_ole
+  ok    win32_dir
+  ok    win32_duphandle
+  ok    win32_enumreslang
+  ok    win32_env
+  ok    win32_file
+  ok    win32_file_process
+  ok    win32_fileinfo
+  ok    win32_fileops
+  ok    win32_filetime
+  ok    win32_filew
+  ok    win32_find
+  ok    win32_findw
+  ok    win32_formatmessage
+  ok    win32_getproc
+  ok    win32_gettext
+  ok    win32_glib_batch
+  ok    win32_glib_batch2
+  ok    win32_misc
+  ok    win32_misc_k32
+  ok    win32_misc_tail
+  ok    win32_mmap
+  ok    win32_ntdelay
+  ok    win32_ntdir
+  ok    win32_ntenum
+  ok    win32_ntfile
+  ok    win32_ntreg
+  ok    win32_ntvm
+  ok    win32_pathcombine
+  ok    win32_pathexists
+  ok    win32_pathfile
+  ok    win32_pathparts
+  ok    win32_pathroot
+  ok    win32_pipe
+  ok    win32_printer_tail
+  ok    win32_proc
+  ok    win32_procinfo
+  ok    win32_procintro
+  ok    win32_procpolicy
+  ok    win32_procver_cursor
+  ok    win32_registry
+  ok    win32_rtlpntreg
+  ok    win32_shellpidl
+  ok    win32_signal
+  ok    win32_socle_comctl1
+  ok    win32_socle_comctl2
+  ok    win32_socle_comctl3
+  ok    win32_socle_comctl4
+  ok    win32_socle_comctl5
+  ok    win32_socle_comctl6
+  ok    win32_socle_comctl7
+  ok    win32_socle_comctl8
+  ok    win32_socle_comctl9
+  ok    win32_socle_harden
+  ok    win32_tempfile
+  ok    win32_thread_tail
+  ok    win32_unhandledfilter
+DIFF  win32_username
+        1,2c1,2
+        < A big   ok=1 err=0 cb=5 name=[root] cb-vs-strlen=1
+        < W big   ok=1 err=0 cch=5 name=[root] cch-vs-wcslen=1
+        ---
+        > A big   ok=1 err=0 cb=7 name=[ubuntu] cb-vs-strlen=1
+        > W big   ok=1 err=0 cch=7 name=[ubuntu] cch-vs-wcslen=1
+        4,9c4,9
+        < A zero  ok=0 err=122 cb=5 raw=7e7e7e7e7e7e7e7e
+  ok    win32_veh
+  ok    win32_verquery
+  ok    win32_version_dostime
+  ok    win32_wfs
+  ok    win32_winsock
+  ok    win32_winsock_dns
+  ok    win32_wsaevent
+  ok    win32_wvolpath
+  ok    win_classfont
+  ok    win_collate
+  ok    win_cp1252
+  ok    win_cp1252_rev
+  ok    win_cp437
+  ok    win_ini
+  ok    win_lasttail
+  ok    win_locale
+  ok    win_misc
+  ok    win_rect
+  ok    win_sid
+  ok    win_smallshims
+  ok    win_timechar
+  ok    x87_fcom_runtime
+  ok    x87_round
+  ok    x87_transcendental
+  ok    x87_trig
+  ok    lift_libstdcxx
+  ok    lift_stddtor
+  ok    lift_stdexcept
+  ok    lift_stdstring
+  ok    lift_stdthrow
+------------------------------------------
+OS-API (Wine) equivalence: 255/264 programs

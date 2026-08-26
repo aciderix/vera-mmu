@@ -1,0 +1,4 @@
+command=ARET=/home/ubuntu/aret-toolkit-build/release/aret timeout 900 bash bench/stdcall_audit.sh
+exit_code=0
+stdout_sha256=119c2a38623c56b02e34179579bca30e7eeb7e31468ba71ae5a781aec3e96e35
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

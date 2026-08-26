@@ -1,0 +1,4 @@
+command=ARET=/home/ubuntu/aret-toolkit-build/release/aret timeout 900 bash bench/funcdiff.sh
+exit_code=0
+stdout_sha256=db9bccdd82afbbb9fc2c1608ff4cdef562077697a844baa4b45fa32590bedb8a
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

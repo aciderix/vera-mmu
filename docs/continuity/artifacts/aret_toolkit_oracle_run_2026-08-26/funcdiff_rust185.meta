@@ -1,0 +1,4 @@
+command=RUSTUP_TOOLCHAIN=1.85.0 ARET=/home/ubuntu/aret-toolkit-build/release/aret timeout 900 bash bench/funcdiff.sh
+exit_code=0
+stdout_sha256=a86813055f2d431e37192f37979b444c9509e2810bc851da422bbe52fbf63466
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

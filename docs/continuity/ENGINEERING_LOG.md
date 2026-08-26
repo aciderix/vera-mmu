@@ -2305,3 +2305,19 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Observation | `gcc`, Cargo, Wine, MinGW, Clang/LLVM et `zstd` sont absents; `target/release/aret`, `bench/*`, `Cargo.toml` et `src/cpudiff.rs` sont absents du checkout et de toutes les branches publiques accessibles. |
 | Verdict | `M4.EXIT = NOT_ELIGIBLE`. Les migrations restantes, la wall C07/C08, les surfaces M5/M6 et le harnais de parité ne peuvent pas être remplacés par des fixtures ou assertions locales. |
 | Suivi | Attendre un bundle/révision ARET attesté contenant corpus, scripts et build/binaire reproductible; poursuivre ensuite M4-C, M5/M6 et la parité avant un nouvel audit de sortie. |
+
+### LOG-0176 — 2026-08-26 — Toolchain toolkit restaurée et oracles ARET exécutés en observation externe
+| Champ | Valeur |
+|---|---|
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Baseline protégée | Le worktree `/home/ubuntu/ARET-MMU` demeure propre au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4` et n’a reçu aucune écriture. |
+| Référence exécutée | Clone isolé de `aciderix/Automatic-reverse-engineering-toolkit`, branche `claude/aret-mcp-startup-check-5a13sx`, commit `7a0429790bb04d1ad3c1819449e906140ebf4513`, resté propre. |
+| Build reproductible | Cargo 1.75 refuse le lockfile v4 ; Cargo 1.79 refuse une dépendance en édition Rust 2024. Rust/Cargo 1.85.0 construit avec `--locked --release` le binaire SHA-256 `6ca52f0955266aeda31d235caacf0844e2516f41d67468632f2ddb1bb1e16a19`, dans un répertoire externe au clone. |
+| Préconditions restaurées | GCC 32 bits, MinGW i686, Wine 9.0, Clang/LLD 18, zstd et `libunicorn-dev` ont été installés explicitement dans le sandbox ; versions, scripts, corpus, commandes et logs sont préservés dans `artifacts/aret_toolkit_oracle_run_2026-08-26/`. |
+| Oracles observés positifs | `difftest 272/272`; transpile `4/4`; audit `__stdcall PASS`; EH MSVC `6/6`; EH GNU `7/7`; `funcdiff` avec Rust 1.85 : 22 672 fonctions liftées, 11 602 optimisées, 0 divergence. |
+| Résultats non promouvables | `wine_hashes` : 155 `OK`, 14 `BUILD-FAIL`, 90 `SKIP`, avec format réel `<fixture> OK <hash>` distinct du normaliseur historique. `winediff` : `255/264`, exit 1, neuf divergences conservées comme `FAIL`. |
+| Distinction de preuve | Les scripts ont été appelés directement depuis le clone de référence, pas via une capability VERA. Ces sorties sont des observations externes hashées, **pas** des evidence/admissions/proofs VERA, et ne promeuvent aucun statut `PROVEN`. |
+| Décision | La sous-partie factuelle de `MEM-WALL-001` portant sur l’absence de la référence/toolchain est `OBSERVED_RESTORED`; C07/C08 restent `IN_PROGRESS` faute de capability, normalisation, admission et doctor. `M4.EXIT = NOT_ELIGIBLE` est maintenu, notamment parce que `winediff` échoue et que M5/M6 restent requis. |
+| Suivi | Implémenter test-first le pack de capability fermé et son normaliseur ; investiguer les neuf divergences Wine sans filtrage de fixture. |
+
+Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_2026-08-26.md), [audit M4.EXIT actualisé](artifacts/m4_exit_precondition_audit_2026-08-26.md).

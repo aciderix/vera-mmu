@@ -1,0 +1,5 @@
+shims implemented            : 1335
+proven __stdcall (ground truth): 865
+missing @N in stdcall_pops   : 0
+------------------------------------------
+stdcall-pop audit: PASS

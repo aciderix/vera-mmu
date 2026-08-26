@@ -1,0 +1,9 @@
+  ok    eh_catch_byval
+  ok    eh_multi_inherit
+  ok    eh_rethrow
+  ok    eh_throw_derived
+  ok    eh_throw_dtor
+  ok    eh_throw_in_catch
+  ok    eh_throw_int
+------------------------------------------
+GNU/Itanium C++ EH differential: 7/7 fixtures

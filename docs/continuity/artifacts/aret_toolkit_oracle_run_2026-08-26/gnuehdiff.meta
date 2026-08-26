@@ -1,0 +1,4 @@
+command=ARET=/home/ubuntu/aret-toolkit-build/release/aret timeout 900 bash bench/gnuehdiff.sh
+exit_code=0
+stdout_sha256=aa3dcd845412e295e99d9145935140d44a0b12fd26ff86c318f3effa6056a9b4
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

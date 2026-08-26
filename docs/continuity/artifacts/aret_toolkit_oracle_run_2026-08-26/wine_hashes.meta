@@ -1,0 +1,4 @@
+command=ARET=/home/ubuntu/aret-toolkit-build/release/aret timeout 900 bash bench/winoracle/wine_hashes.sh
+exit_code=0
+stdout_sha256=0afa10866a7dd8762f1366fd4ce763f4e13f4eab0a1127908dc47431d357a99e
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

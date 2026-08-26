@@ -1,0 +1,8 @@
+  ok    seh_except
+  ok    throw_across
+  ok    throw_byval
+  ok    throw_catch
+  ok    throw_dtor
+  ok    throw_static
+------------------------------------------
+MSVC EH differential: 6/6 fixtures

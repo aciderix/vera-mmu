@@ -1,0 +1,4 @@
+command=ARET=/home/ubuntu/aret-toolkit-build/release/aret timeout 900 bash bench/difftest_transpile.sh
+exit_code=0
+stdout_sha256=66b156b3d17e00f4e47d9af008a15e946e2a82fdad4b154e36fd4108682d607c
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

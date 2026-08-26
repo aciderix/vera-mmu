@@ -1,0 +1,4 @@
+command=ARET=/home/ubuntu/aret-toolkit-build/release/aret WINEPREFIX=/tmp/aret-toolkit-wineprefix-20260826 timeout 1200 bash bench/winediff.sh
+exit_code=1
+stdout_sha256=76064b420917593f062d4220520a60ee51e81ce5079fb0c90e207e9716018db9
+stderr_sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855

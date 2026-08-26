@@ -1,0 +1,6 @@
+  busybox-w32-FRP-5579-g5749feb35.exe LIFT-closure: 6104 scored, 3300 calls, 0 divergence(s)
+  busybox-w32-FRP-5579-g5749feb35.exe OPT-diff:     3926 scored, 0 divergence(s)
+  sqlite3-3400100.exe LIFT-closure: 16568 scored, 17159 calls, 0 divergence(s)
+  sqlite3-3400100.exe OPT-diff:     7676 scored, 0 divergence(s)
+  FUNCDIFF-CORPUS: lift 22672 scored / 20459 calls, opt 11602 scored, 0 divergence(s)
+funcdiff corpus gate: PASS
