@@ -8,6 +8,7 @@ from .addressing import (
     parse_aret_address,
 )
 from .runtime import AretLegacyRuntimeLayout, legacy_runtime_layout
+from .schema import AretLegacySchemaManifest, aret_v1_schema_manifest
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -17,4 +18,6 @@ __all__ = [
     "parse_aret_address",
     "AretLegacyRuntimeLayout",
     "legacy_runtime_layout",
+    "AretLegacySchemaManifest",
+    "aret_v1_schema_manifest",
 ]
