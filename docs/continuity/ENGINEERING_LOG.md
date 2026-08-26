@@ -2217,3 +2217,18 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Test rouge ciblé puis vert ; contrats `resource_import_batches` + `store` : `21 passed`; suite complète : `326 passed, 14 subtests passed`; `git diff --check` et scan Core anti-ARET : `PASS`. |
 | Publication | Commit fonctionnel `8e0d56692c3f1a5b19d9e2ac1d40678f10c7c7fc` — `fix(core): reject coerced resource batch payloads` — publié et vérifié sur `origin/main`. |
 | Verdict | Durcissement `PASS` du contrat Core 034. Il ne modifie aucun état M4-B, aucune autorisation ARET, aucune parité, ni les blocages `MEM-WALL-001`. |
+
+### LOG-0168 — Verdict M4-B : conformance et préflight structurels read-only
+| Champ | Valeur |
+|---|---|
+| Portée | Le pack ARET vérifie maintenant, en SQLite `mode=ro&immutable=1`, la conformance de `function_symbol` (colonnes, FK component et unicité `(component_id,module,symbol)`) et de `brick` (colonnes, FK optionnelle, états fermés, priorité 1..5 et index roadmap). La préparation structurelle borne les seuls mappings `function_symbol→symbol` et `brick→work_item`; le préflight lie préparation, inspection, conformance et page source à une politique zéro-write. |
+| Sémantique préservée | Le préflight function vérifie l’ID stable `component:module!symbol` — y compris `component:!symbol` si module vide. Le préflight brick interdit une priorité/état hors V1 et porte explicitement `PRESERVE_LEGACY_STATE_AS_METADATA`; il n’exécute aucune transition de lifecycle ni garde Front. |
+| Gates | Tests-first rouges ; ciblés chaîne M4-B : `23 passed`; suite complète : `340 passed, 14 subtests passed`; scans Core anti-ARET et pack no-write/no-network/no-shell, `git diff --check`, wheel isolée et contrôle API isolé : `PASS`. |
+| Publication | Commit fonctionnel `8d6e4fc2ec674ac3d2be8297ad3b3f9868239eaa` — `feat(aret-pack): add structural source conformance preflights` — publié et vérifié sur `origin/main`. ARET-MMU reste propre au commit baseline. |
+| Verdict | `PASS borné` pour conformance/préflight read-only seulement. Collision de série, autorisation explicite, import, audit de lot structurel, post-validation, intégration réelle, Front ACTIVE, preuves/admission/promotion et parité restent non livrés. |
+
+### LOG-0169 — Handoff M4-B vers collision et autorisation
+| Champ | Valeur |
+|---|---|
+| Reprise | Lire `MEM-STATE-116`, `LOG-0168`, M4-EXIT-04/05 et le registre M4. Le prochain sous-lot est le contrat de collision/non-fusion et d’autorisation explicite, distinct par mapping, lié aux préflights et au Core 034. |
+| Interdits maintenus | Aucune écriture ARET ; aucun import ARET sans autorisation future ; aucun evidence, proof/proof link, admission ou promotion ; pas de contournement `MEM-WALL-001`, ni claim de compatibilité/parité. |
