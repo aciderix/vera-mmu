@@ -339,3 +339,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-055` | Diagnostic graph | `WorkBlockerService.diagnose_transitive` retourne, dans un ordre stable et sans doublon, les prérequis transitifs non `COMPLETED` d’un work item. | `OBSERVED` | Service/tests M3.20, 173 tests et 14 sous-tests, wheel isolée. | `LOG-0108` |
 | `MEM-DEC-041` | Frontière graph | Le traversal est purement informatif. Il ne diagnostique pas les gates, n’orchestré aucune transition et ne crée ni audit ni fait persistant. | `DECISION` | Contrat M3.20. | `LOG-0108` |
 | `MEM-STATE-056` | Reprise active | M3 reste `IN_PROGRESS`. Restent graph/lifecycle avancé sous lot distinct, validator/oracle métier policy-gated, runner sûr additionnel, CLI/MCP et pack ARET. | `OBSERVED` | Revue post-M3.20; `MEM-WALL-001` demeure actif. | `LOG-0108` |
+
+
+## 30. Addendum de reprise — M3.21 diagnostic de gates
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-057` | Diagnostic gates | `GateBlockerService` expose les gates directes non `PASS` d’un work item avec leurs compteurs d’admissions, sans aucune écriture. | `OBSERVED` | Service/tests M3.21, 174 tests et 14 sous-tests, wheel isolée. | `LOG-0110` |
+| `MEM-DEC-042` | Frontière gates | Le diagnostic ne crée pas d’admission, n’exécute aucune capability et ne combine pas encore les blockers de dépendance et de gate; il est purement informatif. | `DECISION` | Contrat M3.21. | `LOG-0110` |
+| `MEM-STATE-058` | Reprise active | M3 reste `IN_PROGRESS`. Restent diagnostic composite/graph-lifecycle avancé, validator/oracle métier policy-gated, runner sûr additionnel, CLI/MCP et pack ARET. | `OBSERVED` | Revue post-M3.21; `MEM-WALL-001` demeure actif. | `LOG-0110` |

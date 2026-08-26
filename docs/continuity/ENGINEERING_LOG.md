@@ -1677,3 +1677,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `35743f6feacbe77766883c428a5e1f6512e52179`. |
 | État de reprise | M3.20 est publié. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
 | Prochain choix | Choisir explicitement un seul gap M3 : diagnostic de gates, lifecycle/graph avancé, validator/oracle métier sous policy distincte, runner sûr additionnel ou surface CLI/MCP. Ne pas faire du traversal une orchestration. |
+
+
+### LOG-0110 — Verdict M3.21 : diagnostic de gates bloquantes
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `GateBlockerService.diagnose(work_item_id)` retourne les gates directes non `PASS`, avec identifiant, verdict et compteurs d’admissions/requirements. |
+| Sémantique | Chaque verdict est lu par `GateService.evaluate` sur les admissions existantes. Le diagnostic n’écrit ni audit, lifecycle, work item, execution, evidence, admission ou preuve. |
+| Gates | Tests-first : module absent; tests ciblés : `6 passed`; suite complète : `174 passed, 14 subtests passed`; scan sans I/O/écriture/ARET et wheel isolée passent. |
+| Limites | Aucun traversal de gates, diagnostic composite dependency+gate, pondération/temporalité, scheduler, orchestration ou mutation automatique. |
+| Verdict | `PASS` pour M3.21. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
