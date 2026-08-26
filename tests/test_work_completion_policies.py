@@ -27,6 +27,9 @@ class WorkCompletionPolicyTests(unittest.TestCase):
  def test_no_policy_preserves_historical_completion_when_readiness_is_blocked(self):
   with self._open() as s:
    self.assertEqual(s.metadata()['store_format'],{'schema_version':31});self._evidence(s);self._blocked_target(s);life=WorkLifecycleService(s);self.assertEqual(WorkReadinessService(s).evaluate('target').status,'BLOCKED');life.transition('start-target','target','START','x');self.assertEqual(life.transition('complete-target','target','COMPLETE','x').event,'COMPLETE')
+ def test_open_policy_preserves_historical_completion_when_readiness_is_blocked(self):
+  with self._open() as s:
+   self._evidence(s);self._blocked_target(s);life=WorkLifecycleService(s);life.transition('start-target','target','START','x');WorkCompletionPolicyService(s).declare('OPEN');self.assertEqual(life.transition('complete-target','target','COMPLETE','x').event,'COMPLETE')
  def test_strict_complete_refuses_then_succeeds_only_after_prerequisite_and_gate_are_ready(self):
   with self._open() as s:
    self._evidence(s);self._blocked_target(s);life=WorkLifecycleService(s);life.transition('start-target','target','START','x');p=WorkCompletionPolicyService(s).declare('REQUIRE_READY_FOR_COMPLETE',actor='test');self.assertEqual(WorkCompletionPolicyService(s).get(),p);events=len(life.history('target'));audits=len(s.audit_events())

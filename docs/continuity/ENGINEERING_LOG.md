@@ -1730,3 +1730,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `8ff298d2af5c24930d8d6bc82139f1618221c8b7`. |
 | État de reprise | M3.22 est publié. M3.23 est le lot suivant du contrat approuvé ; M3 reste `IN_PROGRESS` et les limites/parités inchangées. |
+
+
+### LOG-0115 — Verdict M3.23 : policy de complétion optionnelle
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | La migration `031_work_completion_policies.sql` et `WorkCompletionPolicyService` ajoutent une policy singleton immutable `OPEN` / `REQUIRE_READY_FOR_COMPLETE`. `WorkLifecycleService.transition` ne consulte cette policy que pour `COMPLETE`, après légalité de transition et avant insertion/audit. |
+| Sémantique | Sans policy ou sous `OPEN`, la complétion historique demeure possible. Sous le mode strict, une readiness dérivée `BLOCKED` refuse `COMPLETE` avec rollback de l’événement et de l’audit; `START` conserve sa policy propre et `CANCEL` est inchangé. |
+| Gates | Tests-first : module absent; tests ciblés : `5 passed`; suite complète : `180 passed, 14 subtests passed`; fresh install 031, upgrade historique 030→031, scans Core no-shell/no-network/no-filesystem/no-ARET/no-mutation hors périmètre et wheel isolée des chemins COMPLETE bloqué/prêt passent. |
+| Limites | Aucun scheduler, complétion automatique, orchestration, execution, evidence, admission, preuve, oracle, réseau, shell ou accès filesystem externe. |
+| Verdict | `PASS` pour M3.23. M3 reste `IN_PROGRESS` jusqu’à M3.EXIT; C05/C06/C16 `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
+
+
+### LOG-0116 — Publication et handoff M3.23
+
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `e87a3b189f355fa5b6db815be73759a3eb0b0d15` — `feat: add optional work completion policy`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `e87a3b189f355fa5b6db815be73759a3eb0b0d15` avant le handoff documentaire. |
+| État de reprise | M3.23 est fonctionnellement publié. M3.24 est le seul lot suivant autorisé par le contrat M3.EXIT; conserver les limites et états de parité existants. |
