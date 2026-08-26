@@ -293,3 +293,13 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-046` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validator de contenu ou oracle explicitement policy-gated, runner sûr additionnel, gates pondérées/temporelles seulement sous lot distinct, lifecycle/graph avancés, CLI/MCP et pack ARET. Aucun oracle externe, réseau, shell, admission automatique ou parité ARET n’est livré par M3.15. | `OBSERVED` | Revue post-M3.15; `MEM-WALL-001` demeure actif. | `LOG-0098` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-045`, `MEM-DEC-036`, `MEM-STATE-046`, `MEM-WALL-001`, puis `LOG-0098` avant tout lot M3 suivant.
+
+## 25. Addendum de reprise — M3.16 readiness et démarrage strict
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-047` | Readiness de work item | `SUPERSEDES: MEM-STATE-046` pour le démarrage contrôlé. La readiness `READY`/`BLOCKED` est dérivée en lecture seule des dependencies `COMPLETED` et des gates `PASS`; elle n’écrit pas `work_item.status`. | `OBSERVED` | `work_readiness.py`, tests M3.16; 168 tests et 14 sous-tests, upgrade 027→028 et wheel isolée. | `LOG-0100` |
+| `MEM-DEC-037` | Frontière de démarrage | Une policy singleton immutable `OPEN`/`REQUIRE_READY` est optionnelle. Le mode strict refuse seulement `START` avant insertion/audit si le work item n’est pas prêt; il ne planifie rien, ne complète rien et ne crée ni execution, evidence, admission ou preuve. | `DECISION` | Migration `028_work_start_policies.sql`, lifecycle transactionnel et contrôles de rollback. | `LOG-0100` |
+| `MEM-STATE-048` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : lifecycle/graph avancé sous lot distinct, validator de contenu ou oracle policy-gated, runner sûr additionnel, CLI/MCP et pack ARET. Aucun scheduler, orchestration, oracle externe, réseau, shell, admission automatique ou parité ARET n’est livré par M3.16. | `OBSERVED` | Revue post-M3.16; `MEM-WALL-001` demeure actif. | `LOG-0100` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-047`, `MEM-DEC-037`, `MEM-STATE-048`, `MEM-WALL-001`, puis `LOG-0100` avant tout lot M3 suivant.

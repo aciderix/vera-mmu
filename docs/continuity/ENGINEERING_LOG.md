@@ -1562,3 +1562,17 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `c6a605278b2ad5aabdd13bb32e4f1dab725b4363`. |
 | État de reprise | M3.15 est publié avec migration 027. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
 | Prochain choix | Choisir explicitement un seul gap M3 borné; candidats : validator de contenu/oracle sous policy distincte, runner sûr additionnel, extension temporelle/pondérée de gate, lifecycle/graph avancé ou surface CLI/MCP. Ne pas étendre implicitement les policies de gate actuelles. |
+
+
+### LOG-0100 — Verdict M3.16 : readiness dérivée et policy de démarrage stricte
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | Migration `028_work_start_policies.sql` ajoute une policy singleton immutable `OPEN` / `REQUIRE_READY`. `WorkReadinessService` dérive, en lecture seule, la readiness d’un work item depuis ses dépendances `COMPLETED` et ses gates `PASS` existantes. |
+| Contrat | Sans policy ou avec `OPEN`, le lifecycle historique est inchangé. Sous `REQUIRE_READY`, seul l’événement `START` refuse lorsque dependencies ou gates ne sont pas satisfaites; `COMPLETE` et `CANCEL` ne sont pas réinterprétés. |
+| Transaction | Le contrôle de readiness s’exécute dans la transaction de transition avant insertion/audit. Un démarrage bloqué ajoute zéro événement lifecycle et zéro audit. La readiness elle-même ne crée aucun record. |
+| Compatibilité | Upgrade historique réel `027→028` validé : un work item antérieur est `READY` en l’absence de dépendance/gate et peut recevoir une policy stricte après migration. |
+| Gates exécutées | Tests-first : erreur d’import attendue avant code. Tests ciblés : `8 passed`; suite complète : `168 passed, 14 subtests passed`; `git diff --check` passe. Scan du patch : absence de shell, sous-processus, accès fichier/réseau, URL, import dynamique, création de faits adjacents et dépendance ARET. Wheel isolée : refus strict, puis readiness après completion/admissions et `START` validés. |
+| Limites préservées | Aucun scheduler, orchestration, mutation automatique de `work_item`, execution, validator, evidence, admission, preuve, oracle, réseau, shell, CLI/MCP ou parité ARET n’est introduit. `READY` est dérivé, non écrit comme état métier. |
+| Verdict | `PASS` pour M3.16. M3 global reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 reste `BLOCKED` sous `MEM-WALL-001`, et la parité exhaustive ARET reste `UNKNOWN`. |
+| Suite | Publier atomiquement le lot. Le prochain lot doit rester distinct parmi lifecycle/graph avancé, validator de contenu/oracle policy-gated, runner sûr additionnel ou surface CLI/MCP. |

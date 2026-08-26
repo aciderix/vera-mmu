@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import sqlite3
 
 from .store import MemoryStore, StoreError
+from .work_readiness import WorkReadinessError, evaluate_work_readiness
 
 
 STATE_BY_EVENT = {"START": "ACTIVE", "COMPLETE": "COMPLETED", "CANCEL": "CANCELLED"}
@@ -54,6 +55,13 @@ class WorkLifecycleService:
                 current_status = "PLANNED" if last is None else STATE_BY_EVENT[str(last["event"])]
                 if event not in ALLOWED_EVENTS.get(current_status, frozenset()):
                     raise WorkLifecycleError("Transition de lifecycle interdite.")
+                policy = connection.execute("SELECT mode FROM work_start_policy WHERE id = 1").fetchone()
+                if event == "START" and policy is not None and policy["mode"] == "REQUIRE_READY":
+                    try:
+                        if evaluate_work_readiness(connection, work_item_id).status != "READY":
+                            raise WorkLifecycleError("Démarrage refusé : work item non prêt.")
+                    except WorkReadinessError as exc:
+                        raise WorkLifecycleError("Readiness de work item illisible.") from exc
                 sequence = 1 if last is None else int(last["sequence"]) + 1
                 connection.execute(
                     "INSERT INTO work_lifecycle_event(id, work_item_id, sequence, event, reason, created_at, created_by) "
