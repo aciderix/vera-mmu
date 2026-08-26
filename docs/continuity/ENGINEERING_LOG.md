@@ -1919,3 +1919,20 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `55d184b87f7242cf36bd45767df9825bfe5cf357` avant le handoff documentaire. |
 | Reprise | Le lot M4 suivant doit choisir une seule policy d’import ou une seule ressource mappée, avec source explicite, provenance, rollback et refus de toute promotion implicite. |
+
+### LOG-0133 — Verdict M4.6 : pré-contrat fail-closed d’import de composant ARET V1
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.import_preparation` expose exclusivement `component_import_preparation`. La demande résultante est liée à une `ProjectIdentity` VERA, un SHA-256 source déclaré, un `request_id` et un `requested_by`; elle cible uniquement `component→entity` de type `COMPONENT`. |
+| Invariant | L’objet est figé et porte `requires_explicit_import=True`, `PREPARED_NOT_EXECUTED` et `UNVERIFIED_DECLARATION`. L’empreinte est contrôlée pour sa forme canonique, mais n’est ni calculée ni vérifiée par ce lot. Toute identité non explicite, hash non canonique, ID invalide ou acteur vide/multiligne est refusé. |
+| Isolation | Le Core n’importe pas le pack. Le pré-contrat n’accepte aucun chemin, ne contient ni filesystem, store, SQLite, réseau, shell, lecture de ligne, transaction, audit ni écriture VERA. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : surface absente; ciblé : `10 passed`; Core : `210 passed, 14 subtests passed`; `git diff --check`, scans de frontière et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.6 uniquement. Il s’agit d’une préparation déclarative fail-closed; aucun import de composant, lecture de source, attestation de source, preuve, audit, rollback ni parité ARET n’est affirmé. M4 reste `IN_PROGRESS`. |
+
+### LOG-0134 — Publication fonctionnelle et handoff M4.6
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `179474b8cf9914be3d04167d5573e1a331a93a61` — `feat: prepare explicit ARET component imports`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `179474b8cf9914be3d04167d5573e1a331a93a61` avant le handoff documentaire. |
+| Reprise | Un lot M4 futur doit commencer par un contrat isolé de source read-only et d’attestation vérifiable, puis seulement traiter lecture transactionnelle, provenance/audit, collision/non-fusion, rollback et validation. Il ne doit pas exécuter une demande M4.6 par simple existence. |

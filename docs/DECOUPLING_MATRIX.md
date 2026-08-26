@@ -133,6 +133,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.5 n’est pas un importeur. Le registre marque les seules formes structurelles déjà revues et laisse toutes les sémantiques de données en refus explicite jusqu’à un lot ultérieur.
 
+### 2.12. Avancement observé M4.6 — préparation fail-closed d’un import de composant
+
+| Couplages | Surface VERA désormais observée | Evidence M4.6 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C04`, `C16` | `vera_mmu.domain_packs.aret.import_preparation` construit exclusivement une demande `component→entity` de type `COMPONENT`, liée à un `ProjectIdentity`, un SHA-256 source déclaré, un identifiant de demande et un acteur. | `tests/test_aret_component_import_preparation.py` : liaison explicite, refus des entrées non canoniques/non liées, état `PREPARED_NOT_EXECUTED` et attestation `UNVERIFIED_DECLARATION`; suite `210 passed, 14 subtests passed` et wheel isolée; `LOG-0133`. | Localisation/lecture de source, vérification de l’empreinte, mapping de lignes/champs/statuts, transaction VERA, provenance/audit, collisions, rollback, evidence/proof, validation post-import et parité ARET. | `SPLIT` |
+
+> M4.6 n’ouvre ni source ni store VERA. Le SHA-256 est une déclaration syntaxiquement contrôlée, non une attestation calculée ou vérifiée; aucune ligne `component` n’est lue, convertie ou écrite.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
