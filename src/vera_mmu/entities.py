@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import json
 import re
 import sqlite3
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from .addressing import AddressError, make_address
 from .identity import ProfileError, canonical_json
@@ -48,6 +48,24 @@ class Entity:
     created_at: str
     created_by: str
     address: str
+
+
+@dataclass(frozen=True)
+class EntityCreateInput:
+    """One validated caller-side input for an atomic generic entity batch."""
+
+    identifier: str
+    title: str
+    description: str = ""
+    metadata: Mapping[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class EntityBatchResult:
+    """The committed result of one atomic type-registration and entity-creation batch."""
+
+    entity_type: EntityType
+    entities: tuple[Entity, ...]
 
 
 class EntityService:
@@ -152,6 +170,111 @@ class EntityService:
         except sqlite3.IntegrityError as exc:
             raise EntityError("Identifiant d’entité déjà utilisé ou entité invalide.") from exc
         return _entity_from_row(self.store, row)
+
+    def register_type_and_create_batch(
+        self,
+        type_id: str,
+        label: str,
+        entities: Sequence[EntityCreateInput],
+        *,
+        type_description: str = "",
+        type_schema: Mapping[str, Any] | None = None,
+        actor: str = "system",
+    ) -> EntityBatchResult:
+        """Atomically register one absent generic type and create a bounded batch of its entities.
+
+        All validation occurs before the transaction. Any storage conflict or internal failure
+        rolls back both the type registration and every entity/audit insertion from this batch.
+        """
+        normalized_type = _require_type_id(type_id)
+        normalized_label = _require_text(label, "label", maximum=256)
+        normalized_description = _require_optional_text(type_description, "type_description")
+        normalized_schema = _require_json_object(type_schema, "type_schema")
+        normalized_actor = _require_text(actor, "actor", maximum=256)
+        if not isinstance(entities, Sequence) or isinstance(entities, (str, bytes)) or not 1 <= len(entities) <= 100:
+            raise EntityError("Le batch d’entités doit contenir entre 1 et 100 entrées.")
+
+        normalized_inputs: list[tuple[str, str, str, dict[str, Any]]] = []
+        for item in entities:
+            if not isinstance(item, EntityCreateInput):
+                raise EntityError("Chaque entrée du batch doit être un EntityCreateInput.")
+            normalized_inputs.append(
+                (
+                    _require_entity_identifier(self.store, item.identifier),
+                    _require_text(item.title, "title", maximum=1024),
+                    _require_optional_text(item.description, "description"),
+                    _require_json_object(item.metadata, "metadata"),
+                )
+            )
+        identifiers = tuple(item[0] for item in normalized_inputs)
+        if len(set(identifiers)) != len(identifiers):
+            raise EntityError("Les identifiants d’entité du batch doivent être uniques.")
+
+        try:
+            with self.store.transaction() as connection:
+                if connection.execute("SELECT 1 FROM entity_type WHERE id = ?", (normalized_type,)).fetchone() is not None:
+                    raise EntityError("Type d’entité déjà enregistré ou invalide.")
+                connection.execute(
+                    "INSERT INTO entity_type(id, label, description, schema_json, created_at, created_by) "
+                    "VALUES(?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?)",
+                    (
+                        normalized_type,
+                        normalized_label,
+                        normalized_description,
+                        canonical_json(normalized_schema),
+                        normalized_actor,
+                    ),
+                )
+                type_row = connection.execute(
+                    "SELECT id, label, description, schema_json, created_at, created_by "
+                    "FROM entity_type WHERE id = ?",
+                    (normalized_type,),
+                ).fetchone()
+                if type_row is None:
+                    raise EntityError("Création atomique de type d’entité non lisible.")
+                self.store.append_audit(
+                    connection,
+                    "ENTITY_TYPE_REGISTERED",
+                    {"entity_type_id": normalized_type, "actor": normalized_actor},
+                )
+
+                rows = []
+                for identifier, title, description, metadata in normalized_inputs:
+                    connection.execute(
+                        "INSERT INTO entity(id, type_id, title, description, metadata_json, created_at, created_by) "
+                        "VALUES(?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?)",
+                        (
+                            identifier,
+                            normalized_type,
+                            title,
+                            description,
+                            canonical_json(metadata),
+                            normalized_actor,
+                        ),
+                    )
+                    row = connection.execute(
+                        "SELECT id, type_id, title, description, metadata_json, created_at, created_by "
+                        "FROM entity WHERE id = ?",
+                        (identifier,),
+                    ).fetchone()
+                    if row is None:
+                        raise EntityError("Création atomique d’entité non lisible.")
+                    rows.append(row)
+                    self.store.append_audit(
+                        connection,
+                        "ENTITY_CREATED",
+                        {
+                            "entity_id": identifier,
+                            "entity_type_id": normalized_type,
+                            "actor": normalized_actor,
+                        },
+                    )
+        except sqlite3.IntegrityError as exc:
+            raise EntityError("Type d’entité, identifiant d’entité ou batch invalide.") from exc
+        return EntityBatchResult(
+            entity_type=_entity_type_from_row(type_row),
+            entities=tuple(_entity_from_row(self.store, row) for row in rows),
+        )
 
     def get(self, identifier: str) -> Entity:
         """Read exactly one entity by its canonical VERA identifier; this is not FIND."""
