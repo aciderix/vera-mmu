@@ -22,6 +22,11 @@ from .source_attestation import (
     AretV1ComponentSourceAttestation,
     attest_aret_v1_component_source,
 )
+from .git_identity import (
+    AretGitSourceIdentityError,
+    AretV1GitSourceIdentity,
+    verify_aret_v1_git_source_identity,
+)
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -44,4 +49,7 @@ __all__ = [
     "AretSourceAttestationError",
     "AretV1ComponentSourceAttestation",
     "attest_aret_v1_component_source",
+    "AretGitSourceIdentityError",
+    "AretV1GitSourceIdentity",
+    "verify_aret_v1_git_source_identity",
 ]
