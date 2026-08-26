@@ -117,6 +117,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.3 est un inventaire de noms seulement. Il ne rend aucune table ni donnée compatible, ne lit aucune SQLite en production et ne fournit aucune conversion ni garantie de parité.
 
+### 2.10. Avancement observé M4.4 — profil de compatibilité ARET V1
+
+| Couplages | Surface VERA désormais observée | Evidence M4.4 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C01`–`C06`, `C16` | `vera_mmu.domain_packs.aret.profile` compose les manifestes M4.1–M4.3 sous `aret-v1-compatibility`, limité à `parse_address`, `describe_runtime` et `describe_schema`; le profil déclare runtime, lecture SQLite, import et écriture VERA interdits. | `tests/test_aret_compatibility_profile.py` : composition exacte, opérations permises/interdites et indépendance du Core; suite `198 passed, 14 subtests passed` et wheel isolée; `LOG-0129`. | Adapter de profil opérationnel, configuration de projet, runtime/store, mappings de ressources et données, import non fusionnel, pipelines, playbook, proof/evidence, hooks, toolchain et parité ARET. | `SPLIT` |
+
+> M4.4 formalise le contrat de non-opérationnalité des surfaces de compatibilité initiales. Il ne crée aucune capacité d’accès, de migration ou de conversion supplémentaire.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

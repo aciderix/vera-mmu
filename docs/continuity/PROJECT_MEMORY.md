@@ -427,3 +427,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-073` | Schéma ARET | Le Domain Pack expose un manifeste immutable du schéma applicatif V1 observé : migrations 001–006 et dix-huit tables applicatives, sans les tables internes FTS. | `OBSERVED` | Baseline SQLite lue en `mode=ro`, `test_aret_schema_manifest.py`, suite Core `196 passed, 14 subtests passed`, wheel isolée. | `LOG-0127` |
 | `MEM-DEC-051` | Frontière M4.3 | Le manifeste est une description de compatibilité; il n’ouvre aucune SQLite, ne lit ni n’importe de ligne, ne crée aucune entité VERA et ne requalifie aucune donnée ou table historique comme compatible. | `DECISION` | Contrat M4.3 et scans de frontière. | `LOG-0127` |
 | `MEM-STATE-074` | État M4 | M4 reste `IN_PROGRESS`. C03/C04/C05/C06/C16 restent `SPLIT` : les noms de schéma historique sont connus, mais toute lecture de données, mapping explicite, import, evidence/proof, audit et parité restent non implémentés/non prouvés. `MEM-WALL-001` reste actif. | `OBSERVED` | Matrice de découplage et verdict M4.3. | `LOG-0127` |
+
+
+## 40. Addendum — M4.4 profil déclaratif de compatibilité ARET V1
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-075` | Profil ARET | Le Domain Pack expose `aret-v1-compatibility`, un profil immutable qui compose les contrats d’adressage, runtime et schéma M4.1–M4.3. Il n’autorise que `parse_address`, `describe_runtime` et `describe_schema`. | `OBSERVED` | `test_aret_compatibility_profile.py`, suite Core `198 passed, 14 subtests passed`, wheel isolée. | `LOG-0129` |
+| `MEM-DEC-052` | Frontière M4.4 | Le profil déclare explicitement `resolve_runtime`, `read_sqlite`, `import_data` et `write_vera` comme hors scope. Il ne devient ni Project Profile VERA validé, ni runtime adapter, ni importeur, ni surface MCP. | `DECISION` | Contrat M4.4 et scans de frontière. | `LOG-0129` |
+| `MEM-STATE-076` | État M4 | M4 reste `IN_PROGRESS`. M4.1–M4.4 définissent seulement une frontière de compatibilité descriptive. Toutes les interactions avec les données, pipelines, preuves, playbook, hooks, toolchain et parité ARET restent non implémentées/non prouvées; `MEM-WALL-001` reste actif. | `OBSERVED` | Matrice de découplage et verdict M4.4. | `LOG-0129` |

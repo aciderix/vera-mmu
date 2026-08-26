@@ -1877,3 +1877,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `b98058c0365131ff4070a4d3c9c248a00a48d475` avant le handoff documentaire. |
 | Reprise | Le lot M4 suivant doit traiter un seul mapping de compatibilité ou une policy de lecture sous contrat fermé; il ne peut pas importer une table complète ni déduire une équivalence ARET à partir d’un inventaire. |
+
+
+### LOG-0129 — Verdict M4.4 : profil de compatibilité ARET V1 borné
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.profile` expose le profil immutable `aret-v1-compatibility`, composé des manifestes M4.1–M4.3. Ses seules opérations déclarées sont `parse_address`, `describe_runtime` et `describe_schema`. |
+| Invariant | Le profil déclare explicitement `resolve_runtime`, `read_sqlite`, `import_data` et `write_vera` comme interdits. Il ne lit ni n’écrit, ne devient pas un Project Profile VERA, ne lance aucune capacité et n’expose aucune API MCP. |
+| Isolation | Le Core n’importe pas le pack; le profil ne contient ni filesystem, store, SQLite, réseau, shell ni toolchain ARET. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : module absent; ciblé : `10 passed` avec M4.1–M4.3; Core : `198 passed, 14 subtests passed`; `git diff --check`, scans de frontière et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.4 uniquement. Le profil est descriptif, non opérationnel; aucun import, mapping de données, pipeline, preuve, playbook, hook, toolchain ou parité ARET n’est affirmé. M4 reste `IN_PROGRESS`. |
+
+
+### LOG-0130 — Publication et handoff M4.4
+
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `c067ea0dfec94292de1e9f826512646a7fc7fe15` — `feat: add bounded ARET compatibility profile`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `c067ea0dfec94292de1e9f826512646a7fc7fe15` avant le handoff documentaire. |
+| Reprise | Le lot M4 suivant doit poursuivre un seul couplage avec une policy et des mappings explicites; aucune opération déclarée interdite par M4.4 ne peut être introduite implicitement. |
