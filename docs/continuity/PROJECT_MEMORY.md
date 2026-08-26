@@ -348,3 +348,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-057` | Diagnostic gates | `GateBlockerService` expose les gates directes non `PASS` d’un work item avec leurs compteurs d’admissions, sans aucune écriture. | `OBSERVED` | Service/tests M3.21, 174 tests et 14 sous-tests, wheel isolée. | `LOG-0110` |
 | `MEM-DEC-042` | Frontière gates | Le diagnostic ne crée pas d’admission, n’exécute aucune capability et ne combine pas encore les blockers de dépendance et de gate; il est purement informatif. | `DECISION` | Contrat M3.21. | `LOG-0110` |
 | `MEM-STATE-058` | Reprise active | M3 reste `IN_PROGRESS`. Restent diagnostic composite/graph-lifecycle avancé, validator/oracle métier policy-gated, runner sûr additionnel, CLI/MCP et pack ARET. | `OBSERVED` | Revue post-M3.21; `MEM-WALL-001` demeure actif. | `LOG-0110` |
+
+
+## 31. Décision de portée — contrat M3.EXIT approuvé
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-043` | Portée M3 | Le périmètre restant de M3 est fini par approbation : M3.22 rapport composite de blockers, M3.23 policy de complétion, M3.24 binding admission-validation, M3.25 catalogue de compatibilité locale, puis M3.EXIT. | `DECISION` | Approbation utilisateur et contrat du workplan. | `LOG-0112` |
+| `MEM-STATE-059` | Clôture conditionnelle | M3 demeure `IN_PROGRESS` jusqu’au passage de chacune des gates M3.22–M3.25 et de M3.EXIT. Aucun lot ne peut promouvoir C05/C06/C16, C07 ou la parité ARET. | `OBSERVED` | Contrat M3.EXIT. | `LOG-0112` |

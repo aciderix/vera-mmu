@@ -130,3 +130,20 @@ La spécification Universal Dev-MMU et la doctrine de travail ARET mentionnées 
 [3]: https://github.com/aciderix/ARET-MMU "ARET-MMU — dépôt de référence"
 [4]: ../DECOUPLING_MATRIX.md "Registre de découplage ARET-MMU → VERA-MMU"
 [5]: ../IDENTITY.md "Identité officielle de VERA-MMU"
+
+
+## 10. Contrat terminal approuvé de M3 — M3.EXIT
+
+**Décision de périmètre.** M3 est pleinement livré lorsque le Core fournit un moteur local, fermé et policy-gated de capabilities, evidence, validation, admission, proof, gates, work graph et lifecycle dérivé. Cette clôture ne revendique ni parité ARET, ni oracle métier, ni shell, réseau, filesystem externe, CLI/MCP de production ou Domain Pack.
+
+| ID | Résultat persistant cohérent | Exclusions explicites | Gate propre du lot |
+|---|---|---|---|
+| `M3.22` | Rapport composite de blocage réunissant dépendances directes/transitives et gates directes non `PASS`, en ordre canonique et lecture pure. | Scheduler, orchestration, traversal de gates, mutation, audit, execution, admission, preuve. | Graph linéaire/diamant, déduplication, ordre stable, modes `ALL`/`ANY`/`AT_LEAST`, zéro écriture/audit, wheel isolé. |
+| `M3.23` | Policy singleton immutable `OPEN` / `REQUIRE_READY_FOR_COMPLETE`; le mode strict refuse `COMPLETE` avant écriture si readiness `BLOCKED`. | Complétion automatique, planification, execution, evidence, admission, preuve, orchestration. | Compatibilité `OPEN`, refus strict, satisfactions dependency/gate, rollback event/audit, migration et wheel isolée. |
+| `M3.24` | Binding explicite entre admission `ADMITTED` et validation `PASS` de la même evidence en mode strict. | Validation déclenchée implicitement, validator/oracle additionnel, mutation de knowledge, preuve automatique. | FKs/unicité, refus cross-evidence/`FAIL`/absent/duplicat, rollback, compatibilité permissive, wheel isolée. |
+| `M3.25` | Catalogue fermé vérifiant la compatibilité profile de runner / kind de validator / schéma de paramètres pour `EVIDENCE_HASH` et `EVIDENCE_FIELDS`. | JSON Schema général, interprétation métier, oracle, fichier, réseau, shell, runner générique. | Matrice complète profile×validator×schema×policy, `PASS`/`FAIL`, refus cross-kind, rollback et wheel isolée. |
+| `M3.EXIT` | Audit cumulatif des capacités M3.1–M3.25 et décision terminale. | Toute extension opportuniste de surface ; parité ARET ; pack, CLI, MCP, dashboard, runner externe, oracle métier. | Fresh install et upgrades 001→courant ; chaîne capability→execution→evidence→validation→admission→proof→gate→readiness→lifecycle ; tests Core, scans no-shell/no-network/no-filesystem/no-ARET/no-secret, wheel isolée, checksums, docs et publication vérifiés. |
+
+> **Règle de clôture.** M3 passe `PASS` uniquement si `M3.22` à `M3.25` sont `PASS` et si `M3.EXIT` satisfait toutes ses gates cumulatives. Les états C05/C06/C16 et la parité ARET ne sont pas déduits de M3.EXIT : C05/C06/C16 restent `SPLIT`, C07 reste `BLOCKED` sous `MEM-WALL-001` et la parité reste `UNKNOWN` jusqu’à M4.
+
+> **Transfert explicite.** Les oracles et runners externes relèvent de Domain Packs post-M3 ; la confirmation interactive, CLI, MCP et intégrations relèvent de M5/M6/M7 ; la rotation HMAC, les gates pondérées/temporelles/révocables sont des évolutions post-M3 sous contrats séparés.

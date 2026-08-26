@@ -1699,3 +1699,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `b0cd1cc365091a6283bf6fd246b8d3a2c63b9bac`. |
 | État de reprise | M3.21 est publié. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
 | Prochain choix | Choisir explicitement un seul gap M3 : diagnostic composite, graph/lifecycle avancé, validator/oracle métier sous policy distincte, runner sûr additionnel ou surface CLI/MCP. Ne pas rendre le diagnostic actif. |
+
+
+### LOG-0112 — Approbation du contrat terminal M3.EXIT
+
+| Champ | Valeur |
+|---|---|
+| Décision | L’utilisateur approuve l’enchaînement jusqu’à M3.EXIT et le périmètre fini M3.22–M3.25 + M3.EXIT. |
+| Lots restants | M3.22 rapport composite de blockers ; M3.23 policy de complétion optionnelle ; M3.24 binding admission-validation ; M3.25 catalogue de compatibilité locale ; M3.EXIT audit cumulatif. |
+| Limites conservées | Aucun shell, réseau, filesystem externe, oracle métier, runner générique, promotion implicite, parité ARET ou surface CLI/MCP n’est ajouté à M3. |
+| Statut | Contrat approuvé et documenté ; M3 reste `IN_PROGRESS` jusqu’aux gates cumulatives M3.EXIT. |
