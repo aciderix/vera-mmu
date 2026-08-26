@@ -66,6 +66,11 @@ from .component_schema_conformance import (
     AretV1ComponentSchemaConformance,
     inspect_aret_v1_component_schema,
 )
+from .component_post_validation import (
+    AretComponentPostValidationError,
+    AretV1ComponentPostValidation,
+    post_validate_authorized_aret_v1_component_page,
+)
 from .component_page_import import (
     AretComponentPageImportError,
     AretV1AuthorizedComponentPageImportResult,
@@ -130,6 +135,9 @@ __all__ = [
     "AretComponentSchemaConformanceError",
     "AretV1ComponentSchemaConformance",
     "inspect_aret_v1_component_schema",
+    "AretComponentPostValidationError",
+    "AretV1ComponentPostValidation",
+    "post_validate_authorized_aret_v1_component_page",
     "AretComponentPageImportError",
     "AretV1AuthorizedComponentPageImportResult",
     "AretV1ComponentPageImportAuthorization",
