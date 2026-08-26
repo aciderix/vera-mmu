@@ -674,3 +674,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Contrôles | Red test initial, ciblés `15 passed, 4 subtests passed`, suite `391 passed, 21 subtests passed`, migration 001→038, scan Core anti-ARET, `git diff --check` et roue isolée : `PASS`. |
 | Décision | C07/C08 restent `IN_PROGRESS`; parité ARET `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. La prochaine tranche légitime est doctor/image/corpus versionnés et evidence réelles non-`PASS` contrôlées, sans modifier les oracles ni leurs fixtures. |
 | Référence | `docs/continuity/artifacts/m4d_universal_verdict_chain_2026-08-26.md`; `LOG-0178`. |
+
+### MEM-STATE-126 — `winehash UNKNOWN` réel reste non admissible
+| Champ | Valeur |
+|---|---|
+| Supersession documentaire | `SUPERSEDES: MEM-STATE-125` uniquement pour l’absence de scénario réel non-positif. Les décisions de parité et de M4.EXIT ne changent pas. |
+| Run | Le runner Pack fermé a exécuté `winehash` dans `/tmp/vera-aret-unknown-chain` depuis le toolkit propre verrouillé. L’execution est `COMPLETED`; le normaliseur Pack retourne `UNKNOWN` conformément au contrat de format Wine hashé. |
+| Intégrité | L’asset SHA-256 est `70aa80f03a37ef6e6232249273546f61ec527a5b58f2d4757eaae6a7f57cb63f`; `EVIDENCE_ASSET` retourne `PASS`, donc le lien evidence→asset→execution est intègre. |
+| Barrière | L’admission stricte refuse explicitement l’evidence `UNKNOWN` : `Seule une evidence PASS est admissible.` Le runtime contient `0` admission et `0` proof; aucune gate n’est déclarée ou satisfaite. |
+| Non-déduction | Un validator d’intégrité `PASS` n’est jamais un verdict sémantique `PASS`. Cette observation ne corrige pas `winehash`, ne résout pas Wine et ne prouve pas la parité ARET. |
+| Décision | Le comportement universel fail-closed est observé sur un `UNKNOWN` réel. C07/C08 restent `IN_PROGRESS`; parité `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. |
+| Référence | `docs/continuity/artifacts/m4d_real_unknown_verdict_2026-08-26.md`; `LOG-0179`. |

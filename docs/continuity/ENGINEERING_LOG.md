@@ -2348,3 +2348,15 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Contrôles | Ciblés : `15 passed, 4 subtests passed`; suite : `391 passed, 21 subtests passed`; migration 001→038, scan Core anti-ARET, `git diff --check` et roue isolée : `PASS`. |
 | Non-déduction | Cette proof de runtime temporaire démontre le mécanisme, non la parité ARET. `winediff 255/264` reste `FAIL`; le corpus Wine sandboxé bloqué n’a aucun verdict; C07/C08 restent `IN_PROGRESS`, parité `UNKNOWN`, M4.EXIT `NOT_ELIGIBLE`. |
 | Référence | `artifacts/m4d_universal_verdict_chain_2026-08-26.md`; `MEM-STATE-125`. |
+
+### LOG-0179 — 2026-08-26 — M4-D : `winehash UNKNOWN` réel, asset valide et admission refusée
+| Champ | Valeur |
+|---|---|
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| But | Vérifier sur une sortie réelle non positive que le mécanisme VERA conserve le verdict de l’oracle, même lorsque l’artefact et son execution sont intègres. |
+| Run | `winehash` a été exécuté par le runner Pack fermé dans `/tmp/vera-aret-unknown-chain`, depuis le toolkit ARET verrouillé et sans modification du script ou du corpus. |
+| Observation | Execution `COMPLETED`; normalisation Pack `UNKNOWN`; asset SHA-256 `70aa80f03a37ef6e6232249273546f61ec527a5b58f2d4757eaae6a7f57cb63f`; validator `EVIDENCE_ASSET=PASS`. |
+| Barrière | Sous policy `VALIDATED_PASS_EVIDENCE`, l’admission est refusée avec `Seule une evidence PASS est admissible.` Le runtime contient `0` evidence admission et `0` proof; aucune gate ne peut passer. |
+| Comparaison | Le cas montre que l’intégrité physique de la trace ne remplace pas la sémantique de l’oracle : `UNKNOWN` reste non promouvable. Il complète le `difftest PASS` réel de LOG-0178 sans modifier les oracles. |
+| Verdict | `OBSERVED` : classement fail-closed réel d’un `UNKNOWN`. C07/C08 `IN_PROGRESS`; Wine/parité `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. |
+| Référence | `artifacts/m4d_real_unknown_verdict_2026-08-26.md`; `MEM-STATE-126`. |
