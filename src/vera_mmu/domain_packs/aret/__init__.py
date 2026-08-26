@@ -54,6 +54,13 @@ from .component_target_collision import (
     AretV1ComponentTargetClearCheck,
     check_aret_v1_component_target_clear,
 )
+from .component_authorized_import import (
+    AretComponentAuthorizedImportError,
+    AretV1AuthorizedComponentImportResult,
+    AretV1ComponentImportAuthorization,
+    authorize_aret_v1_component_import,
+    import_authorized_aret_v1_component_entities,
+)
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -96,4 +103,9 @@ __all__ = [
     "AretComponentTargetCollisionError",
     "AretV1ComponentTargetClearCheck",
     "check_aret_v1_component_target_clear",
+    "AretComponentAuthorizedImportError",
+    "AretV1AuthorizedComponentImportResult",
+    "AretV1ComponentImportAuthorization",
+    "authorize_aret_v1_component_import",
+    "import_authorized_aret_v1_component_entities",
 ]
