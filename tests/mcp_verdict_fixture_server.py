@@ -24,6 +24,7 @@ from vera_mmu.evidence import EvidenceService
 from vera_mmu.executions import ExecutionService
 from vera_mmu.gates import GateService
 from vera_mmu.identity import load_profile
+from vera_mmu.mcp_manifest import compile_mcp_manifest
 from vera_mmu.mcp_server import DEFAULT_ASSET_VALIDATOR_ID, MCPRuntimeAdapter, create_server
 from vera_mmu.store import MemoryStore, StoreError
 from vera_mmu.validators import ValidatorService
@@ -43,6 +44,8 @@ _SCENARIOS: dict[str, tuple[str, OracleProcessResult]] = {
 
 class VerdictFixtureAdapter(MCPRuntimeAdapter):
     """Adapter de test déclaré au démarrage, sans entrée de résultat sur l’API MCP."""
+
+    adapter_id = "fixture-aret-v1"
 
     def __init__(self, scenario: str, reference: Path) -> None:
         if scenario not in _SCENARIOS:
@@ -162,7 +165,15 @@ def main() -> None:
     with MemoryStore.open(load_profile(args.profile), args.profile) as store:
         _initialize_store(store)
         reference = _prepare_reference(args.profile.parent / "aret-reference")
-        server = create_server(store, VerdictFixtureAdapter(args.scenario, reference), actor="mcp-fixture")
+        adapter = VerdictFixtureAdapter(args.scenario, reference)
+        manifest = compile_mcp_manifest(
+            store,
+            adapter_bindings={
+                "aret-oracle-difftest": adapter.adapter_id,
+                "aret-oracle-winehash": adapter.adapter_id,
+            },
+        )
+        server = create_server(store, adapter, manifest=manifest, actor="mcp-fixture")
         server.run("stdio")
 
 
