@@ -112,6 +112,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0086` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.11 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-036`, `MEM-WALL-001` |
 | `LOG-0087` | 2026-08-26 | `HYPOTHESIS` | M3.12 | lifecycle dérivé, événements fermés, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-037`, `MEM-DEC-032`, `MEM-WALL-001` |
 | `LOG-0088` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.12 | transitions, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-037`, `MEM-STATE-038`, `MEM-DEC-032`, `MEM-WALL-001` |
+| `LOG-0089` | 2026-08-26 | `RECORD` / `HANDOFF` | M3.12 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-038`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1429,3 +1430,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Atomicité | Work item inconnu, événement hors catalogue ou transition interdite refusent avant insertion et audit. Les séquences sont uniques par work item; état et historique sont des lectures sans effet. |
 | Limite | Le lifecycle ne requiert aucune gate, ne gère ni pause/reprise, réouverture, échéance, assignation, propagation parent/enfant, ordre de dépendance, exécution ou preuve. Une complétion n’est pas `PROVEN`. |
 | Verdict | `PASS` pour M3.12 technique; publication et synchronisation de continuité à finaliser. |
+
+
+### LOG-0089 — Publication vérifiée M3.12
+
+| Champ | Valeur |
+|---|---|
+| Commit | `86f9ccbdfe7b1435ca6305fdf2f8dc943f96a40c` — `feat: add derived work lifecycle`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication M3.12. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Suivi | Définir une gate de tranche M3 supplémentaire et bornée, distinguant les primitives livrées des validators métier, runners sûrs, CLI/MCP et compatibilité ARET encore absents. |
