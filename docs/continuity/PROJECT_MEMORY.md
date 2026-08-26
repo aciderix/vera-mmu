@@ -356,3 +356,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 |---|---|---|---|---|---|
 | `MEM-DEC-043` | Portée M3 | Le périmètre restant de M3 est fini par approbation : M3.22 rapport composite de blockers, M3.23 policy de complétion, M3.24 binding admission-validation, M3.25 catalogue de compatibilité locale, puis M3.EXIT. | `DECISION` | Approbation utilisateur et contrat du workplan. | `LOG-0112` |
 | `MEM-STATE-059` | Clôture conditionnelle | M3 demeure `IN_PROGRESS` jusqu’au passage de chacune des gates M3.22–M3.25 et de M3.EXIT. Aucun lot ne peut promouvoir C05/C06/C16, C07 ou la parité ARET. | `OBSERVED` | Contrat M3.EXIT. | `LOG-0112` |
+
+
+## 32. Addendum de reprise — M3.22 rapport composite de blockers
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-060` | Diagnostic composite | `WorkBlockerReportService` compose les blockers transitifs de dépendance et les gates directes non `PASS`, sans doublon de dépendance ni écriture. | `OBSERVED` | Service/tests M3.22, 175 tests et 14 sous-tests, wheel isolée. | `LOG-0113` |
+| `MEM-DEC-044` | Frontière de diagnostic | Le rapport est passif : il n’orchestre, ne planifie, ne déclenche aucune execution et ne modifie aucun fait métier. | `DECISION` | Contrat M3.22. | `LOG-0113` |

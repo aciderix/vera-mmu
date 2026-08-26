@@ -1709,3 +1709,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Lots restants | M3.22 rapport composite de blockers ; M3.23 policy de complétion optionnelle ; M3.24 binding admission-validation ; M3.25 catalogue de compatibilité locale ; M3.EXIT audit cumulatif. |
 | Limites conservées | Aucun shell, réseau, filesystem externe, oracle métier, runner générique, promotion implicite, parité ARET ou surface CLI/MCP n’est ajouté à M3. |
 | Statut | Contrat approuvé et documenté ; M3 reste `IN_PROGRESS` jusqu’aux gates cumulatives M3.EXIT. |
+
+
+### LOG-0113 — Verdict M3.22 : rapport composite de blockers
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `WorkBlockerReportService.diagnose(work_item_id)` compose les dépendances transitives non `COMPLETED` et les gates directes non `PASS`; le statut est `BLOCKED` si l’un des ensembles est non vide, sinon `READY`. |
+| Sémantique | Le rapport délègue aux diagnostics publiés, conserve leurs ordres canoniques et n’écrit ni audit, lifecycle, work item, execution, evidence, admission ou preuve. |
+| Gates | Tests-first : module absent; tests ciblés : `4 passed`; suite complète : `175 passed, 14 subtests passed`; scan sans I/O/écriture/ARET et wheel isolée passent. |
+| Limites | Aucun scheduler, orchestration, traversal de gates, pondération/temporalité ou mutation automatique. |
+| Verdict | `PASS` pour M3.22. M3 reste `IN_PROGRESS` jusqu’à M3.EXIT; C05/C06/C16 `SPLIT`, C07 `BLOCKED`, parité ARET `UNKNOWN`. |
