@@ -2428,3 +2428,18 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | Le registry est un mécanisme générique, pas un adapter ARET de production. La fixture reste test-only. Les adapters spécifiques, instructions/hooks/config générés et installation restent hors M5-C. |
 | Verdict | `M5-C = PASS`; M5 reste `IN_PROGRESS`. Aucun client ne peut choisir l’adapter, fournir une commande ou promouvoir un verdict. |
 | Référence | `50cc79a`; `tests/test_mcp_adapter_registry.py`; `tests/test_mcp_stdio_verdict_transport.py`; `MEM-DEC-131`. |
+
+### LOG-0185 — 2026-08-26 — M5-D : premier adapter MCP de production du Pack ARET
+| Champ | Valeur |
+|---|---|
+| Type | `PATCH` / `TEST` / `VERDICT` |
+| But | Transformer le mécanisme M5-C en premier runtime de Pack concret, sans introduire de dépendance ARET dans la façade, le manifeste ou le registry génériques. |
+| Patch | `e073fa2` ajoute `domain_packs/aret/mcp_adapter.py` et `mcp_runtime.py`. `AretClosedOracleMCPAdapter` a l’ID fermé `aret-closed-oracle-v1` et délègue exclusivement chaque capability canonique `aret-oracle-*` au runner `run_closed_oracle`. |
+| Entrées | Le Pack accepte seulement la capability déclarée et le champ `fixture` lorsque le contrat de l’oracle l’autorise. Commande, verdict, stdout, stderr, code de sortie, score et artifact client restent refusés avant le runner. |
+| Hôte | `build_aret_mcp_runtime` instancie adapter→registry→manifest→façade. Il extrait les seules capabilities `ALLOW` du Pack puis demande au compilateur M5-B de couvrir le catalogue complet; une capability ALLOW étrangère et sans adapter fait donc refuser le démarrage. |
+| Persistence | Le runner Pack conserve préflight, commit toolkit, propreté, binaire attesté, sandbox `unshare`, asset/execution/evidence. L’adapter n’ajoute qu’un work item/gate lié à la même evidence, sans admission ni proof implicite. |
+| Test réel | Un vrai client stdio démarre l’hôte ARET, vérifie le catalogue `aret-oracle-difftest`, tente `parameters.command` (refus), exécute la capability, puis obtient `PASS` → validation asset `PASS` → admission `ADMITTED` → gate `PASS`. Le résultat de processus reste déterminé côté serveur. |
+| Contrôles | Rouge : adapter puis runtime/fixture absents. Verts : `4 passed` adapter/runtime, `1 passed` vrai stdio, `21 passed, 12 subtests passed` ciblés. Suite complète : `413 passed, 37 subtests passed`. Scan Core sans import Pack/ARET, wheel isolée avec modules Pack : `PASS`. |
+| Limite | L’hôte est une API de composition Python attestée, pas encore une configuration installable issue d’un profile. La fixture stdio utilise un runner déterministe de test; elle ne démontre pas la réussite locale des oracles ARET ni ne modifie ARET-MMU. |
+| Verdict | `M5-D = PASS`; M5 reste `IN_PROGRESS`. La façade générique demeure fail-closed sans hôte de Pack explicitement assemblé. |
+| Référence | `e073fa2`; `tests/test_aret_mcp_adapter.py`; `tests/test_aret_mcp_runtime.py`; `tests/test_aret_mcp_stdio_runtime.py`; `MEM-DEC-132`. |

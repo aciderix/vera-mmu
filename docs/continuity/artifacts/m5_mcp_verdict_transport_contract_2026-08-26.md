@@ -1,7 +1,7 @@
-# M5 — Façade MCP, manifeste et registry de transport des verdicts — jalons M5-A/B/C — 2026-08-26
+# M5 — Façade MCP, manifeste, registry et adapter Pack — jalons M5-A/B/C/D — 2026-08-26
 
-> **Statut :** `M5-A/B/C PASS` — façade MCP stdio dans `5ffe182`, compilateur/vérificateur de manifeste dans `5de260d`, registry de runtime dans `50cc79a`.
-> **Portée :** transport universel fermé, manifeste déterministe attesté et résolution d’adapter côté serveur. Les adapters spécifiques de production, les instructions/hooks générés et la configuration d’installation restent hors des jalons réalisés.
+> **Statut :** `M5-A/B/C/D PASS` — façade MCP stdio dans `5ffe182`, manifeste dans `5de260d`, registry de runtime dans `50cc79a`, premier adapter Pack dans `e073fa2`.
+> **Portée :** transport universel fermé, manifeste déterministe, résolution d’adapter serveur et premier runtime de Pack. Les instructions/hooks/config générés et la configuration d’installation restent hors des jalons réalisés.
 
 ## 1. Décision de portage
 
@@ -18,6 +18,7 @@ ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transpor
 | Services universels capability, evidence, validation, admission et gate | Appelés par la façade sans dupliquer leur sémantique | Réutilisés. |
 | Catalogue/policies/contracts/adapters déclarés | `mcp_manifest.py` compile une forme canonique liée au projet et aux migrations | Ajouté en M5-B, sans shell ni runtime implicite. |
 | Résolution d’adapter | `mcp_adapters.py` indexe des objets hôte, sans chargement dynamique, puis résout chaque capability attestée | Ajouté en M5-C, manifest-bound et fail-closed. |
+| Adapter de Pack | `domain_packs/aret/mcp_adapter.py` délègue une capability ARET au runner fermé et crée ses références de gate | Ajouté en M5-D ; absent du Core. |
 
 ## 2. Surface M5-A livrée
 
@@ -68,13 +69,16 @@ Les erreurs métier sont retournées sous l’enveloppe stable `{ok, operation, 
 | Packaging | Roues isolées M5-A, M5-B et M5-C construites ; `vmmu --help`, `vmmu-mcp --help` et inclusion de `mcp_manifest.py` / `mcp_adapters.py` : `PASS`. |
 | Manifeste M5-B | Canonique quel que soit l’ordre des bindings, lié à l’identité projet et aux checksums de migrations; toute divergence de catalogue, policy, binding ou projet est refusée. |
 | Registry M5-C | Resolution capability→adapter exacte, sans execution pendant la résolution; absence, doublon, adapter inconnu, chemin/commande ou runtime ambigu sont refusés. |
-| Suite complète M5-C | `408 passed, 37 subtests passed`. |
+| Adapter Pack M5-D | Une capability `aret-oracle-*` est convertie en oracle du catalogue fermé; seuls `fixture` quand déclarée, référence toolkit, binaire attesté, préflight et sandbox du runner Pack peuvent participer. |
+| Hôte Pack M5-D | Le manifest doit couvrir exclusivement les capabilities `ALLOW` du Pack; une capability autorisée étrangère sans adapter est refusée avant le démarrage MCP. |
+| Vrai client stdio M5-D | Le client appelle l’hôte ARET, ne peut pas injecter `command`, puis atteint validation, admission et gate par le runner fermé. |
+| Suite complète M5-D | `413 passed, 37 subtests passed`. |
 
 ## 6. Limites et suite M5
 
-`M5-A/B/C` ne prétend pas que le serveur générique peut déjà exécuter ARET en production. La fixture ne sert qu’à prouver le **transport MCP** à partir des mêmes contrats que M4 ; elle n’est ni installée dans le paquet ni utilisable par un client.
+`M5-A/B/C/D` ne prétend pas que l’entry point MCP générique puisse exécuter ARET sans configuration d’hôte : il demeure fail-closed. M5-D ajoute le premier adapter de Pack, mais son hôte reste explicitement construit avec une référence toolkit, des dépendances et un registry côté serveur. La fixture d’intégration ne sert qu’à démontrer ce **transport MCP** ; elle ne rend pas le runner de test configurable par le client.
 
-M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. M5-C livre le registry qui résout ces symboles vers des objets explicitement fournis par l’hôte, sans import dynamique ni commande. Les tranches suivantes devront déclarer les adapters spécifiques de production et compiler instructions/hooks/config. M6 fournira ensuite CLI, installation, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A/B/C.
+M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. M5-C livre le registry qui résout ces symboles vers des objets explicitement fournis par l’hôte, sans import dynamique ni commande. M5-D livre `AretClosedOracleMCPAdapter` et `build_aret_mcp_runtime`, tous deux dans le Pack : le premier délègue exclusivement à `run_closed_oracle`; le second refuse tout catalogue `ALLOW` que l’adapter ne couvre pas. Les tranches suivantes devront compiler instructions/hooks/config et une configuration d’installation attestée. M6 fournira ensuite CLI, installation, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A/B/C/D.
 
 ## Références
 
@@ -89,3 +93,6 @@ M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité d
 [9]: ../../../tests/test_mcp_manifest.py "Conformance I007/I008/I011/I012 du manifeste"
 [10]: ../../../src/vera_mmu/mcp_adapters.py "Registry d’adapters serveur fermé"
 [11]: ../../../tests/test_mcp_adapter_registry.py "Conformance I007/I008/I012/I014 du registry"
+[12]: ../../../src/vera_mmu/domain_packs/aret/mcp_adapter.py "Adapter MCP du Pack ARET"
+[13]: ../../../src/vera_mmu/domain_packs/aret/mcp_runtime.py "Assemblage manifest-bound du runtime ARET"
+[14]: ../../../tests/test_aret_mcp_stdio_runtime.py "Conformance MCP stdio de l’adapter Pack"

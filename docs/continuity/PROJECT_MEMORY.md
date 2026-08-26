@@ -746,3 +746,16 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | `50cc79a`; `4 passed, 5 subtests passed` registry; `10 passed, 12 subtests passed` ciblés; suite `408 passed, 37 subtests passed`; roue isolée; `LOG-0184`. |
 | État | `M5-C PASS`; M5 global `IN_PROGRESS`. |
 | Références | `src/vera_mmu/mcp_adapters.py`; `tests/test_mcp_adapter_registry.py`; `LOG-0184`. |
+
+### MEM-DEC-132 — M5-D branche le premier adapter de production depuis un Domain Pack
+| Champ | Valeur |
+|---|---|
+| Décision | Le Core MCP générique ne reçoit aucun runner ARET. Le premier runtime réel est construit dans `domain_packs/aret` : adapter fermé → registry M5-C → manifeste M5-B → façade M5-A. |
+| Adapter | `AretClosedOracleMCPAdapter` accepte uniquement une capability `aret-oracle-*` canonique et ses paramètres contractuels. Il délègue l’exécution, l’asset, l’evidence et la normalisation au runner M4-D existant, puis déclare une gate liée à cette evidence. |
+| Hôte | `build_aret_mcp_runtime` compose le runtime. Il ne lie que les capabilities ALLOW ARET au symbol `aret-closed-oracle-v1`; toute capability ALLOW étrangère sans adapter provoque un refus de compilation, non un catalogue partiel. |
+| Fermeture | L’adapter n’accepte ni commande, score, verdict, stdout/stderr, exit code ou artifact client. Préflight, toolkit hashé, commit propre, confinement réseau et normaliseur demeurent propriété du Pack. Aucune admission/proof n’est créée par l’adapter. |
+| Conformance | Un vrai client MCP stdio atteint `PASS → validation PASS → admission ADMITTED → gate PASS` avec le runtime Pack. Une tentative `parameters.command` est refusée; le contenu de processus vient du runner hôte, jamais du client. |
+| Limite | Cette API de composition ne constitue pas encore une configuration/installation déclarative de profile. Le serveur de test utilise une exécution Pack déterministe; les résultats réels ARET restent des observations indépendantes. |
+| Preuve | `e073fa2`; ciblé `21 passed, 12 subtests passed`; suite `413 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0185`. |
+| État | `M5-D PASS`; M5 global `IN_PROGRESS`. |
+| Références | `src/vera_mmu/domain_packs/aret/mcp_adapter.py`; `src/vera_mmu/domain_packs/aret/mcp_runtime.py`; `LOG-0185`. |
