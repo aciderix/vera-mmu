@@ -2168,3 +2168,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Champ | Valeur |
 |---|---|
 | Reprise | Lire `MEM-STATE-108`/`MEM-STATE-109`, `LOG-0160` et M4-EXIT-02/03. Le prochain sous-lot prioritaire est la conformance profonde de `component` ou l’ouverture contrôlée de M4-B. |
+
+### LOG-0162 — Verdict M4-B : lecteurs structurels function_symbol et brick
+| Champ | Valeur |
+|---|---|
+| Portée | Lecteurs ARET V1 `function_symbol` et `brick` publiés : pagination keyset, hash avant/après, SQLite `mode=ro&immutable=1`, `query_only`, snapshot inspecté et aucune conversion/import/écriture VERA. |
+| Gates | Tests-first rouges ; ciblés `5 passed`; suite complète `310 passed, 14 subtests passed`; scans Core anti-ARET/pack no-write/no-network et roue isolée : `PASS`. |
+| Publication | Commit fonctionnel `fb5a04db57f3dd00feca81724157df08502eb0ca` — `feat(aret-pack): read structural function and brick pages` — publié et vérifié sur `main`. ARET-MMU reste propre au baseline fixé. |
+| Verdict | `PASS borné` pour les lecteurs seulement. Les projections, conformance profonde, authorisations, imports, rollback/reprise et sémantiques de statut restent non livrés ; M4-B reste `IN_PROGRESS`, M4 global `IN_PROGRESS`, parité `UNKNOWN`. |

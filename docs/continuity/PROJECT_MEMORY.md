@@ -551,3 +551,9 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 |---|---|---|---|---|---|
 | `MEM-STATE-108` | Post-validation | Après import autorisé, le pack relit sans écriture le batch générique, ses liens `source_identifier→entity_id` et les entités composant. Il exige l’égalité exacte avec les drafts : type, titre, description, métadonnées et provenance source. Le résultat est `POST_VALIDATED_NO_PROMOTION`. | `OBSERVED` | `tests/test_aret_component_post_validation.py`; commit `2d237f05e762dd9cffc89a1c1c9a8c9be1da5ea9`. | `LOG-0160` |
 | `MEM-STATE-109` | Limite M4-A | Cette preuve couvre une page autorisée et son ledger, non une source réelle multi-pages ni une validation exhaustive de tous les lots. Elle ne crée ni audit supplémentaire, ni evidence, ni knowledge proof, ni admission, ni promotion. M4 et la parité ARET demeurent ouverts/inconnus. | `OBSERVED` | Contrat M4-A post-validation et registre de clôture. | `LOG-0160` |
+
+## 56. Addendum — M4-B lecteurs structurels
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-110` | M4-B | Les tables ARET V1 `function_symbol` et `brick` disposent désormais de lecteurs paginés/hashés en SQLite immutable, liés au snapshot inspecté et sans write-path. Aucun symbole ni work item n’est encore projeté ou importé. | `OBSERVED` | Tests readers, commit `fb5a04db57f3dd00feca81724157df08502eb0ca`. | `LOG-0162` |
