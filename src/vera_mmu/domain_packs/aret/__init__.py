@@ -16,6 +16,12 @@ from .import_preparation import (
     AretComponentImportPreparationError,
     component_import_preparation,
 )
+from .source_attestation import (
+    ARET_V1_BASELINE_REVISION,
+    AretSourceAttestationError,
+    AretV1ComponentSourceAttestation,
+    attest_aret_v1_component_source,
+)
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -34,4 +40,8 @@ __all__ = [
     "AretComponentImportPreparation",
     "AretComponentImportPreparationError",
     "component_import_preparation",
+    "ARET_V1_BASELINE_REVISION",
+    "AretSourceAttestationError",
+    "AretV1ComponentSourceAttestation",
+    "attest_aret_v1_component_source",
 ]
