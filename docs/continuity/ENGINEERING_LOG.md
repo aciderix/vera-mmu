@@ -2373,3 +2373,15 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Contrôles | `395 passed, 21 subtests passed`; wheel isolée, scan Core anti-ARET et diff : `PASS`. |
 | Verdict | Classification universelle fail-closed observée pour `PASS`, `UNKNOWN`, `SKIPPED` et `FAIL`; C07/C08 `IN_PROGRESS`; parité `UNKNOWN`; M4.EXIT `NOT_ELIGIBLE`. |
 | Référence | `artifacts/m4d_real_verdict_matrix_and_doctor_2026-08-26.md`; `MEM-STATE-127`. |
+
+### LOG-0181 — 2026-08-26 — Correction M4 : transport interne de verdicts, façade MCP en M5
+| Champ | Valeur |
+|---|---|
+| Type | `DECISION` / `PATCH` / `TEST` / `VERDICT` |
+| Correction | Le score local d’un oracle ARET ne constitue pas un critère de réussite VERA. M4 évalue la classification et le transport fail-closed de son verdict; M5 évaluera ensuite le même comportement via un vrai serveur/client MCP. |
+| Patch | `8818100` modifie le normaliseur fractionnaire Pack : sortie reconnue complète → `PASS`; sortie reconnue partielle, par exemple `271/272`, → `FAIL`; sortie non reconnue → `ERROR`. Les patterns de transpile/Wine/EH suivent la même règle. |
+| Matrice | Les tests de transport construisent uniquement une référence Pack et un adapter de processus déclaré par le test. Ils couvrent `272/272 PASS`, `271/272 FAIL`, timeout `ERROR`, sortie inconnue `ERROR`, dépendance absente `SKIPPED`, format Wine hash `UNKNOWN`, asset valide et admission stricte. Le client futur ne peut injecter aucune de ces valeurs. |
+| Contrôles | Test rouge `271/272` initialement `ERROR`; patch minimal; ciblés `11 passed, 4 subtests passed`; suite `397 passed, 25 subtests passed`; scan Core anti-ARET, diff et roue isolée : `PASS`. |
+| MCP | L’inventaire confirme l’absence actuelle de serveur MCP de production. Le contrat M5 exige une vraie session client→serveur, les outils bornés et les mêmes scénarios sans injection client de commande/verdict/artefact. |
+| Verdict | C07 reste `IN_PROGRESS` pour la couverture service complète; la conformance MCP est `PLANNED` M5. M4.EXIT reste `NOT_ELIGIBLE` pour ses gates d’import/compatibilité/bundle/playbook restantes, pas pour le score Wine local. |
+| Référence | `artifacts/m4d_verdict_transport_scope_correction_2026-08-26.md`; `artifacts/m5_mcp_verdict_transport_contract_2026-08-26.md`; `MEM-DEC-128`. |

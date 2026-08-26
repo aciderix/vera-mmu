@@ -697,3 +697,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Contrôles | Test-first doctor, `395 passed, 21 subtests passed`, roue isolée, scan Core anti-ARET et `git diff --check`: `PASS`. |
 | Décision | C07/C08 `IN_PROGRESS`; parité `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. Les verdicts réels non-`PASS` restent non admis même avec un asset valide. |
 | Référence | `docs/continuity/artifacts/m4d_real_verdict_matrix_and_doctor_2026-08-26.md`; `LOG-0180`. |
+
+### MEM-DEC-128 — M4 valide le transport de verdict; M5 valide la façade MCP
+| Champ | Valeur |
+|---|---|
+| Décision | Le résultat fonctionnel local d’un oracle ARET (`272/272`, `271/272`, Wine, etc.) ne mesure pas l’universalité VERA. M4 doit vérifier le traitement exact d’un verdict contractuel par le Pack et le Core; M5 vérifiera le même transport à travers une vraie surface MCP. |
+| Contrat M4-D | Les payloads complets (`272/272`) sont `PASS`; les payloads partiels (`271/272`) sont `FAIL`; dépendance absente `SKIPPED`; timeout/sortie inconnue `ERROR`; format non promouvable `UNKNOWN`. Chaque verdict devient execution/evidence/asset; seul `PASS` validé peut être admis puis contribuer à proof/gate. |
+| Interdiction | Un client futur ne pourra fournir ni commande, ni `stdout`, ni score, ni `exit_code`, ni verdict, ni artifact à promouvoir. Les scénarios MCP seront produits par un adapter de test déclaré en M5. |
+| Correction | Les résultats Wine locaux et le blocage `win32_winsock` restent des observations ARET. Ils ne bloquent pas la conformance de transport VERA; ils ne sont pas effacés ni requalifiés. |
+| Preuve | Test-first `tests/test_aret_verdict_transport.py`; normaliseur Pack; suite `397 passed, 25 subtests passed`; roue isolée; `8818100`. |
+| État | M4-EXIT-09/C07 reste `IN_PROGRESS` jusqu’à couverture complète de la matrice service. La vraie conformance MCP est explicitement M5. `M4.EXIT = NOT_ELIGIBLE` pour les autres gates non réalisées. |
+| Références | `artifacts/m4d_verdict_transport_scope_correction_2026-08-26.md`; `artifacts/m5_mcp_verdict_transport_contract_2026-08-26.md`; `LOG-0181`. |
