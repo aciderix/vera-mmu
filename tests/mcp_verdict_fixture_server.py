@@ -24,6 +24,7 @@ from vera_mmu.evidence import EvidenceService
 from vera_mmu.executions import ExecutionService
 from vera_mmu.gates import GateService
 from vera_mmu.identity import load_profile
+from vera_mmu.mcp_adapters import RuntimeAdapterRegistry
 from vera_mmu.mcp_manifest import compile_mcp_manifest
 from vera_mmu.mcp_server import DEFAULT_ASSET_VALIDATOR_ID, MCPRuntimeAdapter, create_server
 from vera_mmu.store import MemoryStore, StoreError
@@ -173,7 +174,12 @@ def main() -> None:
                 "aret-oracle-winehash": adapter.adapter_id,
             },
         )
-        server = create_server(store, adapter, manifest=manifest, actor="mcp-fixture")
+        server = create_server(
+            store,
+            adapter_registry=RuntimeAdapterRegistry((adapter,)),
+            manifest=manifest,
+            actor="mcp-fixture",
+        )
         server.run("stdio")
 
 

@@ -23,6 +23,7 @@ from .assets import AssetService
 from .evidence import EvidenceService
 from .gates import GateService
 from .identity import load_profile
+from .mcp_adapters import RuntimeAdapterRegistry
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
 from .store import MemoryStore, StoreError
 from .validators import ValidatorService
@@ -171,6 +172,7 @@ def create_server(
     store: MemoryStore,
     runtime_adapter: MCPRuntimeAdapter | None = None,
     *,
+    adapter_registry: RuntimeAdapterRegistry | None = None,
     manifest: MCPManifest | None = None,
     asset_validator_id: str = DEFAULT_ASSET_VALIDATOR_ID,
     actor: str = "vera-mcp",
@@ -180,10 +182,17 @@ def create_server(
         raise ValueError("Actor MCP invalide.")
     if not isinstance(asset_validator_id, str) or not asset_validator_id or "/" in asset_validator_id:
         raise ValueError("Validator MCP invalide.")
+    if runtime_adapter is not None and adapter_registry is not None:
+        raise ValueError("Adapter direct et registry MCP sont mutuellement exclusifs.")
+    if adapter_registry is not None and manifest is None:
+        raise ValueError("Un registry MCP exige un manifeste vérifié.")
     adapter = runtime_adapter if runtime_adapter is not None else DenyRuntimeAdapter()
     allowed_capability_ids = None if manifest is None else verify_mcp_manifest(store, manifest)
     adapter_bindings = (
         {} if manifest is None else {item.capability_id: item.adapter_id for item in manifest.capabilities}
+    )
+    registry_adapters = (
+        {} if adapter_registry is None else adapter_registry.resolve_manifest(manifest)
     )
     server = MCPServer(
         SERVER_NAME,
@@ -211,12 +220,13 @@ def create_server(
                 raise StoreError("Paramètres MCP objet requis.")
             if allowed_capability_ids is not None and capability_id not in allowed_capability_ids:
                 raise StoreError("Capability absente du manifeste MCP vérifié.")
-            if manifest is not None and getattr(adapter, "adapter_id", None) != adapter_bindings[capability_id]:
+            selected_adapter = registry_adapters.get(capability_id, adapter)
+            if manifest is not None and getattr(selected_adapter, "adapter_id", None) != adapter_bindings[capability_id]:
                 raise StoreError("Adapter de runtime incohérent avec le manifeste MCP vérifié.")
             execution_id = _identifier("mcp-execution")
             evidence_id = _identifier("mcp-evidence")
             result = dict(
-                adapter.run(
+                selected_adapter.run(
                     store,
                     capability_id,
                     parameters,
