@@ -321,3 +321,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-051` | Runner local | Le catalogue de runners admet `NOOP`, `EVIDENCE_HASH` et `EVIDENCE_FIELDS`. Sous contrat exact et policy `ALLOW`, le runner de champs persiste atomiquement un verdict de validator local et une execution `COMPLETED`. | `OBSERVED` | Migration 030, tests M3.18, 171 tests et 14 sous-tests, wheel isolée. | `LOG-0104` |
 | `MEM-DEC-039` | Frontière runner | `EVIDENCE_FIELDS` ne lance aucun processus, ne lit aucun fichier et ne contacte aucun réseau. Une execution est distincte de l’evidence, de l’admission et de la preuve; aucun verdict ne promeut knowledge. | `DECISION` | Contrat runner M3.18 et contrôles transactionnels. | `LOG-0104` |
 | `MEM-STATE-052` | Reprise active | M3 reste `IN_PROGRESS`. Restent validator/oracle métier sous policy distincte, runners sûrs additionnels, lifecycle/graph avancé, CLI/MCP et pack ARET; `MEM-WALL-001` demeure actif. | `OBSERVED` | Revue post-M3.18. | `LOG-0104` |
+
+
+## 28. Addendum de reprise — M3.19 diagnostic de dépendances
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-053` | Diagnostic work graph | `WorkBlockerService` expose les dépendances directes non `COMPLETED` d’un work item, avec statut lifecycle dérivé, sans aucune écriture. | `OBSERVED` | Service/tests M3.19, 172 tests et 14 sous-tests, wheel isolée. | `LOG-0106` |
+| `MEM-DEC-040` | Frontière graph | Le diagnostic ne traverse pas transitivement le graph, ne résout pas les gates et n’orchestré aucune transition; il reste une lecture de blocages directs. | `DECISION` | Contrat M3.19. | `LOG-0106` |
+| `MEM-STATE-054` | Reprise active | M3 reste `IN_PROGRESS`. Restent graph/lifecycle avancé sous lot distinct, validator/oracle métier policy-gated, runner sûr additionnel, CLI/MCP et pack ARET. | `OBSERVED` | Revue post-M3.19; `MEM-WALL-001` demeure actif. | `LOG-0106` |

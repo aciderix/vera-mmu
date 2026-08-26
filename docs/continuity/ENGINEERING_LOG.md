@@ -1633,3 +1633,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `708c318f319dbfae59f42e547143a41c08a8667d`. |
 | État de reprise | M3.18 est publié avec migration 030. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
 | Prochain choix | Choisir explicitement un seul gap M3 : validator/oracle métier sous policy distincte, runner sûr additionnel, lifecycle/graph avancé ou surface CLI/MCP. Ne pas étendre les deux runners locaux en exécution arbitraire. |
+
+
+### LOG-0106 — Verdict M3.19 : diagnostic pur de dépendances bloquantes
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `WorkBlockerService.diagnose(work_item_id)` retourne les dépendances directes dont l’état dérivé n’est pas `COMPLETED`, avec identifiant et statut courant. |
+| Sémantique | Le diagnostic est une lecture pure, déterministe et ordonnée. Il n’écrit ni audit, ni event lifecycle, ni work item, ni evidence/admission/preuve/execution. |
+| Gates | Tests-first : erreur d’import attendue. Tests ciblés : `3 passed`; suite complète : `172 passed, 14 subtests passed`; scan sans I/O/écriture/ARET et wheel isolée passent. |
+| Limites | Aucun traversal transitif, agrégation de gates, scheduler, orchestration, mutation automatique, oracle, réseau ou shell n’est introduit. |
+| Verdict | `PASS` pour M3.19. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
