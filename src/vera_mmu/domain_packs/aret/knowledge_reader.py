@@ -36,7 +36,7 @@ class AretV1KnowledgeSourceRecord:
     created_at: str
     updated_at: str
     created_by: str
-    effective_at: str
+    effective_at: str | None
 
 
 @dataclass(frozen=True)
@@ -122,8 +122,8 @@ def _read_rows(snapshot: Path, after_id: str, limit: int) -> tuple[AretV1Knowled
     records: list[AretV1KnowledgeSourceRecord] = []
     for row in rows:
         if (
-            not all(isinstance(row[index], str) for index in (0, 1, 2, 3, 4, 10, 11, 12, 13, 14))
-            or any(row[index] is not None and not isinstance(row[index], str) for index in (5, 6, 7, 8))
+            not all(isinstance(row[index], str) for index in (0, 1, 2, 3, 4, 10, 11, 12, 13))
+            or any(row[index] is not None and not isinstance(row[index], str) for index in (5, 6, 7, 8, 14))
             or isinstance(row[9], bool)
             or not isinstance(row[9], int)
             or not _SHA256_RE.fullmatch(str(row[10]))
