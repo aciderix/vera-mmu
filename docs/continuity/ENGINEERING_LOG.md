@@ -2062,3 +2062,20 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `458675e29bae3d59bb02a7f19d91b16ec04e70a9` avant le handoff documentaire. |
 | Reprise | Le prochain lot doit isoler l’enregistrement du type `component` dans un store dont M4.13 a attesté l’absence, avec transaction/audit et refus de type divergent. Toute création d’entity reste un lot séparé après cette préparation. |
+
+### LOG-0149 — Verdict M4.14 : batch atomique générique de type et d’entités
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `EntityService.register_type_and_create_batch` reçoit un type générique absent, 1–100 `EntityCreateInput` validés et un acteur. Il enregistre type, entités et audits associés dans une unique transaction Core. |
+| Invariant | Toutes les entrées sont validées avant transaction; IDs du batch sont uniques. Type déjà existant, conflit d’ID à n’importe quel rang ou erreur interne annule type, entités et audits créés par le batch. Un commit réussi conserve les records append-only; le lot ne fournit pas de suppression/réversion métier ultérieure. |
+| Isolation | Aucun terme, import ou pack ARET n’est présent dans le Core. La primitive ne lit aucune source, ne lance aucun shell/réseau et ne lie aucune demande, preflight, projection ou provenance ARET. |
+| Gates | Tests-first : surface absente; ciblé : `4 passed`; Core : `256 passed, 14 subtests passed`; scan anti-ARET/no-shell/no-network, rollback sur conflit et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.14 uniquement. Le lot fournit une capacité Core générique nécessaire à un futur write-path mais n’exécute ni import ARET, ni provenance de source, ni parité. M4 reste `IN_PROGRESS`. |
+
+### LOG-0150 — Publication fonctionnelle et handoff M4.14
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `e868b1c4fef8e531aba2481b2c27029663b1887f` — `feat: create generic entity batches atomically`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `e868b1c4fef8e531aba2481b2c27029663b1887f` avant le handoff documentaire. |
+| Reprise | Un lot M4 futur doit lier explicitement M4.11–M4.13 à ce primitif, transférer une provenance source déclarée/auditée et conserver zéro promotion. La primitive seule n’autorise aucun import. |

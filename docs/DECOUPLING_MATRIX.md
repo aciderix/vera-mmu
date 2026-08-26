@@ -197,6 +197,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.13 constate l’absence de collisions dans un store ouvert par le caller; il ne crée pas ce store et n’ouvre aucune transaction. L’absence d’un type/ID n’est pas une permission d’écrire : c’est seulement une précondition bornée pour un lot ultérieur distinct.
 
+### 2.20. Avancement observé M4.14 — primitif Core générique de batch atomique
+
+| Couplages | Surface VERA désormais livrée | Evidence M4.14 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C04`, `C05`, `C06`, `C16` | `EntityService.register_type_and_create_batch` enregistre un type générique absent et 1–100 entités validées dans une transaction unique, avec audit de type/entités. Tout conflit ou échec rollbacke type, entités et audits de ce batch. Le Core ne référence aucun pack ni domaine. | `tests/test_entity_atomic_batch.py` : succès, audits, doublons avant écriture, conflit à mi-lot avec rollback et type déjà existant; suite `256 passed, 14 subtests passed`, wheel isolée; `LOG-0149`. | Liaison de cette primitive à M4.11–M4.13, provenance de source, input package, write-path ARET, vérification post-import, rollback métier sélectif, evidence/proof, admission et parité ARET. | `SPLIT` |
+
+> M4.14 fournit une capacité transactionnelle universelle, non un importeur. Une transaction annulée garantit l’absence de création partielle en cas d’échec; elle ne confère ni droit à l’invocation depuis un pack, ni suppression/réversion d’un batch déjà validé.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
