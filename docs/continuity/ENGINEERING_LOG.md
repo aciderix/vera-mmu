@@ -1720,3 +1720,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Tests-first : module absent; tests ciblés : `4 passed`; suite complète : `175 passed, 14 subtests passed`; scan sans I/O/écriture/ARET et wheel isolée passent. |
 | Limites | Aucun scheduler, orchestration, traversal de gates, pondération/temporalité ou mutation automatique. |
 | Verdict | `PASS` pour M3.22. M3 reste `IN_PROGRESS` jusqu’à M3.EXIT; C05/C06/C16 `SPLIT`, C07 `BLOCKED`, parité ARET `UNKNOWN`. |
+
+
+### LOG-0114 — Publication et handoff M3.22
+
+| Champ | Valeur |
+|---|---|
+| Commit publié | `8ff298d2af5c24930d8d6bc82139f1618221c8b7` — `feat: add composite work blocker report`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `8ff298d2af5c24930d8d6bc82139f1618221c8b7`. |
+| État de reprise | M3.22 est publié. M3.23 est le lot suivant du contrat approuvé ; M3 reste `IN_PROGRESS` et les limites/parités inchangées. |
