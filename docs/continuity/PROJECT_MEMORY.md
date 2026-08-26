@@ -649,3 +649,16 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Conséquence M4 | La sous-partie matérielle de `MEM-WALL-001` est `OBSERVED_RESTORED`; C07/C08 passent de `BLOCKED` à `IN_PROGRESS`. La chaîne fermée capability→normalisation→evidence→admission→proof→gate, la déclaration de dépendances et le doctor M6 restent à construire. |
 | Verdict | `M4.EXIT = NOT_ELIGIBLE` demeure obligatoire : `winediff` reste `FAIL`, les autres migrations M4 sont partielles, la parité est `UNKNOWN` et M5/M6 restent des dépendances de sortie. |
 | Reprise autorisée | Écrire test-first le pack de capability fermé et son normaliseur strict ; ne pas masquer les neuf divergences Wine ni modifier les scripts/corpus pour faire passer l’oracle. |
+
+### MEM-STATE-124 — M4-D : pipeline ARET fermé observé, evidence non admise et parité maintenue inconnue
+| Champ | Valeur |
+|---|---|
+| Supersession documentaire | `SUPERSEDES: MEM-STATE-123` uniquement pour l’affirmation que capability/préflight/normalisation VERA étaient absents. Les observations externes et le verdict M4.EXIT antérieurs restent conservés. |
+| Implémentation locale | `124670e` ajoute le catalogue Pack fermé de neuf oracles, confinement repository/symlink, préflight et normalisation. `d204d28` ajoute au Core générique le profil `OBSERVED_PROCESS`, sa migration 037, l’artefact hash-bound et l’audit append-only. `e5e7ca1` ajoute le runner ARET : commit Git verrouillé, checkout propre, hash de binaire externe, namespace réseau isolé et chaîne capability → asset → execution → evidence. |
+| Référence et binaire | Toolkit séparé propre au commit `7a0429790bb04d1ad3c1819449e906140ebf4513`; binaire externe SHA-256 `6ca52f0955266aeda31d235caacf0844e2516f41d67468632f2ddb1bb1e16a19`. Aucun checkout ARET-MMU n’est écrit. |
+| Runs VERA persistés | `difftest` complet : `PASS`, `272/272`, asset `6e94b379cde87de75064ea038a99707fd67e96796427af29d3a6448f58f93d3e`, evidence `PENDING`. `winediff win32_username` : `PASS`, `1/1`, asset `0155b815f2c9ab5d898825525dd244ad000f2ebbbd93207265c3612c633c98e7`, evidence `PENDING`. Les runtimes temporaires sont sous `/tmp`. |
+| Wall observée | Le corpus `winediff` complet sous le même sandbox a bloqué sur `win32_winsock`; il a été arrêté par supervision avant artifact/evidence complet. Ce run n’a **aucun verdict**. Il ne remplace pas le baseline externe `255/264`, `FAIL`, ni les neuf divergences déjà observées. |
+| Frontière épistémique | Aucun validator spécifique, `evidence_admission`, `knowledge_proof`, gate ou promotion `PROVEN` n’a été créé par le nouveau runner. Le `PASS` d’une fixture Wine isolée est une observation de périmètre précis, non une parité de corpus. |
+| Contrôles | Tests test-first ciblés et suite `390 passed, 17 subtests passed`; migration fresh/upgrade 001→037, scan Core anti-ARET, `git diff --check` et roue isolée : `PASS`. |
+| Décision | C07/C08 restent `IN_PROGRESS`; parité ARET `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. La prochaine tranche autorisée est validator → admission/proof/gate, doctor/image versionnée, puis investigation non filtrante de `win32_winsock` et des divergences Wine. |
+| Référence | `docs/continuity/artifacts/m4d_closed_oracle_pipeline_integration_2026-08-26.md`. |

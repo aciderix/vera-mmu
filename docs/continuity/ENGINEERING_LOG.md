@@ -2321,3 +2321,17 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Suivi | Implémenter test-first le pack de capability fermé et son normaliseur ; investiguer les neuf divergences Wine sans filtrage de fixture. |
 
 Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_2026-08-26.md), [audit M4.EXIT actualisé](artifacts/m4_exit_precondition_audit_2026-08-26.md).
+
+### LOG-0177 — 2026-08-26 — M4-D : pipeline d’oracles ARET fermé, sandboxé et non promouvable
+| Champ | Valeur |
+|---|---|
+| Type | `BASELINE` / `PATCH` / `RUN` / `EVIDENCE` / `WALL` / `VERDICT` |
+| Baseline protégée | ARET-MMU reste au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, sans écriture. Le toolkit distinct est propre au commit `7a0429790bb04d1ad3c1819449e906140ebf4513`. |
+| Hypothèse | Un Pack ARET peut encapsuler le catalogue historique fermé dans un runner reproductible sans donner au Core la moindre connaissance d’ARET ni produire implicitement une proof. |
+| Patches fonctionnels | `124670e` : catalogue de neuf oracles, préflight, confinement repository/symlink et normalisation fail-closed. `d204d28` : migration 037 et enregistrement Core générique `OBSERVED_PROCESS` hash-bound. `e5e7ca1` : capability/policy Pack, commit/checksum binaire, sandbox `unshare --user --map-root-user --net`, asset Core, execution et evidence `PENDING`. |
+| Tests-first | Tests rouges puis verts : catalogue exact, paramètres/fixtures fermés, traversal/symlink, dépendances manquantes `SKIPPED`, timeout `ERROR`, sortie non nulle avec texte `SKIP` conservée `FAIL`, `winehash` `UNKNOWN`, policy, hash, atomicité, append-only, checkout Git, sandbox et binaire externe attesté. |
+| Runs VERA | `difftest` complet : `PASS 272/272`, asset SHA-256 `6e94b379cde87de75064ea038a99707fd67e96796427af29d3a6448f58f93d3e`, evidence `PENDING`. `winediff win32_username` : `PASS 1/1`, asset SHA-256 `0155b815f2c9ab5d898825525dd244ad000f2ebbbd93207265c3612c633c98e7`, evidence `PENDING`. |
+| Wall | Une tentative de corpus `winediff` complet a bloqué sur `win32_winsock` sous sandbox et a été arrêtée par supervision avant la création d’un artifact/evidence complet. Elle n’a aucun verdict. Le baseline externe `winediff 255/264`, exit 1 et ses neuf divergences demeurent un `FAIL` distinct et visible. |
+| Contrôles | Suite complète : `390 passed, 17 subtests passed`; scan Core anti-ARET, `git diff --check` et installation de roue isolée : `PASS`. |
+| Verdict | `OBSERVED_CLOSED_ORACLE_PIPELINE_NO_ADMISSION`. C07/C08 sont `IN_PROGRESS`, jamais `PASS` : validator, admission HMAC, proof/gate, doctor, corpus Wine complet et parité restent requis. `M4.EXIT = NOT_ELIGIBLE`. |
+| Référence | `artifacts/m4d_closed_oracle_pipeline_integration_2026-08-26.md`; `MEM-STATE-124`; registre M4 et matrice C07/C08. |
