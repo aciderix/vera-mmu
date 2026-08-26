@@ -49,7 +49,7 @@ class MemoryStoreTests(unittest.TestCase):
     def test_initialization_records_identity_migration_and_audit(self) -> None:
         with MemoryStore.open(self._profile(), self.profile_path) as store:
             self.assertTrue(store.locator.sqlite_path.is_file())
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34})
             self.assertEqual(store.metadata()["project_identity"], store.identity.as_dict())
             self.assertEqual(store.audit_events()[0]["action"], "STORE_INITIALIZED")
             self.assertEqual(store.connection.execute("PRAGMA foreign_keys").fetchone()[0], 1)
@@ -78,6 +78,34 @@ class MemoryStoreTests(unittest.TestCase):
                     )
                     raise RuntimeError("rollback requested")
             self.assertNotIn("transient", store.metadata())
+
+    def test_nested_transactions_use_savepoints_without_losing_outer_atomicity(self) -> None:
+        with MemoryStore.open(self._profile(), self.profile_path) as store:
+            store.connection.execute("CREATE TABLE nested_transaction_test(value TEXT PRIMARY KEY) STRICT")
+            with store.transaction() as connection:
+                connection.execute("INSERT INTO nested_transaction_test(value) VALUES('outer-success')")
+                with store.transaction() as nested:
+                    nested.execute("INSERT INTO nested_transaction_test(value) VALUES('inner-success')")
+            self.assertEqual(
+                [row[0] for row in store.connection.execute("SELECT value FROM nested_transaction_test ORDER BY value")],
+                ["inner-success", "outer-success"],
+            )
+            with store.transaction() as connection:
+                connection.execute("INSERT INTO nested_transaction_test(value) VALUES('outer-rollback-isolated')")
+                with self.assertRaises(RuntimeError):
+                    with store.transaction() as nested:
+                        nested.execute("INSERT INTO nested_transaction_test(value) VALUES('inner-rollback-isolated')")
+                        raise RuntimeError("rollback nested")
+                self.assertIsNone(
+                    connection.execute(
+                        "SELECT 1 FROM nested_transaction_test WHERE value='inner-rollback-isolated'"
+                    ).fetchone()
+                )
+            self.assertIsNotNone(
+                store.connection.execute(
+                    "SELECT 1 FROM nested_transaction_test WHERE value='outer-rollback-isolated'"
+                ).fetchone()
+            )
 
     def test_rejects_mutated_applied_migration_checksum(self) -> None:
         schema = Path(self._directory.name) / "schema"

@@ -39,7 +39,7 @@ class EvidenceFieldValidatorTests(unittest.TestCase):
   CapabilityService(s).create('c','C','CHECK','1.0.0');CapabilityContractService(s).declare('c','NOOP','DENY_NETWORK',30);CapabilityPolicyService(s).declare('c','ALLOW','test');ExecutionService(s).run_noop('x','c',{});EvidenceService(s).record('pass','x','TEST_PROOF','PASS',{'claim':'ok','scope':'unit'});EvidenceService(s).record('fail','x','TEST_PROOF','PASS',{'claim':'missing'})
  def test_declared_required_keys_produce_local_pass_fail_without_admission(self):
   with self._open() as s:
-   self.assertEqual(s.metadata()['store_format'],{'schema_version':33});self._evidence(s);v=ValidatorService(s);v.register('fields','EVIDENCE_FIELDS',required_keys=('claim','scope'))
+   self.assertEqual(s.metadata()['store_format'],{'schema_version':34});self._evidence(s);v=ValidatorService(s);v.register('fields','EVIDENCE_FIELDS',required_keys=('claim','scope'))
    self.assertEqual(v.validate('vp','fields','pass').verdict,'PASS');self.assertEqual(v.validate('vf','fields','fail').verdict,'FAIL');self.assertEqual(s.connection.execute('SELECT COUNT(*) FROM evidence_admission').fetchone()[0],0)
  def test_closed_rules_refuse_before_validator_or_result_write(self):
   with self._open() as s:

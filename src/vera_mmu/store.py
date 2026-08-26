@@ -112,14 +112,26 @@ class MemoryStore:
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:
-        """Provide one explicit atomic transaction for future Core services."""
+        """Provide one explicit atomic transaction, composing nested Core operations with a savepoint."""
+        nested = self._connection.in_transaction
+        savepoint = "vera_core_nested"
         try:
-            self._connection.execute("BEGIN IMMEDIATE")
+            if nested:
+                self._connection.execute(f"SAVEPOINT {savepoint}")
+            else:
+                self._connection.execute("BEGIN IMMEDIATE")
             yield self._connection
-            self._connection.execute("COMMIT")
+            if nested:
+                self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
+            else:
+                self._connection.execute("COMMIT")
         except Exception:
             try:
-                self._connection.execute("ROLLBACK")
+                if nested:
+                    self._connection.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                    self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
+                else:
+                    self._connection.execute("ROLLBACK")
             except sqlite3.DatabaseError:
                 pass
             raise
