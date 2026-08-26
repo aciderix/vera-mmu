@@ -1,0 +1,225 @@
+{
+  "brick": {
+    "page_size": 3,
+    "pages": [
+      {
+        "audit_actions_added": [
+          "WORK_ITEM_CREATED",
+          "WORK_ITEM_CREATED",
+          "WORK_ITEM_CREATED",
+          "RESOURCE_IMPORT_BATCH_COMMITTED"
+        ],
+        "index": 1,
+        "post_validation": "POST_VALIDATED_NO_PROMOTION",
+        "records": 3,
+        "replay_without_writes": true,
+        "source_first_id": "AUTO-LIFT-02",
+        "source_last_id": "FIBERS-02",
+        "source_next_after_id": "FIBERS-02",
+        "target_series_state": "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED"
+      },
+      {
+        "audit_actions_added": [
+          "WORK_ITEM_CREATED",
+          "WORK_ITEM_CREATED",
+          "WORK_ITEM_CREATED",
+          "RESOURCE_IMPORT_BATCH_COMMITTED"
+        ],
+        "index": 2,
+        "post_validation": "POST_VALIDATED_NO_PROMOTION",
+        "records": 3,
+        "replay_without_writes": true,
+        "source_first_id": "FIBERS-03",
+        "source_last_id": "FIBERS-05",
+        "source_next_after_id": "FIBERS-05",
+        "target_series_state": "MATCHING_PRIOR_SERIES_REQUIRED"
+      },
+      {
+        "audit_actions_added": [
+          "WORK_ITEM_CREATED",
+          "WORK_ITEM_CREATED",
+          "WORK_ITEM_CREATED",
+          "RESOURCE_IMPORT_BATCH_COMMITTED"
+        ],
+        "index": 3,
+        "post_validation": "POST_VALIDATED_NO_PROMOTION",
+        "records": 3,
+        "replay_without_writes": true,
+        "source_first_id": "M7-GUI",
+        "source_last_id": "MIGRATION-PILOT-01",
+        "source_next_after_id": "MIGRATION-PILOT-01",
+        "target_series_state": "MATCHING_PRIOR_SERIES_REQUIRED"
+      },
+      {
+        "audit_actions_added": [
+          "WORK_ITEM_CREATED",
+          "WORK_ITEM_CREATED",
+          "WORK_ITEM_CREATED",
+          "RESOURCE_IMPORT_BATCH_COMMITTED"
+        ],
+        "index": 4,
+        "post_validation": "POST_VALIDATED_NO_PROMOTION",
+        "records": 3,
+        "replay_without_writes": true,
+        "source_first_id": "PHASE-A",
+        "source_last_id": "PHASE-C",
+        "source_next_after_id": "PHASE-C",
+        "target_series_state": "MATCHING_PRIOR_SERIES_REQUIRED"
+      },
+      {
+        "audit_actions_added": [
+          "WORK_ITEM_CREATED",
+          "RESOURCE_IMPORT_BATCH_COMMITTED"
+        ],
+        "index": 5,
+        "post_validation": "POST_VALIDATED_NO_PROMOTION",
+        "records": 1,
+        "replay_without_writes": true,
+        "source_first_id": "RECOV-SPIRVCROSS-0X0",
+        "source_last_id": "RECOV-SPIRVCROSS-0X0",
+        "source_next_after_id": null,
+        "target_series_state": "MATCHING_PRIOR_SERIES_REQUIRED"
+      }
+    ],
+    "records": 13
+  },
+  "component": {
+    "post_validation": "POST_VALIDATED_NO_PROMOTION",
+    "records": 17,
+    "replay_without_writes": true,
+    "target_series_state": "INITIAL_EMPTY_TARGET_REQUIRED"
+  },
+  "constraints": {
+    "aret_read_only": true,
+    "m4_exit": "NOT_ELIGIBLE",
+    "promotion_forbidden": true,
+    "target_under_tmp": true
+  },
+  "final_audit_actions": [
+    "STORE_INITIALIZED",
+    "ENTITY_TYPE_REGISTERED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "ENTITY_CREATED",
+    "IMPORT_BATCH_COMMITTED",
+    "SYMBOL_CREATED",
+    "SYMBOL_CREATED",
+    "SYMBOL_CREATED",
+    "RESOURCE_IMPORT_BATCH_COMMITTED",
+    "SYMBOL_CREATED",
+    "SYMBOL_CREATED",
+    "SYMBOL_CREATED",
+    "RESOURCE_IMPORT_BATCH_COMMITTED",
+    "SYMBOL_CREATED",
+    "SYMBOL_CREATED",
+    "SYMBOL_CREATED",
+    "RESOURCE_IMPORT_BATCH_COMMITTED",
+    "WORK_ITEM_CREATED",
+    "WORK_ITEM_CREATED",
+    "WORK_ITEM_CREATED",
+    "RESOURCE_IMPORT_BATCH_COMMITTED",
+    "WORK_ITEM_CREATED",
+    "WORK_ITEM_CREATED",
+    "WORK_ITEM_CREATED",
+    "RESOURCE_IMPORT_BATCH_COMMITTED",
+    "WORK_ITEM_CREATED",
+    "WORK_ITEM_CREATED",
+    "WORK_ITEM_CREATED",
+    "RESOURCE_IMPORT_BATCH_COMMITTED",
+    "WORK_ITEM_CREATED",
+    "WORK_ITEM_CREATED",
+    "WORK_ITEM_CREATED",
+    "RESOURCE_IMPORT_BATCH_COMMITTED",
+    "WORK_ITEM_CREATED",
+    "RESOURCE_IMPORT_BATCH_COMMITTED"
+  ],
+  "function_symbol": {
+    "page_size": 3,
+    "pages": [
+      {
+        "audit_actions_added": [
+          "SYMBOL_CREATED",
+          "SYMBOL_CREATED",
+          "SYMBOL_CREATED",
+          "RESOURCE_IMPORT_BATCH_COMMITTED"
+        ],
+        "index": 1,
+        "post_validation": "POST_VALIDATED_NO_PROMOTION",
+        "records": 3,
+        "replay_without_writes": true,
+        "source_first_id": "EH:msvcrt!_EH_prolog3_GS",
+        "source_last_id": "EH:msvcrt!_except_handler4_common",
+        "source_next_after_id": "EH:msvcrt!_except_handler4_common",
+        "target_series_state": "INITIAL_EMPTY_RESOURCE_TARGET_REQUIRED"
+      },
+      {
+        "audit_actions_added": [
+          "SYMBOL_CREATED",
+          "SYMBOL_CREATED",
+          "SYMBOL_CREATED",
+          "RESOURCE_IMPORT_BATCH_COMMITTED"
+        ],
+        "index": 2,
+        "post_validation": "POST_VALIDATED_NO_PROMOTION",
+        "records": 3,
+        "replay_without_writes": true,
+        "source_first_id": "HLE:msvcrt!wcscat_s",
+        "source_last_id": "LIFT:winmerge!sub_470022",
+        "source_next_after_id": "LIFT:winmerge!sub_470022",
+        "target_series_state": "MATCHING_PRIOR_SERIES_REQUIRED"
+      },
+      {
+        "audit_actions_added": [
+          "SYMBOL_CREATED",
+          "SYMBOL_CREATED",
+          "SYMBOL_CREATED",
+          "RESOURCE_IMPORT_BATCH_COMMITTED"
+        ],
+        "index": 3,
+        "post_validation": "POST_VALIDATED_NO_PROMOTION",
+        "records": 3,
+        "replay_without_writes": true,
+        "source_first_id": "LIFT:winmerge!sub_85fd18",
+        "source_last_id": "X87:msvcrt!_ftol2",
+        "source_next_after_id": null,
+        "target_series_state": "MATCHING_PRIOR_SERIES_REQUIRED"
+      }
+    ],
+    "records": 9
+  },
+  "source": {
+    "git_commit": "7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4",
+    "git_worktree": "CLEAN",
+    "snapshot_sha256": "85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5",
+    "wal_state": "NO_WAL_SIDECARS"
+  },
+  "source_root": "/home/ubuntu/ARET-MMU/aret-memory",
+  "target_counts": {
+    "entity": 17,
+    "evidence": 0,
+    "evidence_admission": 0,
+    "import_batch": 1,
+    "import_batch_entity": 17,
+    "knowledge_proof": 0,
+    "resource_import_batch": 8,
+    "resource_import_batch_record": 22,
+    "symbol": 9,
+    "work_item": 13
+  },
+  "temporary_store_root": "/tmp/vera-m4b-real-series-m4b89h59",
+  "verdict": "OBSERVED_MULTI_PAGE_INTEGRATION_SUCCESS_NO_PROMOTION"
+}
