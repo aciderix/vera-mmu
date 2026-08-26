@@ -800,3 +800,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | `ea7235a`; ciblé `3 passed`; suite `422 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0188`. |
 | État | `M5-G PASS`; M5 global `IN_PROGRESS`. |
 | Références | `src/vera_mmu/mcp_hooks.py`; `tests/test_mcp_hook_plan.py`; `LOG-0188`. |
+
+### MEM-DEC-136 — M5-H traduit pour Claude Code sans installer
+| Champ | Valeur |
+|---|---|
+| Décision | L’adapter Claude Code produit un plan de revue lié aux quatre snapshots MCP, non une installation. Il désigne la cible standard `.mcp.json` et conserve l’absence de hook exécutable comme état visible. |
+| Format | `vera-claude-code-integration/v1` contient identité, `mcp_build_hash`, `instructions_hash`, `config_hash`, `hook_plan_hash`, `plan_hash` et le JSON de plan canonique. |
+| Cible | Le seul contenu installable futur est la config MCP M5-F, identifiée par `content_sha256=config_hash`. L’adapter n’ajoute aucune commande, script, path, variable ou donnée client. |
+| Hooks | `SessionStart` est `UNTRANSLATED` avec le motif `DECLARATIVE_HOOK_REQUIRES_EXECUTABLE_ADAPTER`; l’adapter refuse donc la fausse promesse d’un hook fonctionnel. |
+| Installation | `REVIEW_REQUIRED` et `writes=[]`. Seule une prévisualisation runtime exclusive est autorisée; `.mcp.json` et `.claude/` restent intacts. |
+| Liaison | Manifest, instructions, config et hook plan sont recompilés contre le Store avant la sortie. Toute divergence est rejetée. |
+| Limite | Un installateur opt-in idempotent reste à construire. Toute traduction de hook en commande devra être un lot distinct avec adapter exécutable, tests de cycle de session et write-path borné. |
+| Preuve | `8b38b1b`; ciblé `3 passed`; suite `425 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0189`. |
+| État | `M5-H PASS`; M5 global `IN_PROGRESS`. |
+| Références | `src/vera_mmu/claude_code_integration.py`; `tests/test_claude_code_integration_adapter.py`; `LOG-0189`. |

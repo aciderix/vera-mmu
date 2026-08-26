@@ -2490,3 +2490,19 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | Un adapter spécifique à l’hôte et un installateur opt-in doivent encore traduire ce plan en hooks réellement exécutables. Resume, acknowledgement et checkpoint ne sont pas revendiqués par M5-G. |
 | Verdict | `M5-G = PASS`; M5 reste `IN_PROGRESS`. |
 | Référence | `ea7235a`; `tests/test_mcp_hook_plan.py`; `src/vera_mmu/mcp_hooks.py`; `MEM-DEC-135`. |
+
+### LOG-0189 — 2026-08-26 — M5-H : adapter de revue Claude Code attesté
+| Champ | Valeur |
+|---|---|
+| Type | `PATCH` / `TEST` / `VERDICT` |
+| But | Traduire les artefacts universels M5-B/E/F/G vers un plan cible Claude Code, sans appliquer de configuration, injecter de script ou transformer un hook déclaratif en commande. |
+| Patch | `8b38b1b` ajoute `claude_code_integration.py` et le format `vera-claude-code-integration/v1`. Il recompile manifest, instructions, config et plan de hooks contre le Store avant de produire le plan. |
+| Cible MCP | Le plan désigne uniquement `.mcp.json` avec `content_sha256=config_hash`. Le contenu effectif demeure le JSON standard M5-F ; le plan n’introduit ni commande, ni argument, ni variable, ni chemin supplémentaire. |
+| Hooks | `SessionStart` est explicitement rendu `UNTRANSLATED` / `DECLARATIVE_HOOK_REQUIRES_EXECUTABLE_ADAPTER`. L’absence d’un adapter hôte exécutable est donc un refus visible, non une installation partielle silencieuse. |
+| Installation | `installation.mode=REVIEW_REQUIRED`, `writes=[]`. La seule écriture offerte est la prévisualisation `<runtime>/generated/claude-code-integration.json` en création exclusive. `.mcp.json` et `.claude/` restent intacts. |
+| Fermeture | Toute divergence d’identité, manifeste, instructions, config ou hook plan est refusée. Le module ne contient ni Pack/ARET, shell, réseau, accès client ou write-path projet. |
+| Tests | Rouge : module absent. Vert : plan stable, hashes des quatre snapshots, cible `.mcp.json`, hook non traduit, refus d’un snapshot périmé et preview runtime exclusive. |
+| Contrôles | Ciblés : `3 passed`. Suite complète : `425 passed, 37 subtests passed`. Scan de frontière, `git diff --check`, roue isolée et points d’entrée : `PASS`. |
+| Limite | L’installateur opt-in reste ouvert. Il devra vérifier ce plan puis appliquer de façon idempotente la seule cible MCP autorisée; le hook ne pourra être installé qu’après livraison d’un adapter exécutable séparé. |
+| Verdict | `M5-H = PASS`; M5 reste `IN_PROGRESS`. |
+| Référence | `8b38b1b`; `tests/test_claude_code_integration_adapter.py`; `src/vera_mmu/claude_code_integration.py`; `MEM-DEC-136`. |
