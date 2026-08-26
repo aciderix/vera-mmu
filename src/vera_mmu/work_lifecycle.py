@@ -62,6 +62,13 @@ class WorkLifecycleService:
                             raise WorkLifecycleError("Démarrage refusé : work item non prêt.")
                     except WorkReadinessError as exc:
                         raise WorkLifecycleError("Readiness de work item illisible.") from exc
+                completion_policy = connection.execute("SELECT mode FROM work_completion_policy WHERE id = 1").fetchone()
+                if event == "COMPLETE" and completion_policy is not None and completion_policy["mode"] == "REQUIRE_READY_FOR_COMPLETE":
+                    try:
+                        if evaluate_work_readiness(connection, work_item_id).status != "READY":
+                            raise WorkLifecycleError("Complétion refusée : work item non prêt.")
+                    except WorkReadinessError as exc:
+                        raise WorkLifecycleError("Readiness de work item illisible.") from exc
                 sequence = 1 if last is None else int(last["sequence"]) + 1
                 connection.execute(
                     "INSERT INTO work_lifecycle_event(id, work_item_id, sequence, event, reason, created_at, created_by) "
