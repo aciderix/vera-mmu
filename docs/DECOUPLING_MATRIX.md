@@ -141,6 +141,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.6 n’ouvre ni source ni store VERA. Le SHA-256 est une déclaration syntaxiquement contrôlée, non une attestation calculée ou vérifiée; aucune ligne `component` n’est lue, convertie ou écrite.
 
+### 2.13. Avancement observé M4.7 — attestation bornée d’un snapshot ARET V1
+
+| Couplages | Surface VERA désormais observée | Evidence M4.7 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C02`, `C03`, `C16` | `vera_mmu.domain_packs.aret.source_attestation` lit uniquement les bytes du fichier attendu `.aret-memory/aret_memory.sqlite` sous une racine absolue, existante, canonique et non liée; il vérifie le SHA-256 déclaré par M4.6 et refuse toute dérive stable de fichier. | `tests/test_aret_source_attestation.py` : hash/size, référence baseline fixe, racine/fichier liés ou absents, préparation modifiée et refus de capacités interdites; suite `219 passed, 14 subtests passed`, wheel isolée; attestation read-only ponctuelle de la baseline; `LOG-0135`. | Vérification du commit/répertoire Git source, ouverture/inspection SQLite et version réellement stockée, lecture de lignes, mapping de champs/statuts, transaction VERA, provenance/audit, collisions, rollback, evidence/proof, validation post-import et parité ARET. | `SPLIT` |
+
+> M4.7 atteste seulement un snapshot de bytes dont la localisation respecte la convention V1. La référence de baseline est contrôlée contre une constante de pack, mais aucune identité Git ni contenu de schéma n’est vérifié par le module; aucune ligne n’est lue, convertie ou écrite.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
