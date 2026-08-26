@@ -2123,3 +2123,18 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Registre | `M4_COMPLETION_REGISTER.md` est enrichi des résultats M4-A, de leurs preuves et des gates résiduelles M4-EXIT-01 à M4-EXIT-03. |
 | Matrice et plan | La matrice documente les quatre sous-lots publiés et leurs hashes de commit. Le plan vivant pointe vers la révision fonctionnelle `8263d40b709acce40b946bd575cf8f648ae842b3`, migration 033 et la prochaine frontière. |
 | Reprise | Avant M4-B, relire `MEM-STATE-099` à `MEM-STATE-101`, `LOG-0154`, ce registre et la matrice. Le prochain lot doit fermer un contrat distinct : soit resolver/WAL/post-validation M4-A, soit la chaîne structurelle `function_symbol→symbol` avec ses dépendances component déjà importées. |
+
+### LOG-0156 — Verdict M4-A2 : resolver runtime ARET V1 et policy WAL/SHM
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `runtime_resolution.py` résout en lecture seule un runtime V1 existant depuis une racine source canonique et un mapping explicite : layout `.aret-memory` par défaut ou override unique `ARET_MEMORY_DIR`. La safety gate vérifie le snapshot régulier/stable et refuse tout sidecar `-wal` ou `-shm` au lieu de checkpoint, d’ouvrir SQLite ou d’écrire. |
+| Gates | Tests-first rouge : surface absente ; ciblé : `14 passed`; suite complète : `298 passed, 14 subtests passed`; baseline réelle : `DEFAULT_RUNTIME_LAYOUT`, `NO_WAL_SIDECARS`, snapshot `11280384` bytes ; scan Core anti-ARET et pack no-SQLite/no-process/no-network/no-write, roue isolée et `git diff --check` : `PASS`. |
+| Sécurité | Les répertoires et snapshot doivent exister, être absolus/canoniques et non liés. L’environnement global n’est jamais lu : seul le mapping caller fourni est admis, sans clé inconnue. Les sidecars actifs sont une condition de refus fail-closed. |
+| Publication | Commit fonctionnel `c18d08c675c1bd69602471c082efc1c978b643e1` — `feat(aret-pack): resolve runtime safely before import` — publié et vérifié sur `main`. ARET-MMU demeure propre au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Verdict | `PASS borné` pour M4-A2. Le module ne lie pas encore un override à la chaîne complète attestation/Git/SQLite/reader/import; il ne fournit ni checkpoint, ni doctor, ni parité runtime complète. M4 reste `IN_PROGRESS`; C01–C06/C16 `SPLIT`; C07/C08 `BLOCKED — MEM-WALL-001`; parité `UNKNOWN`. |
+
+### LOG-0157 — Handoff documentaire M4-A2
+| Champ | Valeur |
+|---|---|
+| Registre | `M4_COMPLETION_REGISTER.md` marque runtime default/override et refus WAL/SHM comme prouvés, mais conserve l’intégration de l’override et le cycle d’attestation comme sorties obligatoires. |
+| Reprise | Avant toute extension de l’attestation, lire `MEM-STATE-102` à `MEM-STATE-104`, `LOG-0156` et les conditions M4-EXIT-01 du registre. Le prochain patch doit soit lier le resolver à chaque maillon read-only de la chaîne, soit ouvrir M4-B sous un contrat structurel indépendant. |
