@@ -181,6 +181,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.11 est une contrainte de sécurité ex ante, non une permission d’écrire. Il prépare l’obligation de contrôler collision, rollback, audit et provenance avant un futur write-path; aucune de ces opérations n’est encore exécutée ni démontrée.
 
+### 2.18. Avancement observé M4.12 — projection non écrivable `component→entity`
+
+| Couplages | Surface VERA désormais observée | Evidence M4.12 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C04`, `C05`, `C06`, `C16` | `vera_mmu.domain_packs.aret.component_entity_projection` projette chaque ligne brute préflightée en brouillon générique d’entity, avec identifiant `aret-component--<source_id>`, adresse `vera://`, type `component` à enregistrer ultérieurement et métadonnées de source explicites. | `tests/test_aret_component_entity_projection.py` : déterminisme, adresse/metadata, preflight/page/hash divergents, texte/ID non canoniques et interdictions store/écriture; suite `247 passed, 14 subtests passed`, wheel isolée; projection ponctuelle de 17 brouillons baseline en `PROJECTED_NOT_WRITABLE`; `LOG-0145`. | Enregistrement de type entity, collision cible, création transactionnelle, rollback, audit/provenance effectifs, evidence/proof, admission, écriture/import et parité ARET. | `SPLIT` |
+
+> M4.12 définit une représentation cible vérifiable sans créer de cible. Le type `component`, les identifiants et les métadonnées sont des drafts soumis aux contrôles futurs du Core; aucun `entity_type` ni `entity` n’est enregistré par ce lot.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

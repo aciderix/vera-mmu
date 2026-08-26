@@ -2026,3 +2026,21 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `df262387f733a53a35e3fc63983dc40f1fdcdfe1` avant le handoff documentaire. |
 | Reprise | Le prochain lot ne peut progresser qu’avec une projection de champs `component→entity` explicitement définie, puis un contrôle de collision VERA read-only et un write-path transactionnel distinct. Le préflight seul ne permet aucune écriture. |
+
+### LOG-0145 — Verdict M4.12 : projection non écrivable `component→entity` ARET V1
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.component_entity_projection` expose `project_aret_v1_component_entities`. La fonction lie un préflight M4.11 à sa page source et produit des drafts génériques déterministes avec identifiant `aret-component--<source_id>`, adresse VERA, type `component` et métadonnées de source. |
+| Invariant | Le préflight doit rester fail-closed, la page doit correspondre exactement au hash, à la cardinalité et à la plage source préflightées. Les champs sont refusés s’ils ne satisfont pas les contrats textuels/adresse VERA; les brouillons dupliqués sont refusés. Le type porte `entity_type_registration_required=True` et l’état est `PROJECTED_NOT_WRITABLE`. |
+| Observation ponctuelle | Contre la baseline déjà attestée, identifiée, inspectée, lue et préflightée, la projection produit 17 brouillons `component` en `PROJECTED_NOT_WRITABLE`, sans afficher les données source ni enregistrer un type/entity VERA. |
+| Isolation | Le Core n’importe pas le pack. Le module n’ouvre ni fichier/source/SQLite/store VERA, n’appelle pas le service d’entités, n’exécute aucun shell/réseau et ne réalise ni collision, transaction, rollback, audit, provenance, evidence, proof, admission, import ou écriture. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : surface absente; ciblé : `4 passed`; Core : `247 passed, 14 subtests passed`; scans de frontière, projection ponctuelle et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.12 uniquement. Le lot rend une représentation cible déterministe contrôlable, non des entities créées; il n’affirme ni enregistrement, collision résolue, import, preuve ou parité ARET. M4 reste `IN_PROGRESS`. |
+
+### LOG-0146 — Publication fonctionnelle et handoff M4.12
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `ee8736f6d08733ef044b21a2592ed704faee9133` — `feat: project ARET V1 component entity drafts`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `ee8736f6d08733ef044b21a2592ed704faee9133` avant le handoff documentaire. |
+| Reprise | Le prochain lot peut isoler l’enregistrement exact du type générique `component` dans un store VERA cible ou un contrôle de collision read-only; tout write-path de brouillon reste séparé, transactionnel et soumis au préflight M4.11. |
