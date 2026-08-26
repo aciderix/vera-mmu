@@ -1551,3 +1551,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites préservées | Aucun quorum pondéré, expiration, fenêtre temporelle, désaveu/révocation d’admission, exécution implicite, admission automatique, oracle, réseau, shell, CLI/MCP ou parité ARET n’est introduit. |
 | Verdict | `PASS` pour M3.15. M3 global reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 reste `BLOCKED` sous `MEM-WALL-001`, et la parité exhaustive ARET reste `UNKNOWN`. |
 | Suite | Publier atomiquement le lot. Le prochain lot doit être choisi explicitement parmi validators de contenu/oracles policy-gated, runners sûrs additionnels, gates temporelles/pondérées si cadrées, lifecycle/graph avancés ou surfaces CLI/MCP. |
+
+
+### LOG-0099 — Publication et handoff M3.15
+
+| Champ | Valeur |
+|---|---|
+| Commit publié | `c6a605278b2ad5aabdd13bb32e4f1dab725b4363` — `feat: add immutable admission gate policies`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `c6a605278b2ad5aabdd13bb32e4f1dab725b4363`. |
+| État de reprise | M3.15 est publié avec migration 027. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
+| Prochain choix | Choisir explicitement un seul gap M3 borné; candidats : validator de contenu/oracle sous policy distincte, runner sûr additionnel, extension temporelle/pondérée de gate, lifecycle/graph avancé ou surface CLI/MCP. Ne pas étendre implicitement les policies de gate actuelles. |
