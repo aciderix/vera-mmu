@@ -109,6 +109,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0083` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.10 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-034`, `MEM-WALL-001` |
 | `LOG-0084` | 2026-08-25 | `HYPOTHESIS` | M3.11 | gate multi-evidence conjonctive, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-035`, `MEM-DEC-031`, `MEM-WALL-001` |
 | `LOG-0085` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.11 | exigences, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-035`, `MEM-STATE-036`, `MEM-DEC-031`, `MEM-WALL-001` |
+| `LOG-0086` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.11 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-036`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1392,3 +1393,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Atomicité | Gate ou evidence inconnue, exigence dupliquée ou evidence principale répétée refusent avant l’audit d’ajout. L’évaluation n’écrit ni audit, ni execution, ni evidence, ni admission, ni knowledge. |
 | Limite | Les exigences sont une conjonction fixe. Aucun quorum, disjonction, pondération, ordre, expiration, lifecycle de work item, admission automatique, validator externe, runner, réseau ou shell n’est ajouté. |
 | Verdict | `PASS` pour M3.11 technique; publication et synchronisation de continuité à finaliser. |
+
+
+### LOG-0086 — Publication vérifiée M3.11
+
+| Champ | Valeur |
+|---|---|
+| Commit | `a97fd8212cd0461d1d60d846927fd0c81a966c58` — `feat: add multi-evidence admission gates`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication M3.11. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Suivi | Cadrer séparément un lifecycle de work item minimal ou un validator de contenu explicitement borné, sans oracle ARET, runner additionnel, réseau implicite ni exécution de commande. |
