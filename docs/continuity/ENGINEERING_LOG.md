@@ -114,6 +114,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0088` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.12 | transitions, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-037`, `MEM-STATE-038`, `MEM-DEC-032`, `MEM-WALL-001` |
 | `LOG-0089` | 2026-08-26 | `RECORD` / `HANDOFF` | M3.12 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-038`, `MEM-WALL-001` |
 | `LOG-0090` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.S2.EXIT | chaîne M3.7–M3.12, wheel, frontières | `OBSERVED` | `PASS` de tranche; M3 global ouvert | `MEM-STATE-039`, `MEM-DEC-033`, `MEM-WALL-001` |
+| `LOG-0091` | 2026-08-26 | `RECORD` / `HANDOFF` | M3.S2.EXIT | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-040`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1452,3 +1453,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Contrôles | Suite complète : 151 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan des modules M3.7–M3.12 sans processus, shell, réseau, I/O, `eval`, import dynamique `PASS`; VERA et ARET propres. |
 | Verdict | `M3.S2.EXIT = PASS` pour la tranche livrée. Ce verdict ne ferme pas M3 global, ne déclare aucune parité ARET et ne transforme pas `MEM-WALL-001` en `PASS`. |
 | Exclusions structurantes | Pas de runner externe sûr, validator métier/externe, JSON Schema général, confirmation interactive, rotation HMAC, quorum/disjonction, orchestration/réouverture de lifecycle, traversal de graph, CLI/MCP de production, pack ARET ou parité ARET. |
+
+
+### LOG-0091 — Publication vérifiée M3.S2
+
+| Champ | Valeur |
+|---|---|
+| Commit | `fa8d07bc9e5b88822fae21551e87d35a87d4c3bd` — `docs: record M3 S2 exit gate`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication de `M3.S2.EXIT`. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Suivi | Aucun lot supplémentaire ne peut étendre implicitement le périmètre M3.S2. Cadrer un nouveau lot et une nouvelle gate de tranche avant toute capacité de runner ou validator supplémentaire. |
