@@ -115,6 +115,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0089` | 2026-08-26 | `RECORD` / `HANDOFF` | M3.12 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-038`, `MEM-WALL-001` |
 | `LOG-0090` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.S2.EXIT | chaîne M3.7–M3.12, wheel, frontières | `OBSERVED` | `PASS` de tranche; M3 global ouvert | `MEM-STATE-039`, `MEM-DEC-033`, `MEM-WALL-001` |
 | `LOG-0091` | 2026-08-26 | `RECORD` / `HANDOFF` | M3.S2.EXIT | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-040`, `MEM-WALL-001` |
+| `LOG-0092` | 2026-08-26 | `HYPOTHESIS` | M3.13 | policy d’admission validée, no-validator implicite | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-041`, `MEM-DEC-034`, `MEM-WALL-001` |
+| `LOG-0093` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.13 | policy, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-041`, `MEM-STATE-042`, `MEM-DEC-034`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1463,3 +1465,27 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication de `M3.S2.EXIT`. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
 | Suivi | Aucun lot supplémentaire ne peut étendre implicitement le périmètre M3.S2. Cadrer un nouveau lot et une nouvelle gate de tranche avant toute capacité de runner ou validator supplémentaire. |
+
+
+### LOG-0092 — Hypothèse M3.13 : policy d’admission validée
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `1bc5d88b0ac4f6d40b74ed17a1a9467c711bd1f6`, `main` propre et alignée; 151 tests et 14 sous-tests `PASS`; M3.S2 publié. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | `AdmissionService` exige une evidence `PASS`, mais l’admission ne peut pas être explicitement rendue dépendante d’un résultat de validator persistant. `ValidatorService` reste donc une primitive distincte sans policy d’enforcement d’admission. |
+| Hypothèse | Une policy singleton immutable fermée peut déclarer `PASS_EVIDENCE` ou `VALIDATED_PASS_EVIDENCE`. Lorsque le mode strict est déclaré, `ADMITTED` exige une evidence `PASS` et au moins un résultat de validator préexistant `PASS`; elle ne déclenche aucun validator. |
+| Sûreté | La policy ne crée ni execution, evidence, résultat de validator, admission, preuve ou knowledge. Un résultat `FAIL`, l’absence de validation, `UNKNOWN`, `SKIPPED` ou toute valeur non prévue refuse `ADMITTED` en mode strict. `REJECTED` reste autorisé comme décision d’admission diagnostique. |
+| Tests-first attendus | Migration singleton/enum/immutabilité/audit/rollback; mode compatible `PASS_EVIDENCE`; mode strict refusant avant toute écriture sans validation `PASS`, puis admission après validation `PASS`; lecture pure; secret, runner, réseau et shell absents. |
+| Invariants | I001, I004–I008, I011, I013–I015. |
+| Verdict | `PENDING` — aucun patch M3.13 n’est encore produit. |
+
+
+### LOG-0093 — Verdict M3.13 : policy d’admission validée
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 025 ajoute une policy singleton immutable `PASS_EVIDENCE`/`VALIDATED_PASS_EVIDENCE`. En mode strict, `AdmissionService` exige une evidence `PASS` et un résultat de validator `PASS` préexistant avant l’insertion `ADMITTED`; il ne déclenche aucune validation. |
+| Validation | Tests-first : import absent attendu; tests ciblés : 3 `PASS`; chaînes admission/preuve/gates : 12 `PASS`; suite complète : 154 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan du patch sans processus, shell, réseau, I/O, `eval`, import dynamique, exécution, evidence, validation ou preuve implicites `PASS`; wheel isolé avec migration 025, refus strict sans validation puis admission après `EVIDENCE_HASH` `PASS`. |
+| Atomicité | Evidence inconnue, evidence non `PASS`, policy absente et validation manquante en mode strict refusent avant insertion/audit d’admission. `REJECTED` reste une décision diagnostique possible sans validation. |
+| Limite | Seul le validator local existant peut actuellement fournir un résultat `PASS`. Aucun oracle externe, validator métier, runner, réseau, shell, admission automatique, nouvelle preuve, modification d’evidence ou rotation de policy n’est ajouté. |
+| Verdict | `PASS` pour M3.13 technique; publication et synchronisation de continuité à finaliser. |

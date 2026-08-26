@@ -46,8 +46,8 @@ class WorkItemServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_work_item_backbone(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 24})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 25})
 
     def test_existing_m2_12_store_migrates_to_work_item_backbone(self) -> None:
         schema = Path(self._directory.name) / "m2_12_schema"

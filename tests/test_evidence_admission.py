@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 from vera_mmu.admission import AdmissionError, AdmissionService
+from vera_mmu.admission_policies import AdmissionPolicyService
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
 from vera_mmu.capability_policies import CapabilityPolicyService
@@ -38,7 +39,7 @@ class AdmissionTests(unittest.TestCase):
   CapabilityService(s).create('c','C','CHECK','1.0.0');CapabilityContractService(s).declare('c','NOOP','DENY_NETWORK',30);CapabilityPolicyService(s).declare('c','ALLOW','test policy');ExecutionService(s).run_noop('x','c',{});return EvidenceService(s).record('e','x','TEST_PROOF',verdict,{})
  def test_admits_pass_without_mutating_evidence_or_knowledge(self):
   with self.store() as s:
-   self.evidence(s);d=AdmissionService(s).decide('d','e','ADMITTED','verified',actor='t')
+   self.evidence(s);AdmissionPolicyService(s).declare('PASS_EVIDENCE');d=AdmissionService(s).decide('d','e','ADMITTED','verified',actor='t')
    self.assertEqual(d.decision,'ADMITTED');self.assertEqual(EvidenceService(s).get('e').admission_status,'PENDING');self.assertEqual(s.connection.execute('SELECT COUNT(*) FROM knowledge').fetchone()[0],0)
  def test_refuses_admit_nonpass_and_duplicate(self):
   with self.store() as s:

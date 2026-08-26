@@ -262,3 +262,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-040` | Reprise active | M3 reste `IN_PROGRESS`. Les prochaines décisions doivent choisir un lot séparé parmi validator de contenu borné, runner sûr additionnel, politiques/gates avancées, CLI/MCP ou pack ARET; aucune capacité absente ne doit être supposée livrée. | `OBSERVED` | Exclusions explicites de M3.S2. | `LOG-0090` |
 
 > **Reprise prioritaire.** Lire `MEM-STATE-039`, `MEM-DEC-033`, `MEM-STATE-040`, `MEM-WALL-001` et `LOG-0090` avant tout lot M3 suivant.
+
+
+## 22. Addendum de reprise — M3.13 policy d’admission validée
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-041` | Policy d’admission | Une policy singleton immutable offre `PASS_EVIDENCE` et `VALIDATED_PASS_EVIDENCE`. En mode strict, une décision `ADMITTED` exige une evidence `PASS` et un résultat de validator `PASS` existant; la policy ne déclenche aucune validation. | `OBSERVED` | Migration `025_admission_policies.sql`, services d’admission/policy, tests M3.13; 154 tests et 14 sous-tests, wheel isolé. | `LOG-0092`, `LOG-0093` |
+| `MEM-DEC-034` | Frontière admission | L’admission est une décision humaine/persistée, non une exécution de validator. Le mode strict refuse sans résultat `PASS`; `REJECTED` demeure un fait diagnostique sans exigence de validation. | `DECISION` | Contrat M3.13 et invariants I004–I008, I013–I015. | `LOG-0092`, `LOG-0093` |
+| `MEM-STATE-042` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validator de contenu explicitement borné, runner sûr additionnel, politiques/gates avancées, CLI/MCP et pack ARET. Aucun oracle externe ou capacité de réseau/shell n’est livré par M3.13. | `OBSERVED` | Revue post-M3.13; aucun contrat ou test de ces capacités n’est livré. | `LOG-0093` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-041`, `MEM-DEC-034`, `MEM-STATE-042`, `MEM-WALL-001`, puis `LOG-0092`–`LOG-0093` avant tout lot M3 ultérieur.

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from vera_mmu.admission import AdmissionService
+from vera_mmu.admission_policies import AdmissionPolicyService
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
 from vera_mmu.capability_policies import CapabilityPolicyService
@@ -53,6 +54,7 @@ class ProofPolicyTests(unittest.TestCase):
         CapabilityPolicyService(store).declare("check", "ALLOW", "test policy")
         ExecutionService(store).run_noop("execution", "check", {})
         EvidenceService(store).record("evidence", "execution", "TEST_PROOF", "PASS", {})
+        AdmissionPolicyService(store).declare("PASS_EVIDENCE")
         AdmissionService(store).decide("admission", "evidence", "ADMITTED", "verified")
 
     def test_policy_is_singleton_immutable_and_audited(self) -> None:

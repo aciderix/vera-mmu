@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 from vera_mmu.admission import AdmissionService
+from vera_mmu.admission_policies import AdmissionPolicyService
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
 from vera_mmu.capability_policies import CapabilityPolicyService
@@ -40,7 +41,7 @@ class ProofTests(unittest.TestCase):
  def _ready(self,s,*,hmac_required=False):
   k=KnowledgeService(s);k.register_type('fact','Fact');k.append('k','fact','OBSERVED','T','content')
   CapabilityService(s).create('c','C','CHECK','1.0.0');CapabilityContractService(s).declare('c','NOOP','DENY_NETWORK',30);CapabilityPolicyService(s).declare('c','ALLOW','test policy');ExecutionService(s).run_noop('x','c',{})
-  EvidenceService(s).record('e','x','TEST_PROOF','PASS',{});AdmissionService(s).decide('a','e','ADMITTED','ok');ProofPolicyService(s).declare('HMAC_SHA256',hmac_required=hmac_required)
+  EvidenceService(s).record('e','x','TEST_PROOF','PASS',{});AdmissionPolicyService(s).declare('PASS_EVIDENCE');AdmissionService(s).decide('a','e','ADMITTED','ok');ProofPolicyService(s).declare('HMAC_SHA256',hmac_required=hmac_required)
  def test_derived_proven_record_preserves_knowledge(self):
   with self._store() as s:
    self._ready(s);proof=ProofService(s).promote('p','k','e','a',actor='t')
