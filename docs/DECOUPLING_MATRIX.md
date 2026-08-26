@@ -361,3 +361,13 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C16` | L’autorisation de série, le recontrôle et la post-validation restent read-only jusqu’au ledger Core; aucun SQL d’écriture n’est ajouté au pack. La première page seule exige une cible vide; les pages suivantes exigent la même série attestée, jamais une fusion. | `evidence=0`, `evidence_admission=0`, `knowledge_proof=0`; post-validations et replays sans écriture; scans et roue isolée passent; `LOG-0173`. | Migration sémantique, evidence/proofs/admissions historiques, audit/front V1, bundles et parité de tous les invariants. | `SPLIT` |
 
 > Cet addendum ne transforme aucun couplage en `DONE`. Il rend la reprise de séries structurelles observable dans un store temporaire, sans promotion ni preuve de compatibilité/parité ARET.
+
+
+### 2.32. Addendum M4-C.1 — substrate knowledge sans migration source effective
+
+| Couplage | Surface VERA livrée | Evidence | Dimensions toujours inconnues | État de la ligne mère |
+|---|---|---|---|---|
+| `C16` | Migration Core 035 : `knowledge_import_batch` et ses liens append-only; API générique de batch borné, fingerprinté, atomique et rejouable. Le Core ne connaît pas ARET et exige une `knowledge_type` déjà déclarée. | Tests de commit, replay, cible vide, type manquant, `PROVEN` refusé, rollback et upgrade 034→035; suite `369 passed, 14 subtests passed`; roue isolée; commit local `41594ba`; `LOG-0174`. | Une migration sémantique ne peut pas être déduite du ledger. Aucun mapping de type cible, import source→cible, provenance, tag, relation, supersession, proof, Front ou parité n’est encore établi. | `SPLIT` |
+| `C03` / `C04` / `C05` | Lecteur knowledge borné en SQLite immutable avec hash de snapshot et `content_hash` de ligne; projection non écrivable vers `aret-legacy-knowledge`, avec les champs source conservés en métadonnées. `SUPERSEDED` est représenté Core `OBSERVED` sans lien de supersession ni promotion. | Tests de projection rouge→vert et inventaire source versionné; `LOG-0174`. | Préflight, type cible, autorisation, collision, import réel, post-validation, no-loss et réconciliation avec les liens component/function/brick restent requis. | `SPLIT` |
+
+> Cet addendum ne déclare aucun couplage `DONE` : le lot M4-C.1 livre des primitives bornées et un cadrage source, non une migration sémantique complète.

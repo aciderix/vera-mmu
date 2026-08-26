@@ -605,3 +605,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Changement | `structural_target_collision`, `structural_import_authorization`, `authorized_structural_import` et `structural_post_validation` admettent deux états exclusifs : cible initialement vide ou série ARET compatible déjà attestée. Les contrôles de provenance, de mapping, de snapshot, de kind, de parents et d’égalité de post-validation restent inchangés. |
 | Interdits maintenus | Pas de merge, pas de SQL d’écriture dans le pack, pas d’import cross-series, pas de lifecycle/Front, pas de preuve/admission/promotion, pas de modification ARET, pas de claim de parité. |
 | Reprise | Le prochain lot autorisé est M4-C : définir et tester les mappings sémantiques un par un, en commençant par les données knowledge/provenance et sans déduire une preuve d’un import. |
+
+### MEM-STATE-120 — M4-C.1 : ledger knowledge générique et cadrage source
+
+| Champ | Valeur |
+|---|---|
+| Baseline et commit | Le sous-lot part de `e90d25c`; le commit fonctionnel local `41594ba` — `feat(core): add generic knowledge import batches` — ajoute la migration Core 035, sans publication distante. |
+| Core 035 | `knowledge_import_batch` et `knowledge_import_batch_record` sont append-only, checksumés et indexés. `ImportBatchService.commit_knowledge_import_batch` borne chaque batch à 1–100 connaissances, lie source/mapping/snapshot/fingerprint, assure replay exact sans écriture et rollback atomique. Il exige une `knowledge_type` préexistante et laisse `KnowledgeService` refuser `PROVEN`. |
+| Pack read-only | Le lecteur `knowledge` ouvre le snapshot seulement en `mode=ro&immutable=1`, vérifie le hash du snapshot avant/après et le `content_hash` de chaque ligne. La projection produit un seul type Core explicite `aret-legacy-knowledge`; les types legacy, liens component/function/brick, `supersedes_id`, version et timestamps restent dans `metadata.source`. `SUPERSEDED` devient `OBSERVED` côté Core, sans créer de lien de supersession ni promotion. |
+| Source observée | L’artefact `docs/continuity/artifacts/m4c_knowledge_source_inventory_2026-08-26.md` recense 532 knowledge, 517 sources, 2 545 tags, 47 relations, 4 proofs, 3 proof links et 24 entrées Front dans le snapshot ARET attesté. Les statuts observés sont `ACTIVE` (50), `OBSERVED` (481) et `SUPERSEDED` (1). |
+| Gates | Tests rouges→verts du ledger et de la projection : `7 passed` ciblés. Suite complète : `369 passed, 14 subtests passed`. `git diff --check` et roue setuptools isolée : `PASS`. |
+| Limites et verdict | `PASS borné` pour le substrate knowledge générique et la lecture/projection sans écriture. Aucun import knowledge réel, type initial cible, provenance `knowledge_source`, tags, relations, supersession, proof/proof link, Front, admission ou preuve n’est encore livré. M4-C et M4.EXIT restent `IN_PROGRESS` / `NOT_ELIGIBLE`. |
