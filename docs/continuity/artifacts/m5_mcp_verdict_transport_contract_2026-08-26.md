@@ -1,49 +1,82 @@
-# M5 — Contrat MCP de transport des verdicts — 2026-08-26
+# M5 — Façade MCP de transport des verdicts — jalon M5-A — 2026-08-26
 
-> **Statut :** contrat de préparation M5. Aucune surface MCP de production n’existe encore dans VERA-MMU.
+> **Statut :** `M5-A PASS` — première façade MCP stdio VERA livrée dans `5ffe182`.
+> **Portée :** transport universel fermé et testable. Le compilateur de manifestes, les adapters configurés de production, les instructions/hooks générés et la configuration d’installation restent hors de ce jalon.
 
-## 1. But
+## 1. Décision de portage
 
-M5 doit exposer les services VERA déjà vérifiés par les tests internes, sans modifier leur sémantique. Un client MCP doit pouvoir déclencher une capability déclarée, obtenir l’execution et l’evidence correspondantes, puis constater la décision de policy. Il ne doit jamais pouvoir fournir directement un verdict, une commande ou un artefact à promouvoir.
+ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transport `stdio` et HTTP, enveloppes d’erreur structurées et test de bout en bout par un vrai client. VERA-MMU n’a donc **pas** réimplémenté le protocole MCP. Le jalon M5-A porte ce socle de transport et ses garde-fous, puis le raccorde au Core universel livré par M1–M3 et aux Domain Packs isolés par M4.
 
-## 2. Surface minimale
+> La façade MCP est un adaptateur : elle ne réinterprète jamais un verdict et ne remplace jamais les policies du Core.
 
-| Outil MCP | Entrées bornées | Sortie obligatoire | Interdits |
+| Référence ARET-MMU | Portage M5-A VERA | Décision |
+|---|---|---|
+| Serveur MCP, `stdio`, réponses structurées et client réel | `src/vera_mmu/mcp_server.py`, SDK `mcp>=2.0,<3.0`, entry point `vmmu-mcp` | Porté et adapté. |
+| Catalogue fermé / paramètres bornés | Sept outils publics exactement, schémas MCP générés par le SDK | Porté comme invariant. |
+| Oracles et pipelines ARET | Adapter de fixture déclaré côté serveur uniquement | Gardé hors du Core ; l’adapter réel relève d’un manifest/Pack postérieur. |
+| Front, handoff, knowledge, hooks spécifiques ARET | Aucun portage mécanique | À généraliser dans les lots M5/M6 suivants. |
+| Services universels capability, evidence, validation, admission et gate | Appelés par la façade sans dupliquer leur sémantique | Réutilisés. |
+
+## 2. Surface M5-A livrée
+
+| Outil MCP | Entrées client bornées | Sortie persistée ou dérivée | Interdits structurels |
 |---|---|---|---|
-| `mmu_get_capability_catalog` | Aucun ou filtre déclaré | Capabilities, schémas, policy, timeout et version | Commande shell brute |
-| `mmu_run_capability` | `capability_id` et paramètres validés par schéma | `execution_id`, `evidence_id`, verdict, asset hash, statut preflight | `verdict`, `stdout`, `exit_code`, commande ou chemin arbitraires fournis par le client |
-| `mmu_get_execution` | `execution_id` exact | Execution, result et lien d’artefact | Inférence de succès à partir d’un texte |
-| `mmu_read_artifact` | `asset_id` autorisé | Octets hashés ou référence bornée | Lecture hors artifact store |
-| `mmu_validate_evidence` | `validator_id`, `evidence_id` | Validation persistée | Bypass de validator |
-| `mmu_decide_admission` | evidence/validation/policy déclarées | Décision ou erreur explicite | Admission d’un non-`PASS` |
-| `mmu_evaluate_gate` | `gate_id` exact | Statut dérivé des admissions | Gate `PASS` sans admission |
+| `mmu_get_capability_catalog` | aucune | capabilities `ALLOW`, contrats, policies et schémas | shell, URL ou chemin. |
+| `mmu_run_capability` | `capability_id`, `parameters` | `execution_id`, `evidence_id`, `asset_id`, `verdict`, `gate_id` | verdict, score, `stdout`, `stderr`, `exit_code`, commande ou artifact client. |
+| `mmu_get_execution` | `execution_id` exact | execution persistée et résultat enregistré | inférence de succès à partir d’un texte. |
+| `mmu_read_artifact` | `asset_id` exact | bytes vérifiés, hash, taille et MIME | lecture hors Asset Store. |
+| `mmu_validate_evidence` | `evidence_id` exact | validation persistée `PASS` ou `FAIL` | validator client ou bypass. |
+| `mmu_decide_admission` | `evidence_id`, `validation_id` exacts | admission `ADMITTED` ou refus structuré | promotion d’un non-`PASS`. |
+| `mmu_evaluate_gate` | `gate_id` exact | statut dérivé des admissions persistées | gate `PASS` synthétique. |
 
-## 3. Matrice de conformance MCP
+La façade n’importe aucun Domain Pack. Elle n’exécute aucun subprocess, n’ouvre aucun réseau et n’utilise aucun shell. L’exécution est déléguée à un **adapter configuré côté serveur**. Sans cet adapter, l’entry point générique `vmmu-mcp` refuse l’exécution : il est volontairement fail-closed.
 
-Le serveur de test M5 utilisera un **adapter de scénario déclaré dans le test**, non une entrée contrôlée par le client. Le client appelle exactement la même capability que dans un usage normal; seul le runtime de test produit les sorties contractuelles.
+## 3. Matrice de conformance exécutée
 
-| Scénario produit par l’adapter | Réponse `mmu_run_capability` | Admission demandée | Gate |
-|---|---|---|---|
-| Résumé `272/272` | Verdict `PASS`, execution/evidence/asset liés | Autorisée seulement après validation `PASS` | Peut devenir `PASS` |
-| Résumé `271/272` | Verdict `FAIL`, asset présent | Refusée avec erreur explicite | `FAIL` |
-| Dépendance absente | Verdict `SKIPPED` et cause exacte | Refusée | `FAIL` |
-| Timeout | Verdict `ERROR`, timeout visible | Refusée | `FAIL` |
-| Sortie non reconnue | Verdict `ERROR` | Refusée | `FAIL` |
-| Format non promouvable | Verdict `UNKNOWN` | Refusée | `FAIL` |
-| Asset altéré | Validation `FAIL` | Refusée | `FAIL` |
+Le test `tests/test_mcp_stdio_verdict_transport.py` démarre `tests/mcp_verdict_fixture_server.py` comme sous-processus `stdio`, initialise une vraie `ClientSession` MCP, inspecte le catalogue et appelle les sept outils. L’adapter choisit son scénario uniquement au démarrage du serveur ; le client appelle toujours la même capability et ne reçoit aucun droit de fournir un résultat.
 
-## 4. Invariants de transport
+| Scénario produit côté serveur | Verdict transporté | Validation asset | Admission | Gate |
+|---|---:|---:|---:|---:|
+| Résumé `272/272` | `PASS` | `PASS` | `ADMITTED` | `PASS` |
+| Résumé `271/272` | `FAIL` | `PASS` | refusée | `FAIL` |
+| Prérequis absent | `SKIPPED` | `PASS` | refusée | `FAIL` |
+| Timeout | `ERROR` | `PASS` | refusée | `FAIL` |
+| Sortie inconnue | `ERROR` | `PASS` | refusée | `FAIL` |
+| Format Wine hashé non promouvable | `UNKNOWN` | `PASS` | refusée | `FAIL` |
+| Asset déclaré avec hash altéré | `PASS` | `FAIL` | refusée | `FAIL` |
 
-Le MCP doit être une façade mince : le résultat retourné par le serveur doit être identique à celui des services, et les IDs doivent référer aux enregistrements persistés. Les réponses doivent être déterministes pour un même store. Une erreur d’admission ou de paramètres est une réponse MCP structurée et audible, pas un succès masqué.
+Le test vérifie aussi que le schéma de `mmu_run_capability` ne déclare que `capability_id` et `parameters`. Une tentative de transmettre `parameters.verdict = "PASS"` retourne `VERA_ERROR`; elle ne crée aucune réussite ni admission implicite.
 
-Les tests M5 doivent démarrer un vrai serveur MCP et appeler ses outils via un client MCP/stdio. Ils ne doivent ni appeler directement les services en remplacement du transport, ni injecter des scores dans les arguments d’outil. Les suites ARET réelles restent séparées : elles vérifient un Pack et son environnement, pas la conformité de l’API VERA.
+## 4. Corrections et garde-fous observés
 
-## 5. Hors de M4
+Le SDK MCP exécute les handlers synchrones dans un thread distinct. Le Store SQLite VERA restant volontairement attaché à son thread propriétaire, les handlers de la façade sont asynchrones : ils restent sur le thread du serveur, sans désactiver le garde-fou SQLite. Ce correctif porte sur le transport ; les règles Core de persistance et de policy ne sont pas modifiées.
 
-Le générateur de manifeste, le Tool Registry, le runtime adapter, les hooks et le serveur MCP font partie de M5. L’absence de cette surface empêche aujourd’hui de revendiquer la conformance **MCP**; elle ne remet pas en cause la matrice de services vérifiée en M4.
+Les erreurs métier sont retournées sous l’enveloppe stable `{ok, operation, error}` avec le code `VERA_ERROR`. Une exception ne peut pas se convertir en verdict positif, et le client ne peut pas faire tomber le serveur pour contourner un refus.
+
+## 5. Preuves de jalon
+
+| Contrôle | Résultat |
+|---|---|
+| Rouge initial | SDK MCP absent, puis dépendance explicitement ajoutée au paquet. |
+| Matrice MCP réelle | `2 passed, 7 subtests passed`. |
+| Régressions ciblées Pack/Core | `5 passed, 15 subtests passed`. |
+| Suite complète VERA | `399 passed, 32 subtests passed`. |
+| Frontière Core | Aucun import ARET/Pack, subprocess, shell ou réseau dans `mcp_server.py`. |
+| Intégrité Git | `git diff --check` : `PASS`. |
+| Packaging | Roue isolée construite ; `vmmu --help` et `vmmu-mcp --help` : `PASS`. |
+
+## 6. Limites et suite M5
+
+`M5-A` ne prétend pas que le serveur générique peut déjà exécuter ARET en production. La fixture ne sert qu’à prouver le **transport MCP** à partir des mêmes contrats que M4 ; elle n’est ni installée dans le paquet ni utilisable par un client.
+
+Les tranches suivantes de M5 devront fournir un manifeste immuable, son hash de build, la compilation du catalogue/adapters/instructions/config, un adapter production explicitement déclaré par le manifest, et les snapshots nécessaires à la reproductibilité. M6 fournira ensuite CLI, installation, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A.
 
 ## Références
 
-[1]: m4d_verdict_transport_scope_correction_2026-08-26.md "Correction de périmètre"
-[2]: ../../../src/vera_mmu/domain_packs/aret/oracle_contract.py "Normalisation Pack"
-[3]: ../../../tests/test_aret_verdict_transport.py "Matrice de transport interne"
+[1]: ../../../src/vera_mmu/mcp_server.py "Façade MCP universelle fermée"
+[2]: ../../../tests/test_mcp_stdio_verdict_transport.py "Conformance stdio par client MCP réel"
+[3]: ../../../tests/mcp_verdict_fixture_server.py "Adapter de scénario serveur réservé aux tests"
+[4]: ../../../src/vera_mmu/domain_packs/aret/closed_oracle_runner.py "Runner Pack ARET fermé"
+[5]: ../../../src/vera_mmu/validators.py "Validation `EVIDENCE_ASSET`"
+[6]: ../../../src/vera_mmu/admission.py "Admission policy-gated"
+[7]: ../../../src/vera_mmu/gates.py "Évaluation de gate dérivée"

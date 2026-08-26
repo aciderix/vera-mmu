@@ -2385,3 +2385,18 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | MCP | L’inventaire confirme l’absence actuelle de serveur MCP de production. Le contrat M5 exige une vraie session client→serveur, les outils bornés et les mêmes scénarios sans injection client de commande/verdict/artefact. |
 | Verdict | C07 reste `IN_PROGRESS` pour la couverture service complète; la conformance MCP est `PLANNED` M5. M4.EXIT reste `NOT_ELIGIBLE` pour ses gates d’import/compatibilité/bundle/playbook restantes, pas pour le score Wine local. |
 | Référence | `artifacts/m4d_verdict_transport_scope_correction_2026-08-26.md`; `artifacts/m5_mcp_verdict_transport_contract_2026-08-26.md`; `MEM-DEC-128`. |
+
+### LOG-0182 — 2026-08-26 — M5-A : portage adaptatif de la façade MCP stdio VERA
+| Champ | Valeur |
+|---|---|
+| Type | `BASELINE` / `PATCH` / `RUN` / `EVIDENCE` / `VERDICT` |
+| Baseline | ARET-MMU contient déjà un serveur MCP réel, stdio/HTTP, catalogue fermé, réponses structurées et contrôle client stdio. VERA n’avait jusqu’ici qu’une CLI `identity` / `inspect` / `init`; M1–M4 avaient livré le Core universel et le Pack ARET sans façade MCP. |
+| Patch | `5ffe182` porte le socle de transport à `src/vera_mmu/mcp_server.py`, avec SDK `mcp>=2.0,<3.0` et entry point `vmmu-mcp`. La façade Core définit exactement sept outils : catalogue, exécution de capability, lecture d’execution, lecture d’asset, validation, admission et gate. |
+| Frontière | `mcp_server.py` n’importe aucun Pack ni concept ARET, ne crée aucun subprocess, réseau ou shell, et refuse l’exécution si aucun adapter serveur explicite n’est configuré. Seul un adapter hôte crée execution/evidence; le client n’envoie ni commande, chemin, stdout, stderr, exit code, score, verdict ou artifact. |
+| Test MCP | `tests/test_mcp_stdio_verdict_transport.py` lance le serveur de fixture stdio puis un vrai `ClientSession`. Le scénario est fixé côté serveur au démarrage. La matrice couvre `272/272 PASS`, `271/272 FAIL`, prérequis absent `SKIPPED`, timeout/sortie inconnue `ERROR`, Wine hash `UNKNOWN` et asset déclaré altéré (`validation FAIL`). Seul `PASS` validé obtient admission et gate `PASS`. |
+| Injection | Le schéma MCP de `mmu_run_capability` ne contient que `capability_id` et `parameters`; une tentative client de fournir `parameters.verdict=PASS` est refusée, sans execution/admission/gate promue. |
+| Incident résolu | Les handlers MCP synchrones étaient exécutés par le SDK dans un thread distinct du store SQLite. Ils sont async afin de rester dans le thread propriétaire du store. L’enveloppe d’erreur reste structurée et le refus ne devient jamais un succès. |
+| Contrôles | Rouge initial : SDK MCP absent. Après ajout de dépendance/portage : `2 passed, 7 subtests passed` (MCP); ciblés `5 passed, 15 subtests passed`; suite complète `399 passed, 32 subtests passed`; frontière Core sans imports Pack/ARET ni shell/réseau : `PASS`; `git diff --check`: `PASS`; roue isolée et `vmmu` / `vmmu-mcp --help`: `PASS`. |
+| Limite | Le point d’entrée générique `vmmu-mcp` est intentionnellement fail-closed : sans adapter déclaré par un manifeste/configuration future, il permet les lectures mais refuse toute exécution. L’adapter de scénario est exclusivement une fixture de test et ne constitue pas un runtime ARET de production. |
+| Verdict | `M5-A = PASS` : premier transport MCP universel et vérifié. M5 global, compilateur/manifeste immutable, configuration/hook et adapters de production restent `IN_PROGRESS` / `PLANNED`. |
+| Référence | `5ffe182`; `tests/test_mcp_stdio_verdict_transport.py`; `tests/mcp_verdict_fixture_server.py`; `MEM-DEC-129`. |

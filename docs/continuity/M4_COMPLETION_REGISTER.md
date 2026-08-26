@@ -114,9 +114,9 @@ Le verdict `M4 = PASS` est autorisé uniquement si les conditions suivantes sont
 | M4-B intégration | `OBSERVED` : snapshot attesté, import/post-validation temporaire de 9 symbols en 3 pages et 13 work items en 5 pages, replay sans écriture, 8 resource batches, 22 liens structurels et zéro evidence/proof/admission/promotion. Le correctif local de résolution des parents brick et les séries non fusionnelles sont couverts par tests. |
 | M4 global | `IN_PROGRESS`. |
 | Parité ARET | `UNKNOWN`. |
-| C07 / C08 | `IN_PROGRESS` : catalogue, préflight, normalisation, runner sandboxé et chaîne capability→execution→asset→evidence sont maintenant testés; `difftest` réel est `PASS 272/272` et une fixture Wine est `PASS 1/1`, tous deux `PENDING`. Validators/admission/proof/gate, doctor et corpus Wine complet sandboxé restent absents ou non terminés. |
-| M4.EXIT | `NOT_ELIGIBLE` : l’audit `artifacts/m4_exit_precondition_audit_2026-08-26.md` confirme que des gates restent `IN_PROGRESS`, la parité est `UNKNOWN`, `winediff` échoue à `255/264` et M5/M6 restent requis. |
-| Prochain lot autorisé | Définir test-first le validator/admission/proof/gate lié à l’evidence d’oracle, versionner le doctor/image de référence, puis investiguer `win32_winsock` et les neuf divergences Wine sans filtrer aucune fixture ; M3 ne doit pas être rouvert. |
+| C07 / C08 | `IN_PROGRESS` : catalogue, préflight, normalisation, runner sandboxé, doctor et chaîne capability→execution→asset→evidence→validation→admission→proof/gate sont testés. M5-A transporte par vrai client MCP les scénarios `PASS`/`FAIL`/`SKIPPED`/`ERROR`/`UNKNOWN` et asset altéré. Manifeste/adapters de production, corpus comparable et parité complète restent hors clôture. |
+| M4.EXIT | `NOT_ELIGIBLE` : l’audit `artifacts/m4_exit_precondition_audit_2026-08-26.md` confirme que des gates restent `IN_PROGRESS`, la parité est `UNKNOWN`, et les imports/playbook/bundles/compatibilités ainsi que M5/M6 restent incomplets. Le score local `winediff 255/264` demeure une observation Pack, non un critère de transport VERA. |
+| Prochain lot autorisé | En M5, compiler test-first un manifeste immuable et des adapters/instructions/config déclarés; conserver la façade M5-A fail-closed tant qu’aucun adapter production n’est attesté. Les divergences Wine et `win32_winsock` restent une investigation ARET distincte, sans rouvrir le Core pour les masquer. |
 
 ## Références
 

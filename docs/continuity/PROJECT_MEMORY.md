@@ -708,3 +708,15 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | Test-first `tests/test_aret_verdict_transport.py`; normaliseur Pack; suite `397 passed, 25 subtests passed`; roue isolée; `8818100`. |
 | État | M4-EXIT-09/C07 reste `IN_PROGRESS` jusqu’à couverture complète de la matrice service. La vraie conformance MCP est explicitement M5. `M4.EXIT = NOT_ELIGIBLE` pour les autres gates non réalisées. |
 | Références | `artifacts/m4d_verdict_transport_scope_correction_2026-08-26.md`; `artifacts/m5_mcp_verdict_transport_contract_2026-08-26.md`; `LOG-0181`. |
+
+### MEM-DEC-129 — M5-A porte le transport MCP ARET vers une façade VERA universelle
+| Champ | Valeur |
+|---|---|
+| Décision | M5-A ne recrée pas MCP et ne copie pas les 42 outils ARET. Il porte l’architecture MCP éprouvée d’ARET-MMU — SDK standard, stdio, catalogue fermé, erreurs structurées et client réel — puis la raccorde aux services VERA universels déjà livrés. |
+| Surface | `5ffe182` ajoute `mcp_server.py`, la dépendance `mcp>=2.0,<3.0` et `vmmu-mcp`. Sept outils seuls sont exposés : catalogue, run, execution, artifact, validation, admission, gate. Core sans Pack/import ARET, sans subprocess, réseau ou shell. |
+| Sécurité | `mmu_run_capability` n’accepte que `capability_id` et `parameters`; un adapter côté serveur est seul autorisé à produire execution/evidence/asset/verdict/gate. Toute tentative de fournir `verdict`, score, commande, stdout, stderr, exit code ou artifact est structurellement absente ou refusée. |
+| Conformance | Vrai serveur stdio + vraie `ClientSession` : `272/272→PASS`, `271/272→FAIL`, prérequis absent→`SKIPPED`, timeout/sortie inconnue→`ERROR`, hash Wine→`UNKNOWN`, asset déclaré altéré→validation `FAIL`. Seul `PASS` validé est admis et fait passer la gate. |
+| Refus par défaut | L’entry point générique démarre avec `DenyRuntimeAdapter`; il n’exécute aucune capability sans adapter explicitement déclaré. La fixture d’adapter est test-only et ne constitue pas un runtime ARET de production. |
+| Preuve | Rouge initial SDK MCP absent; `2 passed, 7 subtests passed` MCP; suite complète `399 passed, 32 subtests passed`; roue isolée et points d’entrée validés; `LOG-0182`. |
+| État | `M5-A PASS`; manifeste immutable / `mcp_build_hash`, compilation d’adapters/instructions/hooks/config et runtime production restent en attente des tranches M5 suivantes. M4.EXIT reste `NOT_ELIGIBLE` pour ses gates globales restantes, indépendamment de la réussite de ce transport. |
+| Références | `artifacts/m5_mcp_verdict_transport_contract_2026-08-26.md`; `src/vera_mmu/mcp_server.py`; `tests/test_mcp_stdio_verdict_transport.py`; `LOG-0182`. |
