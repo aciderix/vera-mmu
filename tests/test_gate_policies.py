@@ -68,7 +68,7 @@ class GatePolicyTests(unittest.TestCase):
 
     def test_default_and_explicit_all_are_conjunctive_and_pure(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 29})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 30})
             self._evidence(store); gates = self._gate(store, "default")
             audits = len(store.audit_events())
             default = gates.evaluate("default")

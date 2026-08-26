@@ -312,3 +312,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-049` | Validator local | `EVIDENCE_FIELDS` valide localement la présence de clés explicitement déclarées dans un objet JSON d’evidence; il persiste seulement un verdict `PASS`/`FAIL`, sans admission ni preuve. | `OBSERVED` | Migration 029, tests M3.17, 170 tests et 14 sous-tests, wheel isolée. | `LOG-0102` |
 | `MEM-DEC-038` | Frontière validator | Les clés requises sont bornées, immuables et syntaxiquement fermées. Leur présence n’est pas un oracle de contenu, une vérité métier ou une promotion; JSON Schema général demeure hors scope. | `DECISION` | Contrat et refus M3.17. | `LOG-0102` |
 | `MEM-STATE-050` | Reprise active | M3 reste `IN_PROGRESS`. Restent validator/oracle métier sous policy distincte, runner sûr additionnel, lifecycle/graph avancé, CLI/MCP et pack ARET; `MEM-WALL-001` demeure actif. | `OBSERVED` | Revue post-M3.17. | `LOG-0102` |
+
+
+## 27. Addendum de reprise — M3.18 runner `EVIDENCE_FIELDS`
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-051` | Runner local | Le catalogue de runners admet `NOOP`, `EVIDENCE_HASH` et `EVIDENCE_FIELDS`. Sous contrat exact et policy `ALLOW`, le runner de champs persiste atomiquement un verdict de validator local et une execution `COMPLETED`. | `OBSERVED` | Migration 030, tests M3.18, 171 tests et 14 sous-tests, wheel isolée. | `LOG-0104` |
+| `MEM-DEC-039` | Frontière runner | `EVIDENCE_FIELDS` ne lance aucun processus, ne lit aucun fichier et ne contacte aucun réseau. Une execution est distincte de l’evidence, de l’admission et de la preuve; aucun verdict ne promeut knowledge. | `DECISION` | Contrat runner M3.18 et contrôles transactionnels. | `LOG-0104` |
+| `MEM-STATE-052` | Reprise active | M3 reste `IN_PROGRESS`. Restent validator/oracle métier sous policy distincte, runners sûrs additionnels, lifecycle/graph avancé, CLI/MCP et pack ARET; `MEM-WALL-001` demeure actif. | `OBSERVED` | Revue post-M3.18. | `LOG-0104` |

@@ -1610,3 +1610,15 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `1429572c7cab5e406d27851a034c337d30625020`. |
 | État de reprise | M3.17 est publié avec migration 029. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
 | Prochain choix | Choisir explicitement un seul gap M3 : validator/oracle métier sous policy distincte, runner sûr additionnel, lifecycle/graph avancé ou surface CLI/MCP. Ne pas étendre `EVIDENCE_FIELDS` en JSON Schema général ou oracle métier implicite. |
+
+
+### LOG-0104 — Verdict M3.18 : runner local fermé `EVIDENCE_FIELDS`
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | Migration `030_evidence_fields_runner.sql` étend le catalogue de contrats à `NOOP`, `EVIDENCE_HASH`, `EVIDENCE_FIELDS`. `ExecutionService.run_evidence_fields` exécute localement un validator de présence de clés. |
+| Contrat | Profile exact `EVIDENCE_FIELDS`, `DENY_NETWORK`, `yields_proof=false`, policy capability `ALLOW`, schema exact `validator_id`/`evidence_id`. Le runner exige un validator `EVIDENCE_FIELDS` persistant. |
+| Transaction | Validation `PASS`/`FAIL`, execution `COMPLETED` et audits sont atomiques. Un refus/duplicat rollbacke les écritures. Aucun admission, evidence, preuve, knowledge ou work item n’est créé/modifié. |
+| Gates | Tests-first : échec attendu sans migration/runner. Tests ciblés : `6 passed`; suite complète : `171 passed, 14 subtests passed`; `git diff --check`, scan sans I/O/ARET et wheel isolée `PASS`/`FAIL` passent. |
+| Limites | Aucun shell, processus, réseau, filesystem, oracle externe, JSON Schema général, admission automatique ou preuve implicite. Le runner ne juge que la présence de clés selon la règle du validator. |
+| Verdict | `PASS` pour M3.18. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 reste `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |

@@ -10,7 +10,7 @@ from .identity import canonical_json
 from .parameter_validation import ParameterValidationError, validate_parameter_schema
 from .store import MemoryStore, StoreError
 
-RUNNER_PROFILES = frozenset({"NOOP", "EVIDENCE_HASH"})
+RUNNER_PROFILES = frozenset({"NOOP", "EVIDENCE_HASH", "EVIDENCE_FIELDS"})
 NETWORK_POLICIES = frozenset({"DENY_NETWORK"})
 
 class CapabilityContractError(StoreError):
