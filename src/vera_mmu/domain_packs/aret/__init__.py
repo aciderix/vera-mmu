@@ -38,6 +38,11 @@ from .component_reader import (
     AretV1ComponentSourceRecord,
     read_aret_v1_component_page,
 )
+from .component_import_preflight import (
+    AretComponentImportPreflightError,
+    AretV1ComponentImportPreflight,
+    component_import_preflight,
+)
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -70,4 +75,7 @@ __all__ = [
     "AretV1ComponentSourcePage",
     "AretV1ComponentSourceRecord",
     "read_aret_v1_component_page",
+    "AretComponentImportPreflightError",
+    "AretV1ComponentImportPreflight",
+    "component_import_preflight",
 ]
