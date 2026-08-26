@@ -2044,3 +2044,21 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `ee8736f6d08733ef044b21a2592ed704faee9133` avant le handoff documentaire. |
 | Reprise | Le prochain lot peut isoler l’enregistrement exact du type générique `component` dans un store VERA cible ou un contrôle de collision read-only; tout write-path de brouillon reste séparé, transactionnel et soumis au préflight M4.11. |
+
+### LOG-0147 — Verdict M4.13 : contrôle read-only des collisions cible `component` ARET V1
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.component_target_collision` expose `check_aret_v1_component_target_clear`. Le contrôle exige une projection M4.12 non écrivable et un store VERA explicitement fourni dont l’identité est strictement égale à l’identité cible. |
+| Invariant | Deux lectures exactes seulement : présence du type `component`, puis présence de chaque identifiant de draft. Un type ou identifiant existant, une identité/état/projection divergente ou une liste invalide est refusé. Un résultat clair porte `entity_type_state=ABSENT_REQUIRED` et `TARGET_CLEAR_NOT_WRITABLE`. |
+| Observation ponctuelle | Contre la baseline source vérifiée et un store VERA temporaire explicitement créé, le contrôle couvre 17 drafts, constate l’absence du type/IDs, ne modifie pas le journal d’audit cible et retourne `TARGET_CLEAR_NOT_WRITABLE`. |
+| Isolation | Le Core n’importe pas le pack. Le module n’ouvre aucune source ARET ni SQLite externe, n’ouvre aucune transaction, ne crée ni type/entity/audit et n’exécute ni rollback, provenance, evidence, proof, admission, import, shell ou réseau. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : surface absente; ciblé : `5 passed`; Core : `252 passed, 14 subtests passed`; scans de frontière, contrôle ponctuel avec audit invariant et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.13 uniquement. Le lot constate un état cible clair, non une permission d’écrire : aucun type/entity n’est créé, aucun import/proof/parité ARET n’est affirmé. M4 reste `IN_PROGRESS`. |
+
+### LOG-0148 — Publication fonctionnelle et handoff M4.13
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `458675e29bae3d59bb02a7f19d91b16ec04e70a9` — `feat: check ARET V1 component target collisions`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `458675e29bae3d59bb02a7f19d91b16ec04e70a9` avant le handoff documentaire. |
+| Reprise | Le prochain lot doit isoler l’enregistrement du type `component` dans un store dont M4.13 a attesté l’absence, avec transaction/audit et refus de type divergent. Toute création d’entity reste un lot séparé après cette préparation. |

@@ -189,6 +189,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.12 définit une représentation cible vérifiable sans créer de cible. Le type `component`, les identifiants et les métadonnées sont des drafts soumis aux contrôles futurs du Core; aucun `entity_type` ni `entity` n’est enregistré par ce lot.
 
+### 2.19. Avancement observé M4.13 — contrôle read-only des collisions cible
+
+| Couplages | Surface VERA désormais observée | Evidence M4.13 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C04`, `C05`, `C06`, `C16` | `vera_mmu.domain_packs.aret.component_target_collision` vérifie dans un store VERA existant et identitaire l’absence exacte du type `component` et de tout identifiant de draft projeté. Toute existence est rejetée; un résultat clair reste `TARGET_CLEAR_NOT_WRITABLE`. | `tests/test_aret_component_target_collision_check.py` : cible claire, type existant, entité existante, identité/état divergents et SQL uniquement `SELECT`; suite `252 passed, 14 subtests passed`, wheel isolée; contrôle baseline de 17 brouillons et audit cible invariant; `LOG-0147`. | Enregistrement du type, création transactionnelle d’entity, rollback, audit/provenance effectifs, evidence/proof, admission, écriture/import et parité ARET. | `SPLIT` |
+
+> M4.13 constate l’absence de collisions dans un store ouvert par le caller; il ne crée pas ce store et n’ouvre aucune transaction. L’absence d’un type/ID n’est pas une permission d’écrire : c’est seulement une précondition bornée pour un lot ultérieur distinct.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
