@@ -2184,3 +2184,11 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Tests-first rouge ; ciblés `2 passed`; suite complète `312 passed, 14 subtests passed`; scans no-I/O/no-write/no-SymbolService et roue isolée : `PASS`. |
 | Publication | Commit `e0a75c441c617000334cc2b275b5dcdd68e2bbcf` publié sur `main`. |
 | Verdict | `PASS borné` pour projection sans écriture. Conformance source, binding à components importés, autorisation, import atomique, rollback/reprise et parité restent requis. |
+
+### LOG-0164 — Verdict M4-B : projection pure brick vers work_item
+| Champ | Valeur |
+|---|---|
+| Portée | Projection déterministe `brick→work_item` : type générique `WORK_ITEM`, titre/description/priorité et provenance legacy exhaustive (`state`, component, milestone, target platform). |
+| Gates | Tests-first rouge ; ciblés `2 passed`; suite complète `314 passed, 14 subtests passed`; scans no-I/O/no-write/no-WorkItemService et roue isolée : `PASS`. |
+| Publication | Commit `568d9fb296c2d8a03f525f3c1312260eb6287b83` publié sur `main`. |
+| Verdict | `PASS borné` pour projection sans écriture. La sémantique de statut cible, le binding component, l’autorisation, l’import atomique, rollback/reprise et parité restent requis. |
