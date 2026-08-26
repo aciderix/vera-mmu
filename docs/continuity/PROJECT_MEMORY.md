@@ -283,3 +283,13 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-044` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validator de contenu explicitement borné ou oracle sous politique séparée, runners sûrs additionnels, politiques/gates avancées, CLI/MCP et pack ARET. Aucun shell, réseau, accès fichier externe, admission automatique ou parité ARET n’est livré par M3.14. | `OBSERVED` | Revue post-M3.14; `MEM-WALL-001` demeure actif. | `LOG-0096` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-043`, `MEM-DEC-035`, `MEM-STATE-044`, `MEM-WALL-001`, puis `LOG-0095`–`LOG-0096` avant tout lot M3 suivant.
+
+## 24. Addendum de reprise — M3.15 policies de gate
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-045` | Policies de gate | `SUPERSEDES: MEM-STATE-044` pour les gates avancées. Une policy immutable optionnelle par gate offre `ALL`, `ANY` ou `AT_LEAST`; une gate sans policy conserve `ALL`. `AT_LEAST` est borné par la population d’evidences figée à la déclaration de policy. | `OBSERVED` | Migration `027_admission_gate_policies.sql`, `GateService`, tests M3.15; 164 tests et 14 sous-tests, upgrade 026→027 et wheel isolée. | `LOG-0098` |
+| `MEM-DEC-036` | Frontière de gate | Une évaluation de gate est une lecture pure d’admissions `ADMITTED` déjà persistées. Elle ne déclenche ni capability, execution, validator, evidence, admission, preuve, mutation knowledge ou mutation work item. Les exigences sont gelées après policy afin de préserver le contrat compté. | `DECISION` | Contrat M3.15 et contrôles de pureté/refus atomique. | `LOG-0098` |
+| `MEM-STATE-046` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validator de contenu ou oracle explicitement policy-gated, runner sûr additionnel, gates pondérées/temporelles seulement sous lot distinct, lifecycle/graph avancés, CLI/MCP et pack ARET. Aucun oracle externe, réseau, shell, admission automatique ou parité ARET n’est livré par M3.15. | `OBSERVED` | Revue post-M3.15; `MEM-WALL-001` demeure actif. | `LOG-0098` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-045`, `MEM-DEC-036`, `MEM-STATE-046`, `MEM-WALL-001`, puis `LOG-0098` avant tout lot M3 suivant.

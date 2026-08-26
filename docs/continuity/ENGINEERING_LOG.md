@@ -1537,3 +1537,17 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `703d7a234a83066457402baf0efef76976473e35`. |
 | État de reprise | M3.14 est publié avec migration 026. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C06 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
 | Prochain choix | Choisir explicitement un seul gap M3 borné; candidats : validator de contenu/oracle sous policy distincte, runner sûr additionnel, politiques/gates avancées ou surface CLI/MCP. Ne pas étendre implicitement le runner `EVIDENCE_HASH`. |
+
+
+### LOG-0098 — Verdict M3.15 : policies de gate `ALL` / `ANY` / `AT_LEAST`
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | Migration `027_admission_gate_policies.sql` ajoute une policy immutable par gate avec catalogue SQL fermé `ALL`, `ANY` et `AT_LEAST`. La policy est optionnelle : toute gate historique sans policy conserve exactement la sémantique conjonctive `ALL`. |
+| Contrat | `ALL` et `ANY` n’acceptent aucun seuil; `AT_LEAST` exige un entier positif ne dépassant pas le nombre d’evidences déjà requises. Après policy, les exigences sont gelées afin que le seuil et la population évaluée restent déterministes. |
+| Évaluation | `GateService.evaluate` reste une lecture pure : il compte seulement les admissions `ADMITTED` existantes et retourne statut, mode, nombre admis, nombre requis et seuil effectif. Il ne lance aucune capability, ne crée aucune admission, evidence, proof, execution ni mutation de work item/knowledge. |
+| Compatibilité | Upgrade historique réel `026→027` validé : une gate conjonctive historique est lue comme `ALL`, puis peut recevoir une policy explicite. Les gates conjonctives M3.11 restent couvertes sans régression. |
+| Gates exécutées | Tests-first : 4 échecs attendus avant code. Tests ciblés : `7 passed`; suite complète : `164 passed, 14 subtests passed`; `git diff --check` passe. Scan du patch : absence de shell, sous-processus, accès fichier/réseau, URL, import dynamique, création de faits adjacents et dépendance ARET. Wheel isolée : `ALL` / `ANY` / `AT_LEAST` validés sur admissions préexistantes. |
+| Limites préservées | Aucun quorum pondéré, expiration, fenêtre temporelle, désaveu/révocation d’admission, exécution implicite, admission automatique, oracle, réseau, shell, CLI/MCP ou parité ARET n’est introduit. |
+| Verdict | `PASS` pour M3.15. M3 global reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 reste `BLOCKED` sous `MEM-WALL-001`, et la parité exhaustive ARET reste `UNKNOWN`. |
+| Suite | Publier atomiquement le lot. Le prochain lot doit être choisi explicitement parmi validators de contenu/oracles policy-gated, runners sûrs additionnels, gates temporelles/pondérées si cadrées, lifecycle/graph avancés ou surfaces CLI/MCP. |
