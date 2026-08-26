@@ -20,6 +20,14 @@ from .knowledge import (
     KnowledgeService,
     KnowledgeType,
 )
+from .import_batches import (
+    EntityImportBatchInput,
+    EntityImportBatchResult,
+    ImportBatch,
+    ImportBatchError,
+    ImportBatchService,
+    ImportEntityInput,
+)
 from .identity import (
     ProfileError,
     ProfileIdentity,
@@ -69,9 +77,15 @@ __all__ = [
     "EntityNotFoundError",
     "EntityService",
     "EntityType",
+    "EntityImportBatchInput",
+    "EntityImportBatchResult",
     "MAX_ASSET_BYTES",
     "MAX_ASSET_SOURCE_LIST_LIMIT",
     "MemoryStore",
+    "ImportBatch",
+    "ImportBatchError",
+    "ImportBatchService",
+    "ImportEntityInput",
     "Knowledge",
     "KnowledgeAssetLink",
     "KnowledgeAssetLinkError",
