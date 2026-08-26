@@ -22,7 +22,18 @@ class GateService:
     if c.execute('SELECT 1 FROM work_item WHERE id=?',(work_item_id,)).fetchone() is None or c.execute('SELECT 1 FROM evidence WHERE id=?',(evidence_id,)).fetchone() is None:raise GateError('Endpoint de gate inconnu.')
     c.execute("INSERT INTO admission_gate(id,work_item_id,evidence_id,created_at,created_by) VALUES(?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'),?)",(identifier,work_item_id,evidence_id,actor));self.store.append_audit(c,'ADMISSION_GATE_DECLARED',{'gate_id':identifier,'actor':actor})
   except sqlite3.IntegrityError as e:raise GateError('Gate invalide ou dupliquée.') from e
+ def add_requirement(self,gate_id:str,evidence_id:str,*,actor:str='system')->None:
+  try:
+   with self.store.transaction() as c:
+    gate=c.execute('SELECT evidence_id FROM admission_gate WHERE id=?',(gate_id,)).fetchone()
+    if gate is None or c.execute('SELECT 1 FROM evidence WHERE id=?',(evidence_id,)).fetchone() is None:raise GateError('Exigence de gate inconnue.')
+    if str(gate['evidence_id'])==evidence_id:raise GateError('Evidence principale déjà exigée.')
+    c.execute("INSERT INTO admission_gate_requirement(gate_id,evidence_id,created_at,created_by) VALUES(?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'),?)",(gate_id,evidence_id,actor));self.store.append_audit(c,'ADMISSION_GATE_REQUIREMENT_ADDED',{'gate_id':gate_id,'evidence_id':evidence_id,'actor':actor})
+  except sqlite3.IntegrityError as e:raise GateError('Exigence de gate invalide ou dupliquée.') from e
  def evaluate(self,identifier:str)->GateEvaluation:
-  row=self.store.connection.execute("SELECT g.id,a.decision FROM admission_gate g LEFT JOIN evidence_admission a ON a.evidence_id=g.evidence_id WHERE g.id=?",(identifier,)).fetchone()
-  if row is None:raise GateError('Gate introuvable.')
-  return GateEvaluation(str(row['id']),'PASS' if row['decision']=='ADMITTED' else 'FAIL')
+  rows=self.store.connection.execute("SELECT evidence_id FROM admission_gate WHERE id=? UNION ALL SELECT evidence_id FROM admission_gate_requirement WHERE gate_id=?",(identifier,identifier)).fetchall()
+  if not rows:raise GateError('Gate introuvable.')
+  for row in rows:
+   admission=self.store.connection.execute("SELECT decision FROM evidence_admission WHERE evidence_id=?",(str(row['evidence_id']),)).fetchone()
+   if admission is None or admission['decision']!='ADMITTED':return GateEvaluation(identifier,'FAIL')
+  return GateEvaluation(identifier,'PASS')

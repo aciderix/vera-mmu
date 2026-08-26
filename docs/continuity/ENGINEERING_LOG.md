@@ -107,6 +107,8 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0081` | 2026-08-25 | `HYPOTHESIS` | M3.10 | validator local `EVIDENCE_HASH`, no-oracle | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-033`, `MEM-DEC-030`, `MEM-WALL-001` |
 | `LOG-0082` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.10 | intégrité locale, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-033`, `MEM-STATE-034`, `MEM-DEC-030`, `MEM-WALL-001` |
 | `LOG-0083` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.10 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-034`, `MEM-WALL-001` |
+| `LOG-0084` | 2026-08-25 | `HYPOTHESIS` | M3.11 | gate multi-evidence conjonctive, no-runner | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-035`, `MEM-DEC-031`, `MEM-WALL-001` |
+| `LOG-0085` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.11 | exigences, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-035`, `MEM-STATE-036`, `MEM-DEC-031`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1366,3 +1368,27 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication M3.10. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
 | Suivi | Cadrer séparément une gate multi-evidence ou un validator de contenu explicitement borné, sans oracle ARET, runner additionnel, réseau implicite ni exécution de commande. |
+
+
+### LOG-0084 — Hypothèse M3.11 : gates d’admission multi-evidence
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `8a88249a510583a04c69547698eb69a67948c93f`, `main` propre et alignée; 148 tests et 14 sous-tests `PASS`; M3.10 publié. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | Une `admission_gate` publie actuellement une evidence principale unique. La gate lit l’admission de cette seule evidence, sans pouvoir exprimer qu’un ensemble fixe d’evidences doit être admis. |
+| Hypothèse | Une table append-only d’exigences additionnelles liée à une gate existante peut compléter son evidence principale. L’évaluation reste pure et retourne `PASS` seulement si l’evidence principale et toutes les exigences additionnelles ont une admission existante `ADMITTED`. |
+| Sûreté | L’ajout d’exigence ne lance aucune capability, ne crée ni evidence ni admission, ne modifie aucun work item ou knowledge et ne fait pas d’une gate un lifecycle. Absence, `REJECTED`, `PENDING`, `FAIL`, `UNKNOWN` ou `SKIPPED` reste `FAIL`. |
+| Tests-first attendus | Migration/FK/immutabilité/audit/rollback; exigence liée à gate/evidence existantes; lecture `FAIL` tant que l’une manque puis `PASS` quand toutes sont admises; refus doublon/primaire; évaluation sans effet. |
+| Invariants | I001, I004–I008, I011, I013–I015. |
+| Verdict | `PENDING` — aucun patch M3.11 n’est encore produit. |
+
+
+### LOG-0085 — Verdict M3.11 : gate multi-evidence
+
+| Champ | Valeur |
+|---|---|
+| Résultat | Migration 023 ajoute des exigences additionnelles append-only pour une gate existante. `GateService.add_requirement` les lie à des evidences existantes; `evaluate` reste une lecture pure et retourne `PASS` seulement lorsque l’evidence principale et chaque exigence ont une admission `ADMITTED`. |
+| Validation | Tests-first : méthode absente attendue; tests ciblés : 2 `PASS`; suite complète : 149 tests et 14 sous-tests `PASS`; `git diff --check` `PASS`; scan sans processus, shell, réseau, I/O, `eval`, import dynamique, insertion d’execution ni mutation work item/knowledge/evidence `PASS`; wheel isolé avec migration 023, séquence `FAIL` → `FAIL` → `PASS` selon les admissions `PASS`. |
+| Atomicité | Gate ou evidence inconnue, exigence dupliquée ou evidence principale répétée refusent avant l’audit d’ajout. L’évaluation n’écrit ni audit, ni execution, ni evidence, ni admission, ni knowledge. |
+| Limite | Les exigences sont une conjonction fixe. Aucun quorum, disjonction, pondération, ordre, expiration, lifecycle de work item, admission automatique, validator externe, runner, réseau ou shell n’est ajouté. |
+| Verdict | `PASS` pour M3.11 technique; publication et synchronisation de continuité à finaliser. |

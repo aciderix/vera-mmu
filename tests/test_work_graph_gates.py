@@ -48,4 +48,14 @@ class GateTests(unittest.TestCase):
    self.assertEqual(g.evaluate('gate-1').status,'FAIL')
    AdmissionService(s).decide('a','e','ADMITTED','ok')
    self.assertEqual(g.evaluate('gate-1').status,'PASS')
+ def test_gate_requires_all_additional_evidence_admissions(self):
+  with self._store() as s:
+   w=WorkItemService(s);w.create('b','SUBTASK','B')
+   self._evidence(s);EvidenceService(s).record('e2','x','TEST_PROOF','PASS',{})
+   g=GateService(s);g.declare('gate-1','b','e');g.add_requirement('gate-1','e2')
+   audits=len(s.audit_events());self.assertEqual(g.evaluate('gate-1').status,'FAIL');self.assertEqual(len(s.audit_events()),audits)
+   AdmissionService(s).decide('a1','e','ADMITTED','ok');self.assertEqual(g.evaluate('gate-1').status,'FAIL')
+   AdmissionService(s).decide('a2','e2','ADMITTED','ok');self.assertEqual(g.evaluate('gate-1').status,'PASS')
+   with self.assertRaises(GateError):g.add_requirement('gate-1','e2')
+   with self.assertRaises(GateError):g.add_requirement('gate-1','e')
 if __name__=='__main__':unittest.main()

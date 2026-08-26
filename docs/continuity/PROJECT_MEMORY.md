@@ -229,3 +229,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-034` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validators de contenu explicitement bornés, runners sûrs additionnels, gates multi-evidence, lifecycle/traversal de work graph, CLI/MCP et pack ARET. Aucun oracle externe, fichier, URL ou réseau n’est livré par M3.10. | `OBSERVED` | Revue post-M3.10; aucun contrat ou test de ces capacités n’est livré. | `LOG-0082` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-033`, `MEM-DEC-030`, `MEM-STATE-034`, `MEM-WALL-001`, puis `LOG-0081`–`LOG-0082` avant tout lot M3 ultérieur.
+
+
+## 19. Addendum de reprise — M3.11 gates multi-evidence
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-035` | Gates d’admission | `SUPERSEDES: MEM-STATE-034` pour cette exclusion précise. Une gate conserve son evidence principale et peut recevoir des exigences additionnelles append-only. Son évaluation pure retourne `PASS` seulement si chaque evidence requise a une admission `ADMITTED`; sinon elle retourne `FAIL`. | `OBSERVED` | Migration `023_multi_evidence_gates.sql`, `gates.py`, tests M3.11; 149 tests et 14 sous-tests, wheel isolé. | `LOG-0084`, `LOG-0085` |
+| `MEM-DEC-031` | Sémantique de gate | Les exigences M3.11 forment une conjonction fixe. Une gate ne lance rien, ne crée aucune evidence ou admission, ne modifie aucun work item ou knowledge, et ne devient ni un quorum ni un lifecycle. | `DECISION` | Contrat M3.11 et invariants I004–I008, I013–I015. | `LOG-0084`, `LOG-0085` |
+| `MEM-STATE-036` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validators de contenu explicitement bornés, runners sûrs additionnels, lifecycle/traversal de work graph, politiques/gates plus riches sous lot séparé, CLI/MCP et pack ARET. Aucun oracle externe, fichier, URL, réseau ou shell n’est livré par M3.11. | `OBSERVED` | Revue post-M3.11; aucun contrat ou test de ces capacités n’est livré. | `LOG-0085` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-035`, `MEM-DEC-031`, `MEM-STATE-036`, `MEM-WALL-001`, puis `LOG-0084`–`LOG-0085` avant tout lot M3 ultérieur.
