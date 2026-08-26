@@ -13,6 +13,7 @@ from .addressing import AddressError, make_address
 from .entities import Entity, EntityBatchResult, EntityError, EntityService, EntityType
 from .identity import ProjectIdentity, canonical_json
 from .knowledge import Knowledge, KnowledgeError, KnowledgeService
+from .provenance import KnowledgeSource, KnowledgeSourceError, KnowledgeSourceService
 from .store import MemoryStore, StoreError
 from .symbols import Symbol, SymbolError, SymbolService
 from .work_items import WorkItem, WorkItemError, WorkItemService
@@ -1046,3 +1047,290 @@ def _get_knowledge_import_batch(self: ImportBatchService, batch_id: str) -> Know
 
 ImportBatchService.commit_knowledge_import_batch = _commit_knowledge_import_batch
 ImportBatchService.get_knowledge_import_batch = _get_knowledge_import_batch
+
+
+@dataclass(frozen=True)
+class ImportKnowledgeSourceInput:
+    """One source-addressable provenance attachment prepared by a domain pack."""
+
+    identifier: str
+    source_identifier: str
+    knowledge_identifier: str
+    payload: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class KnowledgeSourceImportBatchInput:
+    """All immutable facts defining one deterministic generic knowledge-source import transaction."""
+
+    batch_id: str
+    source_system: str
+    source_snapshot_sha256: str
+    mapping_id: str
+    resources: Sequence[ImportKnowledgeSourceInput]
+    actor: str = "system"
+    require_empty_target: bool = False
+
+
+@dataclass(frozen=True)
+class KnowledgeSourceImportBatch:
+    """One committed immutable generic knowledge-source import batch."""
+
+    id: str
+    source_system: str
+    source_snapshot_sha256: str
+    mapping_id: str
+    fingerprint_sha256: str
+    committed_at: str
+    committed_by: str
+
+
+@dataclass(frozen=True)
+class KnowledgeSourceImportBatchResult:
+    """The exact provenance resources resulting from a new commit or exact replay."""
+
+    batch: KnowledgeSourceImportBatch
+    resources: tuple[KnowledgeSource, ...]
+    commit_state: str
+    was_already_committed: bool
+
+
+@dataclass(frozen=True)
+class _PreparedKnowledgeSource:
+    identifier: str
+    source_identifier: str
+    knowledge_identifier: str
+    payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class _PreparedKnowledgeSourceBatch:
+    batch_id: str
+    source_system: str
+    source_snapshot_sha256: str
+    mapping_id: str
+    actor: str
+    require_empty_target: bool
+    resources: tuple[_PreparedKnowledgeSource, ...]
+    source_identifiers: tuple[str, ...]
+    fingerprint_sha256: str
+
+
+def _commit_knowledge_source_import_batch(
+    self: ImportBatchService,
+    batch: KnowledgeSourceImportBatchInput,
+) -> KnowledgeSourceImportBatchResult:
+    """Atomically attach one bounded generic knowledge-source batch, or read an exact replay without writing."""
+    prepared = _prepare_knowledge_source_batch(self.store.identity, batch)
+    try:
+        with self.store.transaction() as connection:
+            previous = connection.execute(
+                "SELECT id, source_system, source_snapshot_sha256, mapping_id, fingerprint_sha256, committed_at, committed_by "
+                "FROM knowledge_source_import_batch WHERE id = ?",
+                (prepared.batch_id,),
+            ).fetchone()
+            if previous is not None:
+                existing = _knowledge_source_import_batch_from_row(previous)
+                if existing.fingerprint_sha256 != prepared.fingerprint_sha256:
+                    raise ImportBatchError("L’identifiant de knowledge source import batch existe avec un fingerprint différent.")
+                return _knowledge_source_result_from_existing(self.store, connection, existing, prepared.source_identifiers)
+
+            if prepared.require_empty_target and int(connection.execute("SELECT COUNT(*) FROM knowledge_source").fetchone()[0]):
+                raise ImportBatchError("Le batch knowledge source exige une cible de provenance vide et refuse toute fusion.")
+
+            resources: list[KnowledgeSource] = []
+            service = KnowledgeSourceService(self.store)
+            for item in prepared.resources:
+                resources.append(
+                    service.attach(
+                        item.identifier,
+                        item.knowledge_identifier,
+                        repository=str(item.payload["repository"]),
+                        revision=str(item.payload["revision"]),
+                        path=str(item.payload["path"]),
+                        start_line=int(item.payload["start_line"]),
+                        end_line=int(item.payload["end_line"]),
+                        section=str(item.payload["section"]),
+                        source_hash=str(item.payload["source_hash"]),
+                        actor=prepared.actor,
+                    )
+                )
+            connection.execute(
+                "INSERT INTO knowledge_source_import_batch(id, source_system, source_snapshot_sha256, mapping_id, "
+                "fingerprint_sha256, committed_at, committed_by) VALUES(?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?)",
+                (
+                    prepared.batch_id,
+                    prepared.source_system,
+                    prepared.source_snapshot_sha256,
+                    prepared.mapping_id,
+                    prepared.fingerprint_sha256,
+                    prepared.actor,
+                ),
+            )
+            for item in prepared.resources:
+                connection.execute(
+                    "INSERT INTO knowledge_source_import_batch_record(batch_id, source_identifier, target_identifier) VALUES(?, ?, ?)",
+                    (prepared.batch_id, item.source_identifier, item.identifier),
+                )
+            batch_row = connection.execute(
+                "SELECT id, source_system, source_snapshot_sha256, mapping_id, fingerprint_sha256, committed_at, committed_by "
+                "FROM knowledge_source_import_batch WHERE id = ?",
+                (prepared.batch_id,),
+            ).fetchone()
+            if batch_row is None:
+                raise ImportBatchError("Création de knowledge source import batch non lisible.")
+            self.store.append_audit(
+                connection,
+                "KNOWLEDGE_SOURCE_IMPORT_BATCH_COMMITTED",
+                {
+                    "batch_id": prepared.batch_id,
+                    "source_system": prepared.source_system,
+                    "mapping_id": prepared.mapping_id,
+                    "knowledge_source_count": len(resources),
+                    "actor": prepared.actor,
+                },
+            )
+    except (sqlite3.IntegrityError, KnowledgeSourceError) as exc:
+        raise ImportBatchError("Le batch knowledge source a refusé ou rollbacké atomiquement.") from exc
+    return KnowledgeSourceImportBatchResult(
+        batch=_knowledge_source_import_batch_from_row(batch_row),
+        resources=tuple(resources),
+        commit_state="COMMITTED",
+        was_already_committed=False,
+    )
+
+
+def _prepare_knowledge_source_batch(identity: ProjectIdentity, value: object) -> _PreparedKnowledgeSourceBatch:
+    if not isinstance(value, KnowledgeSourceImportBatchInput):
+        raise ImportBatchError("batch doit être un KnowledgeSourceImportBatchInput.")
+    batch_id = _require_id(value.batch_id, "batch_id")
+    source_system = _require_id(value.source_system, "source_system")
+    source_snapshot_sha256 = _require_sha256(value.source_snapshot_sha256, "source_snapshot_sha256")
+    mapping_id = _require_id(value.mapping_id, "mapping_id")
+    if not isinstance(value.require_empty_target, bool):
+        raise ImportBatchError("require_empty_target doit être booléen.")
+    actor = _require_text(value.actor, "actor", 256)
+    if not isinstance(value.resources, Sequence) or isinstance(value.resources, (str, bytes)) or not 1 <= len(value.resources) <= 100:
+        raise ImportBatchError("Le knowledge source import batch doit contenir entre 1 et 100 ressources.")
+    resources: list[_PreparedKnowledgeSource] = []
+    for item in value.resources:
+        if not isinstance(item, ImportKnowledgeSourceInput):
+            raise ImportBatchError("Chaque provenance importée doit être un ImportKnowledgeSourceInput.")
+        resources.append(
+            _PreparedKnowledgeSource(
+                identifier=_require_knowledge_source_identifier(item.identifier),
+                source_identifier=_require_source_identifier(item.source_identifier),
+                knowledge_identifier=_require_knowledge_identifier(identity, item.knowledge_identifier),
+                payload=_prepare_knowledge_source_payload(item.payload),
+            )
+        )
+    identifiers = tuple(item.identifier for item in resources)
+    source_identifiers = tuple(item.source_identifier for item in resources)
+    if len(set(identifiers)) != len(identifiers):
+        raise ImportBatchError("Les identifiants cible d’un knowledge source import batch doivent être uniques.")
+    if len(set(source_identifiers)) != len(source_identifiers):
+        raise ImportBatchError("Les identifiants source d’un knowledge source import batch doivent être uniques.")
+    fingerprint_payload = {
+        "batch_id": batch_id,
+        "source_system": source_system,
+        "source_snapshot_sha256": source_snapshot_sha256,
+        "mapping_id": mapping_id,
+        "require_empty_target": value.require_empty_target,
+        "resources": [
+            {
+                "identifier": item.identifier,
+                "source_identifier": item.source_identifier,
+                "knowledge_identifier": item.knowledge_identifier,
+                "payload": item.payload,
+            }
+            for item in resources
+        ],
+    }
+    return _PreparedKnowledgeSourceBatch(
+        batch_id=batch_id,
+        source_system=source_system,
+        source_snapshot_sha256=source_snapshot_sha256,
+        mapping_id=mapping_id,
+        actor=actor,
+        require_empty_target=value.require_empty_target,
+        resources=tuple(resources),
+        source_identifiers=source_identifiers,
+        fingerprint_sha256=sha256(canonical_json(fingerprint_payload).encode("utf-8")).hexdigest(),
+    )
+
+
+def _require_knowledge_source_identifier(value: object) -> str:
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._~-]{0,255}", value):
+        raise ImportBatchError("identifier de provenance knowledge invalide.")
+    return value
+
+
+def _prepare_knowledge_source_payload(value: object) -> dict[str, Any]:
+    payload = _require_json_object(value, "payload")
+    required = {"repository", "revision", "path", "start_line", "end_line", "section", "source_hash"}
+    if set(payload) != required:
+        raise ImportBatchError("payload knowledge source doit contenir exactement les champs Core déclarés.")
+    _require_payload_strings(payload, ("repository", "revision", "path", "section", "source_hash"))
+    if len(str(payload["repository"])) > 512 or len(str(payload["revision"])) > 512 or len(str(payload["path"])) > 4096 or len(str(payload["section"])) > 1024:
+        raise ImportBatchError("payload knowledge source dépasse les bornes Core.")
+    if isinstance(payload["start_line"], bool) or isinstance(payload["end_line"], bool) or not isinstance(payload["start_line"], int) or not isinstance(payload["end_line"], int):
+        raise ImportBatchError("Les lignes de provenance knowledge doivent être numériques.")
+    if payload["start_line"] < 1 or payload["end_line"] < payload["start_line"]:
+        raise ImportBatchError("La plage de provenance knowledge est invalide.")
+    if not _SHA256_RE.fullmatch(str(payload["source_hash"])):
+        raise ImportBatchError("source_hash de provenance knowledge doit être SHA-256 hexadécimal.")
+    return payload
+
+
+def _knowledge_source_import_batch_from_row(row: sqlite3.Row) -> KnowledgeSourceImportBatch:
+    return KnowledgeSourceImportBatch(
+        id=str(row[0]),
+        source_system=str(row[1]),
+        source_snapshot_sha256=str(row[2]),
+        mapping_id=str(row[3]),
+        fingerprint_sha256=str(row[4]),
+        committed_at=str(row[5]),
+        committed_by=str(row[6]),
+    )
+
+
+def _knowledge_source_result_from_existing(
+    store: MemoryStore,
+    connection: sqlite3.Connection,
+    batch: KnowledgeSourceImportBatch,
+    source_identifiers: tuple[str, ...],
+) -> KnowledgeSourceImportBatchResult:
+    resources: list[KnowledgeSource] = []
+    service = KnowledgeSourceService(store)
+    for source_identifier in source_identifiers:
+        row = connection.execute(
+            "SELECT target_identifier FROM knowledge_source_import_batch_record WHERE batch_id = ? AND source_identifier = ?",
+            (batch.id, source_identifier),
+        ).fetchone()
+        if row is None:
+            raise ImportBatchError("Le knowledge source import batch existant ne contient pas les liens attendus.")
+        try:
+            resources.append(service.get(str(row[0])))
+        except KnowledgeSourceError as exc:
+            raise ImportBatchError("Le knowledge source import batch existant référence une provenance absente ou illisible.") from exc
+    return KnowledgeSourceImportBatchResult(
+        batch=batch,
+        resources=tuple(resources),
+        commit_state="COMMITTED",
+        was_already_committed=True,
+    )
+
+
+def _get_knowledge_source_import_batch(self: ImportBatchService, batch_id: str) -> KnowledgeSourceImportBatch | None:
+    """Read one generic knowledge-source batch by canonical identifier without creating any state."""
+    identifier = _require_id(batch_id, "batch_id")
+    row = self.store.connection.execute(
+        "SELECT id, source_system, source_snapshot_sha256, mapping_id, fingerprint_sha256, committed_at, committed_by "
+        "FROM knowledge_source_import_batch WHERE id = ?",
+        (identifier,),
+    ).fetchone()
+    return None if row is None else _knowledge_source_import_batch_from_row(row)
+
+
+ImportBatchService.commit_knowledge_source_import_batch = _commit_knowledge_source_import_batch
+ImportBatchService.get_knowledge_source_import_batch = _get_knowledge_source_import_batch
