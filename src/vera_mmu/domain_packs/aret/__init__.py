@@ -54,6 +54,11 @@ from .component_target_collision import (
     AretV1ComponentTargetClearCheck,
     check_aret_v1_component_target_clear,
 )
+from .component_schema_conformance import (
+    AretComponentSchemaConformanceError,
+    AretV1ComponentSchemaConformance,
+    inspect_aret_v1_component_schema,
+)
 from .component_authorized_import import (
     AretComponentAuthorizedImportError,
     AretV1AuthorizedComponentImportResult,
@@ -103,6 +108,9 @@ __all__ = [
     "AretComponentTargetCollisionError",
     "AretV1ComponentTargetClearCheck",
     "check_aret_v1_component_target_clear",
+    "AretComponentSchemaConformanceError",
+    "AretV1ComponentSchemaConformance",
+    "inspect_aret_v1_component_schema",
     "AretComponentAuthorizedImportError",
     "AretV1AuthorizedComponentImportResult",
     "AretV1ComponentImportAuthorization",
