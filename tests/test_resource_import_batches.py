@@ -181,6 +181,22 @@ def test_resource_import_batch_rolls_back_on_late_semantic_conflict(tmp_path: Pa
         assert store.connection.execute("SELECT COUNT(*) FROM resource_import_batch_record").fetchone()[0] == 0
 
 
+def test_resource_import_batch_rejects_payload_scalars_without_implicit_coercion(tmp_path: Path) -> None:
+    with _store(tmp_path) as store:
+        invalid_payload = dict(_work_item_batch().resources[0].payload)
+        invalid_payload["title"] = 7
+        invalid = replace(
+            _work_item_batch(),
+            resources=(replace(_work_item_batch().resources[0], payload=invalid_payload),),
+        )
+        before = store.audit_events()
+        with pytest.raises(ImportBatchError):
+            ImportBatchService(store).commit_resource_import_batch(invalid)
+        assert store.audit_events() == before
+        assert store.connection.execute("SELECT COUNT(*) FROM work_item").fetchone()[0] == 0
+        assert store.connection.execute("SELECT COUNT(*) FROM resource_import_batch").fetchone()[0] == 0
+
+
 def test_resource_import_batch_rejects_duplicate_identifiers_before_writes(tmp_path: Path) -> None:
     with _store(tmp_path) as store:
         duplicated = replace(_work_item_batch(), resources=(_work_item_batch().resources[0], _work_item_batch().resources[0]))

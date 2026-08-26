@@ -672,10 +672,12 @@ def _prepare_resource_payload(resource_kind: str, value: object) -> dict[str, An
         required = {"entity_id", "kind", "path", "symbol_identifier", "signature", "metadata"}
         if set(payload) != required:
             raise ImportBatchError("payload SYMBOL doit contenir exactement les champs Core déclarés.")
+        _require_payload_strings(payload, ("entity_id", "kind", "path", "symbol_identifier", "signature"))
     else:
         required = {"item_type", "title", "description", "priority", "parent_id", "assignee", "metadata"}
         if set(payload) != required:
             raise ImportBatchError("payload WORK_ITEM doit contenir exactement les champs Core déclarés.")
+        _require_payload_strings(payload, ("item_type", "title", "description"))
         if payload["priority"] is not None and (isinstance(payload["priority"], bool) or not isinstance(payload["priority"], int)):
             raise ImportBatchError("priority de resource batch doit être un entier ou absent.")
         if payload["parent_id"] is not None and not isinstance(payload["parent_id"], str):
@@ -683,6 +685,12 @@ def _prepare_resource_payload(resource_kind: str, value: object) -> dict[str, An
         if payload["assignee"] is not None and not isinstance(payload["assignee"], str):
             raise ImportBatchError("assignee de resource batch doit être une chaîne ou absent.")
     return payload
+
+
+def _require_payload_strings(payload: Mapping[str, Any], fields: tuple[str, ...]) -> None:
+    for field in fields:
+        if not isinstance(payload[field], str):
+            raise ImportBatchError(f"{field} de resource batch doit être une chaîne.")
 
 
 def _require_resource_identifier(identity: ProjectIdentity, resource_kind: str, value: object) -> str:
