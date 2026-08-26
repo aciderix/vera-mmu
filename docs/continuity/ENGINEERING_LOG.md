@@ -106,6 +106,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0080` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.9 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-032`, `MEM-WALL-001` |
 | `LOG-0081` | 2026-08-25 | `HYPOTHESIS` | M3.10 | validator local `EVIDENCE_HASH`, no-oracle | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-033`, `MEM-DEC-030`, `MEM-WALL-001` |
 | `LOG-0082` | 2026-08-25 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.10 | intégrité locale, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-033`, `MEM-STATE-034`, `MEM-DEC-030`, `MEM-WALL-001` |
+| `LOG-0083` | 2026-08-25 | `RECORD` / `HANDOFF` | M3.10 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-034`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1355,3 +1356,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Atomicité | Validator ou evidence inconnus refusent avant insertion et audit de résultat. La contrainte unique `(validator_id, evidence_id)` interdit une seconde validation ambiguë; un `FAIL` est un fait append-only, pas une admission ou une promotion. |
 | Limite | Seul `EVIDENCE_HASH` local est livré. Aucun oracle externe, validator de contenu métier, runner, source de fichier, URL, réseau, admission automatique, gate multi-evidence ou exécution ARET n’est ajouté. |
 | Verdict | `PASS` pour M3.10 technique; publication et synchronisation de continuité à finaliser. |
+
+
+### LOG-0083 — Publication vérifiée M3.10
+
+| Champ | Valeur |
+|---|---|
+| Commit | `71911de01b025b8ea3011ffb120ed58f8a6f24d0` — `feat: add evidence hash validator`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication M3.10. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Suivi | Cadrer séparément une gate multi-evidence ou un validator de contenu explicitement borné, sans oracle ARET, runner additionnel, réseau implicite ni exécution de commande. |
