@@ -1856,3 +1856,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `e023a12ab506c5ce44a1566f2b221e2aba88b8bc` avant le handoff documentaire. |
 | Reprise | Le lot M4 suivant doit rester lié à un couplage de la matrice et séparer strictement description de layout, résolution de runtime et migration de données. |
+
+
+### LOG-0127 — Verdict M4.3 : manifeste du schéma ARET V1 observé
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.schema` déclare immuablement les migrations 001–006 et les dix-huit tables applicatives observées dans la base ARET V1, sans les tables FTS internes. |
+| Invariant | Une inspection de baseline a été réalisée une fois en SQLite `mode=ro`; le code livré ne contient ni SQLite, ni chemin, ni ouverture de fichier, ni lecture de ligne, ni import. |
+| Isolation | Le Core n’importe pas le pack; le manifeste ne contient ni filesystem, store, SQLite, réseau, shell ni toolchain ARET. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : module absent; ciblé : `8 passed` avec M4.1–M4.2; Core : `196 passed, 14 subtests passed`; `git diff --check`, scans de frontière et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.3 uniquement. Aucune compatibilité de données, import, mapping de schéma, proof/evidence, audit ou parité ARET n’est affirmée. M4 reste `IN_PROGRESS`. |
+
+
+### LOG-0128 — Publication et handoff M4.3
+
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `b98058c0365131ff4070a4d3c9c248a00a48d475` — `feat: declare observed ARET v1 schema`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `b98058c0365131ff4070a4d3c9c248a00a48d475` avant le handoff documentaire. |
+| Reprise | Le lot M4 suivant doit traiter un seul mapping de compatibilité ou une policy de lecture sous contrat fermé; il ne peut pas importer une table complète ni déduire une équivalence ARET à partir d’un inventaire. |

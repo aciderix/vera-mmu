@@ -418,3 +418,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-071` | Runtime ARET | Le Domain Pack expose un manifeste immutable des conventions V1 : override `ARET_MEMORY_DIR`, runtime `.aret-memory`, base `aret_memory.sqlite`, répertoires `artifacts` et `exports`. Il ne résout ni variable ni chemin. | `OBSERVED` | `test_aret_runtime_manifest.py`, suite Core `194 passed, 14 subtests passed`, wheel isolée. | `LOG-0125` |
 | `MEM-DEC-050` | Frontière M4.2 | Le manifeste est une description de compatibilité, pas un `StoreLocator`, un adaptateur de migration, une policy ou une lecture de secret. Il ne crée aucun dossier, n’ouvre aucune SQLite et ne connecte pas le runtime V1 au Core VERA. | `DECISION` | Contrat M4.2 et scans de frontière. | `LOG-0125` |
 | `MEM-STATE-072` | État M4 | M4 reste `IN_PROGRESS`. C02 reste `SPLIT` : conventions de layout déclarées, mais résolution bornée, WAL/checkpoint, doctor, store V1 et parité sont non implémentés/non prouvés. Les autres couplages et `MEM-WALL-001` sont inchangés. | `OBSERVED` | Matrice de découplage et verdict M4.2. | `LOG-0125` |
+
+
+## 39. Addendum — M4.3 manifeste déclaratif du schéma ARET V1
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-073` | Schéma ARET | Le Domain Pack expose un manifeste immutable du schéma applicatif V1 observé : migrations 001–006 et dix-huit tables applicatives, sans les tables internes FTS. | `OBSERVED` | Baseline SQLite lue en `mode=ro`, `test_aret_schema_manifest.py`, suite Core `196 passed, 14 subtests passed`, wheel isolée. | `LOG-0127` |
+| `MEM-DEC-051` | Frontière M4.3 | Le manifeste est une description de compatibilité; il n’ouvre aucune SQLite, ne lit ni n’importe de ligne, ne crée aucune entité VERA et ne requalifie aucune donnée ou table historique comme compatible. | `DECISION` | Contrat M4.3 et scans de frontière. | `LOG-0127` |
+| `MEM-STATE-074` | État M4 | M4 reste `IN_PROGRESS`. C03/C04/C05/C06/C16 restent `SPLIT` : les noms de schéma historique sont connus, mais toute lecture de données, mapping explicite, import, evidence/proof, audit et parité restent non implémentés/non prouvés. `MEM-WALL-001` reste actif. | `OBSERVED` | Matrice de découplage et verdict M4.3. | `LOG-0127` |

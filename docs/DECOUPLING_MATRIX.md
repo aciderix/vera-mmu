@@ -109,6 +109,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.2 décrit le layout V1 seulement. Il ne consulte pas l’environnement, ne résout ni ne crée de chemin et ne peut constituer une preuve de compatibilité de runtime ou de store.
 
+### 2.9. Avancement observé M4.3 — manifeste du schéma applicatif ARET V1
+
+| Couplages | Surface VERA désormais observée | Evidence M4.3 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C04`, `C05`, `C06`, `C16` | `vera_mmu.domain_packs.aret.schema` déclare les migrations 001–006 et l’inventaire fermé des dix-huit tables applicatives V1, sans tables FTS internes. | Baseline inspectée une fois en SQLite `mode=ro`; `tests/test_aret_schema_manifest.py` vérifie migrations, tables, exclusion FTS et indépendance du Core; suite `196 passed, 14 subtests passed` et wheel isolée; `LOG-0127`. | Lecture de lignes, mapping `component`/`function_symbol`/`brick` vers les ressources universelles, import non fusionnel, provenance, evidence/proof, audit, FTS, store/runtime et parité ARET. | `SPLIT` |
+
+> M4.3 est un inventaire de noms seulement. Il ne rend aucune table ni donnée compatible, ne lit aucune SQLite en production et ne fournit aucune conversion ni garantie de parité.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
