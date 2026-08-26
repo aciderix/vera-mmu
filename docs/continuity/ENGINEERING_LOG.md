@@ -2616,3 +2616,26 @@ Le commit fonctionnel `940fb7e` livre seulement le plan et le doctor M5-M.1. `RU
 ### Limites et suite
 
 M5-M.2 devra être un contrat séparé pour runtime cloud effectivement distribuable/hook réel, puis test live Claude Code web. La roue attestée, le bootstrap réseau et le write-path `$HOME/.claude/settings.json` sont distincts. Toute écriture user-scope impose preview et double confirmation transactionnelle ; elle est hors M5-M.1.
+
+
+## LOG-0196 — 2026-08-26 — M5-M.2 : adapter Claude Code cloud staged, hook/MCP distribués
+
+### Intention
+
+Faire passer M5-M.1 du plan cloud attesté au premier adapter cloud distribuable, sans reproduire un script ARET de setup, ni permettre un bootstrap réseau, un trust user-scope ou une configuration host implicite.
+
+### Cycle de preuve
+
+1. Contrat écrit avant patch : staging confirmé sous runtime VERA, adapter cloud distinct, hook stdin/stdout, serveur MCP deny-by-default et session project-bound ; aucun home/trust/réseau/secret.
+2. Cycle rouge : `tests/test_claude_code_cloud_runtime.py` produit `2 failed` car le staging et les entry points cloud sont absents.
+3. Implémentation : `claude_code_cloud.py` reçoit `ClaudeCodeCloudSessionAdapter`, staging atomique `vera-claude-code-cloud-runtime/v1`, binding cloud distinct, hook des six événements, serveur MCP stdio et commandes `vmmu-claude-code-cloud-{stage,hook,mcp}`. Le staging CLI construit des bindings symboliques `cloud-deny-v1` depuis le catalogue ALLOW persistant ; aucun adapter, hash, session ou secret n’est accepté en argument client.
+4. Conformance : staging impose `confirm=True`, ne crée ni `.claude` ni `.mcp.json`; SessionStart arme, PreToolUse refuse, vrai client MCP acquitte seulement les sections, PreToolUse devient autorisé, PostCompact réarme le refus.
+5. Validation : tests plan/runtime `6 passed`, matrice lifecycle Claude/MCP `19 passed`, suite `457 passed, 37 subtests passed`; compilation, scan sans Pack/ARET/shell/réseau/bootstrap/home access, `git diff --check` et roue isolée passent. Les trois entry points cloud sont présents dans la roue.
+
+### Décision
+
+Le commit fonctionnel `f79415b` livre le runtime cloud **staged**, pas la configuration Claude Code web. Le serveur utilise `DenyRuntimeAdapter` : aucune capability Pack n’est exécutée. Le staging est project-local, idempotent et confirmé ; il ne vaut ni installation de hook, ni trust, ni connexion MCP host, ni préparation de dépendance.
+
+### Limite et wall
+
+La preuve cloud web reste `NOT_RUN`, faute d’environnement Claude Code web attesté et de write-path séparé pour les settings/hooks de projet et l’approbation user-scope. Ce n’est pas masqué : le protocole `m5_claude_code_cloud_live_proof_protocol_2026-08-26.md` documente les préconditions, les assertions et les verdicts attendus. Le prochain sous-lot doit traiter preview/merge/refus/double-confirmation de configuration/trust, puis exécuter cette preuve live. Aucun bootstrap par roue ni réseau n’est autorisé par ce lot.

@@ -895,3 +895,18 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Limite.** `RUNTIME_READY` n’est pas une preuve de hook, MCP connecté, setup cloud ou session Claude Code web réelle. M5-M.1 ne livre aucun entry point cloud, hook cloud, roue/bootstrap, réseau, write-path trust, secret ou support multi-hôte. Tout write-path sous `$HOME/.claude/settings.json` exige un preview puis deux confirmations au moment de l’action.
 
 **Preuves.** Cycle rouge `4 failed`, tests M5-M.1 `4 passed`, matrice concernée `11 passed`, suite `455 passed, 37 subtests passed`, compilation/scans/diff/wheel isolée `PASS`. Commit fonctionnel : `940fb7e`. Artefact : `m5_claude_code_cloud_plan_2026-08-26.md`. Références officielles : Claude Code on the web, MCP workspace trust, settings cloud et environment variables.
+
+
+### MEM-DEC-143 — M5-M.2 : adapter cloud staged sans configuration cloud implicite
+
+**Décision.** M5-M.2 livre un adapter lifecycle `claude-code-cloud-v1` séparé de l’adapter local, trois entry points distribués (`stage`, `hook`, `mcp`) et le staging project-local `vera-claude-code-cloud-runtime/v1`. Le staging fabrique ses bindings de refus depuis le seul catalogue `ALLOW`, exige `--confirm` et écrit exclusivement sous le runtime VERA.
+
+**Pourquoi.** Un plan cloud M5-M.1 sans commande de staging n’était pas réellement utilisable dans une image déjà provisionnée. Le staging devient donc une primitive distribuée, mais il ne doit jamais être confondu avec une installation de hooks, l’approbation d’un serveur de projet ou le bootstrap historique ARET.
+
+**Garanties.** Le hook cloud fixe les six événements Claude (`SessionStart`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact`, `Stop`), lie une session unique et project-bound sous un chemin runtime distinct du local, puis délègue au lifecycle M5-J/K. Le serveur MCP cloud est `DenyRuntimeAdapter` et n’expose l’acquittement que dans le contexte de session résolu côté serveur. Les clients ne fournissent ni session, ni adapter, ni hash, ni binding, ni commande. Toute collision/symlink/snapshot/state absent ou divergent refuse.
+
+**Preuves.** Cycle rouge `2 failed` avant staging ; tests cloud plan/runtime `6 passed`, matrice concernée `19 passed`, suite `457 passed, 37 subtests passed`, compilation/scans/diff/wheel isolée et trois entry points cloud `PASS`. La chaîne automatisée prouve staging confirmé → hook JSON réel → MCP stdio réel → acquittement sections-only → PreToolUse autorisé, puis compaction → garde réarmée.
+
+**Limite.** Cette chaîne s’exécute dans l’environnement de test distribué, pas dans une session Claude Code web contrôlée. Aucun fichier `.claude`, `.mcp.json` ou `$HOME/.claude/settings.json` n’est lu ou écrit; aucun hook n’est installé, trust appliqué, secret consulté, réseau, roue/bootstrap ou setup lancé. Le protocole live est préparé mais reste `NOT_RUN`; la configuration/trust attestés et la preuve web font l’objet du sous-lot suivant.
+
+**Traçabilité.** Commit fonctionnel `f79415b`; log `LOG-0196`; artefacts `m5_claude_code_cloud_live_proof_protocol_2026-08-26.md` et contrat M5 cloud.
