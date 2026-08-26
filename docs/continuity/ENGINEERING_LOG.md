@@ -2414,3 +2414,17 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | Les bindings restent symboliques : registry/adapters de production, instructions/hooks/config générés et snapshots d’installation sont des lots M5 suivants. Aucun adapter de test n’est promu en runtime ARET. |
 | Verdict | `M5-B = PASS`. M5 reste `IN_PROGRESS`; M5-A/B n’autorise ni exécution implicite ni injection client de résultat. |
 | Référence | `5de260d`; `tests/test_mcp_manifest.py`; `tests/test_mcp_stdio_verdict_transport.py`; `MEM-DEC-130`. |
+
+### LOG-0184 — 2026-08-26 — M5-C : registry d’adapters runtime manifest-bound
+| Champ | Valeur |
+|---|---|
+| Type | `PATCH` / `TEST` / `VERDICT` |
+| But | Après M5-A (transport) et M5-B (manifeste), retirer le câblage global d’adapter lors d’une exécution MCP et sélectionner l’objet runtime uniquement à partir de la capability attestée. |
+| Patch | `50cc79a` ajoute `mcp_adapters.py`. `RuntimeAdapterRegistry` reçoit exclusivement des objets déjà instanciés par l’hôte serveur; il ne charge ni module ni chemin et ne lance aucune commande pendant la résolution. |
+| Fermeture | Un `adapter_id` est validé comme symbole fermé; chemin, espace/commande, doublon, méthode `run` absente, adapter introuvable ou capability dupliquée dans le manifeste sont refusés. La résolution ne renvoie que la table immutable capability→objet. |
+| Intégration | `create_server` accepte `adapter_registry` seulement avec un manifeste M5-B vérifié. Adapter direct et registry sont mutuellement exclusifs. À l’appel MCP, l’objet est résolu par `capability_id` puis son `adapter_id` est recontrôlé contre le binding manifest avant toute persistence. |
+| Test réel | Le serveur fixture stdio M5-A passe désormais `RuntimeAdapterRegistry((adapter,))`; le vrai client MCP conserve toute la matrice `PASS`/`FAIL`/`SKIPPED`/`ERROR`/`UNKNOWN`/asset altéré sous manifest et registry. |
+| Contrôles | Rouge : module registry absent. Verts : `4 passed, 5 subtests passed` registry, puis `10 passed, 12 subtests passed` registry/manifeste/MCP. Suite complète `408 passed, 37 subtests passed`; frontière Core sans Pack/ARET/shell/réseau, `git diff --check` et roue isolée : `PASS`. |
+| Limite | Le registry est un mécanisme générique, pas un adapter ARET de production. La fixture reste test-only. Les adapters spécifiques, instructions/hooks/config générés et installation restent hors M5-C. |
+| Verdict | `M5-C = PASS`; M5 reste `IN_PROGRESS`. Aucun client ne peut choisir l’adapter, fournir une commande ou promouvoir un verdict. |
+| Référence | `50cc79a`; `tests/test_mcp_adapter_registry.py`; `tests/test_mcp_stdio_verdict_transport.py`; `MEM-DEC-131`. |

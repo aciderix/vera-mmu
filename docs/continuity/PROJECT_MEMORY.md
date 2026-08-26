@@ -733,3 +733,16 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | `5de260d`; `5 passed` manifeste, `2 passed, 7 subtests passed` MCP, suite `404 passed, 32 subtests passed`, roue isolée et `LOG-0183`. |
 | État | `M5-B PASS`; M5 global `IN_PROGRESS`. |
 | Références | `src/vera_mmu/mcp_manifest.py`; `tests/test_mcp_manifest.py`; `LOG-0183`. |
+
+### MEM-DEC-131 — M5-C résout les adapters MCP par registry manifest-bound
+| Champ | Valeur |
+|---|---|
+| Décision | Après le manifest M5-B, la sélection de runtime ne reste pas un adapter global implicite. M5-C introduit un registry d’objets hôte explicitement déclarés et résout capability→adapter uniquement selon le binding attesté. |
+| Mécanisme | `RuntimeAdapterRegistry` indexe des objets déjà instanciés par l’hôte. Il ne charge pas de module, ne lit pas de chemin et n’exécute jamais pendant la résolution. Il retourne une table immutable dans l’ordre canonique. |
+| Refus | IDs ressemblant à chemin/commande, doublons, adapter sans `run`, adapter manifest absent/inconnu, capability dupliquée, registry sans manifeste et configuration direct-adapter + registry sont refusés fail-closed. |
+| Façade | Le serveur vérifie d’abord M5-B, résout le registry, puis recontrôle l’ID de l’objet sélectionné au moment de `mmu_run_capability`. Le client ne transmet ni adapter ID ni chemin ni commande. |
+| Conformance | La fixture stdio prend désormais un registry. La vraie matrice MCP de verdicts s’exécute sous manifest+registry et maintient admission/gate fail-closed. |
+| Limite | Aucun adapter ARET ou d’autre Pack n’est encore déclaré en production. M5-C fournit seulement le mécanisme universel, la fixture reste réservée aux tests. |
+| Preuve | `50cc79a`; `4 passed, 5 subtests passed` registry; `10 passed, 12 subtests passed` ciblés; suite `408 passed, 37 subtests passed`; roue isolée; `LOG-0184`. |
+| État | `M5-C PASS`; M5 global `IN_PROGRESS`. |
+| Références | `src/vera_mmu/mcp_adapters.py`; `tests/test_mcp_adapter_registry.py`; `LOG-0184`. |
