@@ -77,8 +77,8 @@ class KnowledgeAssetLinkServiceTests(unittest.TestCase):
 
     def test_default_migrations_include_knowledge_asset_links(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28})
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 28})
+            self.assertEqual(store.migration_checksums.keys(), {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 29})
 
     def test_existing_m2_7_store_migrates_to_knowledge_asset_links(self) -> None:
         schema = Path(self._directory.name) / "m2_7_schema"

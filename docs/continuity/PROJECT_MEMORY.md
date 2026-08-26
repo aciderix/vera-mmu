@@ -303,3 +303,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-048` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : lifecycle/graph avancé sous lot distinct, validator de contenu ou oracle policy-gated, runner sûr additionnel, CLI/MCP et pack ARET. Aucun scheduler, orchestration, oracle externe, réseau, shell, admission automatique ou parité ARET n’est livré par M3.16. | `OBSERVED` | Revue post-M3.16; `MEM-WALL-001` demeure actif. | `LOG-0100` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-047`, `MEM-DEC-037`, `MEM-STATE-048`, `MEM-WALL-001`, puis `LOG-0100` avant tout lot M3 suivant.
+
+
+## 26. Addendum de reprise — M3.17 validator de champs d’evidence
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-049` | Validator local | `EVIDENCE_FIELDS` valide localement la présence de clés explicitement déclarées dans un objet JSON d’evidence; il persiste seulement un verdict `PASS`/`FAIL`, sans admission ni preuve. | `OBSERVED` | Migration 029, tests M3.17, 170 tests et 14 sous-tests, wheel isolée. | `LOG-0102` |
+| `MEM-DEC-038` | Frontière validator | Les clés requises sont bornées, immuables et syntaxiquement fermées. Leur présence n’est pas un oracle de contenu, une vérité métier ou une promotion; JSON Schema général demeure hors scope. | `DECISION` | Contrat et refus M3.17. | `LOG-0102` |
+| `MEM-STATE-050` | Reprise active | M3 reste `IN_PROGRESS`. Restent validator/oracle métier sous policy distincte, runner sûr additionnel, lifecycle/graph avancé, CLI/MCP et pack ARET; `MEM-WALL-001` demeure actif. | `OBSERVED` | Revue post-M3.17. | `LOG-0102` |

@@ -1587,3 +1587,15 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `8ee7a7562ead8c1b2de6521b6dd17db47fb4cab9`. |
 | État de reprise | M3.16 est publié avec migration 028. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
 | Prochain choix | Choisir explicitement un seul gap M3 borné : lifecycle/graph avancé, validator de contenu/oracle sous policy distincte, runner sûr additionnel ou surface CLI/MCP. Ne pas transformer readiness en scheduler ou orchestration implicite. |
+
+
+### LOG-0102 — Verdict M3.17 : validator local `EVIDENCE_FIELDS`
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | Migration `029_evidence_field_validators.sql` étend le catalogue de validators à `EVIDENCE_HASH` et `EVIDENCE_FIELDS`, avec règle JSON immutable de clés requises. |
+| Contrat | `EVIDENCE_FIELDS` exige une liste non vide, unique et bornée de clés sans séparateur. Il produit `PASS` si toutes les clés existent dans le JSON d’evidence, sinon `FAIL`; il n’interprète pas la valeur métier et n’appelle aucun oracle. |
+| Compatibilité | Les validators/résultats hash existants sont reconstruits avec leurs clés étrangères et règles `{}` conservées. |
+| Gates | Tests-first : 2 échecs attendus. Tests ciblés : `4 passed`; suite complète : `170 passed, 14 subtests passed`; scan de frontières et `git diff --check` passent; wheel isolée valide `PASS`/`FAIL`. |
+| Limites | Aucun réseau, shell, filesystem, oracle, admission, preuve, execution, mutation de knowledge ou promotion implicite. Ce n’est ni JSON Schema général ni validator de contenu métier. |
+| Verdict | `PASS` pour M3.17. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
