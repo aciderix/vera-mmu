@@ -273,3 +273,13 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-042` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validator de contenu explicitement borné, runner sûr additionnel, politiques/gates avancées, CLI/MCP et pack ARET. Aucun oracle externe ou capacité de réseau/shell n’est livré par M3.13. | `OBSERVED` | Revue post-M3.13; aucun contrat ou test de ces capacités n’est livré. | `LOG-0093` |
 
 > **Reprise prioritaire.** Relire `MEM-STATE-041`, `MEM-DEC-034`, `MEM-STATE-042`, `MEM-WALL-001`, puis `LOG-0092`–`LOG-0093` avant tout lot M3 ultérieur.
+
+## 23. Addendum de reprise — M3.14 runner local `EVIDENCE_HASH`
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-043` | Runner local fermé | `SUPERSEDES: MEM-STATE-042` pour l’exclusion des runners. Le catalogue de contrats admet seulement `NOOP` et `EVIDENCE_HASH`; sous `DENY_NETWORK`, `yields_proof=false`, policy `ALLOW` et paramètres exacts `validator_id`/`evidence_id`, `run_evidence_hash` enregistre atomiquement un résultat de validation hash local et une execution `COMPLETED`. | `OBSERVED` | Migration `026_evidence_hash_runner.sql`, services execution/validator, tests M3.14; 159 tests et 14 sous-tests, wheel isolé. | `LOG-0096` |
+| `MEM-DEC-035` | Frontière runner | Une execution `EVIDENCE_HASH` est un fait local de validation d’intégrité, non une evidence, admission, preuve, mutation de knowledge, oracle de contenu ou autorisation de processus/fichier/réseau. Les verdicts `PASS` et `FAIL` sont persistés sans promotion implicite; un refus ou duplicat rollbacke entièrement les écritures du runner. | `DECISION` | Contrat M3.14, migration 025→026 et contrôles transactionnels. | `LOG-0096` |
+| `MEM-STATE-044` | Reprise active | M3 reste `IN_PROGRESS`. Restent prioritaires : validator de contenu explicitement borné ou oracle sous politique séparée, runners sûrs additionnels, politiques/gates avancées, CLI/MCP et pack ARET. Aucun shell, réseau, accès fichier externe, admission automatique ou parité ARET n’est livré par M3.14. | `OBSERVED` | Revue post-M3.14; `MEM-WALL-001` demeure actif. | `LOG-0096` |
+
+> **Reprise prioritaire.** Relire `MEM-STATE-043`, `MEM-DEC-035`, `MEM-STATE-044`, `MEM-WALL-001`, puis `LOG-0095`–`LOG-0096` avant tout lot M3 suivant.

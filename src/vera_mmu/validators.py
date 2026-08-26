@@ -95,39 +95,40 @@ class ValidatorService:
             raise ValidatorError("Identifiant de validation invalide.")
         try:
             with self.store.transaction() as connection:
-                validator = connection.execute(
-                    "SELECT kind FROM validator WHERE id = ?", (validator_id,)
-                ).fetchone()
-                evidence = connection.execute(
-                    "SELECT content_json, content_hash FROM evidence WHERE id = ?", (evidence_id,)
-                ).fetchone()
-                if validator is None or validator["kind"] != "EVIDENCE_HASH":
-                    raise ValidatorError("Validator EVIDENCE_HASH introuvable.")
-                if evidence is None:
-                    raise ValidatorError("Evidence introuvable.")
-                expected_hash = str(evidence["content_hash"])
-                observed_hash = _canonical_hash(str(evidence["content_json"]))
-                verdict = "PASS" if observed_hash == expected_hash else "FAIL"
-                connection.execute(
-                    "INSERT INTO validation_result(id, validator_id, evidence_id, verdict, expected_hash, observed_hash, created_at, created_by) "
-                    "VALUES(?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?)",
-                    (identifier, validator_id, evidence_id, verdict, expected_hash, observed_hash, actor),
-                )
-                row = connection.execute(
-                    "SELECT id, validator_id, evidence_id, verdict, expected_hash, observed_hash, created_at, created_by "
-                    "FROM validation_result WHERE id = ?",
-                    (identifier,),
-                ).fetchone()
+                result = record_evidence_hash_validation(connection, identifier, validator_id, evidence_id, actor=actor)
                 self.store.append_audit(
                     connection,
                     "VALIDATION_RECORDED",
-                    {"validation_id": identifier, "validator_id": validator_id, "evidence_id": evidence_id, "verdict": verdict, "actor": actor},
+                    {"validation_id": identifier, "validator_id": validator_id, "evidence_id": evidence_id, "verdict": result.verdict, "actor": actor},
                 )
         except sqlite3.IntegrityError as exc:
             raise ValidatorError("Résultat de validation invalide ou déjà présent.") from exc
-        if row is None:
-            raise ValidatorError("Résultat de validation non lisible.")
-        return _result(row)
+        return result
+
+
+def record_evidence_hash_validation(connection: sqlite3.Connection, identifier: str, validator_id: str, evidence_id: str, *, actor: str) -> ValidationResult:
+    validator = connection.execute("SELECT kind FROM validator WHERE id = ?", (validator_id,)).fetchone()
+    evidence = connection.execute("SELECT content_json, content_hash FROM evidence WHERE id = ?", (evidence_id,)).fetchone()
+    if validator is None or validator["kind"] != "EVIDENCE_HASH":
+        raise ValidatorError("Validator EVIDENCE_HASH introuvable.")
+    if evidence is None:
+        raise ValidatorError("Evidence introuvable.")
+    expected_hash = str(evidence["content_hash"])
+    observed_hash = _canonical_hash(str(evidence["content_json"]))
+    verdict = "PASS" if observed_hash == expected_hash else "FAIL"
+    connection.execute(
+        "INSERT INTO validation_result(id, validator_id, evidence_id, verdict, expected_hash, observed_hash, created_at, created_by) "
+        "VALUES(?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'), ?)",
+        (identifier, validator_id, evidence_id, verdict, expected_hash, observed_hash, actor),
+    )
+    row = connection.execute(
+        "SELECT id, validator_id, evidence_id, verdict, expected_hash, observed_hash, created_at, created_by "
+        "FROM validation_result WHERE id = ?",
+        (identifier,),
+    ).fetchone()
+    if row is None:
+        raise ValidatorError("Résultat de validation non lisible.")
+    return _result(row)
 
 
 def _canonical_hash(content_json: str) -> str:

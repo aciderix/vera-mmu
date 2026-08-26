@@ -1500,3 +1500,29 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
 | Statut | `PASS` pour la publication M3.13. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
 | Suivi | Cadrer séparément un validator de contenu explicitement borné ou un runner sûr additionnel, avec une nouvelle gate de tranche; ne pas étendre implicitement M3.S2 ni réutiliser un résultat local comme oracle métier. |
+
+
+### LOG-0095 — Hypothèse M3.14 : runner local `EVIDENCE_HASH`
+
+| Champ | Valeur |
+|---|---|
+| Baseline | VERA `1e46c043085222e0e8cdbe2e32fbf03f4cf27a25`, `main` propre et alignée; 154 tests et 14 sous-tests `PASS`; M3.13 publié. ARET reste propre à `7f7b4df…`; parité exhaustive `UNKNOWN` sous `MEM-WALL-001`. |
+| Écart | Le seul runner est `NOOP`; `ValidatorService.validate` est local mais doit être appelé séparément. Aucune execution persistée ne décrit une validation locale ni ne la relie atomiquement à son résultat. |
+| Hypothèse | Le catalogue fermé peut ajouter `EVIDENCE_HASH`, sous `DENY_NETWORK`, `ALLOW`, paramètres exacts `validator_id`/`evidence_id` et `yields_proof=false`. Son runner ne lance aucun processus : il exécute seulement la validation hash locale et persiste, dans une transaction unique, une execution complétée avec résultat et le `validation_result` associé. |
+| Sûreté | Aucun shell, sous-processus, fichier, réseau, URL, import dynamique, artefact, evidence, admission, proof ou knowledge n’est créé ou modifié. Toute policy absente/non `ALLOW`, contrat impropre, paramètre non fermé, validator/evidence inconnu ou résultat déjà existant refuse sans execution ni audit. |
+| Tests-first attendus | Contrat fermé par profile; refus atomiques; execution et résultat créés ensemble pour evidence intacte `PASS` ou altérée `FAIL`; trace de résultat; absence de promotion/admission/evidence; immutabilité; wheel isolé. |
+| Invariants | I001, I004–I008, I011, I013–I015. |
+| Verdict | `PENDING` — aucun patch M3.14 n’est encore produit. |
+
+
+### LOG-0096 — Verdict M3.14 : runner local fermé `EVIDENCE_HASH`
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | Migration `026_evidence_hash_runner.sql` reconstruit uniquement `capability_contract` pour ajouter le catalogue SQL fermé `NOOP` / `EVIDENCE_HASH`, recopie les contrats historiques et recrée les triggers append-only. Le runner `ExecutionService.run_evidence_hash` exige exactement `EVIDENCE_HASH` / `DENY_NETWORK` / `yields_proof=false`, une policy capability `ALLOW` et le schéma fermé `validator_id` / `evidence_id`. |
+| Transaction | Le runner appelle la validation hash locale via le helper transactionnel puis persiste une execution `COMPLETED`, son résultat JSON et les audits `VALIDATION_RECORDED` puis `EXECUTION_RECORDED` dans une seule transaction. Un validator/evidence inconnu, un schéma impropre, une policy non `ALLOW` ou une validation dupliquée laisse zéro nouvelle execution, validation ou audit. |
+| Résultats observés | Evidence intacte : validation `PASS`, execution `COMPLETED`, résultat JSON persistant. Altération contrôlée du `content_hash` : validation `FAIL` avec execution locale toujours `COMPLETED`; ce verdict ne crée ni admission ni preuve. Upgrade historique réel `025→026` validé avec contrat `NOOP` conservé et nouveau contrat `EVIDENCE_HASH` accepté. |
+| Gates exécutées | Tests ciblés : `10 passed`; suite complète : `159 passed, 14 subtests passed`; `git diff --check` passe. Scan du patch : absence de shell, sous-processus, accès fichier/réseau, URL, import dynamique, `eval`/`exec`, création d’evidence/admission/preuve et dépendance ARET. Wheel sans dépendances installée dans une cible externe : parcours `PASS` / `FAIL` sans admission ni preuve. |
+| Limites préservées | Aucun shell, processus, filesystem, réseau, oracle externe, artefact, promotion de knowledge, admission ou preuve n’est introduit. Le runner est une execution locale de validation d’intégrité, non un oracle de contenu ni une admission implicite. `yields_proof` reste `false`. |
+| Verdict | `PASS` pour M3.14. M3 global reste `IN_PROGRESS`; `C06` reste `SPLIT`, `C07` reste `BLOCKED` sous `MEM-WALL-001`, et la parité exhaustive ARET reste `UNKNOWN`. |
+| Suite | Publier atomiquement ce lot; le lot suivant doit rester distinct et borné parmi validator de contenu/oracle explicitement cadré, runner sûr additionnel, politiques/gates avancées ou surface CLI/MCP. |
