@@ -92,6 +92,16 @@ from .structural_import_preflight import (
     AretV1StructuralImportPreflight,
     structural_import_preflight,
 )
+from .structural_target_collision import (
+    AretStructuralTargetCollisionError,
+    AretV1StructuralTargetClearCheck,
+    check_aret_v1_structural_target_clear,
+)
+from .structural_import_authorization import (
+    AretStructuralImportAuthorizationError,
+    AretV1StructuralImportAuthorization,
+    authorize_aret_v1_structural_import,
+)
 from .component_post_validation import (
     AretComponentPostValidationError,
     AretV1ComponentPostValidation,
@@ -188,6 +198,12 @@ __all__ = [
     "AretStructuralImportPreflightError",
     "AretV1StructuralImportPreflight",
     "structural_import_preflight",
+    "AretStructuralTargetCollisionError",
+    "AretV1StructuralTargetClearCheck",
+    "check_aret_v1_structural_target_clear",
+    "AretStructuralImportAuthorizationError",
+    "AretV1StructuralImportAuthorization",
+    "authorize_aret_v1_structural_import",
     "AretComponentPostValidationError",
     "AretV1ComponentPostValidation",
     "post_validate_authorized_aret_v1_component_page",
