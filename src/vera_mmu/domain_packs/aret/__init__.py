@@ -8,6 +8,13 @@ from .addressing import (
     parse_aret_address,
 )
 from .runtime import AretLegacyRuntimeLayout, legacy_runtime_layout
+from .runtime_resolution import (
+    AretRuntimeResolutionError,
+    AretV1RuntimeResolution,
+    AretV1RuntimeSnapshotSafety,
+    inspect_aret_v1_runtime_snapshot_safety,
+    resolve_aret_v1_runtime,
+)
 from .schema import AretLegacySchemaManifest, aret_v1_schema_manifest
 from .profile import AretCompatibilityProfile, aret_v1_compatibility_profile
 from .mapping import AretStructuralMapping, aret_v1_structural_mappings
@@ -82,6 +89,11 @@ __all__ = [
     "parse_aret_address",
     "AretLegacyRuntimeLayout",
     "legacy_runtime_layout",
+    "AretRuntimeResolutionError",
+    "AretV1RuntimeResolution",
+    "AretV1RuntimeSnapshotSafety",
+    "inspect_aret_v1_runtime_snapshot_safety",
+    "resolve_aret_v1_runtime",
     "AretLegacySchemaManifest",
     "aret_v1_schema_manifest",
     "AretCompatibilityProfile",
