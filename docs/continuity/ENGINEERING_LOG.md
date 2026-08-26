@@ -1954,3 +1954,21 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `a2af05459b7b3527c1a4a0deeb6f3400fc4d9f4a` avant le handoff documentaire. |
 | Reprise | Un lot M4 futur doit introduire, séparément, une identité de source vérifiable (répertoire/commit) ou une inspection SQLite strictement read-only et bornée; aucune lecture de lignes ni exécution de demande M4.6 ne peut être déduite de M4.7. |
+
+### LOG-0137 — Verdict M4.8 : identité Git read-only de la source ARET V1 attestée
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.git_identity` expose `verify_aret_v1_git_source_identity`. La fonction accepte exclusivement une attestation M4.7 liée au snapshot attendu, résout la racine Git, compare `HEAD` à la baseline V1 figée et exige un statut Git complètement propre. |
+| Invariant | Les seules invocations sont `git rev-parse --show-toplevel`, `git rev-parse HEAD` et `git status --porcelain=v1 --untracked-files=all`, sous `GIT_OPTIONAL_LOCKS=0`, sans configuration système/globale, avec hooks et fsmonitor désactivés. Il n’y a ni shell, ni argument de commande fourni par un appelant, ni écriture Git. Toute racine non canonique, attestation divergente, commit non attendu ou arbre sale est refusé. |
+| Observation ponctuelle | Contre `/home/ubuntu/ARET-MMU/aret-memory`, la vérification read-only retourne la racine `/home/ubuntu/ARET-MMU`, le commit propre `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4` et le hash de snapshot M4.7 `85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5`. |
+| Isolation | Le Core n’importe pas le pack. Le module n’ouvre pas SQLite, ne contacte aucun réseau, ne vérifie ni remote, ni signature/auteur du commit, ne lit aucune ligne et ne crée ni transaction, audit, evidence, proof, import ou écriture VERA. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : surface absente; ciblé : `5 passed`; Core : `224 passed, 14 subtests passed`; scans de frontière, vérification read-only ponctuelle et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.8 uniquement. Le lot lie un snapshot attesté à une identité Git locale propre; il ne certifie pas une provenance distante/cryptographique, n’ouvre pas SQLite et n’affirme ni import, preuve ou parité ARET. M4 reste `IN_PROGRESS`. |
+
+### LOG-0138 — Publication fonctionnelle et handoff M4.8
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `86281dd0e718083a958c071929a81102f61859c9` — `feat: verify ARET V1 git source identity`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `86281dd0e718083a958c071929a81102f61859c9` avant le handoff documentaire. |
+| Reprise | Un lot M4 futur peut, séparément, inspecter le schéma SQLite en mode read-only et sous contrat borné, ou définir l’admission transactionnelle d’un unique composant. Il ne doit ni déduire une signature/provenance Git inexistante, ni lire/importer une ligne par simple existence de M4.8. |

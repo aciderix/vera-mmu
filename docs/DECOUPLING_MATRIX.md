@@ -149,6 +149,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.7 atteste seulement un snapshot de bytes dont la localisation respecte la convention V1. La référence de baseline est contrôlée contre une constante de pack, mais aucune identité Git ni contenu de schéma n’est vérifié par le module; aucune ligne n’est lue, convertie ou écrite.
 
+### 2.14. Avancement observé M4.8 — identité Git read-only de la source attestée
+
+| Couplages | Surface VERA désormais observée | Evidence M4.8 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C02`, `C03`, `C16` | `vera_mmu.domain_packs.aret.git_identity` vérifie que la racine source M4.7 appartient à une racine Git canonique, que `HEAD` égale la baseline V1 fixée et que l’arbre est propre. Les seules commandes sont les requêtes Git fixes `rev-parse --show-toplevel`, `rev-parse HEAD` et `status --porcelain=v1 --untracked-files=all`, sans shell, hooks, configuration globale/système ni locks optionnels. | `tests/test_aret_git_source_identity.py` : liaison à M4.7, commit attendu, dépôt propre, racine/attestation divergentes et capacités interdites; suite `224 passed, 14 subtests passed`, wheel isolée; vérification ponctuelle de la baseline; `LOG-0137`. | Signature ou origine distante du commit, vérification cryptographique de provenance, inspection SQLite/migrations, lecture de lignes, mapping de champs/statuts, transaction VERA, provenance/audit de lot, rollback, evidence/proof, validation post-import et parité ARET. | `SPLIT` |
+
+> M4.8 établit une identité Git locale, propre et explicitement figée pour un snapshot déjà attesté. Elle ne rend pas le contenu SQLite lisible, ne certifie pas l’auteur/le remote/la signature du commit et ne déclenche aucun import.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
