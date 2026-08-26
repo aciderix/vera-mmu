@@ -1576,3 +1576,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Limites préservées | Aucun scheduler, orchestration, mutation automatique de `work_item`, execution, validator, evidence, admission, preuve, oracle, réseau, shell, CLI/MCP ou parité ARET n’est introduit. `READY` est dérivé, non écrit comme état métier. |
 | Verdict | `PASS` pour M3.16. M3 global reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 reste `BLOCKED` sous `MEM-WALL-001`, et la parité exhaustive ARET reste `UNKNOWN`. |
 | Suite | Publier atomiquement le lot. Le prochain lot doit rester distinct parmi lifecycle/graph avancé, validator de contenu/oracle policy-gated, runner sûr additionnel ou surface CLI/MCP. |
+
+
+### LOG-0101 — Publication et handoff M3.16
+
+| Champ | Valeur |
+|---|---|
+| Commit publié | `8ee7a7562ead8c1b2de6521b6dd17db47fb4cab9` — `feat: add strict work start readiness policy`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `8ee7a7562ead8c1b2de6521b6dd17db47fb4cab9`. |
+| État de reprise | M3.16 est publié avec migration 028. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
+| Prochain choix | Choisir explicitement un seul gap M3 borné : lifecycle/graph avancé, validator de contenu/oracle sous policy distincte, runner sûr additionnel ou surface CLI/MCP. Ne pas transformer readiness en scheduler ou orchestration implicite. |
