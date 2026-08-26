@@ -2008,3 +2008,21 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `f2a97e5c88c5ecd5c8924a7bea789ad239ec0f5f` avant le handoff documentaire. |
 | Reprise | Un lot M4 futur doit définir séparément la projection `component→entity`, les identifiants cibles, collision/non-fusion, le batch transactionnel, provenance/audit, rollback et l’admission. La présence d’un lecteur ne déclenche ni n’autorise implicitement un import. |
+
+### LOG-0143 — Verdict M4.11 : préflight fail-closed `component→entity` ARET V1
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.component_import_preflight` expose `component_import_preflight`. La fonction lie une demande M4.6 `component→entity`, une inspection M4.9 et une page M4.10 au même hash source, puis restitue le contexte cible et la plage observée. |
+| Invariant | Les politiques sont fixes : `REJECT_EXISTING_TARGET`, `FORBID` merge/promotion/write et rollback/audit/provenance `REQUIRED_BEFORE_WRITE`. Préparation non pending, inspection/page/hash/ordre divergents, page vide ou acteur/ID non canoniques sont refusés. L’état final est exclusivement `PREFLIGHT_NOT_EXECUTABLE`. |
+| Observation ponctuelle | Contre la baseline déjà attestée, identifiée, inspectée et lue, le préflight lie 17 composants au hash `85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5`, avec `write_policy=FORBID`, `merge_policy=FORBID` et état `PREFLIGHT_NOT_EXECUTABLE`. |
+| Isolation | Le Core n’importe pas le pack. Le module n’ouvre ni fichier/source/SQLite/store VERA, n’exécute aucun shell/réseau et ne réalise aucune projection, collision, transaction, rollback, audit, provenance, evidence, proof, admission, import ou écriture. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : surface absente; ciblé : `5 passed`; Core : `243 passed, 14 subtests passed`; scans de frontière, préflight ponctuel et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.11 uniquement. Le lot impose des préconditions à un futur write-path; il ne fournit ni write-path, ni rollback/audit/provenance effectifs, ni import, preuve ou parité ARET. M4 reste `IN_PROGRESS`. |
+
+### LOG-0144 — Publication fonctionnelle et handoff M4.11
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `df262387f733a53a35e3fc63983dc40f1fdcdfe1` — `feat: preflight ARET V1 component imports`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `df262387f733a53a35e3fc63983dc40f1fdcdfe1` avant le handoff documentaire. |
+| Reprise | Le prochain lot ne peut progresser qu’avec une projection de champs `component→entity` explicitement définie, puis un contrôle de collision VERA read-only et un write-path transactionnel distinct. Le préflight seul ne permet aucune écriture. |

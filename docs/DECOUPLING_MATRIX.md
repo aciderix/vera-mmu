@@ -173,6 +173,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.10 rend observables des lignes legacy brutes, non des entités VERA. Chaque champ est retourné tel que lu depuis `component`; aucune décision de conversion, de qualité, de statut, de fusion, d’admission ou de promotion n’est prise.
 
+### 2.17. Avancement observé M4.11 — préflight `component→entity` fail-closed
+
+| Couplages | Surface VERA désormais observée | Evidence M4.11 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C04`, `C05`, `C06`, `C16` | `vera_mmu.domain_packs.aret.component_import_preflight` lie une demande M4.6, une inspection M4.9 et une page M4.10 au même hash source. Il impose `REJECT_EXISTING_TARGET`, `FORBID` merge/promotion/write et exige rollback/audit/provenance avant toute écriture future. | `tests/test_aret_component_import_preflight.py` : liaison complète, préparation/page/inspection dérivées, ordre, acteur/ID et interdictions I/O/écriture; suite `243 passed, 14 subtests passed`, wheel isolée; préflight ponctuel baseline de 17 composants en état `PREFLIGHT_NOT_EXECUTABLE`; `LOG-0143`. | Projection de champs vers entity, identifiants cibles, recherche de collisions dans VERA, transaction de batch, rollback effectif, audit/provenance effectifs, evidence/proof, admission, écriture/import et parité ARET. | `SPLIT` |
+
+> M4.11 est une contrainte de sécurité ex ante, non une permission d’écrire. Il prépare l’obligation de contrôler collision, rollback, audit et provenance avant un futur write-path; aucune de ces opérations n’est encore exécutée ni démontrée.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
