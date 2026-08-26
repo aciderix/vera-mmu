@@ -685,3 +685,15 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Non-déduction | Un validator d’intégrité `PASS` n’est jamais un verdict sémantique `PASS`. Cette observation ne corrige pas `winehash`, ne résout pas Wine et ne prouve pas la parité ARET. |
 | Décision | Le comportement universel fail-closed est observé sur un `UNKNOWN` réel. C07/C08 restent `IN_PROGRESS`; parité `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. |
 | Référence | `docs/continuity/artifacts/m4d_real_unknown_verdict_2026-08-26.md`; `LOG-0179`. |
+
+### MEM-STATE-127 — Matrice réelle `PASS`/`UNKNOWN`/`SKIPPED`/`FAIL` et doctor Pack
+| Champ | Valeur |
+|---|---|
+| Supersession documentaire | `SUPERSEDES: MEM-STATE-126` uniquement pour l’absence de scénarios réels `SKIPPED` et `FAIL`, ainsi que pour l’absence de doctor Pack. |
+| `SKIPPED` réel | `difftest` a été lancé dans le clone toolkit propre sans binaire local : le préflight a relevé `target/release/aret`, evidence `SKIPPED`; `EVIDENCE_ASSET=PASS`; admission refusée; `0` proof et `0` gate. Aucune installation implicite n’a été réalisée. |
+| `FAIL` réel | `winediff user32_paint` a produit `FAIL` via le runner fermé et le binaire attesté. Asset SHA-256 `abb71efd27a9d288aa9de79790c13d4494e76c1165e1169b71a5a28aff906bf4`; `EVIDENCE_ASSET=PASS`; admission refusée; `0` proof/gate. La fixture est inchangée. |
+| `ERROR` | La normalisation et les tests couvrent timeout/sortie non reconnue; aucun `ERROR` runtime n’a été artificiellement provoqué dans cette tranche. Cette limite est maintenue explicitement. |
+| Doctor Pack | `4e30eeb` ajoute `inspect_aret_toolchain`: commit/propreté, hash binaire, préflight neuf oracles et `unshare` obligatoire. Le doctor réel est `READY`, sans action d’installation; le test de sandbox manquante retourne `DEGRADED`. |
+| Contrôles | Test-first doctor, `395 passed, 21 subtests passed`, roue isolée, scan Core anti-ARET et `git diff --check`: `PASS`. |
+| Décision | C07/C08 `IN_PROGRESS`; parité `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. Les verdicts réels non-`PASS` restent non admis même avec un asset valide. |
+| Référence | `docs/continuity/artifacts/m4d_real_verdict_matrix_and_doctor_2026-08-26.md`; `LOG-0180`. |

@@ -2360,3 +2360,16 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Comparaison | Le cas montre que l’intégrité physique de la trace ne remplace pas la sémantique de l’oracle : `UNKNOWN` reste non promouvable. Il complète le `difftest PASS` réel de LOG-0178 sans modifier les oracles. |
 | Verdict | `OBSERVED` : classement fail-closed réel d’un `UNKNOWN`. C07/C08 `IN_PROGRESS`; Wine/parité `UNKNOWN`; `M4.EXIT = NOT_ELIGIBLE`. |
 | Référence | `artifacts/m4d_real_unknown_verdict_2026-08-26.md`; `MEM-STATE-126`. |
+
+### LOG-0180 — 2026-08-26 — M4-D : `SKIPPED`/`FAIL` réels et doctor Pack
+| Champ | Valeur |
+|---|---|
+| Type | `RUN` / `EVIDENCE` / `COMPARISON` / `PATCH` / `VERDICT` |
+| Objectif | Compléter des cas réels non positifs sans altérer les scripts ARET, puis rendre observable la disponibilité du runner fermé et de ses prérequis. |
+| `SKIPPED` | `difftest` dans le checkout toolkit propre sans binaire local : préflight détecte `target/release/aret`; verdict `SKIPPED`; asset/evidence persistés; validator `PASS`; admission refusée; `0` proof/gate. |
+| `FAIL` | `winediff user32_paint` réel avec binaire attesté : verdict `FAIL`; asset `abb71efd27a9d288aa9de79790c13d4494e76c1165e1169b71a5a28aff906bf4`; validator `PASS`; admission refusée; `0` proof/gate. Aucun corpus ou normaliseur n’est modifié. |
+| `ERROR` | Contrat testé pour timeout/sortie inconnue; aucun timeout runtime n’est forcé artificiellement. L’absence de run `ERROR` réel est un fait, non une promotion de couverture. |
+| Doctor | `4e30eeb` ajoute le doctor ARET observationnel : référence Git/propreté, binaire SHA-256, neuf préflights et sandbox `unshare`; aucune installation. Le doctor réel est `READY`; sandbox absente est `DEGRADED` par test. |
+| Contrôles | `395 passed, 21 subtests passed`; wheel isolée, scan Core anti-ARET et diff : `PASS`. |
+| Verdict | Classification universelle fail-closed observée pour `PASS`, `UNKNOWN`, `SKIPPED` et `FAIL`; C07/C08 `IN_PROGRESS`; parité `UNKNOWN`; M4.EXIT `NOT_ELIGIBLE`. |
+| Référence | `artifacts/m4d_real_verdict_matrix_and_doctor_2026-08-26.md`; `MEM-STATE-127`. |
