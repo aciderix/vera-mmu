@@ -2079,3 +2079,30 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `e868b1c4fef8e531aba2481b2c27029663b1887f` avant le handoff documentaire. |
 | Reprise | Un lot M4 futur doit lier explicitement M4.11–M4.13 à ce primitif, transférer une provenance source déclarée/auditée et conserver zéro promotion. La primitive seule n’autorise aucun import. |
+
+
+### LOG-0151 — Verdict M4.15 : premier import atomique explicitement autorisé `component→entity` ARET V1
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.component_authorized_import` expose une autorisation explicite, liée à M4.11–M4.13, puis `import_authorized_aret_v1_component_entities`. L’import revalide l’identité, hash, request/preflight, projection, cardinalité et cible ; il recontrôle les collisions juste avant d’appeler exclusivement `EntityService.register_type_and_create_batch`. |
+| Invariant | Type `component`, entities et audits sont créés dans une transaction Core unique ou intégralement rollbackés. L’autorisation est strictement `EXPLICIT_ONE_SHOT_IMPORT_ALLOWED`; merge, promotion et preuve sont `FORBID`. Le résultat réussi est `IMPORTED_NO_PROMOTION` et conserve les métadonnées source de chaque draft. |
+| Observation ponctuelle | Contre le snapshot baseline attesté/identifié/inspecté, une page de 17 composants a été importée dans un store VERA temporaire seulement : 17 entities, 18 nouveaux audits (`ENTITY_TYPE_REGISTERED` puis 17 `ENTITY_CREATED`), zéro action de preuve/promotion. ARET-MMU est resté propre au commit `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Isolation | Le Core n’importe pas le pack. Le write-path de pack n’ouvre ni source ARET ni SQLite externe, n’emploie ni SQL brut, shell, réseau, evidence, proof, admission ou promotion ; l’unique écriture passe par la primitive Core générique. |
+| Gates | Tests-first red : surface absente; ciblé : `5 passed`; suite Core : `261 passed, 14 subtests passed`; scans Core/pack, recheck de collision/rollback, intégration ponctuelle et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.15 uniquement. C’est un premier import autorisé et borné, pas un import intégral, un mécanisme de reprise/idempotence, une migration des autres tables, une compatibilité ARET ni une preuve de parité. M4 reste `IN_PROGRESS`; C07/C08 restent `BLOCKED` sous `MEM-WALL-001`. |
+
+### LOG-0152 — Publication fonctionnelle et handoff M4.15
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `034efaf9f6d845742d2209c89099d10dd5fc4ad0` — `feat(aret-pack): authorize bounded component import`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `034efaf9f6d845742d2209c89099d10dd5fc4ad0` après le push fonctionnel. |
+| Reprise | Un lot suivant doit viser une seule gate du registre M4, sans étendre l’autorisation M4.15. Les priorités de migration de données sont la source/runtime stable, le ledger/reprise de `component`, puis `function_symbol→symbol`, `brick→work_item` et les tables/invariants associés. |
+
+### LOG-0153 — Registre de clôture M4 établi
+| Champ | Valeur |
+|---|---|
+| Portée | `docs/continuity/M4_COMPLETION_REGISTER.md` fournit les quinze gates de clôture : admission source/runtime, schéma profond, imports complets, data/invariants, capabilities, oracles/toolchain, playbook, MCP/hooks, VCS/bundles, parité et contrat public de sortie. |
+| Règle de sortie | `M4.EXIT` est interdit tant qu’une gate est `SPLIT`, `BLOCKED` ou `UNKNOWN`. Les responsabilités M5/M6 sont distinguées de leurs dépendances de preuve qui bloquent néanmoins la compatibilité ARET. |
+| Wall | `MEM-WALL-001` rend C07/C08 `BLOCKED` : la restauration mesurable des oracles/toolchain ARET dans un environnement de référence est une condition explicite, et non un travail contournable par simulation. |
+| Verdict | Le registre est `ACTIVE`; M4 est `NOT_ELIGIBLE` pour clôture globale. |

@@ -205,6 +205,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.14 fournit une capacité transactionnelle universelle, non un importeur. Une transaction annulée garantit l’absence de création partielle en cas d’échec; elle ne confère ni droit à l’invocation depuis un pack, ni suppression/réversion d’un batch déjà validé.
 
+### 2.21. Avancement observé M4.15 — premier import autorisé `component→entity`
+
+| Couplages | Surface VERA désormais livrée | Evidence M4.15 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C16` | `vera_mmu.domain_packs.aret.component_authorized_import` crée une autorisation explicite et sans effet propre, liée à M4.11–M4.13, puis appelle exclusivement `EntityService.register_type_and_create_batch`. L’import recontrôle les collisions au write-path, crée type+entities/audits dans une transaction et retourne `IMPORTED_NO_PROMOTION`. | `tests/test_aret_component_authorized_import.py` : autorisation sans écriture, liaisons divergentes refusées, création exacte/audit, collision relue et rollback ; suite Core `261 passed, 14 subtests passed` ; intégration de la page baseline de 17 composants dans un store VERA temporaire ; scans Core/pack et wheel isolée ; commit `034efaf9f6d845742d2209c89099d10dd5fc4ad0`. | Pagination totale/idempotence/ledger, import des liens et autres tables, provenance de lot persistée, post-validation, réversion explicite, runtime/WAL, preuves/admission, `function_symbol`, `brick`, capabilities, toolchain, MCP/hooks/bundles/VCS et parité ARET. | `SPLIT` ; parité `UNKNOWN` ; C07/C08 restent `BLOCKED` sous `MEM-WALL-001`. |
+
+> M4.15 est un premier write-path autorisé, borné à une page pré-projetée de composants et à une cible VERA vide. Il ne fusionne pas, ne crée aucune proof, ne promeut aucun état et ne modifie jamais ARET-MMU. Le [registre de clôture M4](continuity/M4_COMPLETION_REGISTER.md) rend explicites les gates restantes avant tout `M4.EXIT`.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.
