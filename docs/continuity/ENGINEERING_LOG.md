@@ -117,6 +117,7 @@ Chaque entrée reçoit un identifiant monotone `LOG-NNNN`. Les records liés uti
 | `LOG-0091` | 2026-08-26 | `RECORD` / `HANDOFF` | M3.S2.EXIT | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-040`, `MEM-WALL-001` |
 | `LOG-0092` | 2026-08-26 | `HYPOTHESIS` | M3.13 | policy d’admission validée, no-validator implicite | `HYPOTHESIS` | `PENDING` à l’ouverture | `MEM-STATE-041`, `MEM-DEC-034`, `MEM-WALL-001` |
 | `LOG-0093` | 2026-08-26 | `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` | M3.13 | policy, atomicité, wheel, frontières | `OBSERVED` | `PASS` technique; publication à finaliser | `MEM-STATE-041`, `MEM-STATE-042`, `MEM-DEC-034`, `MEM-WALL-001` |
+| `LOG-0094` | 2026-08-26 | `RECORD` / `HANDOFF` | M3.13 | publication, commit, vérification distante | `OBSERVED` | `PASS` pour la publication; M3 reste ouvert | `MEM-STATE-042`, `MEM-WALL-001` |
 
 ## 3. Entrées append-only
 
@@ -1489,3 +1490,13 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Atomicité | Evidence inconnue, evidence non `PASS`, policy absente et validation manquante en mode strict refusent avant insertion/audit d’admission. `REJECTED` reste une décision diagnostique possible sans validation. |
 | Limite | Seul le validator local existant peut actuellement fournir un résultat `PASS`. Aucun oracle externe, validator métier, runner, réseau, shell, admission automatique, nouvelle preuve, modification d’evidence ou rotation de policy n’est ajouté. |
 | Verdict | `PASS` pour M3.13 technique; publication et synchronisation de continuité à finaliser. |
+
+
+### LOG-0094 — Publication vérifiée M3.13
+
+| Champ | Valeur |
+|---|---|
+| Commit | `448693681b3fc4d2ccff39195d62c4d8598fb363` — `feat: add validated admission policy`. |
+| Publication | `git push origin main` et `git ls-remote` confirment le commit; dépôt VERA propre et helper d’authentification supprimé. |
+| Statut | `PASS` pour la publication M3.13. M3 global reste `IN_PROGRESS`; la parité ARET reste `UNKNOWN` sous `MEM-WALL-001`. |
+| Suivi | Cadrer séparément un validator de contenu explicitement borné ou un runner sûr additionnel, avec une nouvelle gate de tranche; ne pas étendre implicitement M3.S2 ni réutiliser un résultat local comme oracle métier. |
