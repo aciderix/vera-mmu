@@ -39,6 +39,13 @@ from .sqlite_schema import (
     AretV1SchemaSnapshotInspection,
     inspect_aret_v1_schema_snapshot,
 )
+from .brick_reader import AretBrickReadError, AretV1BrickSourcePage, AretV1BrickSourceRecord, read_aret_v1_brick_page
+from .function_symbol_reader import (
+    AretFunctionSymbolReadError,
+    AretV1FunctionSymbolSourcePage,
+    AretV1FunctionSymbolSourceRecord,
+    read_aret_v1_function_symbol_page,
+)
 from .component_reader import (
     AretComponentSourceReadError,
     AretV1ComponentSourcePage,
@@ -118,6 +125,14 @@ __all__ = [
     "AretSqliteSchemaInspectionError",
     "AretV1SchemaSnapshotInspection",
     "inspect_aret_v1_schema_snapshot",
+    "AretBrickReadError",
+    "AretV1BrickSourcePage",
+    "AretV1BrickSourceRecord",
+    "read_aret_v1_brick_page",
+    "AretFunctionSymbolReadError",
+    "AretV1FunctionSymbolSourcePage",
+    "AretV1FunctionSymbolSourceRecord",
+    "read_aret_v1_function_symbol_page",
     "AretComponentSourceReadError",
     "AretV1ComponentSourcePage",
     "AretV1ComponentSourceRecord",
