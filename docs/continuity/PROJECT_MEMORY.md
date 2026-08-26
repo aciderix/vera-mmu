@@ -910,3 +910,15 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Limite.** Cette chaîne s’exécute dans l’environnement de test distribué, pas dans une session Claude Code web contrôlée. Aucun fichier `.claude`, `.mcp.json` ou `$HOME/.claude/settings.json` n’est lu ou écrit; aucun hook n’est installé, trust appliqué, secret consulté, réseau, roue/bootstrap ou setup lancé. Le protocole live est préparé mais reste `NOT_RUN`; la configuration/trust attestés et la preuve web font l’objet du sous-lot suivant.
 
 **Traçabilité.** Commit fonctionnel `f79415b`; log `LOG-0196`; artefacts `m5_claude_code_cloud_live_proof_protocol_2026-08-26.md` et contrat M5 cloud.
+
+### MEM-DEC-144 — M5-M.3a : configuration hôte cloud project-local attestée, trust user-scope séparé
+
+**Décision.** M5-M.3a livre `vmmu-claude-code-cloud-config`, un preview déterministe puis une application project-local confirmée de `.claude/settings.json`, `.mcp.json` et d’un état runtime hashé. Cette capacité exige le runtime cloud M5-M.2 staged ; elle ne choisit pas de session, d’adapter, de bindings ou de hash de dossier et ne reçoit aucune donnée de trust du client.
+
+**Pourquoi.** Les hooks et serveurs MCP committés au projet peuvent atteindre une session Claude Code web, mais ils ne constituent pas une approbation du serveur dans un workspace non trusted. La configuration de projet devait donc être fusionnée de manière non destructive et fail-closed, tout en empêchant qu’elle soit assimilée à l’écriture sensible d’un réglage utilisateur.
+
+**Garanties.** Le preview préserve les entrées tierces, remplace seulement l’entrée MCP générique VERA compatible, génère les six hooks à partir du plan attesté et refuse JSON ambigu, conflit VERA, runtime absent ou périmé, symlink et changement entre preview/application. L’application nécessite `confirm=True`, utilise des écritures atomiques et ne cible que la racine du projet et le runtime VERA. Le statut user-scope est structurellement `NOT_DELIVERED` : aucun `$HOME`, lecture/écriture de settings utilisateur, secret, réseau, setup ou bootstrap n’existe dans ce code path.
+
+**Preuves.** Cycle rouge `3 failed` avant implémentation ; tests runtime cloud `7 passed`, suite `462 passed, 37 subtests passed`, compilation/scans/diff et roue isolée avec quatre entry points cloud `PASS`. La simulation contrôlée couvre preview stable, conservation de réglages tiers, conflits hook/MCP, symlink, confirmation et application project-local. La session Claude Code web, son chargement effectif de configuration et son trust restent `NOT_RUN`.
+
+**Traçabilité.** Commit fonctionnel `ed9f2e8`; log `LOG-0197`; artefact `m5_claude_code_cloud_host_config_2026-08-26.md`; protocole live M5 cloud mis à jour. M5-M.3b reste requis pour preview/fusion/apply user-scope sous double confirmation, puis preuve web fraîche.

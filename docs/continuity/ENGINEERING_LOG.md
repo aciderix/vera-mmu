@@ -2639,3 +2639,26 @@ Le commit fonctionnel `f79415b` livre le runtime cloud **staged**, pas la config
 ### Limite et wall
 
 La preuve cloud web reste `NOT_RUN`, faute d’environnement Claude Code web attesté et de write-path séparé pour les settings/hooks de projet et l’approbation user-scope. Ce n’est pas masqué : le protocole `m5_claude_code_cloud_live_proof_protocol_2026-08-26.md` documente les préconditions, les assertions et les verdicts attendus. Le prochain sous-lot doit traiter preview/merge/refus/double-confirmation de configuration/trust, puis exécuter cette preuve live. Aucun bootstrap par roue ni réseau n’est autorisé par ce lot.
+
+## LOG-0197 — 2026-08-26 — M5-M.3a : preview/fusion project-local Claude cloud
+
+### Intention
+
+Fermer uniquement la préparation hôte project-local nécessaire au hook/MCP M5-M.2 : construire un preview attesté, préserver les déclarations tierces, refuser les conflits et appliquer les fichiers de projet après confirmation, sans transformer cette opération en trust Claude Code web.
+
+### Cycle de preuve
+
+1. Baseline : `8955045` publié ; runtime M5-M.2 staged disponible, mais aucune configuration `.claude`/`.mcp.json` ni preuve web.
+2. Recherche : la documentation officielle confirme que les hooks et serveurs MCP du dépôt peuvent atteindre les sessions cloud, alors que les réglages utilisateur locaux ne le peuvent pas ; elle confirme aussi qu’un projet non trusted ne s’auto-approuve pas.
+3. Cycle rouge : `3 failed` — import des opérations preview/application absent.
+4. Implémentation : `ClaudeCodeCloudHostConfigPreview`, fusion canonique des six hooks et du serveur cloud, hash du couple JSON, état `vera-claude-code-cloud-host-config/v1`, écriture atomique project-local et entry point `vmmu-claude-code-cloud-config`.
+5. Refus : runtime absent/périmé, JSON non objet, conflit hook/MCP VERA, symlink, changement entre preview/apply, état divergent et confirmation absente refusent. L’API ne reçoit pas de chemin home ni de donnée user-scope.
+6. Validation : tests cloud `7 passed`; suite `462 passed, 37 subtests passed`; compilation, diff/checks de frontière et roue isolée avec quatre entry points cloud passent.
+
+### Décision
+
+Le commit fonctionnel `ed9f2e8` rend M5-M.3a `PASS` pour **le preview, la fusion et l’application project-local contrôlée**. Il ne prouve pas Claude Code web : aucune session host réelle, aucun chargement effectif des fichiers, aucune connexion MCP trustée et aucun événement host n’ont été observés dans ce lot.
+
+### Limites et suite
+
+Le statut de l’approbation user-scope est `NOT_DELIVERED` par construction. M5-M.3b devra être un nouveau contrat : preview non secret de la modification user-scope, détection de conflit, puis double confirmation explicite et transactionnelle avant toute écriture sous `$HOME/.claude/settings.json`. Après seulement, une session cloud fraîche pourra suivre le protocole de preuve live. Secrets, setup, roue/bootstrap et réseau restent hors périmètre.
