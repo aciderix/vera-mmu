@@ -49,6 +49,11 @@ from .component_entity_projection import (
     AretV1EntityDraft,
     project_aret_v1_component_entities,
 )
+from .component_target_collision import (
+    AretComponentTargetCollisionError,
+    AretV1ComponentTargetClearCheck,
+    check_aret_v1_component_target_clear,
+)
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -88,4 +93,7 @@ __all__ = [
     "AretV1ComponentEntityProjection",
     "AretV1EntityDraft",
     "project_aret_v1_component_entities",
+    "AretComponentTargetCollisionError",
+    "AretV1ComponentTargetClearCheck",
+    "check_aret_v1_component_target_clear",
 ]
