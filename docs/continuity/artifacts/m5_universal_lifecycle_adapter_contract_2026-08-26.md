@@ -1,6 +1,6 @@
 # Contrat de cadrage M5 — lifecycle universel, reprise et adapters d’hôte
 
-> **Statut :** M5-J est livré comme Core transport-neutre ; M5-K et suivants restent à réaliser. Ce document **ne livre aucun hook exécutable**, ne modifie aucune configuration hôte et ne revendique aucune compatibilité d’exécution hôte nouvelle. Il remplace le cadrage trop étroit « un hook SessionStart Claude » par l’extraction du mécanisme de reprise fonctionnel ARET vers un Core VERA indépendant de l’hôte.
+> **Statut :** M5-J et M5-K sont livrés comme Core/liaison MCP transport-neutres ; M5-L et suivants restent à réaliser. Ce document **ne livre aucun hook exécutable**, ne modifie aucune configuration hôte et ne revendique aucune compatibilité d’exécution hôte concrète nouvelle. Il remplace le cadrage trop étroit « un hook SessionStart Claude » par l’extraction du mécanisme de reprise fonctionnel ARET vers un Core VERA indépendant de l’hôte.
 
 ## 1. Décision
 
@@ -31,9 +31,9 @@ config/hook hôte    config/hook hôte   config/hook hôte
 | Surface | État factuel au 26 août 2026 | Limite explicite |
 |---|---|---|
 | ARET de référence | Reprise fonctionnelle à `SessionStart`, `PreCompact`, `PostCompact`, `PreToolUse`, `PostToolUse` ciblé et `Stop`. | Les scripts, le dossier `.aret-memory`, les concepts ARET et le bootstrap de venv ne sont pas transférables tels quels au Core. |
-| VERA M5-A à M5-J | Façade MCP réelle, manifeste, registry, adapter Pack, instructions, config, plan de hook, plan Claude, installation `.mcp.json` opt-in, Resume Dossier et garde locale hard/soft. | Le plan de hook reste déclaratif ; aucun registry d’adapters lifecycle, acquittement MCP contextualisé ou adapter hôte exécutable n’existe encore. |
+| VERA M5-A à M5-K | Façade MCP réelle, manifeste, registry, adapter Pack, instructions, config, plan de hook, plan Claude, installation `.mcp.json` opt-in, Resume Dossier, garde locale hard/soft, registry lifecycle et acquittement MCP contextualisé. | Le plan de hook reste déclaratif ; aucun adapter hôte exécutable ou installable n’existe encore. |
 | Installation M5-I | Fusion atomique et idempotente du seul serveur MCP attesté dans `.mcp.json`, avec confirmation obligatoire. | Aucun `.claude`, script, hook ou setup cloud n’est écrit. Le serveur générique reste fail-closed sans hôte de Pack. |
-| Profil/Store/runtime VERA | Identité project-bound, runtime confiné, SQLite migré et audit technique ; M5-J y écrit un état lifecycle atomique et audité. | Aucun provider automatique de contenu, profil lifecycle, registry d’adapters ou doctor ne consomme encore ces fondations. |
+| Profil/Store/runtime VERA | Identité project-bound, runtime confiné, SQLite migré et audit technique ; M5-J y écrit un état lifecycle atomique et audité, M5-K le lie à un registry/plan attesté et à MCP. | Aucun provider automatique de contenu, profil lifecycle, doctor ou adapter hôte concret ne consomme encore ces fondations. |
 
 ## 3. Contrat universel de lifecycle
 
@@ -54,20 +54,20 @@ Un adapter peut ne mapper qu’un sous-ensemble. Dans ce cas, le profil, le mani
 
 `ResumeDossierService` construit désormais un dossier borné, hashé et lié à l’identité du projet à partir de sections explicitement fournies par l’appelant. Les providers qui extraieront règles, état/handoff, adresses, capacités/gates/policies, contexte VCS et risques restent une extension ultérieure ; aucun de ces contenus n’est aujourd’hui inventé ou hardcodé par le Core.[3]
 
-`ResumeGuardService` valide la liste de sections exactes et bornées enregistrée avec le contrat. Il contrôle structure, bornes et hash du dossier ; il ne prétend pas juger par NLP la véracité du récapitulatif. L’observation d’un résultat de tool hôte deviendra la responsabilité d’un adapter M5-K ; aucun champ, vocabulaire ou playbook ARET n’est codé dans le Core.
+`ResumeGuardService` valide la liste de sections exactes et bornées enregistrée avec le contrat. Il contrôle structure, bornes et hash du dossier ; il ne prétend pas juger par NLP la véracité du récapitulatif. M5-K atteste et transporte le contexte de session côté serveur ; l’observation par un hôte concret reste la responsabilité de l’adapter M5-L ou suivant. Aucun champ, vocabulaire ou playbook ARET n’est codé dans le Core.
 
 ### 3.2. Garde de reprise
 
 | Élément d’état | Autorité | Règle de sécurité |
 |---|---|---|
 | `project_hash` | `ProjectIdentity` VERA | Un état d’un autre projet est invalide. |
-| `adapter_id` | Appelant Core aujourd’hui ; registry VERA à M5-K | L’état ne survit pas à un adapter différent ; l’attestation manifest-bound sera ajoutée à M5-K. |
+| `adapter_id` | Registry VERA manifest-bound depuis M5-K | L’état ne survit pas à un adapter différent ; le client MCP ne choisit jamais cet adapter. |
 | `session_key` | Adapter hôte futur, jamais client MCP | Une identité fournie par l’appelant est hashée avec projet+adapter ; une session non identifiable est refusée en mode dur. |
 | `reason` | Enum Core | Distingue ouverture, reprise vivante, reset et perte de contexte. |
 | `resume_contract_hash` | Dossier VERA canonique | Tout acquittement hash-divergent est refusé. |
-| `mode` | Core ; plafond par capacités hôte à M5-K | `hard` et `soft` sont disponibles localement ; M5-K empêchera un adapter insuffisant de demander `hard`. |
+| `mode` | Core ; maximum déclaré par le plan M5-K | `hard` et `soft` sont disponibles localement ; l’enforcement d’un maximum par un adapter concret commence à M5-L. |
 | `status` | Machine d’état Core | `ARMED`, `ACKNOWLEDGED`, `DEGRADED`. |
-| attestation d’acquittement | Appel Core M5-J ; résultat hôte observé à M5-K | Le Core exige hash et sections exacts ; seul un adapter futur pourra attester la provenance d’un résultat hôte. |
+| attestation d’acquittement | `LifecycleAdapterRegistry` + contexte serveur M5-K ; résultat hôte concret à M5-L+ | Le Core exige hash et sections exacts ; M5-K retire session/hash du client sans prétendre qu’un hook hôte est déjà installé. |
 
 L’état sera local au runtime VERA, project-bound, borné et écrit atomiquement. Sa corruption ou son ambiguïté ne doit pas devenir une reprise silencieuse. Les transitions déterminantes doivent être auditées dans SQLite, sans transformer le texte du hook en connaissance canonique.
 
@@ -137,7 +137,7 @@ Le `mcp_build_hash` doit être complété par un hash lifecycle et le binding `a
 | ID | Périmètre strict | Gate de sortie | Exclusions obligatoires |
 |---|---|---|---|
 | **M5-J** | `Lifecycle Core` et `ResumeDossierService` : état session project-bound, hash de dossier, machine d’état, modes hard/soft et audit ; les sections sont fournies explicitement, sans provider de contenu automatique. | **`PASS`** : 9 tests purs sans hôte couvrent hash divergent, sessions/adapters isolés, reprise vivante, compaction, corruption, dégradé sans deadlock, identité absente et symlink ; suite `438 passed, 37 subtests passed`, scans et roue isolée passent. | MCP public, wrapper, commande, fichier hôte, installation, Pack, bootstrap cloud. |
-| **M5-K** | Registry d’adapters lifecycle, plan hôte attesté et extension MCP d’acquittement contextualisé si la capacité hôte le permet. | Fixtures d’adapters complets/partiels, refus de sur-promesse, vrai client MCP et interdiction d’injection session/hash/verdict/adapter par le client. | Installation de hooks et sélection Pack automatique. |
+| **M5-K** | Registry d’adapters lifecycle, plan `vera-lifecycle-adapter-plan/v1` attesté et extension MCP d’acquittement contextualisé. | **`PASS`** : fixtures registry/plan, vrai client MCP stdio et refus d’injection session/hash/verdict/adapter ; suite `444 passed, 37 subtests passed`, scans et roue isolée passent. | Installation de hooks, adapter hôte concret et sélection Pack automatique. |
 | **M5-L** | Adapter `claude-code-local` : compilation config spécifique, handlers/wrappers fermés, plan installé opt-in, fusion sûre et doctor. | Harness de hooks Claude, garde hard, compaction, install/idempotence/conflit/symlink, démarrage MCP réel. | Cloud, trust utilisateur, réseau/bootstrap, push/sync implicite. |
 | **M5-M** | Adapter `claude-code-cloud` distinct : plan de setup, préchauffage, trust et persistance comme actions séparées. | Tests de simulateur et doctor détaillé ; toute validation live requiert une confirmation dédiée avant modification d’un environnement cloud. | Réutilisation implicite d’un setting local, approbation automatique cachée, push automatique. |
 | **M5-N** | Adapter Codex : compiler sa config/hooks, respecter trust et couverture d’interception. | Conformance au niveau effectivement annoncé, y compris indisponibilité MCP et concurrence de hooks. | Prétention de garde totale sur outils non interceptés. |
@@ -147,7 +147,7 @@ Le `mcp_build_hash` doit être complété par un hash lifecycle et le binding `a
 
 ### 8.1. Prochain incrément autorisé
 
-Le prochain changement fonctionnel doit être **M5-K seulement**. Il doit ajouter le registry/plan attesté d’adapters lifecycle et l’acquittement MCP contextualisé, sans installer un hook, modifier `.mcp.json`, traiter Claude, exécuter un shell ou sélectionner un adapter depuis le client. Cela évite de recréer un script ARET sous un nouveau nom avant de relier proprement le Core aux hôtes.
+Le prochain changement fonctionnel doit être **M5-L seulement**. Il doit produire l’adapter `claude-code-local`, son plan de configuration/hook attesté, son installateur opt-in et son doctor, sans cloud, réseau/bootstrap, push/sync implicite ni sélection d’adapter depuis le client. Cela évite de recréer un script ARET sous un nouveau nom avant de prouver le premier hôte complet.
 
 ## 9. Invariants et non-régressions à ajouter au plan de tests
 
@@ -163,7 +163,7 @@ Le prochain changement fonctionnel doit être **M5-K seulement**. Il doit ajoute
 
 ## 10. Position actuelle et suite
 
-**M5-A à M5-J restent `PASS`. M5 demeure `IN_PROGRESS`.** M5-J a livré le mécanisme local sans annoncer d’hôte prêt ; la voie M5-K→M5-Q ajoute ensuite des adapters à des niveaux de preuve explicites. Aucun résultat d’oracle ARET n’est requis pour cette conformance : les suites démontrent le transport et la gouvernance de verdicts, non l’environnement local Wine.
+**M5-A à M5-K restent `PASS`. M5 demeure `IN_PROGRESS`.** M5-J a livré le mécanisme local et M5-K son attestation/transport MCP, sans annoncer d’hôte prêt ; la voie M5-L→M5-Q ajoute ensuite des adapters à des niveaux de preuve explicites. Aucun résultat d’oracle ARET n’est requis pour cette conformance : les suites démontrent le transport et la gouvernance de verdicts, non l’environnement local Wine.
 
 ### Références
 

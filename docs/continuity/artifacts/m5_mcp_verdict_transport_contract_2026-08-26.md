@@ -1,7 +1,7 @@
 # M5 — Façade MCP, manifeste, registry, adapter Pack, instructions, configuration, hooks, adapter hôte et installation — jalons M5-A/B/C/D/E/F/G/H/I — 2026-08-26
 
-> **Statut :** `M5-A/B/C/D/E/F/G/H/I PASS` — façade `5ffe182`, manifeste `5de260d`, registry `50cc79a`, adapter Pack `e073fa2`, instructions `9010293`, config `5dab574`, hooks `ea7235a`, plan hôte `8b38b1b`, installateur `674929c`.
-> **Portée :** transport fermé, manifeste, registry, runtime de Pack, doctrine, config, cycle SessionStart, revue hôte et installation MCP opt-in. L’installation de hooks reste hors des jalons réalisés.
+> **Statut :** `M5-A/B/C/D/E/F/G/H/I/J/K PASS` — façade `5ffe182`, manifeste `5de260d`, registry `50cc79a`, adapter Pack `e073fa2`, instructions `9010293`, config `5dab574`, hooks `ea7235a`, plan hôte `8b38b1b`, installateur `674929c`, Lifecycle Core `e576b1a`, registry/acquittement `df73425`.
+> **Portée :** transport fermé, manifeste, registries runtime/lifecycle, runtime de Pack, doctrine, config, cycle SessionStart, revue hôte, installation MCP opt-in et acquittement contextualisé. L’installation de hooks et les adapters hôte concrets restent hors des jalons réalisés.
 
 ## 1. Décision de portage
 
@@ -12,7 +12,7 @@ ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transpor
 | Référence ARET-MMU | Portage M5-A VERA | Décision |
 |---|---|---|
 | Serveur MCP, `stdio`, réponses structurées et client réel | `src/vera_mmu/mcp_server.py`, SDK `mcp>=2.0,<3.0`, entry point `vmmu-mcp` | Porté et adapté. |
-| Catalogue fermé / paramètres bornés | Sept outils publics exactement, schémas MCP générés par le SDK | Porté comme invariant. |
+| Catalogue fermé / paramètres bornés | Huit outils publics exactement, schémas MCP générés par le SDK | Porté comme invariant. |
 | Oracles et pipelines ARET | Adapter de fixture déclaré côté serveur uniquement | Gardé hors du Core ; l’adapter réel relève d’un manifest/Pack postérieur. |
 | Front, handoff, knowledge, hooks spécifiques ARET | Aucun portage mécanique | À généraliser dans les lots M5/M6 suivants. |
 | Services universels capability, evidence, validation, admission et gate | Appelés par la façade sans dupliquer leur sémantique | Réutilisés. |
@@ -24,6 +24,8 @@ ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transpor
 | Plan de hooks | `mcp_hooks.py` dérive un plan `SessionStart` manifest/instruction/config-bound | Ajouté en M5-G ; donnée déclarative, non une commande. |
 | Adapter Claude Code | `claude_code_integration.py` traduit les quatre snapshots en plan de revue cible | Ajouté en M5-H ; installation/hook exécutable explicitement refusés. |
 | Installateur Claude Code | `claude_code_installer.py` applique le seul serveur attesté après confirmation | Ajouté en M5-I ; `.mcp.json` seulement, sans hook. |
+| Lifecycle Core | `session_lifecycle.py` porte dossier, état local et garde hard/soft | Ajouté en M5-J ; aucun hôte ni hook. |
+| Adapter lifecycle attesté | `lifecycle_adapters.py` compile/résout un plan manifest-bound et `mcp_server.py` acquitte le seul état armé du contexte hôte | Ajouté en M5-K ; fixture de preuve seulement, sans adapter installable. |
 
 ## 2. Surface M5-A livrée
 
@@ -36,12 +38,13 @@ ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transpor
 | `mmu_validate_evidence` | `evidence_id` exact | validation persistée `PASS` ou `FAIL` | validator client ou bypass. |
 | `mmu_decide_admission` | `evidence_id`, `validation_id` exacts | admission `ADMITTED` ou refus structuré | promotion d’un non-`PASS`. |
 | `mmu_evaluate_gate` | `gate_id` exact | statut dérivé des admissions persistées | gate `PASS` synthétique. |
+| `mmu_acknowledge_resume` | objet `sections` exact | `{acknowledged: true}` seulement après état armé et contexte hôte attesté | session, adapter, version, hash, verdict, statut, shell, commande ou chemin client. |
 
 La façade n’importe aucun Domain Pack. Elle n’exécute aucun subprocess, n’ouvre aucun réseau et n’utilise aucun shell. Lorsqu’un manifeste est fourni, celui-ci est recompilé et vérifié contre l’identité du store, ses migrations, ses capabilities, contrats et policies; son catalogue borne les tools. En M5-C, un `RuntimeAdapterRegistry` ne reçoit que des objets déjà instanciés par l’hôte : il refuse chemins, commandes, doublons et adapters absents, puis choisit l’objet correspondant à la capability du manifeste. Adapter direct et registry sont mutuellement exclusifs; un registry sans manifeste est refusé. Sans adapter, l’entry point générique `vmmu-mcp` refuse l’exécution : il est volontairement fail-closed.
 
 ## 3. Matrice de conformance exécutée
 
-Le test `tests/test_mcp_stdio_verdict_transport.py` démarre `tests/mcp_verdict_fixture_server.py` comme sous-processus `stdio`, initialise une vraie `ClientSession` MCP, inspecte le catalogue et appelle les sept outils. L’adapter choisit son scénario uniquement au démarrage du serveur ; le client appelle toujours la même capability et ne reçoit aucun droit de fournir un résultat.
+Le test `tests/test_mcp_stdio_verdict_transport.py` démarre `tests/mcp_verdict_fixture_server.py` comme sous-processus `stdio`, initialise une vraie `ClientSession` MCP, inspecte le catalogue et appelle les huit outils ; sans registry lifecycle, le huitième refuse fail-closed. L’adapter choisit son scénario uniquement au démarrage du serveur ; le client appelle toujours la même capability et ne reçoit aucun droit de fournir un résultat.
 
 | Scénario produit côté serveur | Verdict transporté | Validation asset | Admission | Gate |
 |---|---:|---:|---:|---:|
@@ -96,12 +99,15 @@ Les erreurs métier sont retournées sous l’enveloppe stable `{ok, operation, 
 | Refus M5-I | Serveur VERA conflictuel, JSON non objet, `mcpServers` non objet, symlink, snapshot divergent ou confirmation absente : refus sans écriture. |
 | Idempotence M5-I | Serveur déjà strictement identique : `UNCHANGED`, zéro réécriture. Sinon écriture atomique `.mcp.json` uniquement. |
 | Suite complète M5-I | `429 passed, 37 subtests passed`. |
+| Lifecycle Core M5-J | Dossier project/profile-bound, état runtime atomique, garde hard/soft anti-deadlock et acquittement hashé. | `438 passed, 37 subtests passed`. |
+| Plan/registry M5-K | `vera-lifecycle-adapter-plan/v1` stable et manifest-bound ; adapter absent/dupliqué/version/mode divergent, plan stale/tampered ou bootstrap partiel refusés. | `22 passed, 7 subtests passed` ciblés ; suite `444 passed, 37 subtests passed`. |
+| Vrai client stdio M5-K | Fixture générique fixe la session côté serveur ; `mmu_acknowledge_resume` n’expose que `sections`, relit le hash local et refuse contexte hôte absent ou sections injectées. | `PASS`; aucun Pack, hook ou hôte réel n’est utilisé. |
 
 ## 6. Limites et suite M5
 
-`M5-A/B/C/D/E/F/G/H/I` ne prétend pas que l’entry point MCP générique puisse exécuter ARET sans configuration d’hôte : il demeure fail-closed. M5-D ajoute le premier adapter de Pack, mais son hôte reste explicitement construit avec une référence toolkit, des dépendances et un registry côté serveur. La fixture d’intégration ne sert qu’à démontrer ce **transport MCP** ; elle ne rend pas le runner de test configurable par le client.
+`M5-A/B/C/D/E/F/G/H/I/J/K` ne prétend pas que l’entry point MCP générique puisse exécuter ARET sans configuration d’hôte : il demeure fail-closed. M5-D ajoute le premier adapter de Pack, mais son hôte reste explicitement construit avec une référence toolkit, des dépendances et un registry côté serveur. La fixture d’intégration ne sert qu’à démontrer ce **transport MCP** ; elle ne rend pas le runner de test configurable par le client.
 
-M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. M5-C livre le registry qui résout ces symboles vers des objets explicitement fournis par l’hôte, sans import dynamique ni commande. M5-D livre `AretClosedOracleMCPAdapter` et `build_aret_mcp_runtime`, tous deux dans le Pack : le premier délègue exclusivement à `run_closed_oracle`; le second refuse tout catalogue `ALLOW` que l’adapter ne couvre pas. M5-E livre `vera-mcp-instructions/v1`, M5-F `vera-mcp-integration/v1`, M5-G `vera-mcp-hooks/v1`, M5-H `vera-claude-code-integration/v1` et M5-I l’unique write-path `.mcp.json`. M5-I recompile les cinq snapshots, exige confirmation explicite et fusionne seulement le serveur attesté; il refuse les symlinks/conflits et n’installe aucun hook. La traduction d’un hook exécutable reste un lot distinct. M6 fournira ensuite CLI, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A/B/C/D/E/F/G/H/I.
+M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. M5-C livre le registry qui résout ces symboles vers des objets explicitement fournis par l’hôte, sans import dynamique ni commande. M5-D livre `AretClosedOracleMCPAdapter` et `build_aret_mcp_runtime`, tous deux dans le Pack : le premier délègue exclusivement à `run_closed_oracle`; le second refuse tout catalogue `ALLOW` que l’adapter ne couvre pas. M5-E livre `vera-mcp-instructions/v1`, M5-F `vera-mcp-integration/v1`, M5-G `vera-mcp-hooks/v1`, M5-H `vera-claude-code-integration/v1` et M5-I l’unique write-path `.mcp.json`. M5-I recompile les cinq snapshots, exige confirmation explicite et fusionne seulement le serveur attesté; il refuse les symlinks/conflits et n’installe aucun hook. M5-J apporte le Lifecycle Core; M5-K lie un plan/registry lifecycle au manifeste et ajoute l’acquittement MCP contextualisé sans accepter session, adapter ou hash client. La traduction d’un hook exécutable et tout adapter d’hôte concret restent des lots distincts. M6 fournira ensuite CLI, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A/B/C/D/E/F/G/H/I/J/K.
 
 ## Références
 

@@ -2554,3 +2554,18 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Note packaging | Une première installation délibérément `--no-deps` a échoué à l’entrée CLI faute de PyYAML ; la roue déclare cette dépendance. La validation isolée réexécutée avec dépendances déclarées est `PASS`; ce n’est pas une régression M5-J. |
 | Verdict | `M5-J = PASS`; M5 reste `IN_PROGRESS`. |
 | Référence | `e576b1a`; `tests/test_session_lifecycle.py`; `src/vera_mmu/session_lifecycle.py`; `MEM-DEC-139`; `artifacts/m5_universal_lifecycle_adapter_contract_2026-08-26.md`. |
+
+### LOG-0193 — 2026-08-26 — M5-K : registry lifecycle attesté et acquittement MCP contextualisé
+| Champ | Valeur |
+|---|---|
+| Type | `BASELINE` / `HYPOTHESIS` / `PATCH` / `TEST` / `VERDICT` |
+| But | Relier M5-J à MCP sans hook : attester un contexte hôte déjà instancié et acquitter le dossier réellement armé, sans accepter session/adapter/hash/verdict depuis le client. |
+| Rouge | `5 failed` : module `lifecycle_adapters` et fixture stdio M5-K absents ; aucune capacité implicite n’était disponible. |
+| Patch | `df73425` ajoute `vera-lifecycle-adapter-plan/v1`, hashé et project-/manifest-bound ; `LifecycleAdapterRegistry` immutable valide id/version/mode, refuse vide/doublon/absence/divergence et ne charge rien dynamiquement. |
+| Liaison MCP | `TOOL_NAMES` contient désormais huit tools, dont `mmu_acknowledge_resume(sections)`. La façade exige registry+plan ensemble, les résout au démarrage, reçoit l’identité uniquement par `session_identity()` côté hôte et appelle `acknowledge_current`, qui relit le hash depuis l’état local. |
+| Fermeture | Le schema du tool n’expose que `sections`; session, adapter, version, hash, verdict, statut, commande et chemin ne sont pas des entrées. Une clé d’injection placée dans les sections est refusée; les clés MCP externes inconnues sont filtrées par le SDK et ne peuvent pas changer le contexte hôte. |
+| Harness | `mcp_lifecycle_fixture_server.py` est un serveur de test générique, sans Pack, qui arme une session fixée au démarrage. Il démontre le chemin réel `ClientSession` stdio; ce n’est ni un adapter de production ni un hook. |
+| Contrôles | Ciblés : `22 passed, 7 subtests passed`. Suite complète : `444 passed, 37 subtests passed`. `py_compile`, scans anti-ARET/Pack/hôte/shell/réseau, `git diff --check` : `PASS`. Roue isolée avec dépendances, inclusion `lifecycle_adapters.py`, `vmmu --help`, `vmmu-mcp --help` : `PASS`. |
+| Verdict | `M5-K = PASS`; M5 reste `IN_PROGRESS`. |
+| Limite | Aucun adapter réellement installable, hook, `.claude`, `.mcp.json`, wrapper, doctor, bootstrap cloud ou événement host lifecycle n’est livré. M5-L reste l’adapter Claude Code local séparé et opt-in. |
+| Référence | `df73425`; `MEM-DEC-140`; `tests/test_lifecycle_adapter_registry.py`; `tests/test_mcp_lifecycle_acknowledgement.py`; contrat M5 lifecycle et registre M5 central. |

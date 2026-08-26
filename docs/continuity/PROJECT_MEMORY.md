@@ -856,3 +856,15 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Limite | M5-J ne fournit pas d’outil MCP d’acquittement, registry d’adapters lifecycle, config/hooks installables, doctor, adapter Claude local/cloud ni support Codex/Gemini/Antigravity. Ces responsabilités commencent à M5-K. |
 | État | `M5-J PASS`; M5 reste `IN_PROGRESS`. |
 | Références | `src/vera_mmu/session_lifecycle.py`; `tests/test_session_lifecycle.py`; `LOG-0192`; artefact lifecycle M5 du 26 août 2026. |
+
+### MEM-DEC-140 — M5-K : adapter lifecycle attesté et acquittement MCP contextualisé
+| Champ | Valeur |
+|---|---|
+| Décision | `df73425` ajoute `lifecycle_adapters.py`, un plan `vera-lifecycle-adapter-plan/v1` canonique et lié à `mcp_build_hash`, ainsi qu’un registry immutable d’objets hôte déjà instanciés. Il ne charge aucun module et ne connaît aucun hôte concret. |
+| Attestation | Le plan lie identité complète du projet, manifeste MCP vérifié, `adapter_id`, version et mode maximal `HARD`/`SOFT`. Toute mutation du Store/manifeste, hash falsifié, plan non canonique, adapter absent/dupliqué, version ou capacité divergente est refusée avant résolution. |
+| MCP | `mmu_acknowledge_resume(sections)` devient le huitième tool manifeste. Il accepte uniquement les sections de rituel. La session provient de `LifecycleSessionAdapter.session_identity()` côté serveur ; le hash est relu depuis l’état local par `ResumeGuardService.acknowledge_current`. Le client ne peut fournir ni session, adapter, hash, verdict, état, commande ou chemin. |
+| Surface | Sans registry+plan cohérents, le tool reste exposé mais refuse fail-closed. Les snapshots M5-B/M5-E deviennent volontairement stale après l’ajout à `TOOL_NAMES`; les hôtes doivent être recompilés avec le manifeste M5-K avant utilisation. |
+| Preuve | Rouge : `5 failed` (module/fixture absents). Vert : `22 passed, 7 subtests passed` ciblés, dont vrai client `ClientSession` stdio ; suite complète `444 passed, 37 subtests passed`; `py_compile`, scans de frontière, `git diff --check`, roue isolée et entry points `PASS`. |
+| Limite | M5-K n’installe ni hook, `.claude`, `.mcp.json`, wrapper, bootstrap cloud ni événement hôte. L’adapter de fixture ne sert qu’à prouver le transport d’un contexte serveur. Aucun adapter Claude/Codex/Gemini/Antigravity n’est livré ni annoncé prêt. |
+| État | `M5-K PASS`; M5 reste `IN_PROGRESS`. Le prochain lot autorisé est M5-L, adapter Claude Code local séparé, opt-in et testé. |
+| Références | `src/vera_mmu/lifecycle_adapters.py`; `src/vera_mmu/session_lifecycle.py`; `src/vera_mmu/mcp_server.py`; `tests/test_lifecycle_adapter_registry.py`; `tests/test_mcp_lifecycle_acknowledgement.py`; `LOG-0193`. |
