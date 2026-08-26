@@ -15,3 +15,16 @@ class WorkBlockers(unittest.TestCase):
   with MemoryStore.open(load_profile(self.p),self.p) as s:
    w=WorkItemService(s);w.create('up','SUBTASK','up');w.create('target','SUBTASK','target');GateService(s).add_dependency('target','up');audits=len(s.audit_events());b=WorkBlockerService(s).diagnose('target');self.assertEqual([(x.kind,x.identifier,x.status) for x in b],[('PREREQUISITE','up','PLANNED')]);self.assertEqual(len(s.audit_events()),audits);WorkLifecycleService(s).transition('start','up','START','x');WorkLifecycleService(s).transition('done','up','COMPLETE','x');self.assertEqual(WorkBlockerService(s).diagnose('target'),())
 if __name__=='__main__':unittest.main()
+
+
+class TransitiveWorkBlockers(unittest.TestCase):
+ def test_reports_transitive_blockers_once_in_stable_order_without_writes(self):
+  with tempfile.TemporaryDirectory() as d:
+   r=Path(d)/'.vera-mmu';r.mkdir();p=r/'p.yaml';p.write_text(P)
+   with MemoryStore.open(load_profile(p),p) as s:
+    w=WorkItemService(s)
+    for i in ('a','b','c'):w.create(i,'SUBTASK',i)
+    g=GateService(s);g.add_dependency('a','b');g.add_dependency('b','c');audits=len(s.audit_events())
+    blockers=WorkBlockerService(s).diagnose_transitive('a')
+    self.assertEqual([(x.kind,x.identifier,x.status) for x in blockers],[('PREREQUISITE','b','PLANNED'),('PREREQUISITE','c','PLANNED')])
+    self.assertEqual(len(s.audit_events()),audits)

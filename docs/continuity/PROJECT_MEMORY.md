@@ -330,3 +330,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-053` | Diagnostic work graph | `WorkBlockerService` expose les dépendances directes non `COMPLETED` d’un work item, avec statut lifecycle dérivé, sans aucune écriture. | `OBSERVED` | Service/tests M3.19, 172 tests et 14 sous-tests, wheel isolée. | `LOG-0106` |
 | `MEM-DEC-040` | Frontière graph | Le diagnostic ne traverse pas transitivement le graph, ne résout pas les gates et n’orchestré aucune transition; il reste une lecture de blocages directs. | `DECISION` | Contrat M3.19. | `LOG-0106` |
 | `MEM-STATE-054` | Reprise active | M3 reste `IN_PROGRESS`. Restent graph/lifecycle avancé sous lot distinct, validator/oracle métier policy-gated, runner sûr additionnel, CLI/MCP et pack ARET. | `OBSERVED` | Revue post-M3.19; `MEM-WALL-001` demeure actif. | `LOG-0106` |
+
+
+## 29. Addendum de reprise — M3.20 diagnostic transitif de dépendances
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-055` | Diagnostic graph | `WorkBlockerService.diagnose_transitive` retourne, dans un ordre stable et sans doublon, les prérequis transitifs non `COMPLETED` d’un work item. | `OBSERVED` | Service/tests M3.20, 173 tests et 14 sous-tests, wheel isolée. | `LOG-0108` |
+| `MEM-DEC-041` | Frontière graph | Le traversal est purement informatif. Il ne diagnostique pas les gates, n’orchestré aucune transition et ne crée ni audit ni fait persistant. | `DECISION` | Contrat M3.20. | `LOG-0108` |
+| `MEM-STATE-056` | Reprise active | M3 reste `IN_PROGRESS`. Restent graph/lifecycle avancé sous lot distinct, validator/oracle métier policy-gated, runner sûr additionnel, CLI/MCP et pack ARET. | `OBSERVED` | Revue post-M3.20; `MEM-WALL-001` demeure actif. | `LOG-0108` |

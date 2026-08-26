@@ -1655,3 +1655,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `af6fa4526f0fff74a18cd6a6810eadf9438fbfbd`. |
 | État de reprise | M3.19 est publié. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
 | Prochain choix | Choisir explicitement un seul gap M3 : traversal/graph avancé, validator/oracle métier sous policy distincte, runner sûr additionnel ou surface CLI/MCP. Ne pas faire du diagnostic un scheduler ou une orchestration. |
+
+
+### LOG-0108 — Verdict M3.20 : diagnostic transitif de dépendances
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `WorkBlockerService.diagnose_transitive(work_item_id)` parcourt les dépendances transitives en ordre stable et retourne une seule fois chaque prérequis non `COMPLETED`. |
+| Sémantique | Le parcours est une lecture pure : aucune écriture, audit, transition lifecycle, capability, execution, evidence, admission ou preuve. Les cycles restent refusés lors de la déclaration de dépendance existante. |
+| Gates | Tests-first : méthode absente; tests ciblés : `4 passed`; suite complète : `173 passed, 14 subtests passed`; scan sans I/O/écriture/ARET et wheel isolée passent. |
+| Limites | Aucun diagnostic de gates, pondération, fenêtrage temporel, scheduler, orchestration ou mutation automatique. |
+| Verdict | `PASS` pour M3.20. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
