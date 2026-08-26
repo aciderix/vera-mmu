@@ -2232,3 +2232,18 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 |---|---|
 | Reprise | Lire `MEM-STATE-116`, `LOG-0168`, M4-EXIT-04/05 et le registre M4. Le prochain sous-lot est le contrat de collision/non-fusion et d’autorisation explicite, distinct par mapping, lié aux préflights et au Core 034. |
 | Interdits maintenus | Aucune écriture ARET ; aucun import ARET sans autorisation future ; aucun evidence, proof/proof link, admission ou promotion ; pas de contournement `MEM-WALL-001`, ni claim de compatibilité/parité. |
+
+### LOG-0170 — Verdict M4-B : collision non-fusionnelle et autorisation structurelle
+| Champ | Valeur |
+|---|---|
+| Portée | `structural_target_collision` relit la cible VERA sans écriture, exige les entities parent pour les symboles et refuse toute ressource `symbol` ou `work_item` préexistante. `structural_import_authorization` relit ce check, lie préflight/projection/hash/cible et produit seulement une permission explicite `EXPLICIT_STRUCTURAL_IMPORT_ALLOWED`. |
+| Sémantique | Les mappings sont fermés : `aret-v1-function-symbol-to-symbol-v1` et `aret-v1-brick-to-work-item-v1`. La cible doit être vide ; aucune fusion, reprise de série, ressource manuelle ni collision sémantique n’est acceptée dans ce contrat initial. Pour `brick`, `PRESERVE_LEGACY_STATE_AS_METADATA` demeure obligatoire et l’état lifecycle/Front reste différé. |
+| Gates | Tests-first rouges ; ciblés : `9 passed`; suite complète : `349 passed, 14 subtests passed`; scans Core/pack, `git diff --check`, wheel isolée et contrôle API : `PASS`. |
+| Publication | Commit fonctionnel `3f21200cc0ca31119e752b5a785dc54170fa15ce` — `feat(aret-pack): bind structural import authorization` — publié et vérifié sur `origin/main`. ARET-MMU est toujours propre au baseline `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Verdict | `PASS borné` pour les checks et autorisations sans effet. Les write-paths, audits de batch structurel, post-validations, intégrations réelles, lifecycle/Front, evidence/proof/admission/promotion et parité restent non livrés. |
+
+### LOG-0171 — Handoff M4-B vers imports structurels contrôlés
+| Champ | Valeur |
+|---|---|
+| Reprise | Lire `MEM-STATE-118`, `LOG-0170`, M4-EXIT-04/05. Le prochain lot peut définir les write-paths distincts `function_symbol→symbol` et `brick→work_item` à condition de consommer l’autorisation exacte, de recontrôler les collisions à l’écriture, de déléguer exclusivement au Core 034 et de post-valider sans écriture. |
+| Interdits maintenus | Pas de SQL d’écriture dans le pack, pas de modification ARET, pas de merge, aucune evidence/proof/admission/promotion, aucun claim de parité ; la garde Front `ACTIVE` demeure un contrat lifecycle séparé. |
