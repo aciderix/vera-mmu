@@ -827,3 +827,18 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | `674929c`; ciblé `4 passed`; suite `429 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0190`. |
 | État | `M5-I PASS`; M5 global `IN_PROGRESS`. |
 | Références | `src/vera_mmu/claude_code_installer.py`; `tests/test_claude_code_mcp_installer.py`; `LOG-0190`. |
+
+### MEM-DEC-138 — Lifecycle VERA universel : mécanisme Core, adapters hôte séparés
+| Champ | Valeur |
+|---|---|
+| Décision | Le besoin hérité d’ARET est un cycle de reprise complet, non un unique hook Claude `SessionStart`. VERA doit extraire un `Lifecycle Core` transport-neutre (dossier, hash, rituel, garde hard/soft, audit et état de session), puis y relier des adapters d’hôte immuables et manifest-bound. |
+| Frontière Core | Le Core ne connaît ni Claude, Codex, Gemini, Antigravity, shell, `.claude`, trust, venv, container cloud, synchronisation Git, Pack ARET ni outil d’un fournisseur. Il reçoit seulement des événements normalisés et une identité de session extraite côté adapter. |
+| Événements | Le contrat proposé est `SESSION_OPEN`, `CONTEXT_PREPARE`, `CONTEXT_RESTORED`, `ACTION_PRECHECK`, `ACKNOWLEDGEMENT_RESULT`, `SESSION_ENDING`. Un adapter ne mappe que les événements qu’il supporte réellement ; l’absence n’est jamais simulée. |
+| Garde | Une garde `hard` n’est autorisée que si l’adapter fournit identité stable, injection, interception pré-action et canal d’acquittement observé. Un dossier dégradé reste fail-loud et armé en `soft`, avec réparation/nudge et sans deadlock. Un hash ou projet divergent, une session absente en mode hard, ou un adapter non attesté est refusé. |
+| Compatibilité | Les niveaux déclarables sont `MCP_ONLY`, `RESUME_DELIVERY`, `RESUME_GUARD_SOFT`, `RESUME_GUARD_HARD`, `COMPACTION_AWARE` et `CLOUD_BOOTSTRAPPED`. Ils sont plafonnés par capabilities et doctor de l’adapter ; « multi-IA » ne signifie jamais que tous les hôtes sont déjà supportés. |
+| Hôtes étudiés | Claude local peut viser compaction+garde forte ; Claude cloud est une distribution distincte avec bootstrap/trust/persistance opt-in ; Codex doit exposer ses limites de couverture/concurrence ; Gemini CLI reste versionné/transitoire ; Antigravity peut viser une garde de tour, sans SessionStart/compaction publiés ; un MCP générique reste `MCP_ONLY`. |
+| Ordre | M5-J livre le Core lifecycle et les tests sans hôte ; M5-K le registry/plan adapter et l’acquittement MCP contextualisé ; M5-L Claude local ; M5-M Claude cloud ; M5-N/O/P les adapters Codex/Gemini/Antigravity ; M5-Q la compatibilité MCP générique. |
+| Limites | Cette décision n’installe aucun hook, ne modifie aucun fichier hôte, ne lance aucun bootstrap cloud, ne fait aucun push/sync VCS et ne rend aucun hôte nouveau `READY`. |
+| Preuve | Audit en lecture seule d’ARET et VERA ; documentation hôte consultée le 26 août 2026 ; arbres VERA, ARET-MMU et toolkit propres au contrôle terminal. |
+| État | `M5-J PLANNED`; M5 reste `IN_PROGRESS`; M5-A à M5-I restent `PASS`. |
+| Références | `artifacts/m5_universal_lifecycle_adapter_contract_2026-08-26.md`; `LOG-0191`; `aret-memory/hooks/resume_guard.py`; `src/vera_mmu/mcp_hooks.py`. |

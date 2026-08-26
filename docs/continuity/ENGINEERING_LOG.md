@@ -2523,3 +2523,18 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | L’installateur n’exécute pas ni n’installe de hook. La config installée cible l’entry point générique, qui reste fail-closed sans hôte de Pack explicitement assemblé. |
 | Verdict | `M5-I = PASS`; M5 reste `IN_PROGRESS`. |
 | Référence | `674929c`; `tests/test_claude_code_mcp_installer.py`; `src/vera_mmu/claude_code_installer.py`; `MEM-DEC-137`. |
+
+### LOG-0191 — 2026-08-26 — Cadrage M5 : lifecycle universel, reprise et adapters multi-hôtes
+| Champ | Valeur |
+|---|---|
+| Type | `BASELINE` / `INSPECTION` / `DECISION` |
+| But | Recadrer la suite M5 à partir du lifecycle fonctionnel ARET : démarrage, pré/post-compaction, garde de reprise, acquittement, arrêt et fonctionnement local/cloud ne doivent pas être réduits à un hook Claude isolé. |
+| Baseline ARET | Inspection strictement en lecture seule de `resume_guard.py`, `common.py`, handlers SessionStart/PreCompact/PostCompact/PreToolUse/PostToolUse/Stop, config Claude, installateur, bootstrap/launcher cloud et tests de garde. Les invariants observés sont hash du dossier, sessions isolées, hard/soft, anti-deadlock, preservation contrôlée sur reprise vivante, réarmement sur vraie perte de contexte et kill-switch opérateur. |
+| Baseline VERA | M5-A à M5-I fournissent façade, manifests/snapshots attestés, config, plan déclaratif et installation `.mcp.json` sûre. Le Core n’a toutefois aucun Resume Dossier, état session, garde, acquittement, adapter exécutable ni bootstrap cloud. L’installateur ne crée pas `.claude`. |
+| Sources hôte | Les documentations actuelles Claude Code, Codex, Gemini CLI et Antigravity ont été consultées. Elles confirment MCP et des hooks, mais des cycles et capacités différents : Claude/Codex offrent compaction ; Gemini expose PreCompress advisory ; Antigravity n’expose pas de SessionStart/compaction dans la surface étudiée. |
+| Décision | Créer un Lifecycle Core transport-neutre puis des adapters déclaratifs/manifest-bound. Les niveaux `MCP_ONLY`, `RESUME_DELIVERY`, `RESUME_GUARD_SOFT`, `RESUME_GUARD_HARD`, `COMPACTION_AWARE` et `CLOUD_BOOTSTRAPPED` seront déclarés et plafonnés par les capacités de chaque adapter. |
+| Ordre | M5-J Core lifecycle ; M5-K registry/plan adapter et acknowledgement contextualisé ; M5-L Claude local ; M5-M Claude cloud ; M5-N/O/P Codex/Gemini/Antigravity ; M5-Q MCP générique. Le prochain patch autorisé est M5-J seulement. |
+| Non-changement | Aucun hook, script, config hôte, bootstrap, synchronisation VCS, réseau, Pack ou code fonctionnel n’a été ajouté. ARET-MMU et le toolkit ne sont pas modifiés. |
+| Contrôles | `git status --short` propre pour VERA, ARET-MMU et toolkit au contrôle terminal ; `HEAD` VERA = `f234fc6`, identique à `origin/main`. |
+| Verdict | `M5-LIFECYCLE-CADRAGE = PASS` comme décision documentée ; `M5-J = PLANNED`; M5 reste `IN_PROGRESS`. |
+| Référence | `MEM-DEC-138`; `artifacts/m5_universal_lifecycle_adapter_contract_2026-08-26.md`; sources hôte référencées dans l’artefact. |

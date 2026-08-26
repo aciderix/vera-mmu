@@ -1,0 +1,179 @@
+# Contrat de cadrage M5 — lifecycle universel, reprise et adapters d’hôte
+
+> **Statut :** décision de conception pour les lots M5-J et suivants. Ce document **ne livre aucun hook exécutable**, ne modifie aucune configuration hôte et ne revendique aucune compatibilité d’exécution nouvelle. Il remplace le cadrage trop étroit « un hook SessionStart Claude » par l’extraction du mécanisme de reprise fonctionnel ARET vers un Core VERA indépendant de l’hôte.
+
+## 1. Décision
+
+ARET-MMU dispose déjà d’un cycle de reprise complet : dossier issu de la mémoire canonique, hash de contrat, état de garde par session, modes `hard` et `soft`, acquittement contrôlé, refus pré-action, nudge de fin de session et réarmement autour d’une compaction. Les wrappers Claude, le bootstrap de container, le scope de confiance et la synchronisation de mémoire sont des **traductions d’hôte ou de déploiement**, non le mécanisme à mettre dans le Core.[1] [2]
+
+**VERA adopte donc l’architecture suivante :** un `Lifecycle Core` transport-neutre porte le dossier, le rituel, la garde et l’audit. Des adapters d’hôte immuables et manifest-bound déclarent ce qu’ils savent réellement livrer, puis traduisent des événements VERA normalisés vers Claude Code, Codex, Gemini CLI, Antigravity ou un autre hôte. Aucun adapter ne peut proclamer un niveau de reprise supérieur à ses capacités documentées et testées.
+
+```text
+Project Profile + Store + manifest/instructions attestés
+                         │
+                         ▼
+                  VERA Lifecycle Core
+ dossier • hash • rituel • garde • audit • état de session
+                         │
+                   registry d’adapters
+                         │
+       ┌─────────────────┼─────────────────┐
+       ▼                 ▼                 ▼
+Claude Code          Codex/Gemini      Antigravity/autre
+local ou cloud       adapters dédiés   adapters dédiés
+       │                 │                 │
+config/hook hôte    config/hook hôte   config/hook hôte
+       └──────── installation opt-in + doctor ────────┘
+```
+
+## 2. État de départ constaté
+
+| Surface | État factuel au 26 août 2026 | Limite explicite |
+|---|---|---|
+| ARET de référence | Reprise fonctionnelle à `SessionStart`, `PreCompact`, `PostCompact`, `PreToolUse`, `PostToolUse` ciblé et `Stop`. | Les scripts, le dossier `.aret-memory`, les concepts ARET et le bootstrap de venv ne sont pas transférables tels quels au Core. |
+| VERA M5-A à M5-I | Façade MCP réelle, manifeste, registry, adapter Pack, instructions, config, plan de hook, plan Claude et installation `.mcp.json` opt-in. | Le plan de hook est déclaratif ; aucun `Resume Dossier`, garde, acquittement ou adapter hôte exécutable n’existe encore. |
+| Installation M5-I | Fusion atomique et idempotente du seul serveur MCP attesté dans `.mcp.json`, avec confirmation obligatoire. | Aucun `.claude`, script, hook ou setup cloud n’est écrit. Le serveur générique reste fail-closed sans hôte de Pack. |
+| Profil/Store/runtime VERA | Identité project-bound, runtime confiné, SQLite migré et audit technique existent. | Aucune primitive générique de lifecycle ou d’état de session ne consomme encore ces fondations. |
+
+## 3. Contrat universel de lifecycle
+
+Le Core emploie uniquement les événements suivants. Les noms de Claude, Codex, Gemini ou Antigravity ne sont pas admis dans cette couche.
+
+| Événement VERA | Sémantique | Équivalents possibles côté hôte |
+|---|---|---|
+| `SESSION_OPEN` | Une session est créée, restaurée ou remise à zéro. | `SessionStart`, ou équivalent de début d’invocation. |
+| `CONTEXT_PREPARE` | L’hôte prévient d’une perte/réduction de contexte imminente. | `PreCompact`, `PreCompress`. |
+| `CONTEXT_RESTORED` | L’hôte confirme une perte/réconstruction de contexte. | `PostCompact`. |
+| `ACTION_PRECHECK` | L’hôte demande une décision avant une action agent. | `PreToolUse`, `BeforeTool`. |
+| `ACKNOWLEDGEMENT_RESULT` | L’hôte observe le résultat réel de l’acquittement de reprise. | `PostToolUse`, `AfterTool`. |
+| `SESSION_ENDING` | La session/l’agent essaie de se terminer. | `Stop`, `SessionEnd`, `AfterAgent`. |
+
+Un adapter peut ne mapper qu’un sous-ensemble. Dans ce cas, le profil, le manifeste et le doctor doivent plafonner le niveau de garantie ; le Core ne synthétise jamais un événement absent.
+
+### 3.1. Dossier et rituel de reprise
+
+`ResumeDossierService` devra construire un dossier borné, hashé et lié à l’identité du projet. Son contenu dépend du `Project Profile` et de providers déclarés, mais son socle minimal est universel : règles stables, état/handoff actif, adresses pertinentes, capacités/gates/policies, contexte VCS lorsqu’un provider le fournit, risques/limites et prochaine action.[3]
+
+`ResumeRitualService` validera une liste de sections configurée par le profil. Il contrôle structure, bornes, hash du dossier et succès observé de l’acquittement ; il ne prétend pas juger par NLP la véracité du récapitulatif. Aucun champ, vocabulaire ou playbook ARET ne doit être codé dans le Core.
+
+### 3.2. Garde de reprise
+
+| Élément d’état | Autorité | Règle de sécurité |
+|---|---|---|
+| `project_hash` | `ProjectIdentity` VERA | Un état d’un autre projet est invalide. |
+| `adapter_id` et version | Registry VERA | L’état ne survit pas à un adapter différent ou non attesté. |
+| `session_key` | Adapter hôte, jamais client MCP | Une session non identifiable est refusée en mode dur. |
+| `reason` | Enum Core | Distingue ouverture, reprise vivante, reset et perte de contexte. |
+| `resume_contract_hash` | Dossier VERA canonique | Tout acquittement hash-divergent est refusé. |
+| `mode` | Core, plafonné par capacités hôte | `hard` uniquement si l’enforcement et l’acquittement sont atteignables. |
+| `status` | Machine d’état Core | `ARMED`, `ACKNOWLEDGED`, `DEGRADED`, `RELEASED`, `EXPIRED`. |
+| attestation d’acquittement | Résultat hôte observé | Le client ne peut pas lever la garde par un booléen ou un verdict fourni. |
+
+L’état sera local au runtime VERA, project-bound, borné et écrit atomiquement. Sa corruption ou son ambiguïté ne doit pas devenir une reprise silencieuse. Les transitions déterminantes doivent être auditées dans SQLite, sans transformer le texte du hook en connaissance canonique.
+
+### 3.3. Anti-deadlock non négociable
+
+Le comportement ARET doit être conservé : un dossier prêt peut armer une garde `hard` et refuser les actions jusqu’au rituel observé. Un dossier dégradé doit rester **bruyant et armé**, mais basculer en `soft` lorsqu’un acquittement fiable n’est pas réalisable ; il avertit et indique une réparation, sans bloquer la session dans une impasse.[1]
+
+Une reprise vivante explicitement identifiée peut conserver un acquittement déjà établi. Une vraie perte de contexte, un reset ou un changement de contrat réarme la garde. Cette différence est une propriété du Core, non un détail Claude Code.
+
+## 4. Contrat des adapters d’hôte
+
+Un adapter est un objet runtime fourni par le processus hôte et enregistré avant le démarrage. Il ne peut pas être choisi par le client MCP, par un paramètre de tool, ni par un fichier de projet non attesté.
+
+| Propriété | Exigence |
+|---|---|
+| Identité | `adapter_id`, version et capabilities immuables ; binding au manifeste de génération. |
+| Mapping | Table fermée événement hôte → événement VERA ; refus des événements inconnus. |
+| Session | Extraction de l’identité depuis le payload hôte. Le modèle ne choisit jamais cette identité. |
+| Delivery | Traduction d’un résultat normalisé uniquement dans le protocole documenté de l’hôte : contexte, refus, notice ou absence d’effet. |
+| Capabilities | Injection, interception pré-action, observation post-action, fin de session, compaction, installation locale, bootstrap cloud et trust sont déclarés séparément. |
+| Installateur | Plan attesté, revue/confirmation, fusion non destructive, refus de symlink/conflit, écriture atomique. |
+| Doctor | Verdict par capability installée et réellement disponible ; jamais un simple « configuré = prêt ». |
+
+Le Core ne construit aucun script shell. Lorsqu’un hôte exige une commande de hook, elle est produite par l’adapter concerné depuis un plan attesté, avec arguments fermés. Elle ne peut contenir ni commande fournie par le modèle, ni chemin arbitraire, ni interpolation non vérifiée.
+
+## 5. Niveaux de compatibilité déclarables
+
+| Niveau | Conditions réelles | Promesse autorisée |
+|---|---|---|
+| `MCP_ONLY` | Serveur MCP utilisable. | Aucun lifecycle automatique. |
+| `RESUME_DELIVERY` | Ouverture identifiable et injection de contexte. | Dossier attesté distribué ; pas de blocage annoncé. |
+| `RESUME_GUARD_SOFT` | Niveau précédent et canal de notice/fin de session. | État dégradé visible et réparable sans deadlock. |
+| `RESUME_GUARD_HARD` | Injection, identité stable, interception pré-action et observation fiable de l’acquittement. | Actions couvertes bloquées jusqu’au rituel validé. |
+| `COMPACTION_AWARE` | Événements avant/après perte de contexte. | Checkpoint/réinjection/réarmement après compaction. |
+| `CLOUD_BOOTSTRAPPED` | Déploiement de container défini, bootstrap/trust/persistance validés. | Démarrage cloud testable pour cet hôte, sans promesse de généralité. |
+
+## 6. Matrice des hôtes étudiés
+
+| Adapter cible | Capacité documentée | Niveau maximal à viser | Limite à rendre visible |
+|---|---|---|---|
+| Claude Code local | Session, pré/post-tool, stop et pré/post-compaction ; blocage pré-action. | `COMPACTION_AWARE` + `RESUME_GUARD_HARD`. | Aucun avant livraison de l’adapter local réel. |
+| Claude Code web/cloud | Même lifecycle de hook ; environnement cloud avec setup, réseau et variables. | `CLOUD_BOOTSTRAPPED` après tests spécifiques. | Trust, bootstrap de dépendances et persistance restent des actions séparées, jamais induites par `.mcp.json`. |
+| Codex local | Lifecycle riche, session id, hooks de commande ou MCP ; pré/post-compaction. | `COMPACTION_AWARE` pour outils effectivement couverts. | Les hooks peuvent être concurrents ; serveur MCP indisponible et outils hébergés non interceptés ne constituent pas une garde universelle.[4] |
+| Gemini CLI | Session start, interception avant/après outil, identité de session et pré-compression advisory. | `RESUME_GUARD_HARD` pour outils couverts, sans post-compaction. | La migration annoncée vers Antigravity impose un adapter versionné et un doctor qui identifie le client.[5] |
+| Antigravity | MCP, injection `PreInvocation`, interception `PreToolUse`, observation `PostToolUse`, `Stop`. | `TURN_GUARD_HARD`. | Aucun `SessionStart`/pre/post-compaction équivalent n’est publié dans la surface étudiée ; ne pas annoncer reprise automatique complète.[6] |
+| Hôte MCP générique | MCP seulement. | `MCP_ONLY`. | Le modèle devra appeler les outils de reprise explicitement ; aucune garde hôte n’est promise. |
+
+> **Conséquence :** « compatible avec toute IA » signifie ici que VERA possède un contrat et un adapter registry extensibles. Cela ne signifie jamais que Codex, Gemini, Antigravity ou un futur client sont déjà supportés, ni qu’un niveau de sécurité est identique partout.
+
+## 7. Paramétrage du profil et du manifeste
+
+Le profil devra choisir une stratégie sans modifier le code métier du projet. Le manifeste compilé doit ensuite lier cette demande à la capacité réellement fournie par l’adapter.
+
+| Élément | Exemples | Règle |
+|---|---|---|
+| `integration.adapter` | `claude-code-local`, `claude-code-cloud`, `codex-local`, `gemini-cli`, `antigravity`, `generic-mcp` | Sélection contrôlée au démarrage, jamais par un client MCP. |
+| `integration.mode` | `MCP_ONLY`, `RESUME_DELIVERY`, `RESUME_GUARD_SOFT`, `RESUME_GUARD_HARD` | Refus si le niveau demandé excède les capabilities de l’adapter. |
+| `integration.persistence` | `LOCAL_RUNTIME`, `HOST_MANAGED`, `VCS_OPT_IN` | Ne déclenche aucun push ni sync automatique. |
+| `integration.cloud_bootstrap` | `DISABLED`, `REVIEW_ONLY`, `OPT_IN` | N’installe ni ne lance de setup ou de réseau sans confirmation distincte. |
+| `resume.sections` | Liste déclarée de sections | Spécifie le rituel sans injecter la doctrine ARET dans le Core. |
+| `resume.degraded_policy` | `SOFT_NUDGE`, `FAIL_LOUD_ONLY` | Interdit le blocage dur en absence de voie d’acquittement sûre. |
+
+Le `mcp_build_hash` doit être complété par un hash lifecycle et le binding `adapter_id`/version/niveau de compatibilité. Une divergence profil → manifest → plan d’installation → adapter actif doit être traitée comme un refus du doctor.
+
+## 8. Jalons de portage, ordre et gates
+
+| ID | Périmètre strict | Gate de sortie | Exclusions obligatoires |
+|---|---|---|---|
+| **M5-J** | `Lifecycle Core` et `ResumeDossierService` : événements normalisés, état session project-bound, hash de dossier, machine d’état, modes hard/soft, audit et providers de contenu abstraits. | Tests purs sans hôte : hash divergent, sessions isolées, reprise vivante, reset/compaction, corruption, dégradé sans deadlock, refus d’identité/adapter inconnu, scan anti-ARET/shell/réseau. | MCP public, wrapper, commande, fichier hôte, installation, Pack, bootstrap cloud. |
+| **M5-K** | Registry d’adapters lifecycle, plan hôte attesté et extension MCP d’acquittement contextualisé si la capacité hôte le permet. | Fixtures d’adapters complets/partiels, refus de sur-promesse, vrai client MCP et interdiction d’injection session/hash/verdict/adapter par le client. | Installation de hooks et sélection Pack automatique. |
+| **M5-L** | Adapter `claude-code-local` : compilation config spécifique, handlers/wrappers fermés, plan installé opt-in, fusion sûre et doctor. | Harness de hooks Claude, garde hard, compaction, install/idempotence/conflit/symlink, démarrage MCP réel. | Cloud, trust utilisateur, réseau/bootstrap, push/sync implicite. |
+| **M5-M** | Adapter `claude-code-cloud` distinct : plan de setup, préchauffage, trust et persistance comme actions séparées. | Tests de simulateur et doctor détaillé ; toute validation live requiert une confirmation dédiée avant modification d’un environnement cloud. | Réutilisation implicite d’un setting local, approbation automatique cachée, push automatique. |
+| **M5-N** | Adapter Codex : compiler sa config/hooks, respecter trust et couverture d’interception. | Conformance au niveau effectivement annoncé, y compris indisponibilité MCP et concurrence de hooks. | Prétention de garde totale sur outils non interceptés. |
+| **M5-O** | Adapter Gemini CLI, versionné et conditionné à une détection du client. | Tests SessionStart/BeforeTool/AfterTool/PreCompress selon les garanties documentées. | Promesse PostCompact ou support durable sans doctor de version. |
+| **M5-P** | Adapter Antigravity. | Tests `PreInvocation`/`PreToolUse`/`PostToolUse`/`Stop`, niveau `TURN_GUARD_HARD`. | Émulation fictive d’une compaction ou d’un démarrage de session absent. |
+| **M5-Q** | Adapter MCP générique + rapport de compatibilité de futurs hôtes. | `MCP_ONLY` sûr et doc de capabilities. | Toute automation de reprise sans événement hôte attesté. |
+
+### 8.1. Premier incrément autorisé
+
+Le prochain changement fonctionnel doit être **M5-J seulement**. Il ne doit pas installer un hook, modifier `.mcp.json`, traiter Claude, exécuter un shell ou élargir la façade MCP sans la couche lifecycle testée. Cela évite de recréer un script ARET sous un nouveau nom avant d’avoir extrait son modèle de confiance.
+
+## 9. Invariants et non-régressions à ajouter au plan de tests
+
+1. Un client MCP ne choisit jamais adapter, session, état de garde, hash de dossier, résultat d’acquittement, commande, artifact ou verdict.
+2. Un adapter absent, inconnu, incompatible ou non manifest-bound refuse l’activation.
+3. Une session sans identité ne devient jamais acquittée ; en mode dur, l’action couverte est refusée.
+4. Un hash de dossier ou un projet divergent ne peut pas lever une garde.
+5. Un état dégradé est toujours visible et audité, mais ne crée pas un deadlock quand l’acquittement est indisponible.
+6. Une reprise vivante explicitement qualifiée ne réarme pas arbitrairement ; une vraie perte de contexte réarme.
+7. Le Core ne contient ni termes, imports, scripts, commandes, dépendances réseau ou règles métier ARET.
+8. Aucune installation de hook, modification de trust, bootstrap cloud, synchronisation VCS ou appel réseau n’est effectuée sans un plan attesté et une confirmation propre.
+9. Le doctor distingue `NOT_INSTALLED`, `CONFIGURED`, `TRUST_PENDING`, `RUNTIME_UNAVAILABLE`, `PARTIALLY_SUPPORTED` et `READY` ; il ne transforme aucun état intermédiaire en prêt.
+
+## 10. Position actuelle et suite
+
+**M5-A à M5-I restent `PASS`. M5 demeure `IN_PROGRESS`.** La voie M5-J→M5-Q rend possible une universalisation fidèle de la reprise ARET, en commençant par le mécanisme et en ajoutant ensuite des hôtes à des niveaux de preuve explicites. Aucun résultat d’oracle ARET n’est requis pour cette conformance : les suites démontrent le transport et la gouvernance de verdicts, non l’environnement local Wine.
+
+### Références
+
+[1]: ../../../../ARET-MMU/aret-memory/hooks/resume_guard.py "ARET-MMU — garde de reprise (lecture seule)"
+[2]: ../../../../ARET-MMU/aret-memory/integration/INSTALL.md "ARET-MMU — intégration Claude et container (lecture seule)"
+[3]: ../../../../ARET-MMU/aret-memory/hooks/common.py "ARET-MMU — dossier de reprise (lecture seule)"
+[4]: https://learn.chatgpt.com/docs/hooks "Codex — Hooks"
+[5]: https://geminicli.com/docs/hooks/reference/ "Gemini CLI — Hooks reference"
+[6]: https://antigravity.google/docs/hooks/ "Google Antigravity — Hooks"
+[7]: https://code.claude.com/docs/en/hooks "Claude Code — Hooks reference"
+[8]: https://code.claude.com/docs/en/claude-code-on-the-web "Claude Code on the web"
+[9]: ../../../src/vera_mmu/mcp_hooks.py "VERA — plan déclaratif de hooks"
+[10]: ../../../src/vera_mmu/claude_code_installer.py "VERA — installateur MCP M5-I"
