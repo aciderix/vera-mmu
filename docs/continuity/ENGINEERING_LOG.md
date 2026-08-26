@@ -2282,3 +2282,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Contrat Pack | `knowledge_reader` lit une page ordonnée via SQLite immutable, atteste la stabilité du snapshot et vérifie `content_hash`. `knowledge_projection` conserve la sémantique source dans les métadonnées, utilise `aret-legacy-knowledge` et rabat exclusivement `SUPERSEDED` vers `OBSERVED` afin de ne créer ni supersession ni promotion implicite. |
 | Validation | Tests rouges avant API/projection; ciblés `7 passed`; suite `369 passed, 14 subtests passed`; `git diff --check` et roue isolée : `PASS`. Commit fonctionnel local : `41594ba`. |
 | Verdict | `PASS borné` pour le substrate et la projection. Aucun import source→cible réel n’est encore observé et aucune table sémantique associée ne peut être déclarée migrée. La suite exigera un contrat de type cible, préflight/collision/autorisation, post-validation et une intégration temporaire avant toute extension à `knowledge_source`, tags, relations, supersession, proof, Front ou audit. |
+
+### LOG-0175 — M4-C.2 : import knowledge ARET en série, sans promotion
+
+| Étape | Observation vérifiée |
+|---|---|
+| Défaut exposé | La première intégration réelle a refusé la source car le lecteur supposait `effective_at` non nullable. Le schéma observé le déclare nullable; un diagnostic SQLite immutable a exclu tout écart de `content_hash`. Le patch minimal accepte seulement cette nullabilité. |
+| Chaîne | Un type cible `aret-legacy-knowledge` doit être déclaré explicitement avant autorisation. Chaque page lie source/projection/préflight/clear-check/autorisation; la cible est soit initialement vide, soit la même série attestée. Le write-path relit cet état avant le batch Core 035; la post-validation relit ledger et knowledge sans écriture. |
+| Politique | `SUPERSEDED` source est importé Core `OBSERVED`, avec état et prédécesseur legacy conservés en métadonnées; aucune `knowledge_supersession`, evidence, admission, proof ou promotion n’est créée. |
+| Intégration source | Le snapshot ARET attesté et stable `85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5`, Git `CLEAN`, runtime `NO_WAL_SIDECARS`, a été importé vers un store `/tmp` : 532 knowledge en six pages. Les pages 2 à 6 ont toutes la série `MATCHING_PRIOR_SERIES_REQUIRED`; post-validation et replay sont read-only. Résultat archivé sous `continuity/artifacts/m4c_multi_page_knowledge_integration_2026-08-26.json`, SHA-256 `567cdf8ccd06ee714c2220548e9677c0ad25d384a73286a57117be482f47ac1c`. |
+| Contrôles | Ciblés `10 passed`; suite `372 passed, 14 subtests passed`; `git diff --check`, scan Core anti-ARET et roue installée isolément : `PASS`. Commit fonctionnel local : `88e56d5`. |
+| Verdict | `OBSERVED_MULTI_PAGE_KNOWLEDGE_IMPORT_NO_PROMOTION`. Aucun claim de ligne de supersession, de provenance attachée, de tag, relation, preuve, Front, audit importé, compatibilité intégrale ou parité n’est autorisé. |

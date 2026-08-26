@@ -371,3 +371,13 @@ Chaque lot qui touche une ligne doit ajouter les fichiers VERA modifiés, les in
 | `C03` / `C04` / `C05` | Lecteur knowledge borné en SQLite immutable avec hash de snapshot et `content_hash` de ligne; projection non écrivable vers `aret-legacy-knowledge`, avec les champs source conservés en métadonnées. `SUPERSEDED` est représenté Core `OBSERVED` sans lien de supersession ni promotion. | Tests de projection rouge→vert et inventaire source versionné; `LOG-0174`. | Préflight, type cible, autorisation, collision, import réel, post-validation, no-loss et réconciliation avec les liens component/function/brick restent requis. | `SPLIT` |
 
 > Cet addendum ne déclare aucun couplage `DONE` : le lot M4-C.1 livre des primitives bornées et un cadrage source, non une migration sémantique complète.
+
+
+### 2.33. Addendum M4-C.2 — knowledge importée sans lineage ni promotion
+
+| Couplage | Surface VERA observée | Evidence | Dimensions toujours inconnues | État de la ligne mère |
+|---|---|---|---|---|
+| `C16` | La chaîne `knowledge` associe un type cible déclaré, une projection non écrivable, préflight, collision de série, autorisation, Core 035 et post-validation. Le type et le statut legacy sont préservés en métadonnées; `SUPERSEDED` devient `OBSERVED` sans evidence, admission, proof ou lien de supersession. | 532 knowledge réelles importées dans un store temporaire en 6 pages, replay sans écriture, 6 batches et 532 liens. Artefact `continuity/artifacts/m4c_multi_page_knowledge_integration_2026-08-26.json`, SHA-256 `567cdf8ccd06ee714c2220548e9677c0ad25d384a73286a57117be482f47ac1c`; `372 passed, 14 subtests passed`; `LOG-0175`. | `knowledge_source`, tags, relations, lineage, proof/proof_link, audit, Front, courses externes, no-loss complet et parité des sémantiques ARET. | `SPLIT` |
+| `C03` | Les 520 liens legacy `component_id`, 3 liens `brick_id`, 0 lien `function_id`, l’unique `supersedes_id`, version, dates et auteur restent des données de provenance dans `metadata.source`; aucune FK ou relation VERA n’est créée par ce lot. | Snapshot source et projection hashée; intégration temporaire; `LOG-0175`. | Mapping des liens vers entities/work items/symbols, résolution de dépendances et rejet cross-project doivent relever de contracts séparés. | `SPLIT` |
+
+> Cet addendum constate une conservation de données knowledge et une barrière de non-promotion. Il ne constitue ni une migration de lineage/provenance associée, ni une parité, ni une clôture de M4-C.
