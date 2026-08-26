@@ -1,8 +1,10 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import json
+import re
 import sqlite3
 from typing import Any, Mapping
+from .identity import canonical_json
 from .parameter_validation import ParameterValidationError, validate_parameters
 from .runner_validator_compatibility import RunnerValidatorCompatibilityError, ensure_runner_validator_compatibility
 from .store import MemoryStore, StoreError
@@ -11,7 +13,7 @@ from .validators import ValidatorError, record_evidence_hash_validation, record_
 class ExecutionError(StoreError): pass
 @dataclass(frozen=True)
 class Execution:
- id: str; capability_id: str; status: str; exit_code: int; parameters: dict[str, Any]; artifact_hash: None
+ id: str; capability_id: str; status: str; exit_code: int | None; parameters: dict[str, Any]; artifact_hash: str | None
 class ExecutionService:
  def __init__(self, store: MemoryStore): self.store=store
  def run_noop(self, identifier: str, capability_id: str, parameters: Mapping[str, Any], *, actor: str='system')->Execution:
@@ -28,6 +30,26 @@ class ExecutionService:
    c.execute("INSERT INTO execution(id,capability_id,status,exit_code,parameters_json,environment_json,started_at,finished_at,result_json,created_by) VALUES(?,?, 'COMPLETED',0,?, '{}',strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'),'{}',?)",(identifier,capability_id,payload,actor))
    self.store.append_audit(c,'EXECUTION_RECORDED',{'execution_id':identifier,'capability_id':capability_id,'runner_profile':'NOOP','actor':actor})
   return Execution(identifier,capability_id,'COMPLETED',0,validated_parameters,None)
+ def record_observed_process(self, identifier: str, capability_id: str, parameters: Mapping[str, Any], *, environment: Mapping[str, Any], exit_code: int | None, artifact_hash: str, result: Mapping[str, Any], actor: str='system')->Execution:
+  if not all(isinstance(value,str) and value and '/' not in value for value in (identifier,capability_id,actor)): raise ExecutionError('Identifiant execution invalide.')
+  if not isinstance(parameters,Mapping) or not isinstance(environment,Mapping) or not isinstance(result,Mapping): raise ExecutionError('Paramètres, environnement et résultat objet requis.')
+  if exit_code is not None and (isinstance(exit_code,bool) or not isinstance(exit_code,int)): raise ExecutionError('Code de sortie invalide.')
+  if not isinstance(artifact_hash,str) or re.fullmatch(r'[0-9a-f]{64}',artifact_hash) is None: raise ExecutionError('Hash d’artefact SHA-256 invalide.')
+  try:
+   with self.store.transaction() as c:
+    row=c.execute("SELECT contract.runner_profile,contract.network_policy,contract.yields_proof,contract.parameter_schema_json,policy.decision AS policy_decision FROM capability_contract AS contract LEFT JOIN capability_policy AS policy ON policy.capability_id=contract.capability_id WHERE contract.capability_id=?",(capability_id,)).fetchone()
+    if row is None or row['runner_profile']!='OBSERVED_PROCESS' or row['network_policy']!='DENY_NETWORK' or bool(row['yields_proof']): raise ExecutionError('Contrat OBSERVED_PROCESS non admissible.')
+    if row['policy_decision']!='ALLOW': raise ExecutionError('Policy ALLOW explicite requise.')
+    schema=json.loads(str(row['parameter_schema_json']))
+    try: validated_parameters=validate_parameters(schema,parameters)
+    except (ParameterValidationError, TypeError, ValueError) as exc: raise ExecutionError('Paramètres hors contrat fermé.') from exc
+    try:
+     payload=canonical_json(validated_parameters);environment_payload=canonical_json(dict(environment));result_payload=canonical_json(dict(result))
+    except (TypeError, ValueError) as exc: raise ExecutionError('Environnement ou résultat non canonique.') from exc
+    c.execute("INSERT INTO execution(id,capability_id,status,exit_code,parameters_json,environment_json,started_at,finished_at,artifact_hash,result_json,created_by) VALUES(?,?, 'COMPLETED', ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now'),strftime('%Y-%m-%dT%H:%M:%fZ','now'),?,?,?)",(identifier,capability_id,exit_code,payload,environment_payload,artifact_hash,result_payload,actor))
+    self.store.append_audit(c,'OBSERVED_PROCESS_RECORDED',{'execution_id':identifier,'capability_id':capability_id,'artifact_hash':artifact_hash,'actor':actor})
+  except sqlite3.IntegrityError as exc: raise ExecutionError('Execution observée invalide ou déjà présente.') from exc
+  return Execution(identifier,capability_id,'COMPLETED',exit_code,validated_parameters,artifact_hash)
  def run_evidence_hash(self, identifier: str, capability_id: str, parameters: Mapping[str, Any], *, validation_id: str, actor: str='system')->Execution:
   if not all(isinstance(value,str) and value and '/' not in value for value in (identifier,capability_id,validation_id,actor)): raise ExecutionError('Identifiant execution invalide.')
   if not isinstance(parameters,Mapping): raise ExecutionError('Paramètres objet requis.')
