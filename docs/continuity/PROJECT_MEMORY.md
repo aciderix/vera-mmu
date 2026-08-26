@@ -391,3 +391,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-065` | Compatibilité runner-validator | Le catalogue local accepte uniquement `EVIDENCE_HASH` avec validator `EVIDENCE_HASH` et `EVIDENCE_FIELDS` avec validator `EVIDENCE_FIELDS`, sous le schéma exact `validator_id`/`evidence_id`. Les deux runners vérifient ce catalogue avant toute validation ou execution. | `OBSERVED` | Module/tests M3.25 : `186 passed, 14 subtests passed`; wheel isolée validée. | `LOG-0119` |
 | `MEM-DEC-047` | Frontière catalogue | Le catalogue ne constitue ni un runner générique, ni JSON Schema général, ni un oracle. Les incompatibilités profile/kind/schema échouent atomiquement et ne créent ni validation, execution, evidence, admission ni preuve. | `DECISION` | Contrat M3.25 et contrôles de rollback. | `LOG-0119` |
 | `MEM-STATE-066` | Reprise active | M3.25 est le dernier lot fonctionnel autorisé. Seule M3.EXIT reste à exécuter; `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et la parité ARET `UNKNOWN` sont inchangés. | `OBSERVED` | Contrat M3.EXIT approuvé. | `LOG-0119` |
+
+
+## 36. Verdict terminal — M3.EXIT
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-067` | Clôture M3 | M3 est `PASS` pour le Core local, fermé et policy-gated de capabilities, evidence, validation, admission, proof, gates, work graph et lifecycle dérivé. Fresh install 032, upgrade historique 001→032, chaîne intégrée complète, checksums, suite Core, scans et wheel isolée passent. | `OBSERVED` | `tests/test_m3_exit.py`, `188 passed, 14 subtests passed`, intégration wheel M3.EXIT. | `LOG-0121` |
+| `MEM-DEC-048` | Frontière de clôture | Le `PASS` M3 ne revendique ni parité ARET, ni oracle métier, shell, réseau, filesystem externe, runner générique, JSON Schema général, CLI/MCP, dashboard, pack/importeur, HMAC rotation, gates pondérées/temporelles/révocables ou orchestration. Aucun nouveau lot M3 n’est autorisé. | `DECISION` | Contrat terminal M3.EXIT approuvé et contrôles de frontière. | `LOG-0121` |
+| `MEM-STATE-068` | Reprise post-M3 | Les suites autorisées relèvent de M4+ seulement. C05/C06/C16 restent `SPLIT`; C07 reste `BLOCKED` sous `MEM-WALL-001`; la parité ARET reste `UNKNOWN` jusqu’à M4. ARET-MMU demeure intact à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. | `OBSERVED` | Matrice de découplage, contrôle Git terminal ARET et contrat M3.EXIT. | `LOG-0121` |

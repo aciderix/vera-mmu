@@ -1793,3 +1793,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `a67d0dd05102b1d14341bd299d9fc62ce6029e2e` avant le handoff documentaire. |
 | État de reprise | M3.25 est fonctionnellement publié. M3.EXIT est la seule action M3 autorisée; ne pas introduire de lot ou extension supplémentaire. |
+
+
+### LOG-0121 — Verdict terminal M3.EXIT : Core M3 borné
+
+| Champ | Valeur |
+|---|---|
+| Périmètre audité | M3.1–M3.25 : contrats/policies/runners locaux fermés, evidence hashée, validators, admission liée, preuve dérivée, gates, diagnostics, readiness et lifecycle strictement dérivés. |
+| Chaîne terminale | Store frais : capability → execution → evidence `PASS` → validation `PASS` → admission strictement liée → proof `PROVEN` sans réécriture de knowledge → gate → readiness → lifecycle `START`/`COMPLETE` sous policies strictes. |
+| Gates cumulatives | Fresh install 032 et checksums 001→032; upgrade historique 001→032; `tests/test_m3_exit.py` : `2 passed`; suite complète : `188 passed, 14 subtests passed`; scans no-shell/no-network/no-filesystem/no-ARET/no-secret/no-rewrite knowledge; wheel isolée de la chaîne terminale : `PASS`. |
+| Frontières vérifiées | Aucun shell, réseau, filesystem externe, runner générique, oracle métier, JSON Schema général, admission/proof automatique, CLI/MCP, dashboard, importeur/pack ARET ou orchestration n’est ajouté. |
+| Verdict | `PASS` pour M3.EXIT et donc pour M3 dans son périmètre Core borné. C05/C06/C16 restent `SPLIT`; C07 reste `BLOCKED` sous `MEM-WALL-001`; parité ARET `UNKNOWN`; ARET-MMU reste intact à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+
+
+### LOG-0122 — Publication et handoff M3.EXIT
+
+| Champ | Valeur |
+|---|---|
+| Commit de preuve publié | `1d7b2efb6fdd914e58b8de7d3ff232de848c59a2` — `test: add M3 exit integration gate`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `1d7b2efb6fdd914e58b8de7d3ff232de848c59a2` avant le handoff documentaire terminal. |
+| État de reprise | M3 est terminé dans le périmètre contractuel. Aucun nouveau lot M3 ne peut être créé; les évolutions postérieures sont reportées explicitement vers M4+ selon la roadmap. |
