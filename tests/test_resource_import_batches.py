@@ -104,6 +104,7 @@ def test_generic_resource_import_batch_api_is_declared() -> None:
     assert ResourceImportBatchInput.__name__ == "ResourceImportBatchInput"
     assert ResourceImportBatchResult.__name__ == "ResourceImportBatchResult"
     assert callable(ImportBatchService.commit_resource_import_batch)
+    assert callable(ImportBatchService.get_resource_import_batch)
 
 
 def test_generic_resource_batch_rejects_unknown_resource_kind_before_writes(tmp_path: Path) -> None:
@@ -157,6 +158,21 @@ def test_resource_import_batch_id_cannot_be_reused_with_different_fingerprint(tm
             service.commit_resource_import_batch(replace(_work_item_batch(), source_snapshot_sha256="b" * 64))
         assert store.audit_events() == before
         assert store.connection.execute("SELECT COUNT(*) FROM resource_import_batch").fetchone()[0] == 1
+
+
+def test_resource_import_batch_can_require_an_empty_resource_target_and_read_its_ledger(tmp_path: Path) -> None:
+    with _store(tmp_path) as store:
+        service = ImportBatchService(store)
+        assert service.get_resource_import_batch("work-item-import-001") is None
+        WorkItemService(store).create("manual-work-item--001", "WORK_ITEM", "Manual", actor="fixture")
+        before = store.audit_events()
+        with pytest.raises(ImportBatchError):
+            service.commit_resource_import_batch(replace(_work_item_batch(), require_empty_target=True))
+        assert store.audit_events() == before
+        assert store.connection.execute("SELECT COUNT(*) FROM resource_import_batch").fetchone()[0] == 0
+
+        committed = service.commit_resource_import_batch(_work_item_batch("work-item-import-002"))
+        assert service.get_resource_import_batch("work-item-import-002") == committed.batch
 
 
 def test_resource_import_batch_rejects_missing_symbol_parent_before_writes(tmp_path: Path) -> None:

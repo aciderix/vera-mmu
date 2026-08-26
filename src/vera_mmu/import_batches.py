@@ -469,6 +469,7 @@ class ResourceImportBatchInput:
     resource_kind: str
     resources: Sequence[ImportResourceInput]
     actor: str = "system"
+    require_empty_target: bool = False
 
 
 @dataclass(frozen=True)
@@ -511,6 +512,7 @@ class _PreparedResourceBatch:
     mapping_id: str
     resource_kind: str
     actor: str
+    require_empty_target: bool
     resources: tuple[_PreparedResource, ...]
     source_identifiers: tuple[str, ...]
     fingerprint_sha256: str
@@ -531,6 +533,12 @@ def _commit_resource_import_batch(self: ImportBatchService, batch: ResourceImpor
                 if existing.fingerprint_sha256 != prepared.fingerprint_sha256:
                     raise ImportBatchError("L’identifiant de resource batch existe avec un fingerprint différent.")
                 return _resource_result_from_existing(self.store, connection, existing, prepared.source_identifiers)
+
+            if prepared.require_empty_target:
+                table_name = "symbol" if prepared.resource_kind == "SYMBOL" else "work_item"
+                existing_count = int(connection.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0])
+                if existing_count:
+                    raise ImportBatchError("Le batch exige une cible ressource vide et refuse toute fusion.")
 
             resources: list[Symbol | WorkItem] = []
             for item in prepared.resources:
@@ -619,6 +627,8 @@ def _prepare_resource_batch(identity: ProjectIdentity, value: object) -> _Prepar
     mapping_id = _require_id(value.mapping_id, "mapping_id")
     if value.resource_kind not in {"SYMBOL", "WORK_ITEM"}:
         raise ImportBatchError("resource_kind d’import inconnu ou hors contrat Core.")
+    if not isinstance(value.require_empty_target, bool):
+        raise ImportBatchError("require_empty_target doit être booléen.")
     actor = _require_text(value.actor, "actor", 256)
     if not isinstance(value.resources, Sequence) or isinstance(value.resources, (str, bytes)) or not 1 <= len(value.resources) <= 100:
         raise ImportBatchError("Le resource batch doit contenir entre 1 et 100 ressources.")
@@ -648,6 +658,7 @@ def _prepare_resource_batch(identity: ProjectIdentity, value: object) -> _Prepar
         "source_snapshot_sha256": source_snapshot_sha256,
         "mapping_id": mapping_id,
         "resource_kind": value.resource_kind,
+        "require_empty_target": value.require_empty_target,
         "resources": [
             {"identifier": item.identifier, "source_identifier": item.source_identifier, "payload": item.payload}
             for item in resources
@@ -660,6 +671,7 @@ def _prepare_resource_batch(identity: ProjectIdentity, value: object) -> _Prepar
         mapping_id=mapping_id,
         resource_kind=value.resource_kind,
         actor=actor,
+        require_empty_target=value.require_empty_target,
         resources=tuple(resources),
         source_identifiers=source_identifiers,
         fingerprint_sha256=sha256(canonical_json(payload).encode("utf-8")).hexdigest(),
@@ -744,4 +756,16 @@ def _resource_result_from_existing(
     )
 
 
+def _get_resource_import_batch(self: ImportBatchService, batch_id: str) -> ResourceImportBatch | None:
+    """Read one generic resource batch by canonical identifier without creating any state."""
+    identifier = _require_id(batch_id, "batch_id")
+    row = self.store.connection.execute(
+        "SELECT id, source_system, source_snapshot_sha256, mapping_id, resource_kind, "
+        "fingerprint_sha256, committed_at, committed_by FROM resource_import_batch WHERE id = ?",
+        (identifier,),
+    ).fetchone()
+    return None if row is None else _resource_batch_from_row(row)
+
+
 ImportBatchService.commit_resource_import_batch = _commit_resource_import_batch
+ImportBatchService.get_resource_import_batch = _get_resource_import_batch
