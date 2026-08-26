@@ -70,7 +70,7 @@ class WorkStartPolicyTests(unittest.TestCase):
 
     def test_open_default_preserves_unblocked_lifecycle_transition(self) -> None:
         with self._open() as store:
-            self.assertEqual(store.metadata()["store_format"], {"schema_version": 31})
+            self.assertEqual(store.metadata()["store_format"], {"schema_version": 32})
             self._evidence(store); self._blocked_target(store)
             readiness = WorkReadinessService(store).evaluate("target")
             self.assertEqual((readiness.status, readiness.prerequisites_completed, readiness.prerequisites_total, readiness.gates_passed, readiness.gates_total), ("BLOCKED", 0, 1, 0, 1))

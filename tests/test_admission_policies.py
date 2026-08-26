@@ -71,7 +71,7 @@ class AdmissionPolicyTests(unittest.TestCase):
             self.assertEqual(store.connection.execute("SELECT COUNT(*) FROM validation_result").fetchone()[0], 0)
             self.assertEqual(len(store.audit_events()), audits_before)
             validators = ValidatorService(store); validators.register("validator", "EVIDENCE_HASH"); self.assertEqual(validators.validate("validation", "validator", "evidence").verdict, "PASS")
-            self.assertEqual(AdmissionService(store).decide("admission", "evidence", "ADMITTED", "strict").decision, "ADMITTED")
+            self.assertEqual(AdmissionService(store).decide("admission", "evidence", "ADMITTED", "strict", validation_id="validation").decision, "ADMITTED")
 
     def test_absent_policy_refuses_admitted_but_allows_rejected_diagnostic(self) -> None:
         with self._open() as store:
