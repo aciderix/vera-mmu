@@ -32,6 +32,12 @@ from .sqlite_schema import (
     AretV1SchemaSnapshotInspection,
     inspect_aret_v1_schema_snapshot,
 )
+from .component_reader import (
+    AretComponentSourceReadError,
+    AretV1ComponentSourcePage,
+    AretV1ComponentSourceRecord,
+    read_aret_v1_component_page,
+)
 
 __all__ = [
     "ARET_RESOURCE_TYPES",
@@ -60,4 +66,8 @@ __all__ = [
     "AretSqliteSchemaInspectionError",
     "AretV1SchemaSnapshotInspection",
     "inspect_aret_v1_schema_snapshot",
+    "AretComponentSourceReadError",
+    "AretV1ComponentSourcePage",
+    "AretV1ComponentSourceRecord",
+    "read_aret_v1_component_page",
 ]
