@@ -1599,3 +1599,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Tests-first : 2 échecs attendus. Tests ciblés : `4 passed`; suite complète : `170 passed, 14 subtests passed`; scan de frontières et `git diff --check` passent; wheel isolée valide `PASS`/`FAIL`. |
 | Limites | Aucun réseau, shell, filesystem, oracle, admission, preuve, execution, mutation de knowledge ou promotion implicite. Ce n’est ni JSON Schema général ni validator de contenu métier. |
 | Verdict | `PASS` pour M3.17. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
+
+
+### LOG-0103 — Publication et handoff M3.17
+
+| Champ | Valeur |
+|---|---|
+| Commit publié | `1429572c7cab5e406d27851a034c337d30625020` — `feat: add evidence field validator`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `1429572c7cab5e406d27851a034c337d30625020`. |
+| État de reprise | M3.17 est publié avec migration 029. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
+| Prochain choix | Choisir explicitement un seul gap M3 : validator/oracle métier sous policy distincte, runner sûr additionnel, lifecycle/graph avancé ou surface CLI/MCP. Ne pas étendre `EVIDENCE_FIELDS` en JSON Schema général ou oracle métier implicite. |
