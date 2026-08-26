@@ -373,3 +373,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-061` | Policy de complétion | `WorkCompletionPolicyService` persiste une policy singleton immutable `OPEN` ou `REQUIRE_READY_FOR_COMPLETE`. En mode strict, seul `COMPLETE` est refusé avant événement/audit lorsque la readiness dérivée est `BLOCKED`; sans policy ou en `OPEN`, le lifecycle historique est conservé. | `OBSERVED` | Migration 031, tests M3.23 : `180 passed, 14 subtests passed`; upgrade 030→031 et wheel isolée validés. | `LOG-0115` |
 | `MEM-DEC-045` | Frontière de complétion | La policy ne complète rien automatiquement et ne modifie ni `START` ni `CANCEL`. Elle ne crée aucune execution, evidence, admission ou preuve; le refus strict rollbacke intégralement l’événement et l’audit. | `DECISION` | Contrat M3.23 et contrôles transactionnels ciblés. | `LOG-0115` |
 | `MEM-STATE-062` | Reprise active | M3 reste `IN_PROGRESS`. Le seul prochain lot autorisé est M3.24, binding admission-validation strict; `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et la parité ARET `UNKNOWN` sont inchangés. | `OBSERVED` | Contrat M3.EXIT approuvé. | `LOG-0115` |
+
+
+## 34. Addendum de reprise — M3.24 binding admission-validation strict
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-063` | Admission stricte | Sous `VALIDATED_PASS_EVIDENCE`, une admission `ADMITTED` exige désormais un `validation_id` explicite, `PASS` et lié à la même evidence. Le binding persistant est FK/unique/append-only; le mode `PASS_EVIDENCE` reste permissif et sans binding. | `OBSERVED` | Migration 032, tests M3.24 : `184 passed, 14 subtests passed`; upgrade 031→032 et wheel isolée validés. | `LOG-0117` |
+| `MEM-DEC-046` | Frontière admission-validation | Le binding ne déclenche jamais de validation, n’admet pas automatiquement et ne crée ni execution, evidence, knowledge ni preuve. Les refus absent/cross-evidence/`FAIL`/duplicat sont atomiques avant admission, binding et audit. | `DECISION` | Contrat M3.24, triggers SQL et contrôles transactionnels. | `LOG-0117` |
+| `MEM-STATE-064` | Reprise active | M3 reste `IN_PROGRESS`. Le seul prochain lot autorisé est M3.25, catalogue fermé runner-validator-schema; `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et la parité ARET `UNKNOWN` sont inchangés. | `OBSERVED` | Contrat M3.EXIT approuvé. | `LOG-0117` |

@@ -1751,3 +1751,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `e87a3b189f355fa5b6db815be73759a3eb0b0d15` avant le handoff documentaire. |
 | État de reprise | M3.23 est fonctionnellement publié. M3.24 est le seul lot suivant autorisé par le contrat M3.EXIT; conserver les limites et états de parité existants. |
+
+
+### LOG-0117 — Verdict M3.24 : binding admission-validation strict
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | La migration `032_admission_validation_bindings.sql` ajoute `admission_validation_binding`, avec FKs, unicité et triggers append-only. En policy `VALIDATED_PASS_EVIDENCE`, `AdmissionService.decide` exige un `validation_id` explicite, `PASS` et de la même evidence, puis persiste admission et binding dans une transaction unique. |
+| Sémantique | `PASS_EVIDENCE` reste compatible et sans binding. Le mode strict refuse validation absente, cross-evidence ou `FAIL` avant admission, binding et audit; aucune validation n’est déclenchée. |
+| Gates | Tests-first : migration/API absentes; tests ciblés : `7 passed`; suite complète : `184 passed, 14 subtests passed`; fresh install 032, upgrade 031→032, FKs/unicité/immutabilité, scans Core no-shell/no-network/no-filesystem/no-ARET/no-mutation hors admission et wheel isolée passent. |
+| Limites | Aucun validator, oracle, runner, admission automatique, execution, evidence, mutation de knowledge ou preuve automatique. |
+| Verdict | `PASS` pour M3.24. M3 reste `IN_PROGRESS` jusqu’à M3.EXIT; C05/C06/C16 `SPLIT`, C07 `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
+
+
+### LOG-0118 — Publication et handoff M3.24
+
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `14fda1f972745eaada9b8f30806dedd7ac58fe43` — `feat: bind strict admissions to validations`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `14fda1f972745eaada9b8f30806dedd7ac58fe43` avant le handoff documentaire. |
+| État de reprise | M3.24 est fonctionnellement publié. M3.25 est le seul lot suivant autorisé par le contrat M3.EXIT; conserver les limites et états de parité existants. |
