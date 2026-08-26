@@ -1,7 +1,7 @@
-# M5 — Façade MCP, manifeste, registry, adapter Pack, instructions, configuration, hooks et adapter hôte — jalons M5-A/B/C/D/E/F/G/H — 2026-08-26
+# M5 — Façade MCP, manifeste, registry, adapter Pack, instructions, configuration, hooks, adapter hôte et installation — jalons M5-A/B/C/D/E/F/G/H/I — 2026-08-26
 
-> **Statut :** `M5-A/B/C/D/E/F/G/H PASS` — façade `5ffe182`, manifeste `5de260d`, registry `50cc79a`, adapter Pack `e073fa2`, instructions `9010293`, config `5dab574`, hooks `ea7235a`, adapter hôte `8b38b1b`.
-> **Portée :** transport fermé, manifeste, registry, runtime de Pack, doctrine, config, cycle SessionStart et plan de revue hôte. Installation de hooks et installateur attesté restent hors des jalons réalisés.
+> **Statut :** `M5-A/B/C/D/E/F/G/H/I PASS` — façade `5ffe182`, manifeste `5de260d`, registry `50cc79a`, adapter Pack `e073fa2`, instructions `9010293`, config `5dab574`, hooks `ea7235a`, plan hôte `8b38b1b`, installateur `674929c`.
+> **Portée :** transport fermé, manifeste, registry, runtime de Pack, doctrine, config, cycle SessionStart, revue hôte et installation MCP opt-in. L’installation de hooks reste hors des jalons réalisés.
 
 ## 1. Décision de portage
 
@@ -23,6 +23,7 @@ ARET-MMU était déjà un serveur MCP opérationnel : catalogue fermé, transpor
 | Configuration MCP | `mcp_integration.py` dérive un JSON `mcpServers` standard depuis manifeste+instructions | Ajouté en M5-F ; prévisualisation runtime, pas d’installation implicite. |
 | Plan de hooks | `mcp_hooks.py` dérive un plan `SessionStart` manifest/instruction/config-bound | Ajouté en M5-G ; donnée déclarative, non une commande. |
 | Adapter Claude Code | `claude_code_integration.py` traduit les quatre snapshots en plan de revue cible | Ajouté en M5-H ; installation/hook exécutable explicitement refusés. |
+| Installateur Claude Code | `claude_code_installer.py` applique le seul serveur attesté après confirmation | Ajouté en M5-I ; `.mcp.json` seulement, sans hook. |
 
 ## 2. Surface M5-A livrée
 
@@ -91,12 +92,16 @@ Les erreurs métier sont retournées sous l’enveloppe stable `{ok, operation, 
 | Hooks M5-H | `SessionStart` est rendu `UNTRANSLATED` avec motif explicite tant qu’aucun adapter exécutable n’est attesté. |
 | Prévisualisation M5-H | Écrit seulement `<runtime>/generated/claude-code-integration.json` en création exclusive; ne touche ni `.mcp.json` ni `.claude/`. |
 | Suite complète M5-H | `425 passed, 37 subtests passed`. |
+| Installation M5-I | `confirm=True` requis; fusionne uniquement `mcpServers.vera-mmu-<project_id>` dans `.mcp.json`, en préservant les autres clés/serveurs. |
+| Refus M5-I | Serveur VERA conflictuel, JSON non objet, `mcpServers` non objet, symlink, snapshot divergent ou confirmation absente : refus sans écriture. |
+| Idempotence M5-I | Serveur déjà strictement identique : `UNCHANGED`, zéro réécriture. Sinon écriture atomique `.mcp.json` uniquement. |
+| Suite complète M5-I | `429 passed, 37 subtests passed`. |
 
 ## 6. Limites et suite M5
 
-`M5-A/B/C/D/E/F/G/H` ne prétend pas que l’entry point MCP générique puisse exécuter ARET sans configuration d’hôte : il demeure fail-closed. M5-D ajoute le premier adapter de Pack, mais son hôte reste explicitement construit avec une référence toolkit, des dépendances et un registry côté serveur. La fixture d’intégration ne sert qu’à démontrer ce **transport MCP** ; elle ne rend pas le runner de test configurable par le client.
+`M5-A/B/C/D/E/F/G/H/I` ne prétend pas que l’entry point MCP générique puisse exécuter ARET sans configuration d’hôte : il demeure fail-closed. M5-D ajoute le premier adapter de Pack, mais son hôte reste explicitement construit avec une référence toolkit, des dépendances et un registry côté serveur. La fixture d’intégration ne sert qu’à démontrer ce **transport MCP** ; elle ne rend pas le runner de test configurable par le client.
 
-M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. M5-C livre le registry qui résout ces symboles vers des objets explicitement fournis par l’hôte, sans import dynamique ni commande. M5-D livre `AretClosedOracleMCPAdapter` et `build_aret_mcp_runtime`, tous deux dans le Pack : le premier délègue exclusivement à `run_closed_oracle`; le second refuse tout catalogue `ALLOW` que l’adapter ne couvre pas. M5-E livre `vera-mcp-instructions/v1`, M5-F `vera-mcp-integration/v1`, M5-G `vera-mcp-hooks/v1` et M5-H `vera-claude-code-integration/v1`. M5-H lie les quatre snapshots, désigne la cible `.mcp.json` et marque le hook `UNTRANSLATED`; il ne contient commande, script, chemin, verdict, artifact ou secret, et n’installe rien. Seul un installateur explicitement validé pourra appliquer ce plan. M6 fournira ensuite CLI, installation, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A/B/C/D/E/F/G/H.
+M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité de projet, des checksums de migrations, des tools, capabilities `ALLOW`, contracts, policies et bindings symboliques d’adapter. Le SHA-256 du JSON canonique est le `mcp_build_hash`; le serveur refuse un manifeste étranger, périmé, altéré ou associé à un adapter différent. M5-C livre le registry qui résout ces symboles vers des objets explicitement fournis par l’hôte, sans import dynamique ni commande. M5-D livre `AretClosedOracleMCPAdapter` et `build_aret_mcp_runtime`, tous deux dans le Pack : le premier délègue exclusivement à `run_closed_oracle`; le second refuse tout catalogue `ALLOW` que l’adapter ne couvre pas. M5-E livre `vera-mcp-instructions/v1`, M5-F `vera-mcp-integration/v1`, M5-G `vera-mcp-hooks/v1`, M5-H `vera-claude-code-integration/v1` et M5-I l’unique write-path `.mcp.json`. M5-I recompile les cinq snapshots, exige confirmation explicite et fusionne seulement le serveur attesté; il refuse les symlinks/conflits et n’installe aucun hook. La traduction d’un hook exécutable reste un lot distinct. M6 fournira ensuite CLI, doctor et expérience opératoire. Aucune de ces capacités ne peut être déduite de M5-A/B/C/D/E/F/G/H/I.
 
 ## Références
 
@@ -122,3 +127,5 @@ M5-B livre `vera-mcp-manifest/v1` : une compilation canonique de l’identité d
 [20]: ../../../tests/test_mcp_hook_plan.py "Conformance de plan SessionStart non exécutable"
 [21]: ../../../src/vera_mmu/claude_code_integration.py "Adapter de revue Claude Code attesté"
 [22]: ../../../tests/test_claude_code_integration_adapter.py "Conformance de traduction et refus Claude Code"
+[23]: ../../../src/vera_mmu/claude_code_installer.py "Installateur MCP Claude Code opt-in et attesté"
+[24]: ../../../tests/test_claude_code_mcp_installer.py "Conformance de fusion, idempotence et refus d’installation"

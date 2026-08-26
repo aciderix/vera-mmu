@@ -2506,3 +2506,20 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Limite | L’installateur opt-in reste ouvert. Il devra vérifier ce plan puis appliquer de façon idempotente la seule cible MCP autorisée; le hook ne pourra être installé qu’après livraison d’un adapter exécutable séparé. |
 | Verdict | `M5-H = PASS`; M5 reste `IN_PROGRESS`. |
 | Référence | `8b38b1b`; `tests/test_claude_code_integration_adapter.py`; `src/vera_mmu/claude_code_integration.py`; `MEM-DEC-136`. |
+
+### LOG-0190 — 2026-08-26 — M5-I : installateur MCP Claude Code opt-in et idempotent
+| Champ | Valeur |
+|---|---|
+| Type | `PATCH` / `TEST` / `VERDICT` |
+| But | Appliquer la première configuration MCP VERA dans un projet uniquement après confirmation explicite, sans installer de hook ni modifier une configuration hôte ambiguë. |
+| Patch | `674929c` ajoute `claude_code_installer.py` et `install_claude_code_mcp`. Le write-path est limité à `<project_root>/.mcp.json`. |
+| Liaison | L’installateur revalide manifeste, instructions, config, hook plan et plan Claude Code via recompilation depuis le Store. Toute divergence rend l’installation invalide avant écriture. |
+| Opt-in | `confirm=True` est obligatoire. Sans cette valeur exacte, l’installateur refuse et aucun fichier projet n’est créé. |
+| Fusion | Le JSON existant est conservé; seuls `mcpServers.vera-mmu-<project_id>` et son contenu attesté peuvent être ajoutés. Les clés et serveurs tiers restent intacts. |
+| Idempotence | Si ce serveur est déjà strictement identique, résultat `UNCHANGED` et zéro réécriture. S’il diffère, le conflit est refusé et les octets existants restent inchangés. |
+| Confinement | Symlink, fichier non régulier, JSON non objet, `mcpServers` non objet et cible hors root sont refusés. L’écriture est atomique et n’affecte jamais `.claude/`, hooks, scripts ou code métier. |
+| Tests | Rouge : module absent. Vert : confirmation obligatoire, fusion avec serveur tiers, conservation de clés, idempotence, conflit et symlink refusés sans write. |
+| Contrôles | Ciblés : `4 passed`. Suite complète : `429 passed, 37 subtests passed`. Scan de frontière, `git diff --check`, roue isolée et points d’entrée : `PASS`. |
+| Limite | L’installateur n’exécute pas ni n’installe de hook. La config installée cible l’entry point générique, qui reste fail-closed sans hôte de Pack explicitement assemblé. |
+| Verdict | `M5-I = PASS`; M5 reste `IN_PROGRESS`. |
+| Référence | `674929c`; `tests/test_claude_code_mcp_installer.py`; `src/vera_mmu/claude_code_installer.py`; `MEM-DEC-137`. |

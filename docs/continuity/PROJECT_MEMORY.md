@@ -814,3 +814,16 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Preuve | `8b38b1b`; ciblé `3 passed`; suite `425 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0189`. |
 | État | `M5-H PASS`; M5 global `IN_PROGRESS`. |
 | Références | `src/vera_mmu/claude_code_integration.py`; `tests/test_claude_code_integration_adapter.py`; `LOG-0189`. |
+
+### MEM-DEC-137 — M5-I installe seulement la configuration MCP attestée
+| Champ | Valeur |
+|---|---|
+| Décision | Le premier write-path d’intégration est un installateur opt-in de `.mcp.json`. Il n’applique que le serveur MCP attesté et ne peut ni créer de hook ni modifier `.claude/`. |
+| Confirmation | `confirm=True` est exigé; toute autre valeur fait échouer avant écriture. |
+| Liaison | Manifest M5-B, instructions M5-E, config M5-F, hook plan M5-G et plan hôte M5-H sont recompilés contre le Store puis comparés aux objets fournis. |
+| Fusion | Les clés JSON et serveurs existants sont préservés. Seul `mcpServers.vera-mmu-<project_id>` peut être ajouté. Une entrée identique retourne `UNCHANGED`; une entrée différente est un conflit refusé. |
+| Confinement | Cible fixe `<project_root>/.mcp.json`, symlink interdit, fichier régulier/JSON objet requis, `mcpServers` objet requis. L’écriture est atomique et aucun hook/script/réseau/Pack n’est impliqué. |
+| Limite | La config installée lance encore l’entrée VERA générique fail-closed si aucun hôte Pack n’est assemblé. L’exécution et l’installation de hooks restent explicitement hors M5-I. |
+| Preuve | `674929c`; ciblé `4 passed`; suite `429 passed, 37 subtests passed`; roue isolée et scan de frontière `PASS`; `LOG-0190`. |
+| État | `M5-I PASS`; M5 global `IN_PROGRESS`. |
+| Références | `src/vera_mmu/claude_code_installer.py`; `tests/test_claude_code_mcp_installer.py`; `LOG-0190`. |
