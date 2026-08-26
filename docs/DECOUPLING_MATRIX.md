@@ -93,6 +93,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M2.5 établit une provenance déclarative sans ouvrir le document, sans importer son contenu et sans rendre une assertion `PROVEN`. Les lignes C03 et C16 restent `SPLIT`, et toute parité ARET reste `UNKNOWN`.
 
+### 2.7. Avancement observé M4.1 — compatibilité d’adressage ARET V1 en lecture
+
+| Couplage | Surface VERA désormais observée | Evidence M4.1 | Dimension toujours inconnue | État de la ligne mère |
+|---|---|---|---|---|
+| `C01` | `vera_mmu.domain_packs.aret.addressing` parse et construit la surface V1 fermée `ARET://` sous forme strictement canonique, sans lookup, import, mutation ni conversion en `vera://`. | `tests/test_aret_address_compatibility.py` : round-trip des ressources fermées, encodage canonique, rejet type/schéma/forme invalide et absence de dépendance du Core ; suite `192 passed, 14 subtests passed` et wheel isolée ; `LOG-0123`. | Fixtures historiques connectées au store, lecteur de ressources V1, conversion explicite, import de données, comportement MCP et parité baseline ARET. | `SPLIT` |
+
+> M4.1 établit seulement un lecteur de syntaxe V1 dans le Domain Pack. Il ne rend aucune ressource ARET lisible dans VERA, ne migre aucune donnée et ne peut justifier une parité ARET.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

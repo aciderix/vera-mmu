@@ -1814,3 +1814,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `1d7b2efb6fdd914e58b8de7d3ff232de848c59a2` avant le handoff documentaire terminal. |
 | État de reprise | M3 est terminé dans le périmètre contractuel. Aucun nouveau lot M3 ne peut être créé; les évolutions postérieures sont reportées explicitement vers M4+ selon la roadmap. |
+
+
+### LOG-0123 — Verdict M4.1 : lecteur ARET V1 strictement en lecture
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.addressing` expose le parsing et la construction canoniques d’adresses `ARET://` V1 fermées : `knowledge`, `component`, `function`, `brick`, `proof`, `relation`, `asset`, `pipeline` et `front/current`. |
+| Invariant | Le parser n’effectue aucune recherche, résolution de store, import, migration, traduction en `vera://`, écriture ou mutation. Il refuse schéma, type, identifiant, encodage ou forme non canonique. |
+| Isolation | Le Core n’importe pas le pack; le pack n’importe ni store, SQLite, filesystem, réseau, shell ni toolchain ARET. ARET-MMU est resté propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : module absent; ciblé : `4 passed`; Core : `192 passed, 14 subtests passed`; `git diff --check`, scans de frontière et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.1 uniquement. C01 demeure `SPLIT`; aucune parité ARET ou migration de données n’est affirmée. M4 reste `IN_PROGRESS`. |
+
+
+### LOG-0124 — Publication et handoff M4.1
+
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `fc91a1c202cc507666c38535c11d3d40a0045aae` — `feat: add read-only ARET address pack`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `fc91a1c202cc507666c38535c11d3d40a0045aae` avant le handoff documentaire. |
+| Reprise | Le prochain lot M4 doit être contractuellement borné contre la matrice de découplage; il ne peut pas inférer la parité ARET à partir de M4.1. |
