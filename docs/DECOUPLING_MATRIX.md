@@ -125,6 +125,14 @@ Une ligne `SPLIT` signifie que le couplage est analysé, sa frontière Core/pack
 
 > M4.4 formalise le contrat de non-opérationnalité des surfaces de compatibilité initiales. Il ne crée aucune capacité d’accès, de migration ou de conversion supplémentaire.
 
+### 2.11. Avancement observé M4.5 — mappings structurels explicitement import-gated
+
+| Couplages | Surface VERA désormais observée | Evidence M4.5 | Dimensions toujours inconnues | État des lignes mères |
+|---|---|---|---|---|
+| `C03`, `C04`, `C16` | `vera_mmu.domain_packs.aret.mapping` déclare seulement `component→entity` (`COMPONENT`), `function_symbol→symbol` et `brick→work_item`; chaque entrée exige un import explicite. | `tests/test_aret_structural_mappings.py` : triplet fermé, immuabilité, exclusion des tables de données/opérationnelles et indépendance du Core; suite `200 passed, 14 subtests passed` et wheel isolée; `LOG-0131`. | Politique/source d’import, lecture de lignes, conversion de champs et statuts, identité/provenance de lot, rollback, audit, preuves, validation post-import et parité ARET. | `SPLIT` |
+
+> M4.5 n’est pas un importeur. Le registre marque les seules formes structurelles déjà revues et laisse toutes les sémantiques de données en refus explicite jusqu’à un lot ultérieur.
+
 ## 3. Ordre d’extraction autorisé
 
 L’ordre ne suit pas la taille des fichiers, mais les dépendances de sûreté. Les premiers changements d’implémentation autorisés dans VERA-MMU relèvent de **M1** et doivent rester indépendants de tout pack : identité de projet, profile, résolution de workspace, adressage strict `vera://` et répertoire de runtime configuré. Les tables universelles, evidence, catalogues, gates et adapters ne doivent suivre qu’après les tests correspondants.

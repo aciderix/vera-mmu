@@ -436,3 +436,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | `MEM-STATE-075` | Profil ARET | Le Domain Pack expose `aret-v1-compatibility`, un profil immutable qui compose les contrats d’adressage, runtime et schéma M4.1–M4.3. Il n’autorise que `parse_address`, `describe_runtime` et `describe_schema`. | `OBSERVED` | `test_aret_compatibility_profile.py`, suite Core `198 passed, 14 subtests passed`, wheel isolée. | `LOG-0129` |
 | `MEM-DEC-052` | Frontière M4.4 | Le profil déclare explicitement `resolve_runtime`, `read_sqlite`, `import_data` et `write_vera` comme hors scope. Il ne devient ni Project Profile VERA validé, ni runtime adapter, ni importeur, ni surface MCP. | `DECISION` | Contrat M4.4 et scans de frontière. | `LOG-0129` |
 | `MEM-STATE-076` | État M4 | M4 reste `IN_PROGRESS`. M4.1–M4.4 définissent seulement une frontière de compatibilité descriptive. Toutes les interactions avec les données, pipelines, preuves, playbook, hooks, toolchain et parité ARET restent non implémentées/non prouvées; `MEM-WALL-001` reste actif. | `OBSERVED` | Matrice de découplage et verdict M4.4. | `LOG-0129` |
+
+
+## 41. Addendum — M4.5 registre de mappings structurels ARET V1
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-STATE-077` | Mapping ARET | Le Domain Pack déclare exactement trois correspondances structurelles V1 : `component→entity` de type `COMPONENT`, `function_symbol→symbol` et `brick→work_item`. | `OBSERVED` | `tests/test_aret_structural_mappings.py`, suite Core `200 passed, 14 subtests passed`, wheel isolée. | `LOG-0131` |
+| `MEM-DEC-053` | Frontière M4.5 | Chaque correspondance porte `requires_explicit_import=True`. Les tables de données/opérationnelles, notamment `knowledge`, `proof`, `relation`, `asset`, `audit_event`, `front_state`, `pipeline_run` et `bundle_import`, ne sont pas mappées. Le registre ne lit ni ne convertit aucune ligne. | `DECISION` | Contrat M4.5, schéma V1 inspecté et scans de frontière. | `LOG-0131` |
+| `MEM-STATE-078` | État M4 | M4 reste `IN_PROGRESS`. Les mappings structurels sont déclarés, mais n’établissent aucune compatibilité de données, d’import, de preuve, d’audit ou de parité. C03/C04/C05/C06/C16 restent `SPLIT`; `MEM-WALL-001` reste actif. | `OBSERVED` | Matrice de découplage et verdict M4.5. | `LOG-0131` |

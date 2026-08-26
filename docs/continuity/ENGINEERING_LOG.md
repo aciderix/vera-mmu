@@ -1898,3 +1898,24 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
 | Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `c067ea0dfec94292de1e9f826512646a7fc7fe15` avant le handoff documentaire. |
 | Reprise | Le lot M4 suivant doit poursuivre un seul couplage avec une policy et des mappings explicites; aucune opération déclarée interdite par M4.4 ne peut être introduite implicitement. |
+
+
+### LOG-0131 — Verdict M4.5 : mappings structurels ARET V1 explicitement revus
+
+| Champ | Valeur |
+|---|---|
+| Portée livrée | `vera_mmu.domain_packs.aret.mapping` déclare seulement `component→entity` (`COMPONENT`), `function_symbol→symbol` et `brick→work_item`. |
+| Invariant | Les trois entrées ont `requires_explicit_import=True`. Le registre ne lit aucun store, ne convertit aucune ligne et exclut explicitement les tables knowledge, proof, relation, asset, audit, front, pipeline et bundle. |
+| Isolation | Le Core n’importe pas le pack; le registre ne contient ni filesystem, store, SQLite, réseau, shell ni toolchain ARET. ARET-MMU demeure propre à `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`. |
+| Gates | Tests-first : module absent; ciblé : `12 passed` avec M4.1–M4.4; Core : `200 passed, 14 subtests passed`; `git diff --check`, scans de frontière et wheel isolée : `PASS`. |
+| Verdict | `PASS` pour M4.5 uniquement. Les mappings sont des contrats de préparation, non un moteur d’import ni une preuve de compatibilité ou de parité ARET. M4 reste `IN_PROGRESS`. |
+
+
+### LOG-0132 — Publication et handoff M4.5
+
+| Champ | Valeur |
+|---|---|
+| Commit fonctionnel publié | `55d184b87f7242cf36bd45767df9825bfe5cf357` — `feat: declare ARET structural mappings`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `55d184b87f7242cf36bd45767df9825bfe5cf357` avant le handoff documentaire. |
+| Reprise | Le lot M4 suivant doit choisir une seule policy d’import ou une seule ressource mappée, avec source explicite, provenance, rollback et refus de toute promotion implicite. |
