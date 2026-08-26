@@ -882,3 +882,16 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 | Limite | Aucun fichier home `~/.claude`, cloud/trust/setup, réseau, `pip`, bootstrap, synchronisation/push, Pack réel ou support Codex/Gemini/Antigravity n’est livré. Le serveur local refuse toujours l’exécution de capability. |
 | État | `M5-L PASS`; M5 reste `IN_PROGRESS`. Le prochain lot est M5-M, adapter Claude Code cloud strictement séparé et non commencé. |
 | Références | `src/vera_mmu/claude_code_local.py`; `tests/test_claude_code_local_adapter.py`; `tests/test_claude_code_local_hook_cli.py`; `tests/test_claude_code_local_mcp_runtime.py`; `LOG-0194`. |
+
+
+### MEM-DEC-142 — M5-M.1 : plan cloud attesté avant toute action cloud sensible
+
+**Décision.** Le premier incrément cloud VERA est limité au format `vera-claude-code-cloud/v1`, au provider `PREINSTALLED_VERA` réseau-interdit et à un doctor strictement observationnel. Il lie le manifeste M5-B, instructions M5-E, config M5-F, hooks M5-G, plan Claude M5-H, lifecycle M5-J/K et adapter local M5-L, sans dupliquer les scripts ARET ni importer de Pack.
+
+**Pourquoi.** Claude Code web sépare environnement cloud, setup et approbation de serveur. Un clone non trusted ne peut pas approuver lui-même son `.mcp.json` depuis un réglage committé : le préchauffage, le trust user-scope, les secrets et le lifecycle doivent donc rester des responsabilités attestées distinctes. Le mécanisme historique ARET est une preuve de besoin fonctionnel, non une dépendance Core à recopier.
+
+**Garanties.** Le plan refuse les snapshots stale/altérés/étrangers et tout provider autre que `PREINSTALLED_VERA`; il contient zéro secret, URL, commande client, `pip` ou mécanisme réseau. Le doctor ne lit ni n’écrit `$HOME`, le projet ou le runtime : il rapporte `RUNTIME_MISSING`, `TRUST_PENDING`, `DISABLED`, `UNVERIFIABLE` ou `RUNTIME_READY` d’après une observation hôte non secrète et un entry point déclaré.
+
+**Limite.** `RUNTIME_READY` n’est pas une preuve de hook, MCP connecté, setup cloud ou session Claude Code web réelle. M5-M.1 ne livre aucun entry point cloud, hook cloud, roue/bootstrap, réseau, write-path trust, secret ou support multi-hôte. Tout write-path sous `$HOME/.claude/settings.json` exige un preview puis deux confirmations au moment de l’action.
+
+**Preuves.** Cycle rouge `4 failed`, tests M5-M.1 `4 passed`, matrice concernée `11 passed`, suite `455 passed, 37 subtests passed`, compilation/scans/diff/wheel isolée `PASS`. Commit fonctionnel : `940fb7e`. Artefact : `m5_claude_code_cloud_plan_2026-08-26.md`. Références officielles : Claude Code on the web, MCP workspace trust, settings cloud et environment variables.

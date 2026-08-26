@@ -139,7 +139,8 @@ Le `mcp_build_hash` doit être complété par un hash lifecycle et le binding `a
 | **M5-J** | `Lifecycle Core` et `ResumeDossierService` : état session project-bound, hash de dossier, machine d’état, modes hard/soft et audit ; les sections sont fournies explicitement, sans provider de contenu automatique. | **`PASS`** : 9 tests purs sans hôte couvrent hash divergent, sessions/adapters isolés, reprise vivante, compaction, corruption, dégradé sans deadlock, identité absente et symlink ; suite `438 passed, 37 subtests passed`, scans et roue isolée passent. | MCP public, wrapper, commande, fichier hôte, installation, Pack, bootstrap cloud. |
 | **M5-K** | Registry d’adapters lifecycle, plan `vera-lifecycle-adapter-plan/v1` attesté et extension MCP d’acquittement contextualisé. | **`PASS`** : fixtures registry/plan, vrai client MCP stdio et refus d’injection session/hash/verdict/adapter ; suite `444 passed, 37 subtests passed`, scans et roue isolée passent. | Installation de hooks, adapter hôte concret et sélection Pack automatique. |
 | **M5-L** | Adapter `claude-code-local` : plan spécifique, handlers/entry points fermés, installation opt-in, fusion sûre et doctor. | **`PASS`** : hook stdin/stdout, garde hard, compaction, conflit de session, install/idempotence/conflit/symlink, vrai serveur MCP stdio et suite `451 passed, 37 subtests passed`. | Cloud, trust utilisateur, réseau/bootstrap, push/sync implicite, multi-session. |
-| **M5-M** | Adapter `claude-code-cloud` distinct : plan de setup, préchauffage, trust et persistance comme actions séparées. | Tests de simulateur et doctor détaillé ; toute validation live requiert une confirmation dédiée avant modification d’un environnement cloud. | Réutilisation implicite d’un setting local, approbation automatique cachée, push automatique. |
+| **M5-M.1** | Plan `vera-claude-code-cloud/v1` lié aux snapshots M5-B/E/F/G/H/J/K/L, provider `PREINSTALLED_VERA` réseau-interdit et doctor observationnel. | **`PASS`** : plan stable/refus stale/provider, doctor `RUNTIME_MISSING`/trust pending-disabled-unverifiable/`RUNTIME_READY`, 4 tests ; suite `455 passed, 37 subtests passed`. | Entry point/hook cloud, connexion MCP réelle, roue/bootstrap, réseau, secret, écriture trust user-scope. |
+| **M5-M.2** | Adapter `claude-code-cloud` réellement distribuable : session, hook et serveur cloud attestés. | Preuve dans un environnement Claude Code web réel ; doctor distingue clairement runtime, trust et lifecycle. | Réutilisation implicite d’un setting local, approbation automatique cachée, push automatique. |
 | **M5-N** | Adapter Codex : compiler sa config/hooks, respecter trust et couverture d’interception. | Conformance au niveau effectivement annoncé, y compris indisponibilité MCP et concurrence de hooks. | Prétention de garde totale sur outils non interceptés. |
 | **M5-O** | Adapter Gemini CLI, versionné et conditionné à une détection du client. | Tests SessionStart/BeforeTool/AfterTool/PreCompress selon les garanties documentées. | Promesse PostCompact ou support durable sans doctor de version. |
 | **M5-P** | Adapter Antigravity. | Tests `PreInvocation`/`PreToolUse`/`PostToolUse`/`Stop`, niveau `TURN_GUARD_HARD`. | Émulation fictive d’une compaction ou d’un démarrage de session absent. |
@@ -147,7 +148,7 @@ Le `mcp_build_hash` doit être complété par un hash lifecycle et le binding `a
 
 ### 8.1. Prochain incrément autorisé
 
-Le prochain changement fonctionnel doit être **M5-M seulement**. Il doit produire l’adapter `claude-code-cloud` séparé, son plan de setup/trust/persistance et son doctor dédié, sans réutiliser implicitement les fichiers locaux ni effectuer réseau/bootstrap/push sans confirmation. Cela évite de recréer un script ARET sous un nouveau nom avant de prouver le premier hôte complet.
+Le prochain changement fonctionnel doit être **M5-M.2 seulement**. Il doit produire l’adapter `claude-code-cloud` réellement distribuable et sa preuve live, au-dessus du plan/doctor M5-M.1, sans réutiliser implicitement les fichiers locaux ni effectuer réseau/bootstrap/push sans confirmation. Toute écriture de trust user-scope reste une opération séparée à preview et double confirmation. Cela évite de recréer un script ARET sous un nouveau nom avant de prouver le premier hôte complet.
 
 ## 9. Invariants et non-régressions à ajouter au plan de tests
 
@@ -163,7 +164,7 @@ Le prochain changement fonctionnel doit être **M5-M seulement**. Il doit produi
 
 ## 10. Position actuelle et suite
 
-**M5-A à M5-L restent `PASS`. M5 demeure `IN_PROGRESS`.** M5-J a livré le mécanisme local, M5-K son attestation/transport MCP et M5-L le premier hôte local opt-in ; la voie M5-M→M5-Q ajoute ensuite des adapters à des niveaux de preuve explicites. Aucun résultat d’oracle ARET n’est requis pour cette conformance : les suites démontrent le transport et la gouvernance de verdicts, non l’environnement local Wine.
+**M5-A à M5-M.1 restent `PASS`. M5 demeure `IN_PROGRESS`.** M5-J a livré le mécanisme local, M5-K son attestation/transport MCP, M5-L le premier hôte local opt-in et M5-M.1 le plan/doctor cloud préinstallé. M5-M.2 doit encore prouver un hôte cloud réel ; la voie M5-N→M5-Q ajoute ensuite les autres adapters à des niveaux de preuve explicites. Aucun résultat d’oracle ARET n’est requis pour cette conformance : les suites démontrent le transport et la gouvernance de verdicts, non l’environnement local Wine.
 
 ### Références
 

@@ -2587,3 +2587,32 @@ Références : [rapport d’exécution](artifacts/aret_toolkit_oracle_execution_
 | Verdict | `M5-L = PASS`; M5 reste `IN_PROGRESS`. |
 | Limite | Une session locale active par projet est supportée et les conflits sont refusés; aucun cloud, home settings, trust/setup, réseau, bootstrap, sync/push, Pack réel ou autre IA n’est livré. |
 | Référence | `45fe9af`; `MEM-DEC-141`; contrat lifecycle M5; registre MCP M5. |
+
+
+## LOG-0195 — 2026-08-26 — M5-M.1 : plan Claude Code cloud attesté et doctor préinstallé
+
+### Intention
+
+Après M5-L local, utiliser les garanties observées d’ARET cloud sans recopier ses scripts ni faire glisser dans le Core une dépendance réseau, de secret, de trust ou de Pack. Le scope M5-M.1 est volontairement non exécutable : compilation du plan cloud et diagnostic observationnel du seul runtime préinstallé.
+
+### Hypothèse
+
+Un plan cloud `vera-claude-code-cloud/v1` peut être lié aux snapshots M5-B/E/F/G/H/J/K/L et distinguer `RUNTIME_MISSING`, trust pending/disabled/unverifiable et runtime déclaré, sans écrire sous `$HOME`, démarrer un hook, installer une dépendance ou consulter un secret.
+
+### Preuves
+
+1. Lecture ARET : le bootstrap historique sépare chemin chaud/froid, sérialisation et vérification d’import ; son installation cloud associe préchauffage et approbation user-scope. Ces mécanismes sont pris comme besoins fonctionnels, non comme code à porter.
+2. Sources officielles Claude Code vérifiées : cloud environments, setup script et paramètres ; `.mcp.json` de projet non trusted ne peut pas s’auto-approuver ; les approbations user/managed sont distinctes.
+3. Cycle rouge : `tests/test_claude_code_cloud_plan.py` a produit `4 failed` (`ModuleNotFoundError`) avant module M5-M.1.
+4. Implémentation : `claude_code_cloud.py` compile le provider unique `PREINSTALLED_VERA`, réseau `FORBIDDEN`, trust `PREVIEW_ONLY`, secrets `EXTERNAL_ONLY`, serveur cloud déclaratif et doctor sans effet de bord. Provider `NETWORK_BOOTSTRAP`, observations invalides/non-cloud, snapshots stale et runtime/trust ambigus sont refusés ou dégradés.
+5. Cycle vert : M5-M.1 `4 passed`; matrice locale/cloud concernée `11 passed`; suite complète `455 passed, 37 subtests passed`.
+6. Qualité : compilation Python, scans sans Pack/ARET/shell/réseau/bootstrap/write-path dans le module cloud et `git diff --check` `PASS`.
+7. Distribution : roue isolée construite et installée avec dépendances déclarées ; import `vera_mmu.claude_code_cloud`, `vmmu --help` et `vmmu-mcp --help` `PASS`; module présent dans la roue.
+
+### Décision
+
+Le commit fonctionnel `940fb7e` livre seulement le plan et le doctor M5-M.1. `RUNTIME_READY` décrit la cohérence d’un runtime préinstallé et d’un fait de trust déclaré ; il ne signifie pas que le hook, la connexion MCP, le setup ou une session Claude Code web réelle sont prouvés. Le secret ARET divulgué antérieurement n’est ni lu, ni stocké, ni copié dans VERA.
+
+### Limites et suite
+
+M5-M.2 devra être un contrat séparé pour runtime cloud effectivement distribuable/hook réel, puis test live Claude Code web. La roue attestée, le bootstrap réseau et le write-path `$HOME/.claude/settings.json` sont distincts. Toute écriture user-scope impose preview et double confirmation transactionnelle ; elle est hors M5-M.1.
