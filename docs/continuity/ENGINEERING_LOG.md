@@ -1622,3 +1622,14 @@ Avant un patch, créer une entrée `HYPOTHESIS` ou compléter l’entrée du wor
 | Gates | Tests-first : échec attendu sans migration/runner. Tests ciblés : `6 passed`; suite complète : `171 passed, 14 subtests passed`; `git diff --check`, scan sans I/O/ARET et wheel isolée `PASS`/`FAIL` passent. |
 | Limites | Aucun shell, processus, réseau, filesystem, oracle externe, JSON Schema général, admission automatique ou preuve implicite. Le runner ne juge que la présence de clés selon la règle du validator. |
 | Verdict | `PASS` pour M3.18. M3 reste `IN_PROGRESS`; C05/C06/C16 restent `SPLIT`, C07 reste `BLOCKED` sous `MEM-WALL-001`, parité ARET `UNKNOWN`. |
+
+
+### LOG-0105 — Publication et handoff M3.18
+
+| Champ | Valeur |
+|---|---|
+| Commit publié | `708c318f319dbfae59f42e547143a41c08a8667d` — `feat: add evidence fields validation runner`. |
+| Dépôt et branche | `https://github.com/aciderix/vera-mmu.git`, `main`. |
+| Vérification distante | `git ls-remote origin refs/heads/main` retourne exactement `708c318f319dbfae59f42e547143a41c08a8667d`. |
+| État de reprise | M3.18 est publié avec migration 030. M3 reste `IN_PROGRESS`; conserver `MEM-WALL-001`, C05/C06/C16 `SPLIT`, C07 `BLOCKED` et parité ARET `UNKNOWN`. |
+| Prochain choix | Choisir explicitement un seul gap M3 : validator/oracle métier sous policy distincte, runner sûr additionnel, lifecycle/graph avancé ou surface CLI/MCP. Ne pas étendre les deux runners locaux en exécution arbitraire. |
