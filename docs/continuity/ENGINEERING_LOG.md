@@ -3015,3 +3015,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 | Limites | Pas de CLI/MCP publique, pas de Dashboard, pas d’import automatique ou réseau, pas d’import de Git/issues, pas de nouvelle migration ni parité ARET. La surface de transport et l’interface publique restent M11-C. |
 | Verdict | `PASS` pour **M11-B Core**. `IN_PROGRESS` pour M11 et `UNKNOWN` pour la parité ARET exhaustive. |
 | Mémoire liée | `MEM-DEC-180`; artefact `continuity/artifacts/m11_b_bundle_restore_project_import_2026-08-27.md`. |
+
+
+### LOG-0181 — Commit local M11-B
+
+| Champ | Valeur |
+|---|---|
+| Commit | `23bb4558c8c2b67733e48ab819d373959f33af2b` — `feat: add verified VERA bundle restore and project import`. |
+| Contenu | Services Core de bundle/restauration/import documentaire, test de contrat M11-B, artefact probatoire et mises à jour de continuité. |
+| Validation liée | Régression complète : `536 passed in 52.96s`; diff whitespace : `PASS`. |
+| Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée dans cette session. |
+| Statut | `PASS` pour l’enregistrement local du lot M11-B. |
