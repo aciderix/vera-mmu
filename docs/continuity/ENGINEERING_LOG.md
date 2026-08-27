@@ -2700,3 +2700,18 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Verdict.** `PASS` pour le mécanisme contrôlé et distribué ; `NOT_RUN` pour l’observation par Codex réel, la revue/trust du host et les outils non interceptés. Les fichiers `~/.codex/`, le réseau, bootstrap, secrets, OAuth et auto-approbation restent hors portée.
 
 **Suite.** Poursuivre M5-O (Gemini) en conservant un adapter/version/contrat distinct ; ne pas conclure à une équivalence Codex/Gemini/Claude.
+
+
+## LOG-0200 — 2026-08-27 — M5-O : adapter Gemini CLI sans réarmement post-compaction
+
+**Hypothèse.** Gemini CLI peut utiliser le Core lifecycle et le MCP VERA pour les actions exposées au hook `BeforeTool`, sans simuler un événement de restauration de contexte que le host ne documente pas.
+
+**Changement fonctionnel.** Le commit `7ca437e` ajoute `gemini_adapter.py`, `tests/test_gemini_adapter.py` et `vmmu-gemini-stage`, `vmmu-gemini-hook`, `vmmu-gemini-mcp`, `vmmu-gemini-config`. Le plan versionné `gemini-cli-v1` lie le runtime aux snapshots M5. Le serveur MCP est deny-by-default et ne délivre que l’acquittement contextualisé.
+
+**Contrat et limite.** Les événements `SessionStart`, `BeforeTool`, `AfterTool`, `PreCompress` et `SessionEnd` sont traduits. La garde est applicable aux actions remises à `BeforeTool`, mais `PreCompress` émet seulement un avis : aucun `PostCompact`, réarmement synthétique ou support durable après réduction de contexte n’est déclaré. Le niveau est `TOOL_GUARD_NO_POST_COMPACTION`.
+
+**Tests et contrôles.** Trois tests rouges précèdent l’implémentation. Les trois tests ciblés valident staging, préservation de réglages tiers, conflit/symlink, confirmation, hook JSON, MCP stdio réel, acquittement et absence de réarmement au `PreCompress`. La suite passe à `473 passed, 37 subtests passed`; compilation, diff propre et scans no-ARET/no-network/no-bootstrap/no-home/auto-approve passent. La roue isolée expose quatre entry points. `GEMINI_PRESENT=NO`; aucune installation ni connexion n’a été tentée.
+
+**Verdict.** `PASS` pour la chaîne VERA contrôlée et le niveau annoncé ; `NOT_RUN` pour le trust hôte, l’exécution par Gemini réel, la connexion MCP observée et tout comportement post-compaction réel.
+
+**Suite.** Ouvrir M5-P avec Antigravity comme adapter distinct et ne pas présumer que ses événements s’alignent sur Gemini.

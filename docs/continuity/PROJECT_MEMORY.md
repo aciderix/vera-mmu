@@ -950,3 +950,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 **Provenance :** `tests/test_codex_adapter.py`; `docs/continuity/artifacts/m5_codex_adapter_2026-08-27.md`; OpenAI Hooks/MCP/Config docs consultées le 2026-08-27.
 **Journal :** `LOG-0199`.
+
+
+### MEM-DEC-147 — M5-O : adapter Gemini CLI sans post-compaction synthétique
+
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour la chaîne contrôlée ; `NOT_RUN` pour Gemini CLI réel
+**Décision :** M5-O publie l’adapter `gemini-cli-v1` au commit fonctionnel `7ca437e`, avec runtime staged, hook JSON, MCP stdio deny-by-default et configuration `.gemini/settings.json` uniquement project-local. Le niveau explicite est `TOOL_GUARD_NO_POST_COMPACTION`.
+
+**Motif :** Gemini documente la pré-compression mais pas un événement distinct attestant que le contexte a été restauré. VERA ne doit pas déduire ni émuler un réarmement de garde sur une notification préventive.
+
+**Effet opérationnel :** `SessionStart` arme et distribue le dossier ; `BeforeTool` bloque l’action couverte jusqu’à l’acquittement MCP ; `AfterTool` transmet seulement une notice si l’état le requiert ; `PreCompress` alerte sans modifier la garde. La fusion est confirmée, non destructive et refuse JSON invalide, divergence VERA, symlink ou preview périmé. Aucun user scope, trust host, réseau, secret, bootstrap ou client Gemini réel n’est utilisé.
+
+**Provenance :** `tests/test_gemini_adapter.py`; `docs/continuity/artifacts/m5_gemini_cli_adapter_2026-08-27.md`; documentation Gemini consultée le 2026-08-27.
+**Journal :** `LOG-0200`.
