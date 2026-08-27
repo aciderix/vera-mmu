@@ -16,6 +16,7 @@ from .knowledge import KnowledgeService
 from .relations import RelationService
 from .store import MemoryStore, StoreError
 from .symbols import SymbolService
+from .vcs import inspect_vcs
 from .work_items import WorkItemService
 
 
@@ -43,6 +44,10 @@ class ReadService:
         if not isinstance(store, MemoryStore):
             raise ReadApiError("Store invalide pour les opérations de lecture VERA.")
         self.store = store
+
+    def vcs_status(self) -> dict[str, str]:
+        """Return minimal local VCS observation without paths, commands or mutations."""
+        return inspect_vcs(self.store).as_dict()
 
     def boot(self) -> dict[str, object]:
         """Return project-bound startup state without arming, acknowledging or mutating resume."""

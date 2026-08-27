@@ -270,6 +270,11 @@ def create_server(
         """Retourne la couverture publique dérivée sans chemin ni entrée client."""
         return _call("get_coverage_report", lambda: compile_coverage_report(store).as_dict())
 
+    @server.tool(name="mmu_get_vcs_status", structured_output=True)
+    async def mmu_get_vcs_status() -> dict[str, object]:
+        """Observe le VCS project-local sans commande, chemin, remote ou mutation."""
+        return _call("get_vcs_status", lambda: ReadService(store).vcs_status())
+
     @server.tool(name="mmu_boot", structured_output=True)
     async def mmu_boot() -> dict[str, object]:
         """Retourne l’état project-bound de démarrage sans armer ni modifier la reprise."""
