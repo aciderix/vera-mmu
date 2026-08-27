@@ -1006,3 +1006,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 **Provenance :** `tests/test_operations_cli.py`; `docs/continuity/artifacts/m6_adapter_operations_cli_2026-08-27.md`; suite `482 passed, 37 subtests passed`.
 **Journal :** `LOG-0203`.
+
+
+### MEM-DEC-151 — M6-B : contrats Scan / Generate / Preview / Install communs
+
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour les opérations contrôlées ; hôtes réels `NOT_RUN`
+**Décision :** M6-B publie au commit fonctionnel `8d59939` `ScanReport/v1` et `GenerationPreview/v1`, ainsi que les commandes `vmmu scan`, `vmmu generate` et `vmmu install`. Ces contrats sont la frontière commune CLI/bridge local/dashboard futur.
+
+**Motif :** La future interface visuelle ne doit ni dupliquer le scanner/compilateur, ni appeler la CLI par parsing libre. Les opérations structurées permettent aux interfaces de demander une action identifiée sans transmettre commande, chemin d’écriture, capability, verdict, hash ou session choisis par le client.
+
+**Effet opérationnel :** Le scan ne suit pas de symlink, n’ouvre pas de contenu, ne lance pas de processus et retourne seulement `OBSERVED`. Le preview de génération compile manifeste, instructions, intégration et hook plan de manière déterministe sans config hôte. L’installation route uniquement un adapter allowlisté, reste project-local et conserve preview/confirmation. Aucun user scope, réseau, bootstrap, secret ou preuve host ne relève de M6-B.
+
+**Provenance :** `tests/test_project_operations.py`; `docs/continuity/artifacts/m6b_shared_operations_contract_2026-08-27.md`; suite `485 passed, 37 subtests passed`.
+**Journal :** `LOG-0204`.

@@ -2760,3 +2760,18 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Verdict.** `PASS` pour M6-A. Dashboard visuel, auto-installation, host live, trust user-scope et preuve web restent explicitement hors lot et `NOT_RUN`/`NOT_DELIVERED`.
 
 **Suite.** M6-A satisfait le socle CLI/doctor. Toute extension dashboard doit devenir un lot web séparé, après définition de données locales et de ses frontières de sécurité.
+
+
+## LOG-0204 — 2026-08-27 — M6-B : opérations communes scan/génération/installation
+
+**Hypothèse.** CLI, bridge local et Dashboard peuvent partager les mêmes opérations VERA si elles exposent des contrats de données, non des commandes libres ou de la logique de configuration dupliquée.
+
+**Changement fonctionnel.** Le commit `8d59939` ajoute `project_operations.py`, `tests/test_project_operations.py`, `vmmu scan`, `vmmu generate` et `vmmu install`. `ScanReport/v1` liste seulement les marqueurs réguliers et triés d’une arborescence explicitement choisie. `GenerationPreview/v1` réunit manifeste, instructions, intégration et hook plan calculés depuis le store. `install` route seulement l’adapter déclaré de la matrice CLI.
+
+**Garde de sécurité.** Le scan refuse une racine symlinkée, ne suit pas les symlinks, ne lit pas le contenu, n’exécute rien et ne crée pas de runtime. Le preview ne touche aucune config hôte. L’installation conserve le preview et la confirmation de l’adapter, refuse un adapter inconnu et ne fournit aucune voie user-scope, home, réseau, bootstrap, secret, capability ou commande arbitraire.
+
+**Tests et contrôles.** Trois tests rouges précèdent le code. Ils couvrent stabilité du scan, non-suivi de symlink, route CLI, absence de runtime, déterminisme de génération, absence de `.mcp.json` avant installation, preview/install confirmé et refus adapter inconnu. La suite VERA atteint `485 passed, 37 subtests passed`; compilation, scans no-content-read/no-process/no-network/no-home et roue isolée passent.
+
+**Verdict.** `PASS` pour les contrats/opérations M6-B contrôlés. Aucun host réel, bridge local exposé, dashboard ou write-path user-scope n’est testé ou livré.
+
+**Suite.** Ouvrir M6-C : init guidé, templates de domaine et Agent Profiles déclaratifs, avant le Dashboard et sans modifier le Core pour ajouter un agent.
