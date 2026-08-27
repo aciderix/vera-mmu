@@ -8,6 +8,7 @@ on:
       - "scripts/build_desktop_sidecar.py"
       - "scripts/desktop_bridge_entry.py"
       - "src/vera_mmu/**"
+      - "tests/**"
       - "pyproject.toml"
       - ".github/workflows/desktop-packaging.yml"
   push:
@@ -17,6 +18,7 @@ on:
       - "scripts/build_desktop_sidecar.py"
       - "scripts/desktop_bridge_entry.py"
       - "src/vera_mmu/**"
+      - "tests/**"
       - "pyproject.toml"
       - ".github/workflows/desktop-packaging.yml"
 
