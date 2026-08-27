@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
@@ -8,6 +9,7 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
@@ -261,6 +263,120 @@ class ClaudeCodeCloudRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(str(Path.home()), str(result.mcp_path))
             self.assertIn("vmmu-claude-code-cloud-hook", result.settings_path.read_text(encoding="utf-8"))
             self.assertIn("vmmu-claude-code-cloud-mcp", result.mcp_path.read_text(encoding="utf-8"))
+
+    async def test_i007_i011_user_trust_preview_is_deterministic_and_preserves_settings(self) -> None:
+        from vera_mmu.claude_code_cloud import (
+            apply_claude_code_cloud_host_config,
+            preview_claude_code_cloud_host_config,
+            preview_claude_code_cloud_user_trust,
+        )
+
+        with TemporaryDirectory() as directory, TemporaryDirectory() as simulated_home:
+            project = Path(directory)
+            home = Path(simulated_home)
+            profile = self._prepare(project)
+            with patch.object(Path, "home", return_value=home):
+                with MemoryStore.open(load_profile(profile), profile) as store:
+                    project_preview = preview_claude_code_cloud_host_config(store, {}, {})
+                    apply_claude_code_cloud_host_config(store, project_preview, confirm=True)
+                    first = preview_claude_code_cloud_user_trust(store, {"theme": "dark", "enabledMcpjsonServers": ["other"]})
+                    second = preview_claude_code_cloud_user_trust(store, {"theme": "dark", "enabledMcpjsonServers": ["other"]})
+            self.assertEqual(first, second)
+            self.assertEqual(first.status, "PREVIEW_USER_SCOPE")
+            self.assertEqual(first.settings_path, home / ".claude" / "settings.json")
+            merged = json.loads(first.settings_json_text)
+            self.assertEqual(merged["theme"], "dark")
+            self.assertEqual(merged["enabledMcpjsonServers"][0], "other")
+            self.assertIn(first.server_id, merged["enabledMcpjsonServers"])
+            self.assertFalse((home / ".claude").exists())
+
+    async def test_i007_i011_user_trust_preview_refuses_missing_project_config_or_disabled_server(self) -> None:
+        from vera_mmu.claude_code_cloud import (
+            ClaudeCodeCloudError,
+            apply_claude_code_cloud_host_config,
+            preview_claude_code_cloud_host_config,
+            preview_claude_code_cloud_user_trust,
+        )
+
+        with TemporaryDirectory() as directory, TemporaryDirectory() as simulated_home:
+            project = Path(directory)
+            profile = self._prepare(project)
+            with patch.object(Path, "home", return_value=Path(simulated_home)):
+                with MemoryStore.open(load_profile(profile), profile) as store:
+                    with self.assertRaises(ClaudeCodeCloudError):
+                        preview_claude_code_cloud_user_trust(store, {})
+                    project_preview = preview_claude_code_cloud_host_config(store, {}, {})
+                    apply_claude_code_cloud_host_config(store, project_preview, confirm=True)
+                    server_id = preview_claude_code_cloud_user_trust(store, {}).server_id
+                    with self.assertRaises(ClaudeCodeCloudError):
+                        preview_claude_code_cloud_user_trust(store, {"disabledMcpjsonServers": [server_id]})
+
+    async def test_i007_i011_user_trust_cli_preview_is_no_write(self) -> None:
+        from vera_mmu.claude_code_cloud import (
+            apply_claude_code_cloud_host_config,
+            claude_code_cloud_config_main,
+            preview_claude_code_cloud_host_config,
+        )
+
+        with TemporaryDirectory() as directory, TemporaryDirectory() as simulated_home:
+            project = Path(directory)
+            home = Path(simulated_home)
+            profile = self._prepare(project)
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                project_preview = preview_claude_code_cloud_host_config(store, {}, {})
+                apply_claude_code_cloud_host_config(store, project_preview, confirm=True)
+            output = io.StringIO()
+            with patch.object(Path, "home", return_value=home), redirect_stdout(output):
+                status = claude_code_cloud_config_main(["--profile", str(profile), "--preview-user-scope"])
+            payload = json.loads(output.getvalue())
+            self.assertEqual(status, 0)
+            self.assertTrue(payload["ok"])
+            self.assertEqual(payload["status"], "PREVIEW_USER_SCOPE")
+            self.assertEqual(payload["userScope"], "PREVIEW_ONLY")
+            self.assertFalse((home / ".claude").exists())
+
+    async def test_i007_i011_user_trust_apply_requires_two_confirmations_and_refuses_symlink(self) -> None:
+        from vera_mmu.claude_code_cloud import (
+            ClaudeCodeCloudError,
+            apply_claude_code_cloud_host_config,
+            apply_claude_code_cloud_user_trust,
+            preview_claude_code_cloud_host_config,
+            preview_claude_code_cloud_user_trust,
+        )
+
+        with TemporaryDirectory() as directory, TemporaryDirectory() as simulated_home:
+            project = Path(directory)
+            home = Path(simulated_home)
+            profile = self._prepare(project)
+            with patch.object(Path, "home", return_value=home):
+                with MemoryStore.open(load_profile(profile), profile) as store:
+                    project_preview = preview_claude_code_cloud_host_config(store, {}, {})
+                    apply_claude_code_cloud_host_config(store, project_preview, confirm=True)
+                    preview = preview_claude_code_cloud_user_trust(store, {})
+                    with self.assertRaises(ClaudeCodeCloudError):
+                        apply_claude_code_cloud_user_trust(store, preview, confirm_preview=False, confirm_user_scope=True)
+                    with self.assertRaises(ClaudeCodeCloudError):
+                        apply_claude_code_cloud_user_trust(store, preview, confirm_preview=True, confirm_user_scope=False)
+                    result = apply_claude_code_cloud_user_trust(store, preview, confirm_preview=True, confirm_user_scope=True)
+            self.assertEqual(result.status, "APPLIED_USER_SCOPE")
+            self.assertEqual(result.settings_path, home / ".claude" / "settings.json")
+            self.assertIn(result.server_id, json.loads(result.settings_path.read_text(encoding="utf-8"))["enabledMcpjsonServers"])
+
+        with TemporaryDirectory() as directory, TemporaryDirectory() as simulated_home:
+            project = Path(directory)
+            home = Path(simulated_home)
+            profile = self._prepare(project)
+            (home / ".claude").mkdir()
+            target = home / "outside.json"
+            target.write_text("{}", encoding="utf-8")
+            (home / ".claude" / "settings.json").symlink_to(target)
+            with patch.object(Path, "home", return_value=home):
+                with MemoryStore.open(load_profile(profile), profile) as store:
+                    project_preview = preview_claude_code_cloud_host_config(store, {}, {})
+                    apply_claude_code_cloud_host_config(store, project_preview, confirm=True)
+                    with self.assertRaises(ClaudeCodeCloudError):
+                        preview_claude_code_cloud_user_trust(store, {})
+            self.assertEqual(target.read_text(encoding="utf-8"), "{}")
 
     async def test_hook_to_cloud_mcp_acknowledgement_to_pretool_allow(self) -> None:
         with TemporaryDirectory() as directory:

@@ -1,9 +1,9 @@
 """Cloud planning, staged lifecycle, and project-local host configuration for Claude Code.
 
 M5-M.1 deliberately compiled and observed only; M5-M.2 added runtime-confined staging/hook/MCP;
-M5-M.3a adds an explicitly confirmed project-local configuration merge.  This module never
-installs packages, accesses the network, reads or writes user settings, inspects secret values,
-or claims live-cloud readiness.
+M5-M.3a adds an explicitly confirmed project-local configuration merge; M5-M.3b adds a
+user-scope trust preview and a separately confirmed write.  This module never installs packages,
+accesses the network, inspects secret values, or claims live-cloud readiness.
 """
 
 from __future__ import annotations
@@ -41,8 +41,11 @@ CLAUDE_CODE_CLOUD_ADAPTER_VERSION = "1.0.0"
 CLAUDE_CODE_CLOUD_MAXIMUM_GUARD_MODE = "HARD"
 CLOUD_RUNTIME_FORMAT = "vera-claude-code-cloud-runtime/v1"
 CLOUD_HOST_CONFIG_FORMAT = "vera-claude-code-cloud-host-config/v1"
+CLOUD_USER_TRUST_FORMAT = "vera-claude-code-cloud-user-trust/v1"
 CLOUD_CONFIG_ENTRYPOINT = "vmmu-claude-code-cloud-config"
 _CLOUD_USER_SCOPE_TARGET = "$HOME/.claude/settings.json"
+_ENABLED_MCPJSON_SERVERS_KEY = "enabledMcpjsonServers"
+_DISABLED_MCPJSON_SERVERS_KEY = "disabledMcpjsonServers"
 _EVENTS = ("SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "PostCompact", "Stop")
 _TRUST_STATUSES = frozenset(("TRUST_PENDING", "TRUSTED", "DISABLED", "UNVERIFIABLE"))
 
@@ -119,6 +122,30 @@ class ClaudeCodeCloudHostConfigApplyResult:
     state_path: Path
     plan_hash: str
     user_scope_status: str
+
+
+@dataclass(frozen=True)
+class ClaudeCodeCloudUserTrustPreview:
+    """A no-write user-scope approval preview tied to an applied project configuration."""
+
+    status: str
+    settings_path: Path
+    settings_json_text: str
+    server_id: str
+    plan_hash: str
+    project_config_hash: str
+    format: str
+
+
+@dataclass(frozen=True)
+class ClaudeCodeCloudUserTrustApplyResult:
+    """Result of a doubly confirmed user-scope approval write."""
+
+    status: str
+    settings_path: Path
+    server_id: str
+    plan_hash: str
+    format: str
 
 
 @dataclass(frozen=True)
@@ -419,6 +446,77 @@ def apply_claude_code_cloud_host_config(
     )
 
 
+def preview_claude_code_cloud_user_trust(
+    store: MemoryStore,
+    existing_user_settings: Mapping[str, Any],
+) -> ClaudeCodeCloudUserTrustPreview:
+    """Preview the sole user-scope change that can approve the attested project MCP server.
+
+    The project configuration must already be applied and its runtime receipt must match current
+    project files.  The supplied user-settings snapshot is copied only; this function never reads
+    a home path and has no side effect.
+    """
+    if not isinstance(store, MemoryStore):
+        raise ClaudeCodeCloudError("Store invalide pour le preview trust Claude cloud.")
+    settings = _json_object_copy(existing_user_settings, "settings utilisateur Claude cloud")
+    project = _verified_cloud_host_config(store)
+    server_id = _cloud_mcp_server(_load_staged_cloud_runtime(store).plan)["id"]
+    if not isinstance(server_id, str):
+        raise ClaudeCodeCloudError("Serveur MCP cloud attesté sans identifiant.")
+    merged, _ = _merge_cloud_user_trust(settings, server_id)
+    settings_text = _canonical_json(merged)
+    plan_hash = sha256(
+        (CLOUD_USER_TRUST_FORMAT + "\0" + project.plan_hash + "\0" + settings_text).encode("utf-8")
+    ).hexdigest()
+    return ClaudeCodeCloudUserTrustPreview(
+        status="PREVIEW_USER_SCOPE",
+        settings_path=_cloud_user_settings_path(store, create=False),
+        settings_json_text=settings_text,
+        server_id=server_id,
+        plan_hash=plan_hash,
+        project_config_hash=project.plan_hash,
+        format=CLOUD_USER_TRUST_FORMAT,
+    )
+
+
+def apply_claude_code_cloud_user_trust(
+    store: MemoryStore,
+    preview: ClaudeCodeCloudUserTrustPreview,
+    *,
+    confirm_preview: bool,
+    confirm_user_scope: bool,
+) -> ClaudeCodeCloudUserTrustApplyResult:
+    """Write a verified user-scope trust preview only after two explicit confirmations.
+
+    This is intentionally distinct from project-local configuration.  Callers cannot supply a
+    target path, a server identity, or one generic confirmation that would collapse the two gates.
+    """
+    if confirm_preview is not True or confirm_user_scope is not True:
+        raise ClaudeCodeCloudError("Trust user-scope Claude cloud refusé : deux confirmations explicites sont requises.")
+    if not isinstance(preview, ClaudeCodeCloudUserTrustPreview) or preview.format != CLOUD_USER_TRUST_FORMAT:
+        raise ClaudeCodeCloudError("Preview trust user-scope Claude cloud invalide.")
+    settings_path = _cloud_user_settings_path(store, create=False)
+    expected = preview_claude_code_cloud_user_trust(
+        store,
+        _load_json_object(settings_path, "settings utilisateur Claude cloud"),
+    )
+    if preview != expected:
+        raise ClaudeCodeCloudError("Preview trust user-scope Claude cloud périmé, altéré ou divergent.")
+    current = _read_optional_text(settings_path)
+    if current == preview.settings_json_text:
+        status = "UNCHANGED"
+    else:
+        _atomic_write(settings_path, preview.settings_json_text, ".vera-claude-cloud-user-trust-")
+        status = "APPLIED_USER_SCOPE"
+    return ClaudeCodeCloudUserTrustApplyResult(
+        status=status,
+        settings_path=settings_path,
+        server_id=preview.server_id,
+        plan_hash=preview.plan_hash,
+        format=CLOUD_USER_TRUST_FORMAT,
+    )
+
+
 def handle_claude_code_cloud_hook(
     store: MemoryStore,
     lifecycle: LifecycleAdapterPlan,
@@ -647,6 +745,62 @@ def _json_object_copy(value: Mapping[str, Any], label: str) -> dict[str, Any]:
     if not isinstance(copied, dict):
         raise ClaudeCodeCloudError(f"{label} doit être un objet JSON.")
     return copied
+
+
+def _verified_cloud_host_config(store: MemoryStore) -> ClaudeCodeCloudHostConfigPreview:
+    """Recompute and verify the applied project-local receipt before preparing user approval."""
+    settings_path = _cloud_host_settings_path(store, create=False)
+    mcp_path = _cloud_host_mcp_path(store)
+    state_path = _cloud_host_state_path(store, create=False)
+    actual = preview_claude_code_cloud_host_config(
+        store,
+        _load_json_object(settings_path, "settings Claude cloud"),
+        _load_json_object(mcp_path, "configuration MCP cloud"),
+    )
+    state = _read_optional_text(state_path)
+    if state is None or state != _cloud_host_state_text(actual):
+        raise ClaudeCodeCloudError("Configuration hôte project-local Claude cloud absente, périmée ou divergente.")
+    return actual
+
+
+def _cloud_user_settings_path(store: MemoryStore, *, create: bool) -> Path:
+    """Return the fixed user-scope approval path; callers can never choose an alternative."""
+    del store
+    directory = Path.home() / ".claude"
+    if directory.is_symlink():
+        raise ClaudeCodeCloudError("Répertoire .claude user-scope symlinké refusé.")
+    if create:
+        _safe_parent(directory, "répertoire .claude user-scope")
+    elif directory.exists() and not directory.is_dir():
+        raise ClaudeCodeCloudError("Répertoire .claude user-scope ambigu ou non régulier.")
+    target = directory / "settings.json"
+    if target.is_symlink():
+        raise ClaudeCodeCloudError("La cible user-scope .claude/settings.json ne peut pas être un lien symbolique.")
+    return target
+
+
+def _merge_cloud_user_trust(existing: dict[str, Any], server_id: str) -> tuple[dict[str, Any], bool]:
+    """Add exactly one project MCP approval while preserving unrelated user settings."""
+    if not isinstance(server_id, str) or not server_id.startswith("vera-mmu-"):
+        raise ClaudeCodeCloudError("Identifiant de serveur VERA cloud invalide pour le trust user-scope.")
+    enabled = _server_name_list(existing, _ENABLED_MCPJSON_SERVERS_KEY)
+    disabled = _server_name_list(existing, _DISABLED_MCPJSON_SERVERS_KEY)
+    if server_id in disabled:
+        raise ClaudeCodeCloudError("Conflit : le serveur MCP VERA cloud est explicitement désactivé au user-scope.")
+    if server_id in enabled:
+        return existing, False
+    merged = dict(existing)
+    merged[_ENABLED_MCPJSON_SERVERS_KEY] = [*enabled, server_id]
+    return merged, True
+
+
+def _server_name_list(payload: Mapping[str, Any], key: str) -> list[str]:
+    value = payload.get(key, [])
+    if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
+        raise ClaudeCodeCloudError(f"{key} user-scope doit être une liste de noms non vides.")
+    if len(value) != len(set(value)):
+        raise ClaudeCodeCloudError(f"{key} user-scope contient des doublons ambigus.")
+    return list(value)
 
 
 def _cloud_host_settings_path(store: MemoryStore, *, create: bool) -> Path:
@@ -933,42 +1087,77 @@ def _atomic_write(target: Path, text: str, prefix: str) -> None:
 
 
 def claude_code_cloud_config_main(argv: Sequence[str] | None = None) -> int:
-    """Preview, or explicitly apply, the project-only Claude cloud configuration."""
+    """Preview/apply project config, or preview/apply user trust through distinct confirmation gates."""
     parser = argparse.ArgumentParser(description="Configuration hôte Claude Code cloud VERA-MMU")
     parser.add_argument("--profile", type=Path, required=True)
-    parser.add_argument("--apply-project", action="store_true")
-    parser.add_argument("--confirm", action="store_true")
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument("--apply-project", action="store_true")
+    scope.add_argument("--preview-user-scope", action="store_true")
+    scope.add_argument("--apply-user-scope", action="store_true")
+    parser.add_argument("--confirm", action="store_true", help="Confirme l’écriture project-local uniquement.")
+    parser.add_argument("--confirm-preview", action="store_true", help="Premier accord explicite pour trust user-scope.")
+    parser.add_argument("--confirm-user-scope", action="store_true", help="Second accord explicite pour trust user-scope.")
     args = parser.parse_args(argv)
     try:
         from .identity import load_profile
 
         with MemoryStore.open(load_profile(args.profile), args.profile) as store:
-            preview = preview_claude_code_cloud_host_config(
-                store,
-                _load_json_object(_cloud_host_settings_path(store, create=False), "settings Claude cloud"),
-                _load_json_object(_cloud_host_mcp_path(store), "configuration MCP cloud"),
-            )
-            if args.apply_project:
-                result = apply_claude_code_cloud_host_config(store, preview, confirm=args.confirm)
-                payload = {
-                    "ok": True,
-                    "mcpPath": str(result.mcp_path),
-                    "planHash": result.plan_hash,
-                    "settingsPath": str(result.settings_path),
-                    "statePath": str(result.state_path),
-                    "status": result.status,
-                    "userScope": result.user_scope_status,
-                }
+            if args.preview_user_scope or args.apply_user_scope:
+                preview = preview_claude_code_cloud_user_trust(
+                    store,
+                    _load_json_object(_cloud_user_settings_path(store, create=False), "settings utilisateur Claude cloud"),
+                )
+                if args.apply_user_scope:
+                    result = apply_claude_code_cloud_user_trust(
+                        store,
+                        preview,
+                        confirm_preview=args.confirm_preview,
+                        confirm_user_scope=args.confirm_user_scope,
+                    )
+                    payload = {
+                        "ok": True,
+                        "planHash": result.plan_hash,
+                        "serverId": result.server_id,
+                        "settingsPath": str(result.settings_path),
+                        "status": result.status,
+                        "userScope": "APPLIED",
+                    }
+                else:
+                    payload = {
+                        "ok": True,
+                        "planHash": preview.plan_hash,
+                        "serverId": preview.server_id,
+                        "settingsPath": str(preview.settings_path),
+                        "status": preview.status,
+                        "userScope": "PREVIEW_ONLY",
+                    }
             else:
-                payload = {
-                    "mcpPath": str(preview.mcp_path),
-                    "ok": True,
-                    "planHash": preview.plan_hash,
-                    "settingsPath": str(preview.settings_path),
-                    "status": preview.status,
-                    "userScope": preview.user_scope_status,
-                    "userScopeTarget": preview.user_scope_target,
-                }
+                preview = preview_claude_code_cloud_host_config(
+                    store,
+                    _load_json_object(_cloud_host_settings_path(store, create=False), "settings Claude cloud"),
+                    _load_json_object(_cloud_host_mcp_path(store), "configuration MCP cloud"),
+                )
+                if args.apply_project:
+                    result = apply_claude_code_cloud_host_config(store, preview, confirm=args.confirm)
+                    payload = {
+                        "ok": True,
+                        "mcpPath": str(result.mcp_path),
+                        "planHash": result.plan_hash,
+                        "settingsPath": str(result.settings_path),
+                        "statePath": str(result.state_path),
+                        "status": result.status,
+                        "userScope": result.user_scope_status,
+                    }
+                else:
+                    payload = {
+                        "mcpPath": str(preview.mcp_path),
+                        "ok": True,
+                        "planHash": preview.plan_hash,
+                        "settingsPath": str(preview.settings_path),
+                        "status": preview.status,
+                        "userScope": preview.user_scope_status,
+                        "userScopeTarget": preview.user_scope_target,
+                    }
     except StoreError as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, sort_keys=True))
         return 2
