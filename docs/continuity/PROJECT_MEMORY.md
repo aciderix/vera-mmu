@@ -1103,3 +1103,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** `tests/test_m8_domain_conformance.py`; suite `504 passed, 43 subtests passed`; roue isolée `vmmu scan`; artefact `m8_multi_domain_conformance_2026-08-27.md`. Voir `LOG-0213`.
 **Limites :** Ceci ne valide pas la sémantique des domaines ni un hôte/agent réel. Le résultat CI Windows/Linux reste à observer après publication.
 **Journal :** `LOG-0213`.
+
+### MEM-DEC-161 — M8-B : correction de portabilité de fixtures Windows
+**Type :** `CORRECTION`
+**Statut :** `PASS` local ; rerun Windows CI `PENDING`
+**Décision :** Conserver les chemins physiques canonisés par le Core. Les tests de preview/installation comparent désormais la même forme canonique (`resolve`) plutôt qu’un alias temporaire Windows. Les tests de synchronisation ferment leur `MemoryStore` dans un `finally` avant le nettoyage de `TemporaryDirectory`, au lieu d’enregistrer un cleanup trop tardif.
+**Observation source :** GitHub Actions `33063264121` : Linux x64 a réussi ; Windows x64 a échoué avant packaging sur des `PermissionError [WinError 32]` de suppression de SQLite ouverte et des égalités de `Path` long/court. Il n’y a pas eu de modification du Core ni d’abaissement de contrôle de chemin.
+**Validation :** sous Linux après correction, six fichiers de régression puis la suite complète : `504 passed, 43 subtests passed`.
+**Limites :** La répétition Windows x64 est nécessaire pour convertir cette correction locale en preuve multi-plateforme. Hôtes réels et comportements métier de domaine restent hors M8.
+**Journal :** `LOG-0214`.

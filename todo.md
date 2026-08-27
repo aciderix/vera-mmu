@@ -13,3 +13,4 @@
 - [x] Définir les fixtures de conformance VERA pour software, data, research, documentation, game et hardware.
 - [x] Vérifier le parcours CLI/bridge project-local sur chaque fixture sans vocabulaire ni comportement propre au domaine dans le Core.
 - [x] Vérifier no-Git, mono-repo, multi-repo et continuité de mémoire SQLite project-local via clone Git sans fusion binaire implicite.
+- [ ] Rejouer la matrice native Windows/Linux après le correctif de fermeture SQLite et d’alias de chemins Windows ; ne qualifier M8 qu’avec les deux runners explicites.

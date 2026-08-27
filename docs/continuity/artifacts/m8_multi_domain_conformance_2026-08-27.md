@@ -1,6 +1,6 @@
 # M8 — Conformance multi-domaines et topologies de projet
 
-**Statut :** `PARTIAL_PASS` — conformance Core/CLI/bridge attestée localement ; revalidation native Windows/Linux par CI prévue après publication.
+**Statut :** `PARTIAL_PASS` — conformance Core/CLI/bridge attestée localement et sur Linux CI. Le premier runner Windows a révélé deux défauts de portabilité dans les **tests** ; ils sont corrigés localement et nécessitent une seconde exécution native avant qualification Windows.
 
 ## 1. Objet et frontière
 
@@ -44,8 +44,21 @@ La nouvelle suite `tests/test_m8_domain_conformance.py` passe avec **3 tests et 
 
 Le contrôle de frontière ne détecte aucune référence `ARET`, Wine, Ghidra, MinGW ou PE32 dans `src/vera_mmu/` hors du chemin autorisé `src/vera_mmu/domain_packs/aret/`, ni dans la fixture M8.
 
-## 6. Limites et suite
+## 6. Observation Windows et remédiation
+
+Le run GitHub Actions `33063264121` a validé intégralement Linux x64, y compris la suite VERA avant la construction des bundles. Windows x64 a arrêté la suite avant le packaging, sans atteindre le sidecar ni les installateurs. Les échecs proviennent de deux mécanismes de test rendus visibles par la sémantique de Windows :
+
+| Constat Windows | Cause | Correction | Garantie préservée |
+|---|---|---|---|
+| Suppression temporaire de `memory.sqlite` refusée | `addCleanup(store.close)` s’exécutait après la sortie de `TemporaryDirectory`; Windows interdit de supprimer une base encore ouverte | fermeture explicite du `MemoryStore` dans un `finally` avant la suppression | fermeture claire sans écriture supplémentaire, WAL et policy inchangés |
+| Égalité de `Path` échouée malgré le même fichier | le Core conserve le chemin physique canonique, tandis que la fixture comparait l’alias long temporaire | l’attendu de test est canonisé par `project.resolve()` ou `target.resolve()` | racine canonique, contrôles anti-symlink et confinement inchangés |
+
+Il ne s’agit ni d’un contournement de test, ni d’une modification du Core pour rendre Windows moins strict. Les tests continuent de vérifier les mêmes chemins project-local, écritures et refus ; ils comparent désormais l’identité canonique que le Core utilise déjà pour la sécurité.
+
+La suite complète après correction est de nouveau `504 passed, 43 subtests passed` localement. La seconde matrice CI doit reproduire ce résultat sur Windows et reconstruire les artefacts de vérification avant que M8 soit qualifié sur les deux plateformes.
+
+## 7. Limites et suite
 
 M8 n’exécute aucun agent réel, oracle de domaine, installation sur machine utilisateur, merge de SQLite concurrentes ou release. Les tests d’hôtes Claude, Codex, Gemini et Antigravity restent explicitement différés à la campagne finale.
 
-Après la publication M8, la matrice GitHub Actions exécutera cette même suite complète sur Windows et Linux avant le packaging. Une fois les deux runners observés, le lot de conformance pourra être qualifié sur les plateformes ciblées ; la release, les signatures et la migration demeureront M9.
+Après la publication du correctif Windows, la matrice GitHub Actions réexécutera cette même suite complète sur Windows et Linux avant le packaging. Une fois les deux runners observés, le lot de conformance pourra être qualifié sur les plateformes ciblées ; la release, les signatures et la migration demeureront M9.

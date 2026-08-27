@@ -2851,3 +2851,11 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Contrôles.** `tests/test_m8_domain_conformance.py` : `3 passed, 6 subtests passed`. Suite VERA : `504 passed, 43 subtests passed`. Roue isolée : `vmmu scan` produit `vera-scan-report/v1` `OBSERVED`. Le scan de frontière hors `domain_packs/aret/` est vide après désactivation explicite de la couleur Git.
 **Verdict.** `PASS` local pour M8-A. Les runners CI Windows/Linux n’ont pas encore rejoué ce lot ; les domaines restent des fixtures de protocole, et les hôtes réels restent `NOT_RUN`.
 **Suite.** Commiter/publier code et continuité M8 ; examiner la matrice native déclenchée, puis passer à M9 uniquement avec le résultat plateforme correctement qualifié.
+
+## LOG-0214 — 2026-08-27 — M8-B : échec Windows de fixtures, diagnostic et correctif portable
+**Déclencheur.** La première matrice desktop intégrant `python -m pytest -q` avant packaging (`33063264121`) a réussi sur Linux x64. Windows x64 a échoué dans cette étape ; la construction sidecar et les bundles Windows n’ont donc pas été lancés par ce run.
+**Diagnostic.** Quatre tests `memory_sync` enregistraient `store.close` via `addCleanup` à l’intérieur d’un `TemporaryDirectory`. `unittest` déclenche ce cleanup après la sortie du répertoire temporaire ; Linux permet de délier le fichier SQLite ouvert, Windows le refuse. Cinq tests de previews comparaient également le `Path` temporaire long à une cible Core déjà canonisée en forme physique courte. Les deux chemins désignent le même emplacement, mais la comparaison structurale est différente.
+**Correctif.** Fermeture explicite du store dans un `finally` avant le nettoyage temporaire ; attentes de chemins canonisées par `resolve`. Aucun module `src/vera_mmu/` n’est modifié. Les politiques Git, l’atomicité, les contrôles symlink et le confinement utilisent toujours la racine canonique existante.
+**Validation locale.** Les six modules précédemment affectés, puis toute la suite : `504 passed, 43 subtests passed`.
+**Verdict.** Correctif de test `PASS` local. Windows native reste `PENDING` jusqu’à la seconde matrice ; la qualification M8 reste donc `PARTIAL_PASS`.
+**Suite.** Publier après garde de divergence, attendre la matrice Windows/Linux et n’enregistrer un `PASS` M8 multi-plateforme qu’après les deux résultats explicites.
