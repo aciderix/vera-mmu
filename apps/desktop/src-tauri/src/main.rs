@@ -10,9 +10,10 @@ use tauri::{Manager, State};
 const FORMAT: &str = "vera-desktop-bridge/v1";
 
 #[derive(Debug)]
-#[cfg_attr(debug_assertions, allow(dead_code))]
 enum BridgeExecutable {
+    #[cfg_attr(not(debug_assertions), allow(dead_code))]
     Source(PathBuf),
+    #[cfg_attr(debug_assertions, allow(dead_code))]
     Bundled(PathBuf),
 }
 
@@ -110,6 +111,7 @@ fn bridge_executable(app: &tauri::AppHandle) -> Result<BridgeExecutable, String>
     }
     #[cfg(not(debug_assertions))]
     {
+        let _ = app;
         let extension = if cfg!(target_os = "windows") { ".exe" } else { "" };
         let binary = std::env::current_exe()
             .map_err(|_| "Exécutable desktop introuvable.".to_string())?

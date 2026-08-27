@@ -1,0 +1,79 @@
+name: Desktop packaging
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "scripts/build_desktop_sidecar.py"
+      - "scripts/desktop_bridge_entry.py"
+      - "src/vera_mmu/**"
+      - "pyproject.toml"
+      - ".github/workflows/desktop-packaging.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "scripts/build_desktop_sidecar.py"
+      - "scripts/desktop_bridge_entry.py"
+      - "src/vera_mmu/**"
+      - "pyproject.toml"
+      - ".github/workflows/desktop-packaging.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x64
+            runner: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: appimage,deb
+          - name: Windows x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis,msi
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux bundle prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+      - name: Install VERA sidecar build dependencies
+        run: python -m pip install --upgrade pip pyinstaller .
+      - name: Install desktop dependencies
+        working-directory: apps/desktop
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+      - name: Build native VERA sidecar
+        run: python scripts/build_desktop_sidecar.py ${{ matrix.target }}
+      - name: Build desktop bundles
+        working-directory: apps/desktop
+        run: pnpm tauri build --bundles ${{ matrix.bundles }}
+      - name: Upload verification artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vera-mmu-desktop-${{ matrix.target }}
+          if-no-files-found: error
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/**/*.AppImage
+            apps/desktop/src-tauri/target/release/bundle/**/*.deb
+            apps/desktop/src-tauri/target/release/bundle/**/*.exe
+            apps/desktop/src-tauri/target/release/bundle/**/*.msi
