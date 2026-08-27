@@ -3083,3 +3083,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** Les trois tests M11-H initient un profile documentaire, puis vérifient les results de boot, la séparation FIND/READ, le refus d’adresse étrangère, les bornes de query/batch, l’absence d’audit nouveau, la CLI et une session MCP stdio sans profile path ni project id clients. Contrat : `3 passed in 2.04s`; cible CLI/MCP : `27 passed in 20.45s`; régression complète : **`544 passed in 62.63s`**.
 
 **Verdict.** `M11-H = PASS` pour les trois ressources et opérations documentées. Front/handoff/relations/preuves/assets/capabilities/gates/executions, `related`, resume status détaillé, mutations, work/evidence et recherche/indexation plus large restent explicitement hors lot. Artefact : `artifacts/m11_h_boot_find_read_2026-08-27.md`; mémoire : `MEM-DEC-183`.
+
+
+### LOG-0238 — Commit local M11-H
+
+| Champ | Valeur |
+|---|---|
+| Commit | `eb26138f0727637ecbaa16cc5f7e3dee4e2b4208` — `feat: add generic boot find read APIs`. |
+| Contenu | Service Core `ReadService`, CLI boot/find/read/read-batch, quatre tools MCP fermés, manifeste canonique étendu, contrats de lecture et continuité M11-H. |
+| Validation liée | Contrat M11-H : `3 passed in 2.04s`; cible CLI/MCP : `27 passed in 20.45s`; intégral final : `544 passed in 62.63s`; diff et scan de frontière : `PASS`. |
+| Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
+| Statut | `M11-H = PASS` dans le périmètre documenté. |
