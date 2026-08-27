@@ -2745,3 +2745,18 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Verdict.** `PASS` pour le fallback VERA contrôlé. Aucun host, trust, hook, session, compaction, réseau ou exécution de capability ne peut être déduit de M5-Q.
 
 **Suite.** Ouvrir M6 pour fédérer les operations stage/configure/validate/doctor sous une CLI diagnostique, sans déplacer les règles d’adapter dans l’interface.
+
+
+## LOG-0203 — 2026-08-27 — M6-A : façade CLI et doctor observationnel
+
+**Hypothèse.** Une CLI centrale peut améliorer l’exploitation des adapters sans déplacer leur politique, leur lifecycle ni leurs confirmations dans une nouvelle surface permissive.
+
+**Changement fonctionnel.** Le commit `17a2bba` étend `vmmu` avec `adapter matrix`, `doctor`, `validate`, `stage` et `configure`. La matrice est statique et rend les niveaux déclarés visibles; doctor ouvre seulement le profile/workspace et constate runtime/configuration; stage/configure routent vers les entry points déjà attestés.
+
+**Garde de portée.** La CLI générale refuse `--apply-user-scope`. Elle ne peut donc pas appeler le write-path Claude cloud à deux confirmations. Elle refuse également les adapters inconnus et les cibles doctor symlinkées. Elle n’accepte aucune commande shell, capability, verdict, hash, session, adapter interne ou chemin hôte arbitraire.
+
+**Tests et contrôles.** Trois tests rouges précèdent le code. Les trois tests ciblés valident matrice, doctor sans création de config, stage sans confirmation, refus user-scope et adapter inconnu. La suite VERA atteint `482 passed, 37 subtests passed`; compilation, scans no-ARET/no-network/no-bootstrap/no-home et diff propre passent. La roue isolée exécute `vmmu --help`, `vmmu adapter matrix` et l’entry point fallback MCP.
+
+**Verdict.** `PASS` pour M6-A. Dashboard visuel, auto-installation, host live, trust user-scope et preuve web restent explicitement hors lot et `NOT_RUN`/`NOT_DELIVERED`.
+
+**Suite.** M6-A satisfait le socle CLI/doctor. Toute extension dashboard doit devenir un lot web séparé, après définition de données locales et de ses frontières de sécurité.

@@ -992,3 +992,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 **Provenance :** `tests/test_generic_mcp_adapter.py`; `docs/continuity/artifacts/m5_generic_mcp_adapter_2026-08-27.md`; spécification MCP consultée le 2026-08-27.
 **Journal :** `LOG-0202`.
+
+
+### MEM-DEC-150 — M6-A : CLI unifiée et doctor observationnel des adapters
+
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour le socle CLI
+**Décision :** M6-A publie au commit fonctionnel `17a2bba` la façade `vmmu adapter` : matrice des couvertures, doctor observationnel, validation, stage et configuration project-local routés vers les adapters attestés.
+
+**Motif :** L’exploitation doit être plus simple sans déplacer les règles de sécurité des adapters dans une nouvelle couche. Une CLI générale ne peut pas servir à élever silencieusement une portée de configuration ou à déclarer un host réellement prêt.
+
+**Effet opérationnel :** `matrix`, `doctor` et `validate` ne créent aucun état. `stage` et `configure` conservent les confirmations et gardes de l’adapter cible. `--apply-user-scope` est structurellement refusé par la CLI générale; la commande Claude dédiée et sa double confirmation restent obligatoires. Le dashboard, tout host live et tout write-path sensible restent hors M6-A.
+
+**Provenance :** `tests/test_operations_cli.py`; `docs/continuity/artifacts/m6_adapter_operations_cli_2026-08-27.md`; suite `482 passed, 37 subtests passed`.
+**Journal :** `LOG-0203`.
