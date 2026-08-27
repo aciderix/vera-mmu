@@ -87,7 +87,7 @@ def _candidate_sources(cli_archive: Path, cli_manifest: Path, desktop_outputs: t
     return sources
 
 
-def _desktop_outputs(target: str) -> tuple[Path, ...]:
+def _desktop_outputs(target: str, version: str | None = None) -> tuple[Path, ...]:
     bundle = ROOT / "apps" / "desktop" / "src-tauri" / "target" / "release" / "bundle"
     patterns = {
         "x86_64-unknown-linux-gnu": ("appimage/*.AppImage", "deb/*.deb"),
@@ -97,6 +97,8 @@ def _desktop_outputs(target: str) -> tuple[Path, ...]:
         files = tuple(path for pattern in patterns[target] for path in sorted(bundle.glob(pattern)))
     except KeyError as exc:
         raise ReleaseCandidateError(f"Target de release non pris en charge : {target}") from exc
+    if version is not None:
+        files = tuple(path for path in files if version in path.name)
     if len(files) != 2 or any(not path.is_file() or path.is_symlink() for path in files):
         raise ReleaseCandidateError("Les deux bundles desktop attendus sont requis pour le candidat.")
     return files
@@ -119,7 +121,7 @@ def assemble(target: str) -> Path:
     output = ROOT / ".build" / "release-candidate" / target
     shutil.rmtree(output, ignore_errors=True)
     output.mkdir(parents=True, exist_ok=True)
-    candidates = _candidate_sources(cli_archives[0], cli_manifest, _desktop_outputs(target))
+    candidates = _candidate_sources(cli_archives[0], cli_manifest, _desktop_outputs(target, version))
     copied: list[Path] = []
     for source, output_name in candidates:
         if not source.is_file() or source.is_symlink():

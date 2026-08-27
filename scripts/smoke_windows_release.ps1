@@ -61,14 +61,14 @@ try {
   $nsis = Get-ChildItem -LiteralPath $candidate -Filter '*-setup.exe' | Select-Object -First 1
   $nsisRoot = Join-Path $temp 'nsis'; $nsisProcess = Start-Process -FilePath $nsis.FullName -ArgumentList "/S", "/D=$nsisRoot" -Wait -PassThru
   if ($nsisProcess.ExitCode -ne 0) { throw "Installation NSIS refusée : $($nsisProcess.ExitCode)" }
-  $nsisApp = Get-ChildItem -LiteralPath $nsisRoot -Filter 'VERA-MMU.exe' -File -Recurse | Select-Object -First 1
-  if ($null -eq $nsisApp) { throw 'VERA-MMU.exe absent après installation NSIS.' }; Assert-Starts $nsisApp.FullName 'Application NSIS'
+  $nsisApp = Get-ChildItem -LiteralPath $nsisRoot -Filter 'vera-mmu-desktop.exe' -File -Recurse | Select-Object -First 1
+  if ($null -eq $nsisApp) { throw 'Exécutable desktop VERA absent après installation NSIS.' }; Assert-Starts $nsisApp.FullName 'Application NSIS'
 
   $msi = Get-ChildItem -LiteralPath $candidate -Filter '*.msi' | Select-Object -First 1
   $msiRoot = Join-Path $temp 'msi'; $msiProcess = Start-Process -FilePath 'msiexec.exe' -ArgumentList "/i", $msi.FullName, "/qn", "INSTALLDIR=$msiRoot" -Wait -PassThru
   if ($msiProcess.ExitCode -notin 0, 3010) { throw "Installation MSI refusée : $($msiProcess.ExitCode)" }
-  $msiApp = Get-ChildItem -LiteralPath $msiRoot -Filter 'VERA-MMU.exe' -File -Recurse | Select-Object -First 1
-  if ($null -eq $msiApp) { throw 'VERA-MMU.exe absent après installation MSI.' }; Assert-Starts $msiApp.FullName 'Application MSI'
+  $msiApp = Get-ChildItem -LiteralPath $msiRoot -Filter 'vera-mmu-desktop.exe' -File -Recurse | Select-Object -First 1
+  if ($null -eq $msiApp) { throw 'Exécutable desktop VERA absent après installation MSI.' }; Assert-Starts $msiApp.FullName 'Application MSI'
 } finally {
   Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
 }

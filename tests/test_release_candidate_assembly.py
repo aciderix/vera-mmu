@@ -43,6 +43,17 @@ class ReleaseCandidateAssemblyTests(unittest.TestCase):
             sources = assembly._candidate_sources(root / "vmmu.tar.gz", root / "release-manifest.json", (root / "desktop.AppImage", root / "desktop.deb"))
             self.assertEqual([name for _, name in sources], ["vmmu.tar.gz", "cli-release-manifest.json", "desktop.AppImage", "desktop.deb"])
 
+    def test_desktop_outputs_ignore_a_previous_version(self) -> None:
+        with TemporaryDirectory() as directory, patch.object(assembly, "ROOT", Path(directory)):
+            bundle = Path(directory) / "apps" / "desktop" / "src-tauri" / "target" / "release" / "bundle"
+            (bundle / "appimage").mkdir(parents=True)
+            (bundle / "deb").mkdir()
+            (bundle / "appimage" / "VERA-MMU_0.1.0-4_amd64.AppImage").write_bytes(b"current")
+            (bundle / "deb" / "VERA-MMU_0.1.0-4_amd64.deb").write_bytes(b"current")
+            (bundle / "deb" / "VERA-MMU_0.1.0_amd64.deb").write_bytes(b"obsolete")
+            outputs = assembly._desktop_outputs("x86_64-unknown-linux-gnu", "0.1.0-4")
+            self.assertEqual([path.name for path in outputs], ["VERA-MMU_0.1.0-4_amd64.AppImage", "VERA-MMU_0.1.0-4_amd64.deb"])
+
 
 if __name__ == "__main__":
     unittest.main()

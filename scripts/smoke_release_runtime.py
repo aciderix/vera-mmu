@@ -6,8 +6,10 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import tarfile
@@ -123,7 +125,7 @@ def _smoke_cli(binary: Path) -> None:
 
 
 def _launch_desktop(command: list[str], label: str) -> None:
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
     try:
         deadline = time.monotonic() + 8
         while time.monotonic() < deadline:
@@ -133,11 +135,11 @@ def _launch_desktop(command: list[str], label: str) -> None:
             time.sleep(0.5)
     finally:
         if process.poll() is None:
-            process.terminate()
+            os.killpg(process.pid, signal.SIGTERM)
             try:
                 process.communicate(timeout=8)
             except subprocess.TimeoutExpired:
-                process.kill()
+                os.killpg(process.pid, signal.SIGKILL)
                 process.communicate(timeout=8)
 
 
@@ -162,9 +164,9 @@ def _smoke_linux_desktop(candidate: Path) -> None:
         extracted = _run([dpkg_deb, "-x", str(deb), str(root)])
         if extracted.returncode != 0:
             raise SmokeError(f"Extraction Debian refusée : {extracted.stderr[-1200:]}")
-        candidates = tuple(path for path in root.rglob("VERA-MMU") if path.is_file() and not path.is_symlink())
+        candidates = tuple(path for path in root.rglob("vera-mmu-desktop") if path.is_file() and not path.is_symlink())
         if len(candidates) != 1:
-            raise SmokeError("Exécutable VERA-MMU absent ou ambigu dans le paquet Debian.")
+            raise SmokeError("Exécutable desktop VERA absent ou ambigu dans le paquet Debian.")
         candidates[0].chmod(candidates[0].stat().st_mode | 0o100)
         _launch_desktop([xvfb, "-a", str(candidates[0])], "payload Debian")
 

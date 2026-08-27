@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import sys
 from pathlib import Path
 
@@ -30,3 +31,15 @@ def test_smoke_is_limited_to_linux_native_candidate(monkeypatch: pytest.MonkeyPa
     monkeypatch.setattr(SMOKE.sys, "platform", "linux")
     with pytest.raises(SMOKE.SmokeError, match="Linux x64 natif"):
         SMOKE.smoke("x86_64-pc-windows-msvc")
+
+
+def test_desktop_smoke_uses_an_isolated_process_group() -> None:
+    source = inspect.getsource(SMOKE._launch_desktop)
+    assert "start_new_session=True" in source
+    assert "os.killpg" in source
+
+
+def test_linux_deb_smoke_targets_the_application_not_the_sidecar() -> None:
+    source = inspect.getsource(SMOKE._smoke_linux_desktop)
+    assert 'rglob("vera-mmu-desktop")' in source
+    assert "vmmu-desktop-bridge" not in source
