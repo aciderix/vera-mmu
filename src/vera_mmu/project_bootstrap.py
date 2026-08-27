@@ -10,6 +10,14 @@ from .agent_profiles import builtin_agent_profiles_json
 from .identity import PROJECT_ID_RE
 from .store import StoreError
 TEMPLATE_IDS=("software","data","research","documentation","game","hardware")
+_TEMPLATE_ENTITY_TYPES={
+    "software":("COMPONENT","MODULE","SYMBOL","TEST","BUILD","DEPLOY"),
+    "game":("ASSET","SCENE","SERVER","EVENT","PLAYER_STATE","SYSTEM_STATE"),
+    "research":("EXPERIMENT","HYPOTHESIS","DATASET","RESULT","METRIC"),
+    "data":("DATASET","FEATURE","MODEL","EVALUATION","METRIC","PIPELINE"),
+    "hardware":("BOARD","COMPONENT","FIRMWARE","MEASUREMENT","DEVICE"),
+    "documentation":("SOURCE","DOCUMENT","CLAIM","CITATION","REVISION"),
+}
 class ProjectBootstrapError(StoreError):pass
 @dataclass(frozen=True)
 class InitializationFile:
@@ -61,6 +69,7 @@ def _root(root:str|Path)->Path:
     return target
 def _file(path:str,content:str)->InitializationFile:return InitializationFile(path,content,sha256(content.encode()).hexdigest())
 def _profile(template:str,project_id:str,name:str)->str:
+    entity_types=", ".join(_TEMPLATE_ENTITY_TYPES[template])
     return f'''mmu:
   version: "2.0"
 project:
@@ -98,7 +107,7 @@ front:
 knowledge:
   types: [RULE, DECISION, OBSERVATION, HYPOTHESIS, STATE, MEASUREMENT, DISCOVERY, ARCHITECTURE]
 entities:
-  types: [COMPONENT]
+  types: [{entity_types}]
 relations:
   types: [VERIFIED_BY, SUPERSEDES, INFORMED_BY, BLOCKED_BY, IMPLEMENTS, DERIVED_FROM, CONCERNS, APPLIES_TO, CAUSED_BY, EVOLVES_TO]
 work:
@@ -111,6 +120,7 @@ policies:
   file: ".vera-mmu/policies.yaml"
 integrations:
   agent_profiles: ".vera-mmu/agent-profiles.yaml"
+  enabled: []
 '''
 def _capabilities()->str:
     return "format: vera-capability-catalog/v1\ncapabilities: []\n"

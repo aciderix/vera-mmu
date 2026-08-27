@@ -35,17 +35,20 @@ class ProjectBootstrapTests(unittest.TestCase):
             applied_root=Path(directory)/"applied";applied_root.mkdir();preview=preview_project_initialization(applied_root,template="software",project_id="my-app",project_name="My App")
             from vera_mmu.project_bootstrap import apply_project_initialization
             apply_project_initialization(applied_root,preview,confirm=True);profile=load_profile(applied_root/".vera-mmu"/"project.yaml")
-            self.assertEqual(profile["capabilities"]["catalog"],".vera-mmu/capabilities.yaml");self.assertEqual(profile["gates"]["catalog"],".vera-mmu/gates.yaml");self.assertEqual(profile["policies"]["file"],".vera-mmu/policies.yaml")
+            self.assertEqual(profile["capabilities"]["catalog"],".vera-mmu/capabilities.yaml");self.assertEqual(profile["gates"]["catalog"],".vera-mmu/gates.yaml");self.assertEqual(profile["policies"]["file"],".vera-mmu/policies.yaml");self.assertEqual(profile["integrations"]["enabled"],[])
             self.assertEqual(profile["resume"]["template"],"engineering");self.assertIn("RULE",profile["knowledge"]["types"]);self.assertIn("active_goal",profile["front"]["fields"]);self.assertTrue(profile["project"]["description"])
     def test_i007_i011_profile_catalog_paths_and_taxonomy_are_project_bound(self)->None:
         from vera_mmu.identity import ProfileError,validate_profile
         profile={"mmu":{"version":"2.0"},"project":{"id":"my-app","name":"My App","domain":"software"},"workspace":{"root":"."},"storage":{"memory_dir":".vera-mmu","sqlite_file":"memory.sqlite","artifacts_dir":"artifacts"},"capabilities":{"catalog":".vera-mmu/capabilities.yaml"},"gates":{"catalog":".vera-mmu/gates.yaml"},"policies":{"file":".vera-mmu/policies.yaml"},"knowledge":{"types":["RULE","DECISION"]},"entities":{"types":["COMPONENT"]},"relations":{"types":["IMPLEMENTS"]},"resume":{"template":"engineering","sections":["rules","current_state"]},"work":{"enabled":True},"integrations":{"agent_profiles":".vera-mmu/agent-profiles.yaml"}}
-        normalized=validate_profile(profile);self.assertEqual(normalized["knowledge"]["types"],["RULE","DECISION"]);self.assertEqual(normalized["integrations"]["agent_profiles"],".vera-mmu/agent-profiles.yaml");self.assertIn("active_goal",normalized["front"]["fields"])
+        profile["integrations"]["enabled"]=["generic-mcp"]
+        normalized=validate_profile(profile);self.assertEqual(normalized["knowledge"]["types"],["RULE","DECISION"]);self.assertEqual(normalized["integrations"]["agent_profiles"],".vera-mmu/agent-profiles.yaml");self.assertEqual(normalized["integrations"]["enabled"],["generic-mcp"]);self.assertIn("active_goal",normalized["front"]["fields"])
         profile["capabilities"]={"catalog":"../capabilities.yaml"}
         with self.assertRaises(ProfileError):validate_profile(profile)
         profile["capabilities"]={"catalog":".vera-mmu/capabilities.yaml"};profile["knowledge"]={"types":["RULE","RULE"]}
         with self.assertRaises(ProfileError):validate_profile(profile)
         profile["knowledge"]={"types":["RULE"]};profile["front"]={"fields":["active_goal","active_goal"]}
+        with self.assertRaises(ProfileError):validate_profile(profile)
+        profile["front"]={"fields":["active_goal"]};profile["integrations"]={"agent_profiles":".vera-mmu/agent-profiles.yaml","enabled":["generic-mcp","generic-mcp"]}
         with self.assertRaises(ProfileError):validate_profile(profile)
     def test_i007_i011_project_catalogs_are_hashed_validated_and_confined(self)->None:
         from vera_mmu.project_bootstrap import apply_project_initialization,preview_project_initialization
@@ -74,6 +77,15 @@ class ProjectBootstrapTests(unittest.TestCase):
             capability["command"]=["sh","-c","whoami"]
             (root/".vera-mmu"/"capabilities.yaml").write_text(json.dumps({"format":"vera-capability-catalog/v1","capabilities":[capability]})+"\n",encoding="utf-8")
             with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
+    def test_i004_domain_templates_emit_distinct_declarative_entity_taxonomies(self)->None:
+        from vera_mmu.identity import load_profile
+        from vera_mmu.project_bootstrap import apply_project_initialization,preview_project_initialization
+        expected={"software":{"COMPONENT","MODULE","SYMBOL","TEST","BUILD","DEPLOY"},"game":{"ASSET","SCENE","SERVER","EVENT","PLAYER_STATE","SYSTEM_STATE"},"research":{"EXPERIMENT","HYPOTHESIS","DATASET","RESULT","METRIC"},"data":{"DATASET","FEATURE","MODEL","EVALUATION","METRIC","PIPELINE"},"hardware":{"BOARD","COMPONENT","FIRMWARE","MEASUREMENT","DEVICE"},"documentation":{"SOURCE","DOCUMENT","CLAIM","CITATION","REVISION"}}
+        with TemporaryDirectory() as directory:
+            root=Path(directory)
+            for index,(template,entity_types) in enumerate(expected.items()):
+                project=root/template;project.mkdir();preview=preview_project_initialization(project,template=template,project_id=f"domain-{index}",project_name=template.title());apply_project_initialization(project,preview,confirm=True)
+                self.assertEqual(set(load_profile(project/".vera-mmu"/"project.yaml")["entities"]["types"]),entity_types)
     def test_i007_i011_init_apply_is_confirmed_non_destructive_and_refuses_symlink(self)->None:
         from vera_mmu.project_bootstrap import ProjectBootstrapError,apply_project_initialization,preview_project_initialization
         with TemporaryDirectory() as directory:

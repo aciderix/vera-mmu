@@ -238,10 +238,20 @@ def validate_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
     gates = _require_mapping(root.get("gates", {}), "gates")
     policies = _require_mapping(root.get("policies", {}), "policies")
     integrations = _require_mapping(root.get("integrations", {}), "integrations")
+    enabled_integrations = integrations.get("enabled", [])
+    if not isinstance(enabled_integrations, list):
+        raise ProfileError("integrations.enabled doit être une liste.")
+    normalized_integrations: list[str] = []
+    for index, integration_id in enumerate(enabled_integrations):
+        if not isinstance(integration_id, str) or PROJECT_ID_RE.fullmatch(integration_id) is None:
+            raise ProfileError(f"integrations.enabled[{index}] doit être un identifiant d’intégration valide.")
+        if integration_id in normalized_integrations:
+            raise ProfileError("integrations.enabled ne doit pas contenir de doublon.")
+        normalized_integrations.append(integration_id)
     root["capabilities"] = {"catalog": _require_runtime_path(capabilities.get("catalog"), "capabilities.catalog", memory_dir, default=f"{memory_dir}/capabilities.yaml")}
     root["gates"] = {"catalog": _require_runtime_path(gates.get("catalog"), "gates.catalog", memory_dir, default=f"{memory_dir}/gates.yaml")}
     root["policies"] = {"file": _require_runtime_path(policies.get("file"), "policies.file", memory_dir, default=f"{memory_dir}/policies.yaml")}
-    root["integrations"] = {"agent_profiles": _require_runtime_path(integrations.get("agent_profiles"), "integrations.agent_profiles", memory_dir, default=f"{memory_dir}/agent-profiles.yaml")}
+    root["integrations"] = {"agent_profiles": _require_runtime_path(integrations.get("agent_profiles"), "integrations.agent_profiles", memory_dir, default=f"{memory_dir}/agent-profiles.yaml"), "enabled": normalized_integrations}
     return json.loads(canonical_json(root))
 
 
