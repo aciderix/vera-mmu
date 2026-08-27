@@ -11,6 +11,10 @@ export const desktopApi = {
     invoke<JsonObject>("capability_preview", { identifier, name, kind, version, description }),
   capabilityApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("capability_apply", { previewHash, confirm }),
+  gatePolicyPreview: (gateId: string, mode: string, minimumAdmissions: number | null) =>
+    invoke<JsonObject>("gate_policy_preview", { gateId, mode, minimumAdmissions }),
+  gatePolicyApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("gate_policy_apply", { previewHash, confirm }),
   initializationPreview: (template: string, projectId: string, projectName: string) =>
     invoke<JsonObject>("initialization_preview", { template, projectId, projectName }),
   initializationApply: (previewHash: string, confirm: boolean) =>

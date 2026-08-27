@@ -15,6 +15,7 @@ from .adapter_catalog import adapter_spec, call_adapter_json
 from .agent_profiles import builtin_agent_profiles
 from .capability_builder import CapabilityDraftPreview, apply_capability_draft, preview_capability_draft
 from .coverage_report import compile_coverage_report
+from .gate_policy_builder import GatePolicyDraftPreview, apply_gate_policy_draft, preview_gate_policy_draft
 from .identity import load_profile
 from .read_api import ReadService
 from .memory_sync import automatic_memory_sync
@@ -62,6 +63,8 @@ class DesktopBridge:
             "project.init.apply": self._initialization_apply,
             "capability.preview": self._capability_preview,
             "capability.apply": self._capability_apply,
+            "gate.policy.preview": self._gate_policy_preview,
+            "gate.policy.apply": self._gate_policy_apply,
             "memory.sync": self._memory_sync,
             "agents.list": self._agents_list,
             "adapter.generate": self._adapter_generate,
@@ -177,6 +180,25 @@ class DesktopBridge:
         with MemoryStore.open(load_profile(profile_path), profile_path) as store:
             result = apply_capability_draft(store, cached.value, confirm=True)
         del self._previews[preview_hash]
+        return result
+
+    def _gate_policy_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"gateId", "mode", "minimumAdmissions"})
+        minimum = value["minimumAdmissions"]
+        if minimum is not None and (isinstance(minimum, bool) or not isinstance(minimum, int)):
+            raise _ProtocolError("INPUT_INVALID", "Seuil de policy invalide.")
+        with MemoryStore.open(load_profile(self._profile_path()), self._profile_path()) as store:
+            preview = preview_gate_policy_draft(store, gate_id=_string(value, "gateId"), mode=_string(value, "mode"), minimum_admissions=minimum)
+        self._previews[preview.preview_hash] = _CachedPreview("gate.policy", preview)
+        return preview.as_dict()
+
+    def _gate_policy_apply(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"previewHash", "confirm"})
+        if value.get("confirm") is not True: raise _ProtocolError("CONFIRMATION_REQUIRED", "Application refusée sans confirmation explicite.")
+        cached = self._previews.get(_string(value, "previewHash"))
+        if cached is None or cached.kind != "gate.policy" or not isinstance(cached.value, GatePolicyDraftPreview): raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de policy inconnu.")
+        with MemoryStore.open(load_profile(self._profile_path()), self._profile_path()) as store: result = apply_gate_policy_draft(store, cached.value, confirm=True)
+        del self._previews[_string(value, "previewHash")]
         return result
 
     def _agents_list(self, value: dict[str, Any]) -> dict[str, object]:
