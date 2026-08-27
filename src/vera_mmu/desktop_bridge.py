@@ -13,7 +13,9 @@ from typing import Any, Callable, Mapping, Sequence
 
 from .adapter_catalog import adapter_spec, call_adapter_json
 from .agent_profiles import builtin_agent_profiles
+from .coverage_report import compile_coverage_report
 from .identity import load_profile
+from .read_api import ReadService
 from .memory_sync import automatic_memory_sync
 from .project_bootstrap import (
     ProjectBootstrapError,
@@ -54,6 +56,7 @@ class DesktopBridge:
         self._previews: dict[str, _CachedPreview] = {}
         self._handlers: Mapping[str, Callable[[dict[str, Any]], dict[str, object]]] = {
             "project.scan": self._scan,
+            "project.status": self._project_status,
             "project.init.preview": self._initialization_preview,
             "project.init.apply": self._initialization_apply,
             "memory.sync": self._memory_sync,
@@ -112,6 +115,15 @@ class DesktopBridge:
     def _scan(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, set())
         return scan_project(self._project_root).as_dict()
+
+    def _project_status(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, set())
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            return {
+                "coverage": compile_coverage_report(store).as_dict(),
+                "vcs": ReadService(store).vcs_status(),
+            }
 
     def _initialization_preview(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, {"template", "projectId", "projectName"})

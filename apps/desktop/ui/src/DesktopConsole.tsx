@@ -47,6 +47,8 @@ export function DesktopConsole() {
   const [installPreview, setInstallPreview] = useState<JsonObject | null>(null);
   const [doctor, setDoctor] = useState<JsonObject | null>(null);
   const [memorySync, setMemorySync] = useState<JsonObject | null>(null);
+  const [projectStatus, setProjectStatus] = useState<JsonObject | null>(null);
+  const [initialized, setInitialized] = useState(false);
   const [initConfirmed, setInitConfirmed] = useState(false);
   const [stageConfirmed, setStageConfirmed] = useState(false);
   const [installConfirmed, setInstallConfirmed] = useState(false);
@@ -78,6 +80,8 @@ export function DesktopConsole() {
     setInstallPreview(null);
     setDoctor(null);
     setMemorySync(null);
+    setProjectStatus(null);
+    setInitialized(false);
     setInitConfirmed(false);
     setStageConfirmed(false);
     setInstallConfirmed(false);
@@ -90,6 +94,8 @@ export function DesktopConsole() {
     if (!hash) throw new Error("Aucun preview d’initialisation disponible.");
     await desktopApi.initializationApply(hash, initConfirmed);
     setInitPreview(null);
+    setInitialized(true);
+    setProjectStatus(await desktopApi.projectStatus());
   });
   const generate = () => action("Preview de génération produit", async () => setGeneration(await desktopApi.generation(agentProfileId)));
   const stage = () => action("Runtime VERA préparé", async () => desktopApi.stage(agentProfileId, stageConfirmed));
@@ -100,12 +106,14 @@ export function DesktopConsole() {
     await desktopApi.installationApply(hash, installConfirmed);
     setInstallPreview(null);
   });
+  const refreshProjectStatus = () => action("État du projet actualisé", async () => setProjectStatus(await desktopApi.projectStatus()));
   const runDoctor = () => action("Diagnostic local produit", async () => setDoctor(await desktopApi.doctor(agentProfileId)));
   const synchronizeMemory = () => action("Synchronisation mémoire contrôlée", async () => setMemorySync(await desktopApi.memorySync()));
 
   const selectedAgent = profiles.find((profile) => profile.id === agentProfileId);
   const observations = scan && Array.isArray(scan.observations) ? scan.observations.length : 0;
-  const initialized = Boolean(project && !initPreview);
+  const coverageTools = projectStatus && isRecord(projectStatus.coverage) && Array.isArray(projectStatus.coverage.mcp_tools) ? projectStatus.coverage.mcp_tools.length : null;
+  const vcsState = projectStatus && isRecord(projectStatus.vcs) && typeof projectStatus.vcs.status === "string" ? projectStatus.vcs.status : "UNKNOWN";
 
   return <div className="app-shell">
     <aside className="rail">
@@ -124,7 +132,7 @@ export function DesktopConsole() {
         <section className="two-columns" id="prepare"><div className="panel"><div className="panel-top"><div><p className="eyebrow">Observation</p><h2>Scanner sans toucher</h2></div><Evidence label="SCAN" state={scan ? "OBSERVED" : "WAITING"} /></div><p>Le scan identifie seulement des marqueurs structuraux réguliers. Il ne démarre aucun agent et ne modifie pas votre dossier.</p><div className="metric"><b>{observations}</b><span>observations VERA</span></div><button className="secondary" onClick={scanProject} disabled={!project || busy}>Actualiser le scan</button>{scan && <details><summary>Voir le ScanReport v1</summary><pre>{JSON.stringify(scan, null, 2)}</pre></details>}</div>
           <div className="panel"><div className="panel-top"><div><p className="eyebrow">Initialisation</p><h2>Préparer VERA</h2></div><Evidence label="ÉTAT" state={initialized ? "READY" : "PREVIEW"} /></div><p>Le preview propose uniquement `.vera-mmu/` : profil, playbook et profils d’agents. Rien n’est créé avant votre confirmation.</p><div className="field-grid"><label>Type de projet<select value={template} onChange={(event) => setTemplate(event.target.value)}>{templates.map((item) => <option key={item}>{item}</option>)}</select></label><label>Identifiant<input value={projectId} onChange={(event) => setProjectId(event.target.value)} /></label><label className="wide">Nom du projet<input value={projectName} onChange={(event) => setProjectName(event.target.value)} /></label></div><button className="secondary" onClick={createInitializationPreview} disabled={!project || busy}>Générer le preview</button>{initPreview && <div className="confirmation"><label><input type="checkbox" checked={initConfirmed} onChange={(event) => setInitConfirmed(event.target.checked)} /> J’ai vérifié les fichiers proposés.</label><button className="primary" onClick={applyInitialization} disabled={!initConfirmed || busy}>Confirmer l’initialisation</button><details><summary>Inspecter le preview</summary><pre>{JSON.stringify(initPreview, null, 2)}</pre></details></div>}</div></section>
         <section className="panel integration" id="integrate"><div className="panel-top"><div><p className="eyebrow">Intégration MCP</p><h2>Associer l’agent, sans configuration cachée</h2></div><Evidence label="ÉCRITURE" state="CONFIRMED ONLY" /></div><p>Le profil d’agent choisit un adapter déclaré par VERA. L’interface ne fournit jamais un adapter ou une commande libre.</p><div className="agent-row"><label>Agent Profile<select value={agentProfileId} onChange={(event) => setAgentProfileId(event.target.value)} disabled={profiles.length === 0}>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</select></label>{selectedAgent && <div className="coverage"><b>{selectedAgent.coverage}</b><span>{selectedAgent.adapter} · {selectedAgent.mode}</span></div>}</div><div className="action-grid"><div><h3>1. Générer</h3><p>Compile un `GenerationPreview/v1` déterministe.</p><button className="secondary" onClick={generate} disabled={!project || busy}>Générer</button></div><div><h3>2. Préparer le runtime</h3><p>Le staging reste local au runtime VERA.</p><label className="check"><input type="checkbox" checked={stageConfirmed} onChange={(event) => setStageConfirmed(event.target.checked)} /> Confirmer le staging</label><button className="secondary" onClick={stage} disabled={!project || !stageConfirmed || busy}>Préparer</button></div><div><h3>3. Examiner puis installer</h3><p>Le bridge recalcule le preview avant l’écriture.</p><button className="secondary" onClick={createInstallationPreview} disabled={!project || busy}>Voir l’intégration</button></div></div>{generation && <details><summary>GenerationPreview/v1</summary><pre>{JSON.stringify(generation, null, 2)}</pre></details>}{installPreview && <div className="confirmation"><label><input type="checkbox" checked={installConfirmed} onChange={(event) => setInstallConfirmed(event.target.checked)} /> J’ai vérifié l’intégration project-local affichée.</label><button className="primary" onClick={applyInstallation} disabled={!installConfirmed || busy}>Confirmer l’installation MCP</button><details><summary>Inspecter le preview d’intégration</summary><pre>{JSON.stringify(installPreview, null, 2)}</pre></details></div>}</section>
-        <section className="panel doctor" id="verify"><div><p className="eyebrow">Diagnostic & mémoire</p><h2>Constater, ne pas deviner</h2><p>Le doctor indique ce qui est présent localement ; il ne transforme pas une configuration en preuve hôte réelle. La synchronisation ne concerne que `.vera-mmu/` et suit la policy du projet.</p></div><div className="verify-actions"><button className="secondary" onClick={runDoctor} disabled={!project || busy}>Lancer le doctor</button><button className="secondary" onClick={synchronizeMemory} disabled={!project || busy}>Synchroniser la mémoire</button>{doctor && <pre>{JSON.stringify(doctor, null, 2)}</pre>}{memorySync && <pre>{JSON.stringify(memorySync, null, 2)}</pre>}</div></section>
+        <section className="panel doctor" id="verify"><div><p className="eyebrow">État dérivé, diagnostic & mémoire</p><h2>Constater, ne pas deviner</h2><p>La couverture et le statut VCS sont dérivés du Core après initialisation. Le doctor indique ce qui est présent localement ; il ne transforme pas une configuration en preuve hôte réelle. La synchronisation ne concerne que `.vera-mmu/` et suit la policy du projet.</p></div><div className="verify-actions">{initialized && <><button className="secondary" onClick={refreshProjectStatus} disabled={busy}>Actualiser l’état</button><div className="status-strip"><Evidence label="VCS" state={vcsState} /><span>{coverageTools === null ? "Couverture non chargée" : `${coverageTools} tools MCP déclarés`}</span></div></>}<button className="secondary" onClick={runDoctor} disabled={!project || busy}>Lancer le doctor</button><button className="secondary" onClick={synchronizeMemory} disabled={!project || busy}>Synchroniser la mémoire</button>{doctor && <pre>{JSON.stringify(doctor, null, 2)}</pre>}{memorySync && <pre>{JSON.stringify(memorySync, null, 2)}</pre>}</div></section>
         <section className={`notice notice-${notice.tone}`} aria-live="polite"><b>{notice.title}</b><span>{notice.detail}</span></section>
         <footer>VERA-MMU · Core séparé de l’interface · Aucun réseau implicite · Aucun user-scope</footer>
       </div>

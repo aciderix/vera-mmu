@@ -101,6 +101,21 @@ class DesktopBridgeTests(unittest.TestCase):
             oversized = bridge.handle_line("x" * 16_385)  # type: ignore[attr-defined]
             self.assertEqual(json.loads(oversized)["error"]["code"], "MESSAGE_TOO_LARGE")
 
+    def test_m11da_project_status_is_derived_non_mutating_and_accepts_no_client_selection(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            preview = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "status-desktop", "projectName": "Status desktop"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+            response = self._call(bridge, "project.status", {})
+            self.assertTrue(response["ok"])
+            result = response["result"]  # type: ignore[index]
+            self.assertEqual(result["coverage"]["format"], "vera-coverage-report/v1")
+            self.assertEqual(result["vcs"], {"provider": "NONE", "status": "NO_VCS"})
+            injected = self._call(bridge, "project.status", {"root": str(root)})
+            self.assertFalse(injected["ok"])
+            self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+
     def test_i001_i007_memory_sync_has_no_git_input_in_desktop_protocol(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)

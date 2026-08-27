@@ -6,6 +6,7 @@ export type JsonObject = Record<string, unknown>;
 export const desktopApi = {
   selectProject: () => invoke<JsonObject>("select_project"),
   scanProject: () => invoke<JsonObject>("scan_project"),
+  projectStatus: () => invoke<JsonObject>("project_status"),
   initializationPreview: (template: string, projectId: string, projectName: string) =>
     invoke<JsonObject>("initialization_preview", { template, projectId, projectName }),
   initializationApply: (previewHash: string, confirm: boolean) =>
