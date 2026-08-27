@@ -134,6 +134,10 @@ Le premier assemblage de développement `VERA-MMU_0.1.0_amd64.deb` a été produ
 
 Le même lot a produit un AppImage Linux x64 qui contient également le sidecar dans son image squashfs. Les tests Rust et la compilation release ne produisent plus d’avertissement. Les résultats Windows doivent toutefois être observés sur le runner natif avant de qualifier la matrice comme passée.
 
+### 10.1 Première exécution CI et correction
+
+La première exécution GitHub Actions `33059343692` a échoué avant toute compilation : `actions/setup-node` cherchait l’exécutable `pnpm` pour son cache alors qu’aucune étape ne l’avait encore installé. Aucun artefact Linux ou Windows n’a donc été produit, et ce résultat ne qualifie ni un échec de Tauri ni un échec du sidecar. Le commit `a542660` installe `pnpm/action-setup@v4` avant `actions/setup-node`; la nouvelle exécution de la matrice reste à observer.
+
 [6]: https://v2.tauri.app/start/prerequisites/ "Tauri v2 — Prerequisites"
 [7]: https://v2.tauri.app/distribute/debian/ "Tauri v2 — Debian distribution"
 [8]: https://v2.tauri.app/distribute/pipelines/github/ "Tauri v2 — GitHub pipelines"

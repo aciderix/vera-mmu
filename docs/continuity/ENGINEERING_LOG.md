@@ -2816,3 +2816,10 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Tests et contrôles.** Sur Linux x64, le builder produit le sidecar PyInstaller, puis Tauri produit `VERA-MMU_0.1.0_amd64.AppImage` (99 232 248 octets) et `VERA-MMU_0.1.0_amd64.deb` (25 233 560 octets). L’AppImage extraite contient `usr/bin/vmmu-desktop-bridge` ; l’extraction Debian précédente répond à `project.scan`. `cargo test` et `cargo build --release` passent sans avertissement.
 **Verdict.** `PASS` pour le packaging Linux x64 reproductible et le cadrage de CI native. `NOT_RUN` pour la sortie Windows native et l’exécution de la matrice GitHub tant que le commit n’est pas publié ; aucune release, signature ou publication GitHub Pages n’a été créée.
 **Suite.** Commit documentaire, garde de divergence et push ; lire les runs CI déclenchés, qualifier chaque artefact par plateforme et poursuivre seulement si le runner Windows passe.
+
+## LOG-0209 — 2026-08-27 — M7-D : échec d’infrastructure CI qualifié et correction pnpm
+**Observation.** Le run GitHub Actions `33059343692` déclenché par `3f19882` a échoué sur les deux runners avant les étapes de dépendances, de sidecar ou de bundle. `actions/setup-node@v4` était configuré avec `cache: pnpm`, mais `pnpm` n’était pas encore présent dans `PATH`.
+**Portée.** Ce résultat est une défaillance de préparation CI : aucun build Linux/Windows, NSIS, MSI, AppImage, Debian ou sidecar n’a été produit ou évalué par ce run. Il ne doit pas être qualifié comme échec du produit desktop.
+**Correction.** Le commit fonctionnel `a542660` ajoute `pnpm/action-setup@v4` avant `actions/setup-node` et retire l’activation Corepack devenue redondante. La matrice suivante devra être observée sur `main` ; son résultat Windows reste `NOT_RUN` jusqu’à la sortie native effective.
+**Verdict.** `PASS` pour le diagnostic et la correction minimale de la configuration CI ; `NOT_RUN` pour les artefacts de la nouvelle matrice.
+**Suite.** Commiter la continuité, appliquer la garde de divergence, pousser, puis examiner les logs et artefacts par runner sans créer de release.
