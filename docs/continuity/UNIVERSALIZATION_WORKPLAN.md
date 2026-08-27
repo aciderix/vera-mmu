@@ -157,6 +157,7 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Groupe d’écarts | Statut | Prochain lot obligatoire |
 |---|---|---|
 | Profile et modèle projet déclaratif riche | `PASS` | M11-A clos ; preuve `m11_a_project_profile_catalogs_2026-08-27.md` |
+| Front/handoff persistants, Resume Dossier configurable et policy projet | `PASS` | M11-AF clos ; preuve `m11_af_front_handoff_resume_policy_2026-08-27.md` |
 | Bundle, export/import/restore et import projet avec provenance | `MISSING` | M11-B |
 | API MCP, CLI et Doctor complets | `PARTIAL` / `MISSING` | M11-C |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
@@ -170,3 +171,9 @@ La référence est `artifacts/m11_specification_completeness_audit_2026-08-27.md
 ### 11.1 M11-A — Project Profile et catalogues déclaratifs : `PASS`
 
 Les sept fichiers initialisés, le profile enrichi, le Front/resume, les taxonomies, les catalogues capabilities/gates/policies/agents, les six modèles de domaine et les quatre hashes de génération sont maintenant produits et validés sous `.vera-mmu`. Les contraintes de chemin, format, schéma, lien gate/capability et agent activé sont fail-closed. La preuve détaillée est `artifacts/m11_a_project_profile_catalogs_2026-08-27.md`; le lot n’inclut pas l’exécution de capability ni un éditeur de profil, qui restent des phases M11 distinctes.
+
+### 11.2 M11-AF — Front, handoff, reprise configurable et policy projet : `PASS`
+
+Le Front est maintenant un snapshot project-profile-bound, hashé et append-only; le handoff est lié au Front courant et au Resume Dossier compilé depuis les sections de reprise exigées par le profile. Les mutations sont précédées de la policy project-local fermée : `deny`, catalogue invalide/absent et absence de confirmation refusent avant transaction; `allow` n’écarte pas la confirmation explicite. La migration checksummée 039 est testée sur une base 038 existante avec conservation d’identité et triggers append-only exercés.
+
+Les adapters Claude local/cloud, Codex, Gemini et Antigravity consomment le dossier dérivé du profile sous leurs garanties déjà déclarées; cela ne qualifie aucun hôte réel. Les preuves ciblées atteignent `15 passed`, les suites adapters/MCP `63 passed, 12 subtests passed`, et la suite intégrale `529 passed, 43 subtests passed`. La preuve détaillée est `artifacts/m11_af_front_handoff_resume_policy_2026-08-27.md`. **Pause obligatoire :** M11-B et tout lot ultérieur restent interdits sans nouvelle instruction explicite du propriétaire.

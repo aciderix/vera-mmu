@@ -1252,3 +1252,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Limites :** Les catalogues restent déclaratifs. Aucun runner, import, bundle, éditeur, Doctor global, hôte réel ou écriture user-scope n’est ajouté ou inféré.
 **Source :** `artifacts/m11_a_project_profile_catalogs_2026-08-27.md`, commits `e92edf7`, `1d9d8a8`, `88af9aa`, `a0e09cf`, `fb6a1ac`.
 **Journal :** `LOG-0231`.
+
+### MEM-DEC-179 — M11-AF : Front/handoff, reprise profile et policy projet clos
+**Type :** `DECISION` et `OBSERVATION`
+**Statut :** `PASS`
+**Énoncé :** Le Front est désormais persisté comme une suite de snapshots complets append-only liés au `profile_hash`; le handoff est append-only, lié au Front courant et au Resume Dossier contrôlé. Le contrat de reprise est dérivé des seules sections `resume.sections` requises par le Project Profile et de `storage.max_resume_bytes`; les adapters Claude local/cloud, Codex, Gemini et Antigravity le consomment avec leur compatibilité de profil antérieur.
+**Policy et migration :** Toute mutation Front/handoff exige `confirm=True` et une policy project-local valide. `filesystem.write=deny`, décision absente/invalide et confirmation absente refusent avant transaction; `allow` ne contourne pas la confirmation des opérations mutantes. La migration checksummée 039 a été exercée sur une mémoire 038 : format 39, identité de projet conservée, Front/handoff insérables et triggers SQL append-only vérifiés.
+**Validation :** `tests/test_front_handoff.py tests/test_profile_resume.py tests/test_session_lifecycle.py` : `15 passed`; suites adapters/hooks/MCP ciblées : `63 passed, 12 subtests passed`; suite intégrale : `529 passed, 43 subtests passed` en 108,67 s. Les cas `deny`, `allow` non confirmé, handoff non confirmé, profile hash altéré, sections de reprise manquantes/étrangères et `UPDATE`/`DELETE` directs sont couverts.
+**Limites :** Aucun bundle/import/export/restore, surface CLI/MCP/Doctor complète, Dashboard configurateur, compatibilité/VCS, parité ARET ou hôte agent réel n’est conclu. Aucune écriture Claude Cloud user-scope n’a eu lieu; rc.4 reste une préversion non signée.
+**Décision :** M11-AF est clos à `PASS`; une pause est obligatoire et M11-B ou tout lot suivant est interdit sans instruction explicite du propriétaire.
+**Source :** `artifacts/m11_af_front_handoff_resume_policy_2026-08-27.md`, commit `43e027a`.
+**Journal :** `LOG-0232`.
