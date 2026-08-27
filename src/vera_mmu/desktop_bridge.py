@@ -375,11 +375,17 @@ class DesktopBridge:
         return profile
 
     def _profile_path(self) -> Path:
-        parent = self._project_root / ".vera-mmu"
-        profile = parent / "project.yaml"
-        if parent.is_symlink() or profile.is_symlink() or not profile.is_file():
-            raise StoreError("Projet VERA non initialisé ou profil project-local ambigu.")
-        return profile
+        candidates = (self._project_root / ".vera-mmu" / "project.yaml", self._project_root / "project.yaml")
+        valid: list[Path] = []
+        for profile in candidates:
+            parent = profile.parent
+            if parent.is_symlink() or profile.is_symlink():
+                raise StoreError("Projet VERA avec profil symlinké ambigu.")
+            if profile.is_file():
+                valid.append(profile)
+        if len(valid) != 1:
+            raise StoreError("Projet VERA non initialisé ou profils project-local ambigus.")
+        return valid[0]
 
 
 @dataclass(frozen=True)

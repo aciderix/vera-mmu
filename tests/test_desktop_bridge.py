@@ -83,6 +83,18 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertEqual(applied["result"]["status"], "INITIALIZED")  # type: ignore[index]
             self.assertTrue((root / ".vera-mmu" / "project.yaml").is_file())
 
+    def test_profile_discovery_refuses_competing_canonical_locations(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            runtime = root / ".vera-mmu"
+            runtime.mkdir()
+            content = "mmu:\n  version: '2.0'\nproject:\n  id: 'dual-profile'\n  name: 'Dual'\n  domain: 'generic'\nworkspace:\n  root: '.'\nstorage:\n  memory_dir: '.vera-mmu'\n  sqlite_file: 'memory.sqlite'\n  artifacts_dir: 'artifacts'\n"
+            (runtime / "project.yaml").write_text(content, encoding="utf-8")
+            (root / "project.yaml").write_text(content, encoding="utf-8")
+            response = self._call(self._bridge(root), "project.status", {})
+            self.assertFalse(response["ok"])
+            self.assertEqual(response["error"]["code"], "OPERATION_REFUSED")  # type: ignore[index]
+
     def test_i003_i004_accepts_only_closed_operations_and_declarative_agent_ids(self) -> None:
         with TemporaryDirectory() as directory:
             bridge = self._bridge(Path(directory))
