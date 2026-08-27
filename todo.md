@@ -9,7 +9,7 @@
 - [x] Créer l’enveloppe desktop Tauri et son interface d’installation project-local non destructive.
 - [x] Construire et inspecter les distributions Linux x64 AppImage et Debian avec sidecar autonome embarqué.
 - [x] Déclencher et vérifier la matrice native CI Windows/Linux (NSIS, MSI, AppImage, Debian) avant toute release.
-- [ ] Vérifier sur la matrice native les archives CLI Windows/Linux candidates, leurs manifests et leurs SHA-256 ; aucune release avant résultat des deux runners.
+- [x] Vérifier sur la matrice native les archives CLI Windows/Linux candidates, leurs manifests et leurs SHA-256 ; aucune release avant résultat des deux runners.
 - [ ] Choisir une licence formelle, vérifier les droits de distribution et traiter `LICENSE-PENDING.md` avant toute release publique.
 - [ ] Définir et exécuter la politique de signature Windows/Linux avec les clés du propriétaire, hors dépôt et après confirmation explicite.
 - [x] Définir les fixtures de conformance VERA pour software, data, research, documentation, game et hardware.

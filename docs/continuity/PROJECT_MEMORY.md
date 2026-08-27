@@ -1153,3 +1153,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** manifest `vera-release-manifest/v1`, révision source `98080dbc684245a9ab485b4ba78f3dc4868d61cc`, target `x86_64-unknown-linux-gnu`, hash binaire `17bc1e491c27cc85a5a4b9009f7867768f3a3b4f5941c8184321d0d494c590ee`. Voir `LOG-0219`.
 **Limites :** Candidat local non signé, non publié et versionné `0.1.0` seulement. Aucun candidat Windows, tag, licence, signature ou installation utilisateur n’est attesté ici.
 **Journal :** `LOG-0219`.
+
+### MEM-DEC-167 — M9-A.EXIT : candidats CLI natifs attestés par CI
+**Type :** `OBSERVATION`
+**Statut :** `PASS` pour les candidats CI ; release `NOT_RUN`
+**Décision :** Le run `33067150688` valide le builder CLI sur les deux runners natifs, après la suite VERA, et collecte les archives CLI/manifests/checksums avec les bundles desktop. Linux job `98499947163` passe `508 passed, 43 subtests passed` en 74,67 s ; Windows job `98499946792` passe `508 passed, 43 subtests passed` en 198,53 s.
+**Artefacts :** `9644430339` Linux (214 364 237 octets) et `9644534152` Windows (89 113 204 octets), présents et non expirés comme artefacts de vérification GitHub Actions.
+**Limites :** Ces archives ne sont pas des releases : pas de licence formelle, tag, signature, publication GitHub, installation utilisateur ou campagne d’hôtes réels. La vérification de chaque fichier à l’intérieur des archives Windows CI reste une procédure de release, non une preuve de cette observation de workflow.
+**Journal :** `LOG-0220`.

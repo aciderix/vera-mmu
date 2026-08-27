@@ -1,6 +1,6 @@
 # M9-A — Pipeline de candidats de release CLI
 
-**Statut :** `PARTIAL_PASS` — builder, manifest, archive et checksums définis et testés localement ; validation native Windows/Linux et toute diffusion publique restent distinctes.
+**Statut :** `PASS` pour les candidats de vérification — builder, manifest, archive, checksums et matrice native Windows/Linux attestés. Toute diffusion publique, licence, signature, tag et release restent distincts et bloqués.
 
 ## 1. Portée exacte
 
@@ -35,6 +35,13 @@ La construction locale Linux produit `vera-mmu-cli_0.1.0_linux-x64.tar.gz`. Les 
 
 ## 4. Gates ouvertes
 
-La production native de l’archive devra être observée sous Linux et Windows au run déclenché par le commit M9-A. Une release est ensuite interdite tant que la licence formelle n’est pas choisie, que la titularité/dépendances ne sont pas vérifiées, que les signatures de plateforme ne sont pas disponibles et que les notes de release ne relient pas leurs affirmations aux hashes et preuves correspondants.
+Le run GitHub Actions `33067150688` est intégralement vert pour la révision `c9f67f1`. Chaque job exécute `508 passed, 43 subtests passed`, construit le sidecar, l’archive CLI native, les bundles desktop et téléverse l’archive de vérification.
+
+| Runner | Job | Suite VERA | Candidat CLI | Artefact de vérification |
+|---|---:|---|---|---|
+| Linux x64 | `98499947163` | `508 passed, 43 subtests passed` en 74,67 s | `PASS` : archive `tar.gz`, manifest et SHA-256 | `9644430339`, 214 364 237 octets |
+| Windows x64 | `98499946792` | `508 passed, 43 subtests passed` en 198,53 s | `PASS` : archive `zip`, manifest et SHA-256 | `9644534152`, 89 113 204 octets |
+
+Les archives de workflow réunissent le candidat CLI et les bundles desktop ; elles restent temporaires et non signées. Une release est donc toujours interdite tant que la licence formelle n’est pas choisie, que la titularité/dépendances ne sont pas vérifiées, que les signatures de plateforme ne sont pas disponibles et que les notes de release ne relient pas leurs affirmations aux hashes et preuves correspondants.
 
 Le [contrat de release](../../release/RELEASE_CONTRACT.md) et le [modèle de notes](../../release/RELEASE_NOTES_TEMPLATE.md) imposent ces limites. Le dashboard WebDev reste hors distribution VERA à ce stade : aucun transfert de source ou déploiement GitHub Pages n’est effectué par M9-A.
