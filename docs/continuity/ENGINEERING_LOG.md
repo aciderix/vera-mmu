@@ -3164,3 +3164,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** La fixture crée trois executions `NOOP` par les services canoniques et contrôle ordre, borne, adresses project-bound, projection sans payload, refus des types/bornes invalides et absence d’audit. Elle appelle la CLI et le serveur/client MCP stdio; le schema MCP est `{max_items}` et une borne 101 est refusée. Contrat : `13 passed in 16.27s`; cible execution/lecture/CLI/MCP : `24 passed in 18.63s`; intégral : **`555 passed in 70.43s`**.
 
 **Verdict.** `M11-N = PASS`. Aucun filtre, recherche, pagination, contenu execution/evidence, session de reprise, mutation, admission, proof, gate ou sync n’est ajouté. Artefact : `artifacts/m11_n_bounded_execution_history_2026-08-27.md`; mémoire : `MEM-DEC-188`.
+
+
+## LOG-0246 — 2026-08-27 — M11-O : historique d’evidences borné
+
+**Résultat.** `ReadService.evidence_history` retourne une projection compacte des evidences persistées du projet actif, avec `max_items` de 1 à 100 et ordre total `created_at DESC, id DESC`. La projection exclut strictement `content` et `created_by`. CLI `list-evidence` et MCP `mmu_list_evidence` délèguent à cette primitive; le tool est ajouté au manifeste canonique hashé.
+
+**Preuves.** La fixture crée trois executions et evidences par les services canoniques, puis contrôle ordre, borne, adresses project-bound, projection sans contenu/acteur, refus des bornes invalides et absence d’audit. Elle appelle la CLI et le serveur/client MCP stdio; le schema MCP est `{max_items}` et une borne 101 est refusée. Contrat : `13 passed in 15.61s`; cible evidence/lecture/CLI/MCP : `27 passed in 17.87s`; intégral : **`557 passed in 67.38s`**.
+
+**Verdict.** `M11-O = PASS`. Aucun filtre, recherche, pagination, contenu d’evidence, session de reprise, mutation, admission, proof, gate ou sync n’est ajouté. Artefact : `artifacts/m11_o_bounded_evidence_history_2026-08-27.md`; mémoire : `MEM-DEC-189`.

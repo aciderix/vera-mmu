@@ -1430,3 +1430,22 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_n_bounded_execution_history_2026-08-27.md`; contrat `13 passed`, cible `24 passed`, régression intégrale `555 passed in 70.43s`.
 
 **Limites conservées :** pas de recherche, filtre, pagination, listing d’evidence, contenu de payload, export, reprise/session, mutation ou compatibilité `mmu://`.
+
+
+## MEM-DEC-189 — M11-O : historique d’evidences borné
+
+**Date :** 2026-08-27
+**Décision :** exposer une projection compacte et ordonnée des evidences persistées du projet actif, avec une unique borne `max_items`, sans contenu d’evidence ni acteur.
+
+| Garantie | Décision effective |
+|---|---|
+| Source | Lecture de la table SQLite `evidence` canonique seulement; aucun runtime/fichier/réseau/session n’est consulté. |
+| Borne | `max_items` entier strict 1–100, défaut 20; aucun filtre n’est admis. |
+| Ordre | `created_at DESC, id DESC` fournit un ordre total déterministe. |
+| Projection | Adresse, ids, type, verdict, hash, statut d’admission et timestamp seulement; `content` et `created_by` restent exclus. |
+| Transports | CLI `list-evidence` et MCP `mmu_list_evidence` délèguent au Core; le schéma MCP est exactement `{max_items}` et le tool est manifesté/hashé. |
+| Non-mutation | Aucune transaction, audit, execution, admission, proof, gate ou sync n’est déclenché. |
+
+**Evidence :** `docs/continuity/artifacts/m11_o_bounded_evidence_history_2026-08-27.md`; contrat `13 passed`, cible `27 passed`, régression intégrale `557 passed in 67.38s`.
+
+**Limites conservées :** pas de recherche, filtre, pagination, contenu de preuve, export, reprise/session, mutation ou compatibilité `mmu://`.
