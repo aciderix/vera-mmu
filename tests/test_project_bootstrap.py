@@ -59,6 +59,19 @@ class ProjectBootstrapTests(unittest.TestCase):
             with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
             (root/".vera-mmu"/"capabilities.yaml").unlink();(root/".vera-mmu"/"capabilities.yaml").symlink_to(root/".vera-mmu"/"gates.yaml")
             with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
+    def test_i007_i008_project_catalog_declarations_are_closed_and_linked(self)->None:
+        from vera_mmu.project_bootstrap import apply_project_initialization,preview_project_initialization
+        from vera_mmu.project_catalogs import ProjectCatalogError,load_project_catalogs
+        capability={"id":"unit-tests","name":"Unit tests","description":"Verify unit tests","kind":"CHECK","version":"1.0.0","runner":"OBSERVED_PROCESS","network_policy":"DENY_NETWORK","timeout_seconds":180,"parameter_schema":{"type":"object","additionalProperties":False},"yields_proof":True,"policy":"READ_ONLY","inputs":[],"outputs":[],"validator":"EVIDENCE_HASH","artifacts":[],"confirmation_required":False}
+        gate={"id":"UNIT_TESTS_OK","name":"Unit tests pass","capability_id":"unit-tests","required":True,"expected":{"verdict":"PASS"}}
+        with TemporaryDirectory() as directory:
+            root=Path(directory);preview=preview_project_initialization(root,template="software",project_id="catalog-app",project_name="Catalog App");apply_project_initialization(root,preview,confirm=True)
+            (root/".vera-mmu"/"capabilities.yaml").write_text(json.dumps({"format":"vera-capability-catalog/v1","capabilities":[capability]})+"\n",encoding="utf-8")
+            (root/".vera-mmu"/"gates.yaml").write_text(json.dumps({"format":"vera-gate-catalog/v1","gates":[gate]})+"\n",encoding="utf-8")
+            catalogs=load_project_catalogs(root/".vera-mmu"/"project.yaml");self.assertEqual(catalogs.gates["gates"][0]["capability_id"],"unit-tests")
+            capability["command"]=["sh","-c","whoami"]
+            (root/".vera-mmu"/"capabilities.yaml").write_text(json.dumps({"format":"vera-capability-catalog/v1","capabilities":[capability]})+"\n",encoding="utf-8")
+            with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
     def test_i007_i011_init_apply_is_confirmed_non_destructive_and_refuses_symlink(self)->None:
         from vera_mmu.project_bootstrap import ProjectBootstrapError,apply_project_initialization,preview_project_initialization
         with TemporaryDirectory() as directory:

@@ -27,6 +27,12 @@ storage:
   memory_dir: ".vera-mmu"
   sqlite_file: "memory.sqlite"
   artifacts_dir: "artifacts"
+capabilities:
+  catalog: ".vera-mmu/capabilities.yaml"
+gates:
+  catalog: ".vera-mmu/gates.yaml"
+policies:
+  file: ".vera-mmu/policies.yaml"
 identity:
   include_vcs_revision: false
   include_profile_hash: true
@@ -40,6 +46,17 @@ def invoke(argv:list[str])->tuple[int,dict[str,object]]:
 class ProjectOperationsTests(unittest.TestCase):
     def _profile(self,root:Path,seed:bool=False)->Path:
         profile=root/"project.yaml";profile.write_text(PROFILE,encoding="utf-8")
+        runtime=root/".vera-mmu";runtime.mkdir()
+        (runtime/"capabilities.yaml").write_text("format: vera-capability-catalog/v1\ncapabilities: []\n",encoding="utf-8")
+        (runtime/"gates.yaml").write_text("format: vera-gate-catalog/v1\ngates: []\n",encoding="utf-8")
+        (runtime/"policies.yaml").write_text("""format: vera-policy-catalog/v1
+filesystem: {read: allow, write: confirm}
+network: {default: deny}
+process: {allowed_runners: []}
+git: {commit: confirm, push: confirm}
+destructive: {default: confirm}
+promotion: {proven_requires: [admissible_pass]}
+""",encoding="utf-8")
         if seed:
             with MemoryStore.open(load_profile(profile),profile) as store:
                 CapabilityService(store).create("check","Check","CHECK","1.0.0",parameter_schema={"type":"object","additionalProperties":False},metadata={},actor="test")
@@ -62,9 +79,15 @@ class ProjectOperationsTests(unittest.TestCase):
             root=Path(directory);profile=self._profile(root,seed=True)
             with MemoryStore.open(load_profile(profile),profile) as store:
                 first=compile_generation_preview(store,"generic-mcp");second=compile_generation_preview(store,"generic-mcp")
-                self.assertEqual(first,second);self.assertEqual(first.status,"PREVIEW");self.assertEqual(first.adapter,"generic-mcp");self.assertIn("mcpServers",first.integration_json_text);self.assertTrue(first.preview_hash)
+                self.assertEqual(first,second);self.assertEqual(first.status,"PREVIEW");self.assertEqual(first.adapter,"generic-mcp");self.assertIn("mcpServers",first.integration_json_text);self.assertTrue(first.preview_hash);self.assertEqual(first.profile_hash,store.identity.profile_hash);self.assertTrue(first.capability_catalog_hash);self.assertTrue(first.gate_catalog_hash);self.assertTrue(first.policy_hash)
             self.assertFalse((root/".mcp.json").exists())
             code,payload=invoke(["generate",str(profile),"--adapter","generic-mcp"]);self.assertEqual(code,0);self.assertTrue(payload["ok"]);self.assertEqual(payload["generation"]["status"],"PREVIEW")
+    def test_i007_i011_generation_refuses_missing_profile_catalog(self)->None:
+        from vera_mmu.project_operations import ProjectOperationError,compile_generation_preview
+        with TemporaryDirectory() as directory:
+            root=Path(directory);profile=self._profile(root,seed=True);(root/".vera-mmu"/"policies.yaml").unlink()
+            with MemoryStore.open(load_profile(profile),profile) as store:
+                with self.assertRaises(ProjectOperationError):compile_generation_preview(store,"generic-mcp")
     def test_i007_i011_install_routes_only_allowlisted_adapter_with_preview_and_confirmation(self)->None:
         from vera_mmu.generic_mcp_adapter import compile_generic_mcp_plan,stage_generic_mcp_runtime
         with TemporaryDirectory() as directory:
