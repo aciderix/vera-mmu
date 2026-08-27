@@ -1094,3 +1094,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** Run `33061136241`, jobs Linux `98479903668` et Windows `98479903284`, artefacts `9641938598` (Linux, 172 298 510 octets) et `9641944934` (Windows, 61 776 022 octets). Voir `LOG-0212`.
 **Limites :** Les hashes de release, signatures de code, installation utilisateur et campagne d’hôtes réels restent hors de cette observation.
 **Journal :** `LOG-0212`.
+
+### MEM-DEC-160 — M8-A : conformance déclarative des six domaines et continuité Git project-local
+**Type :** `OBSERVATION`
+**Statut :** `PASS` local ; CI native Windows/Linux `NOT_RUN`
+**Décision :** Les templates software, data, research, documentation, game et hardware suivent la même séquence VERA : scan CLI observationnel, init CLI en preview, bridge à racine native, application confirmée et intégration MCP issue d’un Agent Profile déclaré. Les topologies no-Git, mono-repo et multi-repo sont séparément validées. La mémoire `.vera-mmu/memory.sqlite` synchronisée par policy rejoint un clone Git et y retrouve son contenu, sans WAL ni fusion binaire.
+**Correction associée :** `mcp_server._mutating_call` expose le `last_sync_status` déjà produit par la transaction Core ; il ne relance pas Git et ne masque donc plus `SYNCED` par un second `NO_CHANGES`.
+**Provenance :** `tests/test_m8_domain_conformance.py`; suite `504 passed, 43 subtests passed`; roue isolée `vmmu scan`; artefact `m8_multi_domain_conformance_2026-08-27.md`. Voir `LOG-0213`.
+**Limites :** Ceci ne valide pas la sémantique des domaines ni un hôte/agent réel. Le résultat CI Windows/Linux reste à observer après publication.
+**Journal :** `LOG-0213`.

@@ -10,3 +10,6 @@
 - [x] Construire et inspecter les distributions Linux x64 AppImage et Debian avec sidecar autonome embarqué.
 - [ ] Déclencher et vérifier la matrice native CI Windows/Linux (NSIS, MSI, AppImage, Debian) avant toute release.
 - [ ] Préparer les archives CLI Windows/Linux et les signatures/hashes pour la release dédiée.
+- [x] Définir les fixtures de conformance VERA pour software, data, research, documentation, game et hardware.
+- [x] Vérifier le parcours CLI/bridge project-local sur chaque fixture sans vocabulaire ni comportement propre au domaine dans le Core.
+- [x] Vérifier no-Git, mono-repo, multi-repo et continuité de mémoire SQLite project-local via clone Git sans fusion binaire implicite.
