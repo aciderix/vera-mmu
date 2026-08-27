@@ -1061,3 +1061,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** `tests/test_memory_sync.py`, `tests/test_operations_cli.py`, `tests/test_mcp_lifecycle_acknowledgement.py`, `tests/test_desktop_bridge.py`, `src/vera_mmu/memory_sync.py`, `docs/continuity/artifacts/m7_desktop_distribution_architecture_2026-08-27.md`; suite `500 passed, 37 subtests passed`.
 **Limites :** Pas de fusion SQLite automatique, pas de `pull` implicite, pas de build Windows natif, AppImage, signature ou campagne hôte réelle dans ce lot.
 **Journal :** `LOG-0207`.
+
+### MEM-DEC-156 — M7-D : packaging natif reproductible, Linux observé et CI Windows/Linux préparée
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour le builder natif et les artefacts Linux x64 ; workflow Windows/Linux `NOT_RUN` au moment de ce record
+**Décision :** Le sidecar desktop est construit uniquement sur son hôte cible par `scripts/build_desktop_sidecar.py`. Le builder accepte les seuls triples `x86_64-unknown-linux-gnu` et `x86_64-pc-windows-msvc`, et refuse toute compilation croisée. La CI GitHub construit donc sur runners natifs : AppImage/Debian Linux et NSIS/MSI Windows ; elle téléverse des artefacts de vérification sans créer de release, tag ou GitHub Pages.
+**Motif :** Le sidecar Python embarqué doit correspondre au triple Tauri exact. Une sortie Windows prétendue depuis Linux ne constituerait pas une preuve de distribution utilisable.
+**Provenance :** `scripts/build_desktop_sidecar.py`, `.github/workflows/desktop-packaging.yml`, `apps/desktop/README.md`; build AppImage et Debian Linux x64, inspection des sidecars embarqués, `cargo test` et compilation release sans avertissement. Voir `LOG-0208` et l’artefact M7.
+**Limites :** Les artefacts produits localement ne sont ni signés ni publiés. Le résultat du runner Windows, les archives CLI de release, les signatures, GitHub Pages et les tests d’hôtes réels restent `NOT_RUN`.
+**Journal :** `LOG-0208`.

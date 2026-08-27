@@ -99,6 +99,8 @@ Chaque release devra produire, à partir du même tag VERA, au minimum une archi
 
 Les binaires Python/Core seront compilés **nativement sur chaque système cible** (par exemple dans une matrice CI Windows et Linux), puis placés comme sidecars correspondant au target triple Tauri. La documentation Tauri impose ce suffixe de target pour les sidecars.[1] Une compilation croisée Windows depuis Linux ne constituera pas une preuve de release : la documentation Tauri la qualifie de moins testée et recommande les machines/CI natives lorsque possible.[5]
 
+Le builder versionné `scripts/build_desktop_sidecar.py` accepte exclusivement `x86_64-unknown-linux-gnu` ou `x86_64-pc-windows-msvc` et refuse un triplet différent de l’hôte. Le script POSIX historique délègue à ce même builder. La matrice `.github/workflows/desktop-packaging.yml` reconstruit le sidecar sur chaque runner natif, produit AppImage/Debian sous Linux et NSIS/MSI sous Windows, puis téléverse seulement des **artefacts de vérification** de workflow. Elle ne crée ni tag, ni release GitHub, ni publication GitHub Pages.[8]
+
 Les releases publieront le hash SHA-256 de chaque artefact, les notes de version, les limites d’hôte attestées et, avant diffusion générale, une stratégie de signature de code. Tauri indique que la signature renforce l’intégrité et l’identité des exécutables distribués.[4]
 
 ## 8. Gates de M7
@@ -130,8 +132,11 @@ Le paquet Debian produit par Tauri déclare les dépendances d’exécution WebK
 
 Le premier assemblage de développement `VERA-MMU_0.1.0_amd64.deb` a été produit localement. Son contenu contient le sidecar autonome `usr/bin/vmmu-desktop-bridge`, et ce sidecar extrait a répondu à une requête `project.scan` sur stdin/stdout. Cela atteste l’inclusion du Core dans l’artefact Linux de développement, non une release signée ou une validation d’installation sur une machine utilisateur.
 
+Le même lot a produit un AppImage Linux x64 qui contient également le sidecar dans son image squashfs. Les tests Rust et la compilation release ne produisent plus d’avertissement. Les résultats Windows doivent toutefois être observés sur le runner natif avant de qualifier la matrice comme passée.
+
 [6]: https://v2.tauri.app/start/prerequisites/ "Tauri v2 — Prerequisites"
 [7]: https://v2.tauri.app/distribute/debian/ "Tauri v2 — Debian distribution"
+[8]: https://v2.tauri.app/distribute/pipelines/github/ "Tauri v2 — GitHub pipelines"
 
 ## Références
 

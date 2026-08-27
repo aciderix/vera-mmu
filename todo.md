@@ -7,4 +7,6 @@
 - [x] Concevoir la mémoire SQLite VERA project-local versionnable par GitHub, ses artefacts portables et une stratégie explicite de refus/résolution des conflits binaires.
 - [x] Restaurer un push Git automatique policy-gated limité aux chemins mémoire VERA, avec refus des changements hors périmètre, conflits, remote ambigu ou échec réseau.
 - [x] Créer l’enveloppe desktop Tauri et son interface d’installation project-local non destructive.
-- [ ] Préparer et vérifier les distributions CLI et desktop Windows/Linux reproductibles.
+- [x] Construire et inspecter les distributions Linux x64 AppImage et Debian avec sidecar autonome embarqué.
+- [ ] Déclencher et vérifier la matrice native CI Windows/Linux (NSIS, MSI, AppImage, Debian) avant toute release.
+- [ ] Préparer les archives CLI Windows/Linux et les signatures/hashes pour la release dédiée.
