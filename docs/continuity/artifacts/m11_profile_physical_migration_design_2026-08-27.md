@@ -14,3 +14,8 @@ Les changements `workspace.root`, `workspace.additional_roots`, `storage.memory_
 | Validation | Ouverture du store au nouveau profil, WAL/intégrité/FK, hashes et audit, absence de source résiduelle. |
 
 La résolution actuelle infère l’ancre uniquement quand `project.yaml` réside sous `.vera-mmu/`. Avant toute migration de `storage.memory_dir`, elle doit être généralisée avec une preuve de non-régression de cette inférence. Aucun déplacement ne sera implémenté avant cette fondation et ses tests d’interruption.
+
+
+## Inventaire observé du runtime initialisé
+
+Une initialisation canonique crée : `project.yaml`, `capabilities.yaml`, `gates.yaml`, `policies.yaml`, `agent-profiles.yaml`, `playbook.md` et `sync-policy.json` sous le runtime. Une migration physique doit inclure cet ensemble ainsi que SQLite, WAL/SHM et les sous-répertoires générés créés ultérieurement. Cet inventaire a été observé sur un projet temporaire initialisé par la CLI puis supprimé.
