@@ -10,7 +10,7 @@
 - [x] Construire et inspecter les distributions Linux x64 AppImage et Debian avec sidecar autonome embarqué.
 - [x] Déclencher et vérifier la matrice native CI Windows/Linux (NSIS, MSI, AppImage, Debian) avant toute release.
 - [x] Vérifier sur la matrice native les archives CLI Windows/Linux candidates, leurs manifests et leurs SHA-256 ; aucune release avant résultat des deux runners.
-- [ ] Choisir une licence formelle, vérifier les droits de distribution et traiter `LICENSE-PENDING.md` avant toute release publique.
+- [x] Choisir Apache-2.0, versionner les avis et remplacer `LICENSE-PENDING.md` avant la préversion publique.
 - [ ] Définir et exécuter la politique de signature Windows/Linux avec les clés du propriétaire, hors dépôt et après confirmation explicite.
 - [x] Définir les fixtures de conformance VERA pour software, data, research, documentation, game et hardware.
 - [x] Vérifier le parcours CLI/bridge project-local sur chaque fixture sans vocabulaire ni comportement propre au domaine dans le Core.
@@ -20,13 +20,16 @@
 - [x] Arrêter le modèle de licence VERA-MMU et la politique applicable aux contributions, dérivés et futurs imports de Domain Packs : Apache-2.0 avec DCO.
 - [x] Arrêter la politique de distribution : préversion publique contrôlée, Windows/Linux x64, GitHub Releases pour binaires et GitHub Pages viewer ultérieur.
 - [x] Ajouter les documents Apache-2.0, DCO, politique de marque et avis de tiers après contrôle de cohérence des sources et dépendances.
-- [ ] Réécrire le README racine de VERA-MMU pour la préversion, avec badges, installation, parcours sécurisé, matrice de support, vérification et limites.
-- [ ] Ajouter le workflow de release par tag qui vérifie la version, produit les artefacts finaux, leurs manifests et SHA-256, sans contourner les gates de signature.
+- [x] Réécrire le README racine de VERA-MMU pour la préversion, avec badges, installation, parcours sécurisé, matrice de support, vérification et limites.
+- [x] Ajouter le workflow de release par tag qui vérifie la version, produit les artefacts finaux, leurs manifests et SHA-256, sans contourner les gates de signature.
 - [ ] Préparer la configuration de signature hors dépôt et vérifier les binaires signés Windows/Linux avant toute publication GitHub Release.
-- [ ] Créer et publier la préversion `v0.1.0-rc.3` seulement après la validation du tag exact, avec notes, hashes et avertissement explicite de binaires non signés.
+- [x] Créer et publier la préversion `v0.1.0-rc.4` après validation du tag exact, avec notes, hashes, manifests et avertissement explicite de binaires non signés.
 - [x] Versionner Apache-2.0, NOTICE, DCO, politique de marque, README de préversion et workflow de candidat par tag non signant.
-- [ ] Publier exceptionnellement `v0.1.0-rc.3` comme préversion gratuite non signée, après run de tag vert, avec hashes/manifests et avertissement d’éditeur non vérifié.
+- [x] Publier exceptionnellement `v0.1.0-rc.4` comme préversion gratuite non signée, après run de tag vert, avec hashes/manifests et avertissement d’éditeur non vérifié.
 - [ ] Conserver la signature Authenticode Windows et la signature Linux comme prérequis de toute diffusion stable ou élargie ultérieure.
+- [x] Publier rc.4 par une session GitHub navigateur ; aucun jeton jetable n’a été enregistré dans le dépôt ou la documentation.
+- [x] Utiliser les identifiants GitHub fournis uniquement pour la session navigateur de publication rc.4, sans les inscrire dans le dépôt ou ses documents.
+- [ ] Révoquer immédiatement dans GitHub le jeton jetable précédemment exposé dans la session, puis créer un accès distinct seulement si une automatisation future est nécessaire.
 - [x] Aligner les manifestes de préversion sur `v0.1.0-rc.1` (forme PEP 440 `0.1.0rc1` pour Python) et valider Python, frontend et Rust verrouillé.
 - [x] Qualifier `v0.1.0-rc.1` comme tag non publiable : MSI Windows refuse un identifiant de préversion textuel ; ne pas déplacer ce tag historique.
 - [x] Préparer `v0.1.0-rc.2` avec identité binaire MSI-compatible `0.1.0-2` et forme Python `0.1.0rc2` ; contrôles locaux verts.

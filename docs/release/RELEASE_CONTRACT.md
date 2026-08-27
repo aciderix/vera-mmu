@@ -1,6 +1,7 @@
 # Contrat de release VERA-MMU
 
 **Statut :** `M9_PREPARATION` — Apache-2.0, DCO et politique de marque sont versionnés ; aucune release, aucun tag de release et aucune signature ne sont créés par ce document.
+**Mise à jour rc.4 :** la préversion gratuite non signée est publiée après validation native, conformément à l’exception explicitement autorisée. Les exigences de signature restent applicables à toute release stable ou diffusion élargie.
 
 ## 1. Objet et règle de sûreté
 

@@ -1212,3 +1212,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Validation :** nouvelle régression de nommage, tests builder/assembleur, Cargo offline/locked et suite `512 passed, 43 subtests passed`. rc.4 porte `0.1.0-4`/`0.1.0rc4`.
 **Limites :** les tags rc.1/rc.2/rc.3 restent historiques et non publiables. Seul un run natif vert et une inspection checksum/manifest de rc.4 peut autoriser la préversion gratuite non signée.
 **Journal :** `LOG-0226`.
+
+### MEM-DEC-174 — M9.EXIT : préversion publique rc.4 avec intégrité vérifiée
+**Type :** `OBSERVATION`
+**Statut :** `PARTIAL_PASS`
+**Décision :** `v0.1.0-rc.4` est la première GitHub Pre-release publique de VERA-MMU, explicitement non signée. Le tag annoté vise `3519f760497c03d4744448f416b9e7deaafae790`; la release joint les six binaires Linux/Windows, les quatre manifests CLI/plateforme, le manifest global et `SHA256SUMS`.
+**Provenance :** run `33078499592` vert : Linux job `98538971733`, Windows job `98538972155`, chacun `512 passed, 43 subtests passed`, puis bundling et assembly. Les deux artifacts CI sont téléchargés et validés par `sha256sum -c SHA256SUMS` avant la publication. Release : `https://github.com/aciderix/vera-mmu/releases/tag/v0.1.0-rc.4`.
+**Limites :** non signé, sans validation install/hôtes agents réels, macOS, ARM, update automatique ni viewer Pages. Une release stable reste interdite sans signatures et campagne réelle.
+**Journal :** `LOG-0227`.
