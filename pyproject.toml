@@ -33,6 +33,10 @@ vmmu-claude-code-cloud-hook = "vera_mmu.claude_code_cloud:claude_code_cloud_hook
 vmmu-claude-code-cloud-mcp = "vera_mmu.claude_code_cloud:claude_code_cloud_mcp_main"
 vmmu-claude-code-cloud-stage = "vera_mmu.claude_code_cloud:claude_code_cloud_stage_main"
 vmmu-claude-code-cloud-config = "vera_mmu.claude_code_cloud:claude_code_cloud_config_main"
+vmmu-codex-stage = "vera_mmu.codex_adapter:codex_stage_main"
+vmmu-codex-hook = "vera_mmu.codex_adapter:codex_hook_main"
+vmmu-codex-mcp = "vera_mmu.codex_adapter:codex_mcp_main"
+vmmu-codex-config = "vera_mmu.codex_adapter:codex_config_main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
