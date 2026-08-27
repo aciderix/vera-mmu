@@ -36,6 +36,21 @@ class GateService:
     if c.execute('SELECT 1 FROM work_item WHERE id=?',(work_item_id,)).fetchone() is None or c.execute('SELECT 1 FROM evidence WHERE id=?',(evidence_id,)).fetchone() is None:raise GateError('Endpoint de gate inconnu.')
     c.execute("INSERT INTO admission_gate(id,work_item_id,evidence_id,created_at,created_by) VALUES(?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'),?)",(identifier,work_item_id,evidence_id,actor));self.store.append_audit(c,'ADMISSION_GATE_DECLARED',{'gate_id':identifier,'actor':actor})
   except sqlite3.IntegrityError as e:raise GateError('Gate invalide ou dupliquée.') from e
+ def declare_with_requirements(self,identifier:str,work_item_id:str,evidence_id:str,requirement_evidence_ids:tuple[str,...],*,actor:str='system')->None:
+  if not isinstance(identifier,str) or not identifier or identifier!=identifier.strip() or '/' in identifier:raise GateError('Identifiant de gate invalide.')
+  if not isinstance(work_item_id,str) or not work_item_id or not isinstance(evidence_id,str) or not evidence_id:raise GateError('Endpoint de gate invalide.')
+  if not isinstance(requirement_evidence_ids,tuple) or any(not isinstance(value,str) or not value for value in requirement_evidence_ids):raise GateError('Exigences de gate invalides.')
+  if evidence_id in requirement_evidence_ids or len(requirement_evidence_ids)!=len(set(requirement_evidence_ids)):raise GateError('Exigences de gate dupliquées ou principales.')
+  try:
+   with self.store.transaction() as c:
+    if c.execute('SELECT 1 FROM work_item WHERE id=?',(work_item_id,)).fetchone() is None:raise GateError('Work item inconnu.')
+    evidence_ids=(evidence_id,*requirement_evidence_ids)
+    if any(c.execute('SELECT 1 FROM evidence WHERE id=?',(value,)).fetchone() is None for value in evidence_ids):raise GateError('Evidence de gate inconnue.')
+    c.execute("INSERT INTO admission_gate(id,work_item_id,evidence_id,created_at,created_by) VALUES(?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'),?)",(identifier,work_item_id,evidence_id,actor))
+    c.executemany("INSERT INTO admission_gate_requirement(gate_id,evidence_id,created_at,created_by) VALUES(?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'),?)",((identifier,value,actor) for value in requirement_evidence_ids))
+    self.store.append_audit(c,'ADMISSION_GATE_DECLARED',{'gate_id':identifier,'actor':actor})
+    for value in requirement_evidence_ids:self.store.append_audit(c,'ADMISSION_GATE_REQUIREMENT_ADDED',{'gate_id':identifier,'evidence_id':value,'actor':actor})
+  except sqlite3.IntegrityError as e:raise GateError('Structure de gate invalide ou dupliquée.') from e
  def add_requirement(self,gate_id:str,evidence_id:str,*,actor:str='system')->None:
   try:
    with self.store.transaction() as c:

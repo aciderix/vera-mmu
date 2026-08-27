@@ -170,6 +170,16 @@ fn gate_policy_apply(state: State<'_, AppState>, preview_hash: String, confirm: 
 }
 
 #[tauri::command]
+fn gate_structure_preview(state: State<'_, AppState>, gate_id: String, work_item_id: String, primary_evidence_id: String, requirement_evidence_ids: Vec<String>) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("gate.structure.preview", json!({"gateId": gate_id, "workItemId": work_item_id, "primaryEvidenceId": primary_evidence_id, "requirementEvidenceIds": requirement_evidence_ids})))
+}
+
+#[tauri::command]
+fn gate_structure_apply(state: State<'_, AppState>, preview_hash: String, confirm: bool) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("gate.structure.apply", json!({"previewHash": preview_hash, "confirm": confirm})))
+}
+
+#[tauri::command]
 fn initialization_preview(state: State<'_, AppState>, template: String, project_id: String, project_name: String) -> Result<Value, String> {
     with_bridge(&state, |bridge| bridge.call("project.init.preview", json!({"template": template, "projectId": project_id, "projectName": project_name})))
 }
@@ -219,7 +229,7 @@ fn main() {
             app.manage(AppState { session: Mutex::new(None), executable });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![select_project, scan_project, project_status, capability_preview, capability_apply, gate_policy_preview, gate_policy_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
+        .invoke_handler(tauri::generate_handler![select_project, scan_project, project_status, capability_preview, capability_apply, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
         .run(tauri::generate_context!())
         .expect("échec de l’application desktop VERA");
 }

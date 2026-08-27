@@ -15,6 +15,10 @@ export const desktopApi = {
     invoke<JsonObject>("gate_policy_preview", { gateId, mode, minimumAdmissions }),
   gatePolicyApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("gate_policy_apply", { previewHash, confirm }),
+  gateStructurePreview: (gateId: string, workItemId: string, primaryEvidenceId: string, requirementEvidenceIds: string[]) =>
+    invoke<JsonObject>("gate_structure_preview", { gateId, workItemId, primaryEvidenceId, requirementEvidenceIds }),
+  gateStructureApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("gate_structure_apply", { previewHash, confirm }),
   initializationPreview: (template: string, projectId: string, projectName: string) =>
     invoke<JsonObject>("initialization_preview", { template, projectId, projectName }),
   initializationApply: (previewHash: string, confirm: boolean) =>

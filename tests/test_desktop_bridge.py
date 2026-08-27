@@ -134,6 +134,43 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertTrue(applied["ok"])
             self.assertEqual(applied["result"]["capability"]["id"], "lint")  # type: ignore[index]
 
+    def test_m11dd2_gate_structure_builder_requires_cached_preview_and_confirmation(self) -> None:
+        from vera_mmu.capabilities import CapabilityService
+        from vera_mmu.capability_contracts import CapabilityContractService
+        from vera_mmu.capability_policies import CapabilityPolicyService
+        from vera_mmu.evidence import EvidenceService
+        from vera_mmu.executions import ExecutionService
+        from vera_mmu.identity import load_profile
+        from vera_mmu.store import MemoryStore
+        from vera_mmu.work_items import WorkItemService
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            init = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "gate-structure", "projectName": "Gate structure"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": init["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+            profile = root / ".vera-mmu" / "project.yaml"
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                CapabilityService(store).create("source", "Source", "CHECK", "1.0.0")
+                CapabilityContractService(store).declare("source", "NOOP", "DENY_NETWORK", 30)
+                CapabilityPolicyService(store).declare("source", "ALLOW", "test")
+                ExecutionService(store).run_noop("execution", "source", {})
+                for evidence_id in ("e1", "e2"):
+                    EvidenceService(store).record(evidence_id, "execution", "TEST_PROOF", "PASS", {"evidence": evidence_id})
+                WorkItemService(store).create("dashboard-gate", "SUBTASK", "Dashboard gate")
+            injected = self._call(bridge, "gate.structure.preview", {"gateId": "dashboard-gate", "workItemId": "dashboard-gate", "primaryEvidenceId": "e1", "requirementEvidenceIds": ["e2"], "verdict": "PASS"})
+            self.assertFalse(injected["ok"])
+            self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            preview = self._call(bridge, "gate.structure.preview", {"gateId": "dashboard-gate", "workItemId": "dashboard-gate", "primaryEvidenceId": "e1", "requirementEvidenceIds": ["e2"]})
+            self.assertTrue(preview["ok"])
+            preview_hash = preview["result"]["preview_hash"]  # type: ignore[index]
+            refused = self._call(bridge, "gate.structure.apply", {"previewHash": preview_hash, "confirm": False})
+            self.assertFalse(refused["ok"])
+            self.assertEqual(refused["error"]["code"], "CONFIRMATION_REQUIRED")  # type: ignore[index]
+            applied = self._call(bridge, "gate.structure.apply", {"previewHash": preview_hash, "confirm": True})
+            self.assertTrue(applied["ok"])
+            self.assertEqual(applied["result"]["status"], "DECLARED")  # type: ignore[index]
+
     def test_i001_i007_memory_sync_has_no_git_input_in_desktop_protocol(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)

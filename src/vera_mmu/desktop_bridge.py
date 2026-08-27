@@ -16,6 +16,7 @@ from .agent_profiles import builtin_agent_profiles
 from .capability_builder import CapabilityDraftPreview, apply_capability_draft, preview_capability_draft
 from .coverage_report import compile_coverage_report
 from .gate_policy_builder import GatePolicyDraftPreview, apply_gate_policy_draft, preview_gate_policy_draft
+from .gate_structure_builder import GateStructureDraftPreview, apply_gate_structure_draft, preview_gate_structure_draft
 from .identity import load_profile
 from .read_api import ReadService
 from .memory_sync import automatic_memory_sync
@@ -65,6 +66,8 @@ class DesktopBridge:
             "capability.apply": self._capability_apply,
             "gate.policy.preview": self._gate_policy_preview,
             "gate.policy.apply": self._gate_policy_apply,
+            "gate.structure.preview": self._gate_structure_preview,
+            "gate.structure.apply": self._gate_structure_apply,
             "memory.sync": self._memory_sync,
             "agents.list": self._agents_list,
             "adapter.generate": self._adapter_generate,
@@ -199,6 +202,35 @@ class DesktopBridge:
         if cached is None or cached.kind != "gate.policy" or not isinstance(cached.value, GatePolicyDraftPreview): raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de policy inconnu.")
         with MemoryStore.open(load_profile(self._profile_path()), self._profile_path()) as store: result = apply_gate_policy_draft(store, cached.value, confirm=True)
         del self._previews[_string(value, "previewHash")]
+        return result
+
+    def _gate_structure_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"gateId", "workItemId", "primaryEvidenceId", "requirementEvidenceIds"})
+        requirements = value["requirementEvidenceIds"]
+        if not isinstance(requirements, list) or any(not isinstance(item, str) for item in requirements):
+            raise _ProtocolError("INPUT_INVALID", "Exigences de structure Gate invalides.")
+        with MemoryStore.open(load_profile(self._profile_path()), self._profile_path()) as store:
+            preview = preview_gate_structure_draft(
+                store,
+                gate_id=_string(value, "gateId"),
+                work_item_id=_string(value, "workItemId"),
+                primary_evidence_id=_string(value, "primaryEvidenceId"),
+                requirement_evidence_ids=tuple(requirements),
+            )
+        self._previews[preview.preview_hash] = _CachedPreview("gate.structure", preview)
+        return preview.as_dict()
+
+    def _gate_structure_apply(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"previewHash", "confirm"})
+        preview_hash = _string(value, "previewHash")
+        if value.get("confirm") is not True:
+            raise _ProtocolError("CONFIRMATION_REQUIRED", "Création de Gate refusée sans confirmation explicite.")
+        cached = self._previews.get(preview_hash)
+        if cached is None or cached.kind != "gate.structure" or not isinstance(cached.value, GateStructureDraftPreview):
+            raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de structure Gate inconnu.")
+        with MemoryStore.open(load_profile(self._profile_path()), self._profile_path()) as store:
+            result = apply_gate_structure_draft(store, cached.value, confirm=True)
+        del self._previews[preview_hash]
         return result
 
     def _agents_list(self, value: dict[str, Any]) -> dict[str, object]:
