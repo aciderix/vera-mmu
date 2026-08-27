@@ -11,6 +11,10 @@ export const desktopApi = {
     invoke<JsonObject>("profile_rebind_preview", { projectName, projectDescription }),
   profileRebindApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("profile_rebind_apply", { previewHash, confirm }),
+  profileRebindRecoveryPreview: () =>
+    invoke<JsonObject>("profile_rebind_recovery_preview"),
+  profileRebindRecoveryApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("profile_rebind_recovery_apply", { previewHash, confirm }),
   capabilityPreview: (identifier: string, name: string, kind: string, version: string, description: string) =>
     invoke<JsonObject>("capability_preview", { identifier, name, kind, version, description }),
   capabilityApply: (previewHash: string, confirm: boolean) =>

@@ -121,6 +121,40 @@ def apply_project_profile_rebind(profile_path: str | Path, preview: ProjectProfi
     return {"status": "REBOUND", "preview_hash": preview.preview_hash, "project_identity": preview.new_identity}
 
 
+def preview_project_profile_rebind_recovery(profile_path: str | Path) -> dict[str, object]:
+    """Inspect exactly one persisted rebind journal without repairing it."""
+    path = _profile_path(profile_path)
+    journals = sorted(path.parent.glob(".profile-rebind-*.json"))
+    if len(journals) != 1:
+        raise ProfileRebindError("Reprise impossible sans journal de rebind unique.")
+    journal = journals[0]
+    if journal.is_symlink() or not journal.is_file():
+        raise ProfileRebindError("Journal de rebind ambigu.")
+    try:
+        record = json.loads(journal.read_text(encoding="utf-8"))
+        if not isinstance(record, dict) or record.get("format") != "vera-profile-rebind-journal/v1" or record.get("profile") != path.name:
+            raise ValueError("format")
+        preview_hash = record["preview_hash"]
+        old_hash = record["old_profile_hash"]
+        new_hash = record["new_profile_hash"]
+    except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as exc:
+        raise ProfileRebindError("Journal de rebind illisible ou non canonique.") from exc
+    if not all(isinstance(value, str) and value for value in (preview_hash, old_hash, new_hash)):
+        raise ProfileRebindError("Journal de rebind invalide.")
+    current_hash = sha256(path.read_text(encoding="utf-8").encode()).hexdigest()
+    payload = {"journal": journal.name, "journal_hash": sha256(journal.read_bytes()).hexdigest(), "current_profile_hash": current_hash, "old_profile_hash": old_hash, "new_profile_hash": new_hash, "rebind_preview_hash": preview_hash}
+    return {"format": "vera-profile-rebind-recovery/v1", **payload, "preview_hash": sha256(canonical_json(payload).encode()).hexdigest(), "status": "PREVIEW"}
+
+
+def apply_project_profile_rebind_recovery(profile_path: str | Path, preview: dict[str, object], *, confirm: bool) -> dict[str, object]:
+    if confirm is not True:
+        raise ProfileRebindError("Reprise de rebind refusée sans confirmation explicite.")
+    expected = preview_project_profile_rebind_recovery(profile_path)
+    if preview != expected:
+        raise ProfileRebindError("Preview de reprise altéré ou périmé.")
+    return recover_project_profile_rebind(profile_path)
+
+
 def recover_project_profile_rebind(profile_path: str | Path) -> dict[str, object]:
     """Complete or clear one durable rebind journal without accepting client input."""
     path = _profile_path(profile_path)

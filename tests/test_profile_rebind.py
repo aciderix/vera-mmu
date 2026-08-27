@@ -39,7 +39,7 @@ class ProfileRebindTests(unittest.TestCase):
 
     def test_interrupted_rebind_is_recovered_deterministically(self) -> None:
         from unittest.mock import patch
-        from vera_mmu.profile_rebind import apply_project_profile_rebind, recover_project_profile_rebind, preview_project_profile_rebind
+        from vera_mmu.profile_rebind import apply_project_profile_rebind, apply_project_profile_rebind_recovery, preview_project_profile_rebind, preview_project_profile_rebind_recovery
 
         preview = preview_project_profile_rebind(self.profile_path, project_name="Recovered profile", project_description="Recovered deliberately")
         with patch("vera_mmu.profile_rebind._write_atomic", side_effect=OSError("simulated interruption")):
@@ -47,7 +47,10 @@ class ProfileRebindTests(unittest.TestCase):
                 apply_project_profile_rebind(self.profile_path, preview, confirm=True)
         with self.assertRaises(StoreIdentityError):
             MemoryStore.open(load_profile(self.profile_path), self.profile_path)
-        self.assertEqual(recover_project_profile_rebind(self.profile_path)["status"], "RECOVERED")
+        recovery = preview_project_profile_rebind_recovery(self.profile_path)
+        with self.assertRaises(Exception):
+            apply_project_profile_rebind_recovery(self.profile_path, recovery, confirm=False)
+        self.assertEqual(apply_project_profile_rebind_recovery(self.profile_path, recovery, confirm=True)["status"], "RECOVERED")
         with MemoryStore.open(load_profile(self.profile_path), self.profile_path) as store:
             self.assertEqual(store.metadata()["project_identity"], store.identity.as_dict())
 
