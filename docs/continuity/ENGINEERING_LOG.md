@@ -3061,3 +3061,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** `tests/test_m11c_composite_doctor.py` : `3 passed`, dont non-mutation hash/audit, symlink et corruption SQLite, et vraie session stdio sans entrée client. La cible M11-B/M11-C associée atteint `27 passed in 19.39s`. La régression complète atteint **`541 passed in 64.78s`**.
 
 **Verdict.** `M11-C = PASS` dans le périmètre documenté. Les APIs universelles boot/FIND/READ, commandes de produit restantes, Dashboard, documentation dérivée, VCS multi-provider, migration/parité ARET et hôtes réels restent hors lot et ne sont pas réétiquetés. Artefact : `artifacts/m11_c_composite_doctor_2026-08-27.md`; mémoire : `MEM-DEC-182`.
+
+
+### LOG-0236 — Commit local M11-C
+
+| Champ | Valeur |
+|---|---|
+| Commit | `daab1fce3d6cf6429c732fc3be2ab60cc68c39d2` — `feat: add non-mutating composite doctor`. |
+| Contenu | Doctor Core read-only, commande `vmmu doctor`, tool `mmu_doctor`, manifeste MCP étendu, tests de non-mutation/corruption/stdio et continuité M11-C. |
+| Validation liée | Doctor : `3 passed`; ciblé M11-B/M11-C : `27 passed in 19.39s`; intégral : `541 passed in 64.78s`; diff et scan de frontière : `PASS`. |
+| Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
+| Statut | `M11-C = PASS` dans le périmètre documenté. |
