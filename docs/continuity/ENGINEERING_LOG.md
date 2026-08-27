@@ -2837,3 +2837,9 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Correction.** `tauri.conf.json` inclut désormais les deux formats, PNG et ICO. Le builder sidecar Linux, le build React et le bundle Debian local passent après cette modification. Aucun chemin de bridge, accès WebView, policy Git ou configuration MCP n’est touché.
 **Verdict.** `PASS` pour le diagnostic et correctif de configuration ; `NOT_RUN` pour MSI/NSIS de la matrice suivante.
 **Suite.** Créer les commits fonctionnel et documentaire, vérifier la divergence, pousser et observer le run Windows/Linux suivant sans release ni publication GitHub Pages.
+
+## LOG-0212 — 2026-08-27 — M7-D : matrice native Windows/Linux entièrement passée
+**Observation.** Le run `33061136241` est `success`. Le job Linux x64 `98479903668` et le job Windows x64 `98479903284` passent chacun les étapes de sidecar natif, bundle desktop et téléversement d’artefact. Les corrections `pnpm/action-setup`, ICO Windows et déclaration `bundle.icon` ont donc fermé les trois causes de refus précédentes.
+**Artefacts.** GitHub expose deux archives CI non expirées : Linux `vera-mmu-desktop-x86_64-unknown-linux-gnu`, artefact `9641938598`, 172 298 510 octets ; Windows `vera-mmu-desktop-x86_64-pc-windows-msvc`, artefact `9641944934`, 61 776 022 octets. Le téléchargement exhaustif par CLI a dépassé les délais locaux ; l’inventaire API et les étapes de téléversement passées constituent l’observation de présence, sans hash de release prétendu.
+**Verdict.** `PASS` pour la matrice de packaging native de vérification Windows x64/Linux x64. Ce verdict n’implique ni signature, ni installation sur machine utilisateur, ni release GitHub, ni GitHub Pages, ni validation d’hôte agent réel.
+**Suite.** Commiter cette continuité, garder M7 en `PARTIAL_PASS` jusqu’aux livrables de release, puis ouvrir M8 pour la conformance multi-domaines et les scénarios no-Git/multi-repo.

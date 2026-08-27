@@ -140,6 +140,8 @@ La première exécution GitHub Actions `33059343692` a échoué avant toute comp
 
 La seconde exécution `33059519088` a ensuite produit et téléversé les artefacts Linux x64. Le runner Windows a construit le sidecar mais s’est arrêté dans `tauri-build` parce que `icons/icon.ico` était absent, fichier requis pour la ressource Windows. Aucun bundle Windows n’a été produit dans ce run. L’icône VERA a été générée au format `.ico` depuis le PNG versionné. La troisième exécution `33060333681` a confirmé sa présence, produit NSIS, puis a révélé que le bundle MSI exige aussi que l’ICO soit déclaré dans `tauri.conf.json`. Cette déclaration explicite est ajoutée et validée sous Linux ; une quatrième exécution native doit vérifier NSIS et MSI ensemble.
 
+La quatrième exécution `33061136241` a passé intégralement : les runners Linux x64 et Windows x64 ont chacun construit le sidecar, les bundles et téléversé leurs artefacts de vérification. Les archives GitHub non expirées sont `vera-mmu-desktop-x86_64-unknown-linux-gnu` (172 298 510 octets) et `vera-mmu-desktop-x86_64-pc-windows-msvc` (61 776 022 octets). Elles restent des artefacts CI : aucun tag, release, signature de code ou publication GitHub Pages n’a été créé.
+
 [6]: https://v2.tauri.app/start/prerequisites/ "Tauri v2 — Prerequisites"
 [7]: https://v2.tauri.app/distribute/debian/ "Tauri v2 — Debian distribution"
 [8]: https://v2.tauri.app/distribute/pipelines/github/ "Tauri v2 — GitHub pipelines"

@@ -1086,3 +1086,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** Run `33060333681`, job Windows `98477237293`; build Debian local validé après la modification. Voir `LOG-0211`.
 **Limites :** L’artefact NSIS du run partiellement échoué n’est pas téléversé comme artefact de workflow. MSI et la matrice Windows totalement verte restent `NOT_RUN` jusqu’au run suivant.
 **Journal :** `LOG-0211`.
+
+### MEM-DEC-159 — M7-D : matrice de packaging native Windows/Linux passée
+**Type :** `OBSERVATION`
+**Statut :** `OBSERVED` pour les artefacts de vérification Windows x64 et Linux x64 ; release/signature `NOT_RUN`
+**Décision :** Le run GitHub Actions `33061136241` est vert sur ses deux runners natifs. Il construit le sidecar correspondant au triple, produit les bundles Linux AppImage/Debian et Windows NSIS/MSI, puis téléverse deux archives de vérification non expirées. Il n’a créé ni tag ni release ni publication GitHub Pages.
+**Provenance :** Run `33061136241`, jobs Linux `98479903668` et Windows `98479903284`, artefacts `9641938598` (Linux, 172 298 510 octets) et `9641944934` (Windows, 61 776 022 octets). Voir `LOG-0212`.
+**Limites :** Les hashes de release, signatures de code, installation utilisateur et campagne d’hôtes réels restent hors de cette observation.
+**Journal :** `LOG-0212`.
