@@ -2715,3 +2715,18 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Verdict.** `PASS` pour la chaîne VERA contrôlée et le niveau annoncé ; `NOT_RUN` pour le trust hôte, l’exécution par Gemini réel, la connexion MCP observée et tout comportement post-compaction réel.
 
 **Suite.** Ouvrir M5-P avec Antigravity comme adapter distinct et ne pas présumer que ses événements s’alignent sur Gemini.
+
+
+## LOG-0201 — 2026-08-27 — M5-P : adapter Antigravity à garde par invocation
+
+**Hypothèse.** Antigravity peut recevoir le Core VERA sans détourner les sémantiques d’autres hôtes, si le cycle est borné aux événements d’invocation et d’outil réellement exposés.
+
+**Changement fonctionnel.** Le commit `df03100` ajoute `antigravity_adapter.py`, `tests/test_antigravity_adapter.py` et les quatre commandes stage/hook/MCP/config. Le runtime attesté lie manifeste, instructions, intégration MCP, plan de hooks et lifecycle `antigravity-v1`; le serveur MCP ne permet que l’acquittement contextualisé au-dessus de `DenyRuntimeAdapter`.
+
+**Contrat.** `PreInvocation` constitue l’ouverture de tour, `PreToolUse` la garde, `PostToolUse` l’observation et `Stop` la libération. La garantie est `TURN_GUARD_HARD` pour les actions réellement remises au hook. Aucun `SessionStart`, compaction ou restauration de contexte n’est synthétisé.
+
+**Tests et contrôles.** Trois tests rouges précèdent l’implémentation. Les trois tests ciblés valident staging, conservation des extensions tiers, refus conflit/symlink, application confirmée, injection, blocage, vrai client MCP stdio, acquittement et fin de tour. La suite VERA atteint `476 passed, 37 subtests passed`; compilation, diff propre et scans no-ARET/no-network/no-bootstrap/no-home/auto-approve passent. Roue isolée et quatre entry points : `PASS`. `ANTIGRAVITY_PRESENT=NO`; aucune installation ni connexion n’a été tentée.
+
+**Verdict.** `PASS` pour le mécanisme VERA contrôlé et `TURN_GUARD_HARD`; `NOT_RUN` pour le host Antigravity, son trust et l’observation de hooks réels.
+
+**Suite.** Ouvrir M5-Q, adapter MCP générique, afin que tout client MCP puisse accéder de manière sûre à l’acquittement sans prétendre à une garde automatique.

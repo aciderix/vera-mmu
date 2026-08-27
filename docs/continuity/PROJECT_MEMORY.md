@@ -964,3 +964,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 **Provenance :** `tests/test_gemini_adapter.py`; `docs/continuity/artifacts/m5_gemini_cli_adapter_2026-08-27.md`; documentation Gemini consultée le 2026-08-27.
 **Journal :** `LOG-0200`.
+
+
+### MEM-DEC-148 — M5-P : adapter Antigravity à garde de tour bornée
+
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour la chaîne contrôlée ; `NOT_RUN` pour Antigravity réel
+**Décision :** M5-P publie `antigravity-v1` au commit fonctionnel `df03100`, avec runtime staged, hook JSON, MCP stdio deny-by-default et configuration `.antigravity/settings.json` limitée au projet. Son niveau explicite est `TURN_GUARD_HARD`.
+
+**Motif :** La surface Antigravity étudiée propose l’ouverture à l’invocation et les interceptions pré/post-outil, mais aucun démarrage de session durable ni événement de compaction/restauration attesté. Une garde doit donc être liée à une invocation identifiée, non à une reprise de session que l’hôte ne signale pas.
+
+**Effet opérationnel :** `PreInvocation` injecte et arme le dossier ; `PreToolUse` refuse une action couverte jusqu’à l’acquittement MCP ; `PostToolUse` reste observationnel ; `Stop` libère l’état. Aucun événement absent n’est synthétisé. La fusion project-local est confirmée, préserve les réglages tiers et refuse divergence/symlink. Aucun home, trust hôte, réseau, secret, bootstrap ou client Antigravity réel n’est utilisé.
+
+**Provenance :** `tests/test_antigravity_adapter.py`; `docs/continuity/artifacts/m5_antigravity_adapter_2026-08-27.md`; documentation Antigravity consultée le 2026-08-27.
+**Journal :** `LOG-0201`.
