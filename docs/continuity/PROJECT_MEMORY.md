@@ -1282,3 +1282,21 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_b_bundle_restore_project_import_2026-08-27.md`; 7 nouveaux tests M11-B, 54 tests ciblés passants, régression intégrale `536 passed`.
 
 **Limite conservée :** les commandes/outils publics `mmu_export_bundle`, `mmu_import_bundle` et `mmu_restore` restent explicitement à réaliser dans M11-C. L’import de projet ne couvre pas encore les documents distants, les exports d’issues, l’historique VCS ou une indexation automatique.
+
+
+## MEM-DEC-181 — M11-C.1 : transport public de bundle et import documentaire
+
+**Date :** 2026-08-27
+**Décision :** publier une sous-tranche M11-C limitée aux interfaces CLI/MCP qui délèguent aux primitives M11-B sans recopier la logique de bundle ou d’import.
+
+| Interface | Décision effective |
+|---|---|
+| CLI | `bundle-export`, `bundle-restore` et `project-import` sont disponibles ; les écritures restent explicitement confirmées. |
+| MCP export | `mmu_export_bundle` n’accepte qu’un identifiant de bundle et `confirm`; le chemin de sortie demeure Core-owned sous le runtime du projet. |
+| MCP import | Un preview sans contenu est produit depuis des chemins relatifs explicites. L’application exige un `preview_hash` recalculé, des sources toujours fraîches et `confirm=true`. |
+| Manifest | Les outils de transport, y compris `mmu_sync_memory`, figurent dans `TOOL_NAMES` et participent donc au hash canonique de manifeste. |
+| Restore | La restauration reste volontairement CLI-only : un serveur MCP ne remplace pas son runtime actif ni son SQLite ouvert. |
+
+**Evidence :** `docs/continuity/artifacts/m11_c1_public_bundle_import_transport_2026-08-27.md`; tests CLI/MCP ciblés et régression intégrale `538 passed`.
+
+**Limite conservée :** M11-C global n’est pas clos. Doctor composite, API de boot/lecture complémentaires, commandes universelles restantes et intégrations complètes requièrent des lots indépendants.

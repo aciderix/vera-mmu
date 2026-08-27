@@ -20,6 +20,7 @@ from mcp.server import MCPServer
 
 from .admission import AdmissionService
 from .assets import AssetService
+from .bundles import BundleService
 from .evidence import EvidenceService
 from .gates import GateService
 from .identity import load_profile
@@ -28,6 +29,7 @@ from .lifecycle_adapters import LifecycleAdapterPlan, LifecycleAdapterRegistry
 from .memory_sync import automatic_memory_sync
 from .mcp_instructions import MCPInstructions, compile_mcp_instructions
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
+from .project_import import apply_project_document_import, preview_project_document_import
 from .session_lifecycle import ResumeGuardService
 from .store import MemoryStore, StoreError
 from .validators import ValidatorService
@@ -39,9 +41,11 @@ DEFAULT_ASSET_VALIDATOR_ID = "mcp-asset-binding"
 DEFAULT_ADMISSION_REASON = "Admission demandée par la façade MCP VERA."
 SERVER_INSTRUCTIONS = """VERA-MMU expose une façade MCP fermée pour des capabilities déclarées.
 Les tools transportent les résultats persistés du Core ; ils ne prennent jamais commande,
-chemin externe, stdout, exit_code, score, verdict ni artifact à promouvoir. Une capability
-est exécutée exclusivement par un adapter déclaré côté serveur. Toute erreur métier reste
-structurée et n’est jamais transformée en succès."""
+stdout, exit_code, score, verdict ni artifact à promouvoir. Une capability est exécutée
+exclusivement par un adapter déclaré côté serveur. Les bundles sont toujours produits dans
+le runtime du projet; aucun chemin d’archive client n’est accepté. Les documents de projet
+sont explicitement listés, confinés au workspace, prévisualisés puis réévalués avant import.
+Toute erreur métier reste structurée et n’est jamais transformée en succès."""
 
 
 class MCPRuntimeAdapter(Protocol):
@@ -154,6 +158,19 @@ def _catalog(store: MemoryStore, allowed_capability_ids: frozenset[str] | None =
             }
         )
     return {"capabilities": capabilities}
+
+
+def _project_preview_payload(preview: object) -> dict[str, object]:
+    value = asdict(preview)
+    value["documents"] = [
+        {key: item[key] for key in ("path", "sha256", "line_count")}
+        for item in value["documents"]
+    ]
+    return value
+
+
+def _project_import_payload(result: object) -> dict[str, object]:
+    return asdict(result)
 
 
 def _execution(store: MemoryStore, execution_id: str) -> dict[str, object]:
@@ -361,6 +378,71 @@ def create_server(
             return {"acknowledged": True}
 
         return _mutating_call("acknowledge_resume", store, acknowledge)
+
+    @server.tool(name="mmu_export_bundle", structured_output=True)
+    async def mmu_export_bundle(bundle_id: str, confirm: bool) -> dict[str, object]:
+        """Exporte un bundle uniquement sous le runtime du projet après confirmation explicite.
+
+        Le client fournit un identifiant borné, jamais un chemin de sortie, et ne peut pas
+        modifier les éléments du manifest ou les octets de snapshot.
+        """
+        return _call(
+            "export_bundle",
+            lambda: asdict(BundleService(store).export(bundle_id, confirm=confirm)),
+        )
+
+    @server.tool(name="mmu_preview_project_documents", structured_output=True)
+    async def mmu_preview_project_documents(
+        documents: list[str],
+        batch_id: str,
+        knowledge_type_id: str,
+        knowledge_type_label: str,
+    ) -> dict[str, object]:
+        """Prévisualise des documents locaux explicitement sélectionnés, sans les importer."""
+        return _call(
+            "preview_project_documents",
+            lambda: _project_preview_payload(
+                preview_project_document_import(
+                    store,
+                    documents,
+                    batch_id=batch_id,
+                    knowledge_type_id=knowledge_type_id,
+                    knowledge_type_label=knowledge_type_label,
+                    actor=actor,
+                )
+            ),
+        )
+
+    @server.tool(name="mmu_import_project_documents", structured_output=True)
+    async def mmu_import_project_documents(
+        documents: list[str],
+        batch_id: str,
+        knowledge_type_id: str,
+        knowledge_type_label: str,
+        preview_hash: str,
+        confirm: bool,
+    ) -> dict[str, object]:
+        """Importe des documents explicitement prévisualisés comme knowledge `OBSERVED`.
+
+        Le contenu est relu localement. Le hash du preview doit être exact; aucun texte,
+        statut, provenance ou chemin absolu ne peut être fourni par le client.
+        """
+        def import_documents() -> Mapping[str, object]:
+            if not isinstance(preview_hash, str) or len(preview_hash) != 64:
+                raise StoreError("Hash de preview MCP invalide.")
+            preview = preview_project_document_import(
+                store,
+                documents,
+                batch_id=batch_id,
+                knowledge_type_id=knowledge_type_id,
+                knowledge_type_label=knowledge_type_label,
+                actor=actor,
+            )
+            if preview.preview_hash != preview_hash:
+                raise StoreError("Preview MCP altéré ou périmé : import refusé.")
+            return _project_import_payload(apply_project_document_import(store, preview, confirm=confirm))
+
+        return _mutating_call("import_project_documents", store, import_documents)
 
     @server.tool(name="mmu_sync_memory", structured_output=True)
     async def mmu_sync_memory() -> dict[str, object]:

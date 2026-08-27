@@ -27,6 +27,10 @@ TOOL_NAMES = (
     "mmu_decide_admission",
     "mmu_evaluate_gate",
     "mmu_acknowledge_resume",
+    "mmu_sync_memory",
+    "mmu_export_bundle",
+    "mmu_preview_project_documents",
+    "mmu_import_project_documents",
 )
 _ADAPTER_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,127}")
 

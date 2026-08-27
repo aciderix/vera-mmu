@@ -3026,3 +3026,16 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 | Validation liée | Régression complète : `536 passed in 52.96s`; diff whitespace : `PASS`. |
 | Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée dans cette session. |
 | Statut | `PASS` pour l’enregistrement local du lot M11-B. |
+
+
+## LOG-0233 — 2026-08-27 — M11-C.1 : transport public bundle/import
+
+**Baseline et portée.** Le point de départ est `986f28d`, deux commits locaux devant `origin/main`, avec `536 passed`. Cette sous-tranche ne modifie ni le schéma, ni les primitives M11-B, ni les dépôts de référence. Elle expose seulement une surface CLI/MCP bornée qui délègue au Core.
+
+**Résultat.** La CLI fournit `bundle-export`, `bundle-restore` et `project-import`. Le MCP fournit `mmu_export_bundle`, `mmu_preview_project_documents` et `mmu_import_project_documents`; les outils ont des schémas fermés, n’acceptent ni commande, ni contenu source, ni statut, ni provenance, ni chemin de sortie. L’export MCP accepte seulement `bundle_id` et `confirm`; l’import MCP exige les chemins relatifs explicitement sélectionnés, le `preview_hash` recomputé et une confirmation. Le contenu du document n’est jamais retourné par le preview. La liste canonique des tools du manifeste inclut aussi `mmu_sync_memory`, qui participe au `mcp_build_hash`.
+
+**Décision de sûreté.** La restauration n’est pas servie par MCP. Elle reste CLI-only car le processus MCP garde le SQLite/runtime à restaurer ouvert : permettre à ce processus de se remplacer créerait une course et fragiliserait l’atomicité M11-B. La CLI appelle la restauration avant l’ouverture d’un store cible.
+
+**Preuves.** Les contrats nouveaux passent à `2 passed` en 2,03 s; la cible CLI/MCP/manifeste/stdio/lifecycle atteint `17 passed` en 15,27 s. La régression complète atteint **`538 passed in 58.99s`**. Les assertions couvrent confirmation, confinement de sortie, absence de `path` dans l’export MCP, preview sans contenu, hash de preview, statut `OBSERVED`, manifest canonique et non-régression stdio.
+
+**Verdict.** `M11-C.1 = PASS`; `M11-C global = IN_PROGRESS`. Doctor composite, API universelle de lecture/boot, commandes restantes, Dashboard et intégrations de production ne sont pas déduits de cette tranche. Artefact : `artifacts/m11_c1_public_bundle_import_transport_2026-08-27.md`; mémoire : `MEM-DEC-181`.

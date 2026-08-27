@@ -185,3 +185,12 @@ Le Core dispose d’un export ZIP placé sous `.vera-mmu/bundles`, avec manifest
 L’import de projet est volontairement restreint à une liste explicite de documents réguliers UTF-8 situés dans les racines de workspace. Il relit le preview hashé avant l’écriture, enregistre des knowledge `OBSERVED` uniquement et attache la provenance immuable. Toute fusion de knowledge est refusée, sauf replay exact. Les validations donnent 7 tests M11-B, 54 tests ciblés et `536 passed` en régression intégrale. La preuve détaillée est `artifacts/m11_b_bundle_restore_project_import_2026-08-27.md`.
 
 > **Frontière conservée.** M11-B ne publie pas encore de commande CLI ni d’outil MCP de bundle/import/restore, n’automatise pas l’indexation d’un projet et n’importe aucune source réseau. Ces surfaces restent M11-C et les lots dédiés suivants.
+
+
+### 11.4 M11-C.1 — Transport public bundle/import : `PASS` ; M11-C global `IN_PROGRESS`
+
+La CLI fournit désormais `bundle-export`, `bundle-restore` et `project-import`. Le MCP expose un export Core-owned sans chemin client, un preview documentaire sans contenu et un import explicite qui requiert le hash de preview recalculé ainsi qu’une confirmation. Ces transports délèguent aux services M11-B et ne réimplémentent ni bundle, ni restauration, ni provenance.
+
+La restauration demeure exclusivement disponible via CLI : un serveur MCP actif ne peut pas remplacer le runtime et le SQLite qu’il garde ouverts. Cette restriction est délibérée et conserve les garanties d’atomicité et de non-fusion. Les trois outils ajoutés, ainsi que `mmu_sync_memory`, sont inclus dans la liste canonique et le hash du manifeste MCP. Les contrats CLI/MCP/manifeste/lifecycle passent, et la régression intégrale atteint `538 passed in 58.99s`.
+
+> **Limite active.** Le Doctor composite, les API Core de boot/lecture absentes, les commandes universelles complémentaires et les intégrations de production ne sont pas clos par M11-C.1. La preuve détaillée est `artifacts/m11_c1_public_bundle_import_transport_2026-08-27.md`; voir `MEM-DEC-181` et `LOG-0233`.
