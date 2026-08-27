@@ -1129,3 +1129,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Validation :** le test cloud ciblé et la suite VERA complète passent localement : `504 passed, 43 subtests passed`.
 **Limites :** Une troisième exécution Windows/Linux reste la preuve native requise. Aucune écriture user-scope réelle ou campagne hôte n’est exécutée.
 **Journal :** `LOG-0216`.
+
+### MEM-DEC-164 — M8.EXIT : conformance de protocole attestée sur Linux et Windows
+**Type :** `OBSERVATION`
+**Statut :** `PASS`
+**Décision :** M8 est qualifié pour ses six fixtures déclaratives et ses topologies no-Git/mono/multi-repo/clone. La conformance passe par la CLI en preview, le bridge desktop à racine native et l’intégration MCP déclarative project-local. La mémoire SQLite synchronisée reste récupérable par clone sans merge binaire.
+**Provenance native :** run `33065626744` pour `999a35e` : Linux job `98494854034`, `504 passed, 43 subtests passed` en 78,87 s et artefact `9643835349` ; Windows job `98494854423`, `504 passed, 43 subtests passed` en 220,82 s et artefact `9643897645`. Chaque job a aussi passé sidecar, bundles et téléversement.
+**Limites :** Les artefacts sont CI-only et non signés. Les fixtures n’attestent ni les sémantiques/outils métier de chaque domaine, ni l’installation sur machine utilisateur, ni la campagne d’hôtes agents réels.
+**Journal :** `LOG-0217`.

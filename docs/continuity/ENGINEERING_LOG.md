@@ -2874,3 +2874,11 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Validation locale.** Test cloud ciblé puis suite complète : `504 passed, 43 subtests passed`.
 **Verdict.** `PASS` local pour l’assertion de confinement. Rerun Windows/Linux `PENDING`; M8 ne devient pas multi-plateforme avant sa réussite explicite.
 **Suite.** Commiter/publier le correctif et son record avec garde de divergence, puis observer la troisième matrice native sans lancer de release.
+
+## LOG-0217 — 2026-08-27 — M8.EXIT : conformance multi-domaines sur deux runners natifs
+**Baseline.** Le run `33064757436` avait passé Linux mais arrêté Windows sur une heuristique de préfixe utilisateur qui ne représentait pas le confinement réel. Le commit `323704b` remplace cette heuristique par la relation directe à la racine projet ; `999a35e` enregistre son contexte.
+**Exécution native.** Le run `33065626744` est `success` sur les deux runners. Linux x64, job `98494854034`, exécute `504 passed, 43 subtests passed` en 78,87 s ; Windows x64, job `98494854423`, exécute `504 passed, 43 subtests passed` en 220,82 s. Les deux jobs passent ensuite la construction sidecar, les bundles AppImage/Debian ou NSIS/MSI et le téléversement.
+**Artefacts.** Les archives GitHub Actions présentes et non expirées sont `9643835349` (Linux, 175 864 787 octets) et `9643897645` (Windows, 65 365 241 octets). Elles servent à la vérification CI et ne sont ni signées ni qualifiées comme artefacts de release.
+**Comparaison.** Les trois divergences Windows observées ont été attribuées à des mécanismes de fixtures : ordre de fermeture SQLite, alias de chemin long/court et parent temporaire sous `Path.home()`. Les assertions conservées vérifient désormais la fermeture, l’identité canonique et le confinement à `project.resolve()` ; aucun module de produit n’a été relâché ou modifié par ces correctifs.
+**Verdict.** `PASS` pour M8 : six domaines déclaratifs, surfaces CLI/bridge/MCP, Git optionnel et clone de mémoire project-local sont attestés sous Linux et Windows. Hôtes agents réels, sémantique métier des domaines, installation utilisateur et release restent `NOT_RUN`.
+**Suite.** Ouvrir M9 sur le contrat de release : version, archives CLI, hashes, manifest, signatures et décision de distribution du viewer statique. Ne créer aucune release ni signature sans contrat spécifique.

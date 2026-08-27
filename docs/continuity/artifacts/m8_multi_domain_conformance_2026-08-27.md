@@ -1,6 +1,6 @@
 # M8 — Conformance multi-domaines et topologies de projet
 
-**Statut :** `PARTIAL_PASS` — conformance Core/CLI/bridge attestée localement et sur Linux CI. Le premier runner Windows a révélé deux défauts de portabilité dans les **tests** ; ils sont corrigés localement et nécessitent une seconde exécution native avant qualification Windows.
+**Statut :** `PASS` — conformance Core/CLI/bridge attestée localement et sur les runners natifs Linux x64 et Windows x64. Les premiers écarts de portabilité de fixtures Windows sont résolus ; les limites de domaines métier, d’hôtes réels et de release restent explicitement hors M8.
 
 ## 1. Objet et frontière
 
@@ -60,8 +60,19 @@ La suite complète après correction est de nouveau `504 passed, 43 subtests pas
 
 Le premier push du correctif de tests n’a pas créé de nouvelle matrice car les filtres `paths` du workflow ne couvraient que le Core, le bridge, le packaging et le manifeste Python. Le workflow inclut désormais `tests/**` pour les événements `push` et `pull_request`. Cette correction CI ne modifie ni les tests exécutés, ni le produit, ni les artefacts attendus ; elle garantit qu’un changement de conformance est vérifié sur les mêmes runners natifs que le desktop.
 
-## 7. Limites et suite
+## 7. Qualification native M8
+
+Le run GitHub Actions final `33065626744`, associé à la révision `999a35e`, est intégralement vert. Il exécute la suite VERA avant la construction native, puis le sidecar, les bundles et le téléversement d’artefacts de vérification.
+
+| Runner | Job | Suite VERA | Bundles / artefact | Observation |
+|---|---:|---|---|---|
+| Linux x64 | `98494854034` | `504 passed, 43 subtests passed` en 78,87 s | AppImage/Debian, artefact `9643835349`, 175 864 787 octets | `PASS` |
+| Windows x64 | `98494854423` | `504 passed, 43 subtests passed` en 220,82 s | NSIS/MSI, artefact `9643897645`, 65 365 241 octets | `PASS` |
+
+Ces archives sont des **artefacts de vérification CI**, non des livrables de release : elles ne sont ni signées, ni publiées comme release GitHub, ni accompagnées de checksums de distribution. Leur présence confirme seulement que le code source M8 a exécuté les tests et produit les bundles ciblés sur les deux runners natifs.
+
+## 8. Limites et suite
 
 M8 n’exécute aucun agent réel, oracle de domaine, installation sur machine utilisateur, merge de SQLite concurrentes ou release. Les tests d’hôtes Claude, Codex, Gemini et Antigravity restent explicitement différés à la campagne finale.
 
-Après la publication du correctif Windows, la matrice GitHub Actions réexécutera cette même suite complète sur Windows et Linux avant le packaging. Une fois les deux runners observés, le lot de conformance pourra être qualifié sur les plateformes ciblées ; la release, les signatures et la migration demeureront M9.
+M8 est clos pour sa conformance de protocole. La suite est M9 : définir le contrat de version, les archives CLI dédiées, les manifests, les SHA-256, la politique de signature et la frontière de distribution GitHub Pages. Aucune release ni installation d’hôte réel n’est autorisée par ce verdict.
