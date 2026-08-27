@@ -93,6 +93,8 @@ resume:
       required: true
     - id: next_action
       required: true
+front:
+  fields: [active_goal, current_work, validated_facts, blockers, risks, next_action]
 knowledge:
   types: [RULE, DECISION, OBSERVATION, HYPOTHESIS, STATE, MEASUREMENT, DISCOVERY, ARCHITECTURE]
 entities:

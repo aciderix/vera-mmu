@@ -20,6 +20,7 @@ RESUME_SECTION_ID_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 CORE_KNOWLEDGE_TYPES = ("RULE", "DECISION", "OBSERVATION", "HYPOTHESIS", "STATE", "MEASUREMENT", "DISCOVERY", "ARCHITECTURE")
 CORE_RELATION_TYPES = ("VERIFIED_BY", "SUPERSEDES", "INFORMED_BY", "BLOCKED_BY", "IMPLEMENTS", "DERIVED_FROM", "CONCERNS", "APPLIES_TO", "CAUSED_BY", "EVOLVES_TO")
 DEFAULT_RESUME_SECTIONS = ("rules", "current_state", "validated_facts", "risks", "next_action")
+DEFAULT_FRONT_FIELDS = ("active_goal", "current_work", "validated_facts", "blockers", "risks", "next_action")
 
 
 class ProfileError(ValueError):
@@ -145,6 +146,22 @@ def _require_resume(value: Any) -> dict[str, Any]:
     return {"template": template, "sections": sections}
 
 
+def _require_front(value: Any) -> dict[str, Any]:
+    source = _require_mapping({} if value is None else value, "front")
+    raw_fields = source.get("fields", list(DEFAULT_FRONT_FIELDS))
+    if not isinstance(raw_fields, list) or not raw_fields:
+        raise ProfileError("front.fields doit être une liste non vide.")
+    fields: list[str] = []
+    for index, item in enumerate(raw_fields):
+        if not isinstance(item, str) or RESUME_SECTION_ID_RE.fullmatch(item.strip()) is None:
+            raise ProfileError(f"front.fields[{index}] doit être un identifiant de champ valide.")
+        field = item.strip()
+        if field in fields:
+            raise ProfileError("front.fields ne doit pas contenir de champ dupliqué.")
+        fields.append(field)
+    return {"fields": fields}
+
+
 def validate_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
     """Validate the small Core-owned contract and return normalized JSON data.
 
@@ -162,6 +179,9 @@ def validate_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
     project_id = _require_string(project, "id", "project")
     project_name = _require_string(project, "name", "project")
     project_domain = _require_string(project, "domain", "project")
+    project_description = project.get("description", "")
+    if not isinstance(project_description, str) or project_description != project_description.strip() or len(project_description) > 4096 or "\x00" in project_description:
+        raise ProfileError("project.description doit être une chaîne canonique de 4096 caractères au plus.")
     workspace_root = _require_relative_path(workspace, "root", "workspace", allow_dot=True)
     memory_dir = _require_relative_path(storage, "memory_dir", "storage", allow_dot=False)
     sqlite_file = _require_relative_path(storage, "sqlite_file", "storage", allow_dot=False)
@@ -190,7 +210,7 @@ def validate_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
         raise ProfileError("mmu.version doit appartenir à la famille 2.x.")
 
     root["mmu"] = {**mmu, "version": version}
-    root["project"] = {**project, "id": project_id, "name": project_name, "domain": project_domain}
+    root["project"] = {**project, "id": project_id, "name": project_name, "description": project_description, "domain": project_domain}
     root["workspace"] = {
         **workspace,
         "root": Path(workspace_root).as_posix(),
@@ -208,6 +228,7 @@ def validate_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
         "include_profile_hash": include_profile_hash,
     }
     root["resume"] = _require_resume(root.get("resume"))
+    root["front"] = _require_front(root.get("front"))
     root["knowledge"] = {"types": _require_declaration_ids(_require_mapping(root.get("knowledge", {}), "knowledge").get("types"), "knowledge.types", CORE_KNOWLEDGE_TYPES)}
     root["entities"] = {"types": _require_declaration_ids(_require_mapping(root.get("entities", {}), "entities").get("types"), "entities.types", ("COMPONENT",))}
     root["relations"] = {"types": _require_declaration_ids(_require_mapping(root.get("relations", {}), "relations").get("types"), "relations.types", CORE_RELATION_TYPES)}

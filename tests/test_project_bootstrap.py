@@ -36,14 +36,16 @@ class ProjectBootstrapTests(unittest.TestCase):
             from vera_mmu.project_bootstrap import apply_project_initialization
             apply_project_initialization(applied_root,preview,confirm=True);profile=load_profile(applied_root/".vera-mmu"/"project.yaml")
             self.assertEqual(profile["capabilities"]["catalog"],".vera-mmu/capabilities.yaml");self.assertEqual(profile["gates"]["catalog"],".vera-mmu/gates.yaml");self.assertEqual(profile["policies"]["file"],".vera-mmu/policies.yaml")
-            self.assertEqual(profile["resume"]["template"],"engineering");self.assertIn("RULE",profile["knowledge"]["types"])
+            self.assertEqual(profile["resume"]["template"],"engineering");self.assertIn("RULE",profile["knowledge"]["types"]);self.assertIn("active_goal",profile["front"]["fields"]);self.assertTrue(profile["project"]["description"])
     def test_i007_i011_profile_catalog_paths_and_taxonomy_are_project_bound(self)->None:
         from vera_mmu.identity import ProfileError,validate_profile
         profile={"mmu":{"version":"2.0"},"project":{"id":"my-app","name":"My App","domain":"software"},"workspace":{"root":"."},"storage":{"memory_dir":".vera-mmu","sqlite_file":"memory.sqlite","artifacts_dir":"artifacts"},"capabilities":{"catalog":".vera-mmu/capabilities.yaml"},"gates":{"catalog":".vera-mmu/gates.yaml"},"policies":{"file":".vera-mmu/policies.yaml"},"knowledge":{"types":["RULE","DECISION"]},"entities":{"types":["COMPONENT"]},"relations":{"types":["IMPLEMENTS"]},"resume":{"template":"engineering","sections":["rules","current_state"]},"work":{"enabled":True},"integrations":{"agent_profiles":".vera-mmu/agent-profiles.yaml"}}
-        normalized=validate_profile(profile);self.assertEqual(normalized["knowledge"]["types"],["RULE","DECISION"]);self.assertEqual(normalized["integrations"]["agent_profiles"],".vera-mmu/agent-profiles.yaml")
+        normalized=validate_profile(profile);self.assertEqual(normalized["knowledge"]["types"],["RULE","DECISION"]);self.assertEqual(normalized["integrations"]["agent_profiles"],".vera-mmu/agent-profiles.yaml");self.assertIn("active_goal",normalized["front"]["fields"])
         profile["capabilities"]={"catalog":"../capabilities.yaml"}
         with self.assertRaises(ProfileError):validate_profile(profile)
         profile["capabilities"]={"catalog":".vera-mmu/capabilities.yaml"};profile["knowledge"]={"types":["RULE","RULE"]}
+        with self.assertRaises(ProfileError):validate_profile(profile)
+        profile["knowledge"]={"types":["RULE"]};profile["front"]={"fields":["active_goal","active_goal"]}
         with self.assertRaises(ProfileError):validate_profile(profile)
     def test_i007_i011_project_catalogs_are_hashed_validated_and_confined(self)->None:
         from vera_mmu.project_bootstrap import apply_project_initialization,preview_project_initialization
