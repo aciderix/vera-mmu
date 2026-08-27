@@ -2823,3 +2823,10 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Correction.** Le commit fonctionnel `a542660` ajoute `pnpm/action-setup@v4` avant `actions/setup-node` et retire l’activation Corepack devenue redondante. La matrice suivante devra être observée sur `main` ; son résultat Windows reste `NOT_RUN` jusqu’à la sortie native effective.
 **Verdict.** `PASS` pour le diagnostic et la correction minimale de la configuration CI ; `NOT_RUN` pour les artefacts de la nouvelle matrice.
 **Suite.** Commiter la continuité, appliquer la garde de divergence, pousser, puis examiner les logs et artefacts par runner sans créer de release.
+
+## LOG-0210 — 2026-08-27 — M7-D : résultats CI Linux, refus Windows de ressource et correction ICO
+**Observation.** La matrice `33059519088` a passé sous Linux x64 : préparation pnpm, sidecar natif, bundles et téléversement des artefacts. Le runner Windows a aussi construit le sidecar `x86_64-pc-windows-msvc`, puis `tauri-build` s’est arrêté avant bundling avec `icons/icon.ico not found; required for generating a Windows Resource file`.
+**Portée.** Aucun bundle NSIS ou MSI n’a été produit. Le résultat est un refus de ressource de build Windows, pas un résultat fonctionnel de l’application ni du bridge. Linux reste attesté par le run CI et les inspections locales AppImage/Debian.
+**Correction.** `pnpm tauri icon` a généré `apps/desktop/src-tauri/icons/icon.ico` depuis le symbole PNG VERA. Les variantes inutiles ont été retirées ; seuls PNG et ICO sont conservés. Le builder sidecar Linux, le build React, les tests Rust et la compilation release locale passent après ce changement.
+**Verdict.** `PASS` pour le diagnostic et la correction minimale ; `NOT_RUN` pour NSIS/MSI jusqu’à une nouvelle exécution CI native Windows.
+**Suite.** Commiter l’icône et cette continuité, appliquer la garde de divergence, pousser, puis inspecter les artefacts Windows/Linux du prochain run sans publier de release.

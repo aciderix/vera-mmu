@@ -1070,3 +1070,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** `scripts/build_desktop_sidecar.py`, `.github/workflows/desktop-packaging.yml`, `apps/desktop/README.md`; build AppImage et Debian Linux x64, inspection des sidecars embarqués, `cargo test` et compilation release sans avertissement. Voir `LOG-0208` et l’artefact M7.
 **Limites :** Les artefacts produits localement ne sont ni signés ni publiés. Le résultat du runner Windows, les archives CLI de release, les signatures, GitHub Pages et les tests d’hôtes réels restent `NOT_RUN`.
 **Journal :** `LOG-0208`.
+
+### MEM-DEC-157 — M7-D : première matrice CI partiellement attestée et correction de ressource Windows
+**Type :** `OBSERVATION`
+**Statut :** Linux x64 `OBSERVED`; bundle Windows `NOT_RUN` après refus de build identifié
+**Décision :** Le run CI `33059519088` confirme le packaging Linux x64 et ses artefacts de workflow. Le sidecar Windows natif a été construit, mais `tauri-build` a refusé de produire NSIS/MSI faute de `apps/desktop/src-tauri/icons/icon.ico`. Cette absence de ressource est corrigée par une icône ICO dérivée du symbole VERA ; aucun artefact Windows n’est revendiqué avant la prochaine matrice.
+**Motif :** Distinguer l’échec localisé de préparation de ressource d’un résultat de portabilité Windows. Une build arrêtée avant bundling n’est ni une preuve ni une réfutation de l’application Windows.
+**Provenance :** Run GitHub Actions `33059519088`, job Windows `98474533553`; builds React/Rust Linux locaux et hashes de `icon.ico`/`icon.png`. Voir `LOG-0210`.
+**Journal :** `LOG-0210`.
