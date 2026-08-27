@@ -30,6 +30,13 @@ class ReleaseCandidateAssemblyTests(unittest.TestCase):
             with self.assertRaises(assembly.ReleaseCandidateError):
                 assembly._desktop_outputs("x86_64-unknown-linux-gnu")
 
+    def test_final_checksum_refuses_to_hash_itself(self) -> None:
+        with TemporaryDirectory() as directory:
+            checksum = Path(directory) / "SHA256SUMS"
+            checksum.write_text("ignored", encoding="utf-8")
+            with self.assertRaises(assembly.ReleaseCandidateError):
+                assembly._checksum_lines((checksum,))
+
 
 if __name__ == "__main__":
     unittest.main()

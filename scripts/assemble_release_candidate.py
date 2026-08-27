@@ -47,6 +47,34 @@ def _revision() -> str:
     ).stdout.strip()
 
 
+def _verify_checksum_file(directory: Path, checksum_file: Path, required_names: set[str]) -> None:
+    """Valide un SHA256SUMS source fermé avant de réutiliser ses artefacts."""
+
+    if not checksum_file.is_file() or checksum_file.is_symlink():
+        raise ReleaseCandidateError("SHA256SUMS CLI absent ou ambigu.")
+    seen: set[str] = set()
+    for line in checksum_file.read_text(encoding="utf-8").splitlines():
+        parts = line.split("  ", 1)
+        if len(parts) != 2 or len(parts[0]) != 64 or any(char not in "0123456789abcdef" for char in parts[0]):
+            raise ReleaseCandidateError("Format SHA256SUMS CLI invalide.")
+        digest, name = parts
+        if name in seen or name not in required_names:
+            raise ReleaseCandidateError("SHA256SUMS CLI contient une entrée ambiguë ou hors scope.")
+        if _sha256(directory / name) != digest:
+            raise ReleaseCandidateError(f"SHA256SUMS CLI invalide pour {name}.")
+        seen.add(name)
+    if seen != required_names:
+        raise ReleaseCandidateError("SHA256SUMS CLI incomplet.")
+
+
+def _checksum_lines(paths: tuple[Path, ...]) -> str:
+    """Produit les lignes de checksum sans jamais inclure le checksum lui-même."""
+
+    if any(path.name == "SHA256SUMS" for path in paths):
+        raise ReleaseCandidateError("SHA256SUMS ne peut pas se hacher lui-même.")
+    return "".join(f"{_sha256(path)}  {path.name}\n" for path in paths)
+
+
 def _desktop_outputs(target: str) -> tuple[Path, ...]:
     bundle = ROOT / "apps" / "desktop" / "src-tauri" / "target" / "release" / "bundle"
     patterns = {
@@ -74,11 +102,12 @@ def assemble(target: str) -> Path:
     cli_sums = cli_source / "SHA256SUMS"
     if len(cli_archives) != 1 or not cli_manifest.is_file() or not cli_sums.is_file():
         raise ReleaseCandidateError("Candidat CLI incomplet : archive, manifest et SHA256SUMS requis.")
+    _verify_checksum_file(cli_source, cli_sums, {cli_archives[0].name, cli_manifest.name})
 
     output = ROOT / ".build" / "release-candidate" / target
     shutil.rmtree(output, ignore_errors=True)
     output.mkdir(parents=True, exist_ok=True)
-    candidates = (*cli_archives, cli_manifest, cli_sums, *_desktop_outputs(target))
+    candidates = (*cli_archives, cli_manifest, *_desktop_outputs(target))
     copied: list[Path] = []
     for source in candidates:
         if not source.is_file() or source.is_symlink():
@@ -102,9 +131,7 @@ def assemble(target: str) -> Path:
         encoding="utf-8",
     )
     sums = output / "SHA256SUMS"
-    sums.write_text(
-        "".join(f"{_sha256(path)}  {path.name}\n" for path in (*copied, manifest)), encoding="utf-8"
-    )
+    sums.write_text(_checksum_lines((*copied, manifest)), encoding="utf-8")
     print(f"Assembled {output}")
     return output
 
