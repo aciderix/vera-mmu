@@ -3321,3 +3321,9 @@ La couverture dérivée reclasse précisément la documentation générée read-
 **Statut : PASS pour l’entrée READ seulement.**
 
 Une session MCP stdio réelle confirme que `mmu_read` accepte une adresse `mmu://` canonique et retourne exclusivement `vera://`. Aucune persistance, mutation, migration de schéma d’adresse ou parité ARET n’est introduite. Les tests addressing/MCP passent à `9 passed in 10.81s`.
+
+## LOG-0265 — Découverte d’ancre Profile non ambiguë
+
+**Statut : PASS.**
+
+Le bridge reconnaît exactement un Profile non symlinké sous `.vera-mmu/project.yaml` ou `project.yaml` racine, et refuse deux candidats concurrents. Le lot n’effectue ni déplacement, ni mutation d’identité et prépare seulement l’ancre requise par une migration physique sûre. Tests bridge/workspace `20 passed in 1.29s`; régression `600 passed in 65.23s`.

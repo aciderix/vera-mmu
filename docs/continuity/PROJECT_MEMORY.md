@@ -1648,3 +1648,10 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-213` | Compatibilité d’adressage | L’alias strict `mmu://` est vérifié sur `mmu_read` MCP stdio comme entrée de lecture uniquement. Toute sortie reste l’adresse canonique `vera://`; aucune donnée ou adresse persistée ne change de schéma. | `OBSERVED` | Addressing, ReadService, test MCP stdio et artefact M11 alias. | `LOG-0264` |
+
+
+## Addendum — M11 Découverte d’ancre Profile
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-214` | Profile / Migration physique | Le bridge reconnaît une unique ancre Profile régulière et non symlinkée sous `.vera-mmu/project.yaml` ou `project.yaml` à la racine; deux candidats sont refusés fail-closed. Cette fondation prépare les migrations physiques sans en effectuer une. | `OBSERVED` | `desktop_bridge.py`, tests bridge/workspace et artefact M11 ancre Profile ; 600 tests Python passants. | `LOG-0265` |
