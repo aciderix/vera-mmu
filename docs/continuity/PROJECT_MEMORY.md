@@ -1203,3 +1203,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Validation :** nouvelle régression anti-auto-référence, tests builder/assembleur et suite `511 passed, 43 subtests passed`; Cargo verrouillé repasse après l’actualisation de version.
 **Limites :** le candidat rc.3 doit être construit et contrôlé sous Windows/Linux depuis son tag avant release. Aucune GitHub Release n’est créée.
 **Journal :** `LOG-0225`.
+
+### MEM-DEC-173 — M9-F : manifests CLI/final distincts, rc.4 préparé
+**Type :** `CORRECTION`
+**Statut :** `PASS` local ; tag/run rc.4 `PENDING`
+**Observation.** Le contrôle des artefacts rc.3 confirme les SHA-256, mais révèle une incohérence de contenu : le `release-manifest.json` du candidat final écrase le manifest CLI copié sous le même nom, tandis que l’enregistrement d’asset portait encore son hash antérieur.
+**Décision.** L’assembleur mappe explicitement le manifest CLI vers `cli-release-manifest.json`, réserve `release-manifest.json` au manifest final et refuse une collision de noms. Le checksum final couvre alors les deux manifests sous leurs noms distincts, sans auto-référence.
+**Validation :** nouvelle régression de nommage, tests builder/assembleur, Cargo offline/locked et suite `512 passed, 43 subtests passed`. rc.4 porte `0.1.0-4`/`0.1.0rc4`.
+**Limites :** les tags rc.1/rc.2/rc.3 restent historiques et non publiables. Seul un run natif vert et une inspection checksum/manifest de rc.4 peut autoriser la préversion gratuite non signée.
+**Journal :** `LOG-0226`.

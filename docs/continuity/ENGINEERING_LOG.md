@@ -2938,3 +2938,9 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Version.** rc.2 est documenté et conservé non publiable. La nouvelle préparation rc.3 utilise `0.1.0-3` pour desktop/MSI et `0.1.0rc3` pour Python ; le builder normalise la seule forme PEP 440 correspondante.
 **Validation.** Six tests builder/assembleur et la suite complète : `511 passed, 43 subtests passed`. Cargo offline/locked passe après le lock de version.
 **Verdict.** `PASS` local. Le tag rc.3 et son run de candidats doivent prouver la correction sur les artefacts natifs avant de publier une préversion non signée.
+
+## LOG-0226 — 2026-08-27 — M9-F : collision de manifests rc.3, candidat rc.4
+**Échec observé.** L’inspection passive des artefacts rc.3 passe les hashes déclarés mais montre que l’assembleur copie le manifest CLI sous `release-manifest.json`, puis écrit le manifest global sous le même nom. La liste des assets finalisés conserve donc un hash de manifest CLI qui n’existe plus à cette destination.
+**Correction minimale.** `_candidate_sources` réserve le nom global `release-manifest.json` et exporte le manifest CLI sous `cli-release-manifest.json`. Il refuse tout nom de candidat ambigu ou toute tentative d’utiliser le nom réservé. Le manifest final et `SHA256SUMS` ont désormais des entrées distinctes pour l’archive CLI, le manifest CLI, les deux bundles et le manifest final.
+**Version et contrôles.** rc.3 est conservé non publiable ; rc.4 passe à `0.1.0-4` desktop/MSI et `0.1.0rc4` Python. La régression de collision, les tests builder/assembleur, Cargo offline/locked et la suite complète passent (`512 passed, 43 subtests passed`).
+**Verdict.** `PASS` local pour la correction. Le tag rc.4 et l’inspection des artefacts issus du tag restent obligatoires avant toute GitHub Pre-release.
