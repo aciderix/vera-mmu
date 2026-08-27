@@ -169,7 +169,8 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Historique d’evidences compact et borné | `PASS` dans le périmètre M11-O | M11-O clos ; filtres, pagination, contenu de preuve et reprise → lots dédiés |
 | Vue Dashboard d’état projet dérivée | `PASS` dans le périmètre M11-D-A | Couverture/VCS visibles après initialisation ; builders Profile/Capability/Gate et templates enrichis restent ouverts |
 | Builder Dashboard de déclaration de Capability | `PASS` dans le périmètre M11-D-C | Preview/fraîcheur/confirmation validés ; runner, policy, Gate et modification restent ouverts |
-| Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D-B Profile requiert un rebind d’identité atomique ; M11-D reste ouvert au-delà de D-A/C |
+| Garde d’identité avant édition Project Profile | `PASS` | Toute modification sémantique est refusée sans rebind durable; test dédié + intégral validés |
+| Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D-B Profile requiert preview/fraîcheur, rebind profile+SQLite durable, rollback et reprise Doctor ; M11-D reste ouvert au-delà de D-A/C |
 | Rapport de couverture dérivé (Core/CLI/MCP) | `PASS` dans le périmètre M11-E | Rapport M11-E clos ; générateurs `MMU_SETUP`/`TOOLS`/`GATES`/`POLICIES`/`ARCHITECTURE`/`MAINTENANCE` restent ouverts |
 | Bridge d’adresse `mmu://` pour lecture | `PASS` dans le périmètre M11-F-A | Alias input-only validé ; migration canonique, aliases `aret_*`, lecteur legacy et VCS multi-provider restent ouverts |
 | Diagnostic VCS local Git/no-VCS | `PASS` dans le périmètre M11-F-B | Observation sans commande validée ; providers Mercurial/SVN et opérations VCS restent ouverts |

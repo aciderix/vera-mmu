@@ -1541,3 +1541,21 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_dc_dashboard_capability_builder_2026-08-27.md`; Core/bridge `9 passed`, build React `PASS`, Tauri `2 passed`, intégral `564 passed in 64.55s`.
 
 **Limites conservées :** M11-D-B Profile reste différé car `profile_hash` participe à l’identité store; un protocole de rebind atomique est requis. Aucun builder de runner/policy/gate ou modification/suppression de capability n’est livré.
+
+
+## MEM-DEC-195 — Garde d’identité avant builder Project Profile
+
+**Date :** 2026-08-27
+**Décision :** conserver le refus de toute modification sémantique directe du Project Profile tant qu’un protocole de rebind multi-ressource, atomique et récupérable n’est pas conçu et validé.
+
+La modification d’une simple description modifie `profile_hash`, donc `project_identity` et `project_hash`; l’ouverture du store la refuse par `StoreIdentityError`. Ce comportement est désormais verrouillé par `tests/test_profile_edit_identity_guard.py`.
+
+| Condition de futur rebind | Statut |
+|---|---|
+| Préparation du nouveau profile normalisé et de son identité | À concevoir |
+| Prévisualisation/hash de fraîcheur et confirmation explicite | À concevoir |
+| Coordination atomique profile filesystem + metadata SQLite ou journal récupérable | À concevoir |
+| Rollback sûr en cas d’échec partiel | À concevoir |
+| Reprise et Doctor d’un état interrompu | À concevoir |
+
+**Evidence :** garde ciblée `1 passed`; régression intégrale **`565 passed in 64.32s`**. Cette décision ne bloque pas les builders déclaratifs qui n’altèrent pas l’identité Profile.

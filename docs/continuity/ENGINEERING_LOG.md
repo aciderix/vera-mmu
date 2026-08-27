@@ -3218,3 +3218,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** Core/bridge : `9 passed in 1.12s`; React : `pnpm build PASS`; Tauri natif : `2 passed in 0.10s`; Python intégral : **`564 passed in 64.55s`**. Preview non mutateur, confirmation, stale catalog, id/kind invalides et champ bridge injecté sont refusés.
 
 **Verdict.** `M11-D-C = PASS`. M11-D-B (Profile) est différé : `profile_hash` participe à l’identité SQLite et requiert un protocole de rebind atomique dédié. Artefact : `artifacts/m11_dc_dashboard_capability_builder_2026-08-27.md`; mémoire : `MEM-DEC-194`.
+
+
+## LOG-0252 — 2026-08-27 — Garde d’identité Project Profile
+
+**Résultat.** L’audit M11-D-B confirme qu’un changement sémantique de Project Profile change `profile_hash`, `project_identity` et `project_hash`. Sans protocole de rebind explicite, `MemoryStore.open` refuse correctement le store par `StoreIdentityError`.
+
+**Preuves.** `tests/test_profile_edit_identity_guard.py` change uniquement `project.description` puis vérifie le refus : `1 passed in 0.10s`. La régression intégrale atteint **`565 passed in 64.32s`**.
+
+**Verdict.** L’édition Profile est `NOT_ELIGIBLE` à ce stade, non absente par oubli. Le futur M11-D-B devra prouver une préparation, confirmation/fraîcheur, coordination durable profile+SQLite, rollback et reprise Doctor. Aucun rebind ni écriture Profile n’est introduit. Mémoire : `MEM-DEC-195`.
