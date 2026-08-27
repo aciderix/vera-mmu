@@ -1120,3 +1120,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** Après le commit de tests `25d3df5`, aucun nouveau run n’est apparu car les tests étaient absents de la liste. Le commit CI associé ajoute uniquement deux motifs de chemin. Voir `LOG-0215`.
 **Limites :** Cette correction déclenche la vérification ; elle n’est pas une réussite Windows. Le rerun reste la preuve requise.
 **Journal :** `LOG-0215`.
+
+### MEM-DEC-163 — M8-D : confinement project-local vérifié sans heuristique de préfixe home
+**Type :** `CORRECTION`
+**Statut :** `PASS` local ; troisième rerun Windows CI `PENDING`
+**Décision :** La preuve que les réglages Claude cloud ne ciblent pas le scope utilisateur exprime directement le confinement : `settings_path` et `mcp_path` sont relatifs à `project.resolve()`. Elle ne déduit plus l’absence de `Path.home()` dans le texte d’un chemin.
+**Observation source :** le deuxième run Windows (`33064757436`) a passé les vérifications de fermeture SQLite et de canonisation, puis a échoué car `TemporaryDirectory` se situe sous `C:\Users\runneradmin`. La cible restait pourtant exactement `project/.claude/settings.json`, comme l’assertion d’égalité le vérifie déjà.
+**Validation :** le test cloud ciblé et la suite VERA complète passent localement : `504 passed, 43 subtests passed`.
+**Limites :** Une troisième exécution Windows/Linux reste la preuve native requise. Aucune écriture user-scope réelle ou campagne hôte n’est exécutée.
+**Journal :** `LOG-0216`.

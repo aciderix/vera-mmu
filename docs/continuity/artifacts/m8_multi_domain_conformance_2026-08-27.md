@@ -52,10 +52,11 @@ Le run GitHub Actions `33063264121` a validé intégralement Linux x64, y compri
 |---|---|---|---|
 | Suppression temporaire de `memory.sqlite` refusée | `addCleanup(store.close)` s’exécutait après la sortie de `TemporaryDirectory`; Windows interdit de supprimer une base encore ouverte | fermeture explicite du `MemoryStore` dans un `finally` avant la suppression | fermeture claire sans écriture supplémentaire, WAL et policy inchangés |
 | Égalité de `Path` échouée malgré le même fichier | le Core conserve le chemin physique canonique, tandis que la fixture comparait l’alias long temporaire | l’attendu de test est canonisé par `project.resolve()` ou `target.resolve()` | racine canonique, contrôles anti-symlink et confinement inchangés |
+| Préfixe `Path.home()` trouvé dans un chemin temporaire project-local | Windows héberge les répertoires temporaires sous le profil utilisateur ; l’heuristique confondait parent physique et cible user-scope | assertion de relation `is_relative_to(project.resolve())` pour les deux cibles appliquées | preuve directe que les réglages restent sous la racine projet, quelle que soit son parent |
 
 Il ne s’agit ni d’un contournement de test, ni d’une modification du Core pour rendre Windows moins strict. Les tests continuent de vérifier les mêmes chemins project-local, écritures et refus ; ils comparent désormais l’identité canonique que le Core utilise déjà pour la sécurité.
 
-La suite complète après correction est de nouveau `504 passed, 43 subtests passed` localement. La seconde matrice CI doit reproduire ce résultat sur Windows et reconstruire les artefacts de vérification avant que M8 soit qualifié sur les deux plateformes.
+La suite complète après correction est de nouveau `504 passed, 43 subtests passed` localement. Le second run Windows a validé les deux corrections précédentes puis a révélé l’heuristique de préfixe utilisateur ci-dessus ; le troisième rerun doit reproduire le résultat complet et reconstruire les artefacts de vérification avant que M8 soit qualifié sur les deux plateformes.
 
 Le premier push du correctif de tests n’a pas créé de nouvelle matrice car les filtres `paths` du workflow ne couvraient que le Core, le bridge, le packaging et le manifeste Python. Le workflow inclut désormais `tests/**` pour les événements `push` et `pull_request`. Cette correction CI ne modifie ni les tests exécutés, ni le produit, ni les artefacts attendus ; elle garantit qu’un changement de conformance est vérifié sur les mêmes runners natifs que le desktop.
 

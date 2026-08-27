@@ -2866,3 +2866,11 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Portée.** Aucun code de produit, test d’acceptation, capability, policy Git ou artefact de release n’a changé. La matrice suivante demeure exclusivement de vérification, non signée et non publiée comme release.
 **Verdict.** `PASS` pour le diagnostic et le déclencheur. `PENDING` pour la preuve Windows/Linux déclenchée par le commit CI.
 **Suite.** Commiter la continuité, appliquer la garde de divergence, pousser et attendre les deux jobs avant toute qualification M8.
+
+## LOG-0216 — 2026-08-27 — M8-D : assertion user-scope Windows remplacée par le confinement réel
+**Déclencheur.** Le rerun `33064757436` est de nouveau vert sous Linux et Windows progresse au-delà des verrous SQLite/alias de chemin précédemment corrigés. Il échoue sur la seule assertion restante de `test_i007_i011_cloud_host_apply_requires_confirmation_and_never_targets_user_scope`.
+**Diagnostic.** L’assertion interdisait que la représentation textuelle de la cible contienne `Path.home()`. Sous le runner Windows, `TemporaryDirectory` se crée sous `C:\Users\runneradmin\AppData\Local\Temp`; un réglage parfaitement project-local contient donc logiquement ce préfixe parent. Cette condition ne teste pas le scope de destination.
+**Correctif.** Les deux cibles effectivement appliquées doivent être relatives à la racine canonique `project.resolve()`. L’égalité exacte aux chemins `project/.claude/settings.json` et `project/.mcp.json`, les tests d’existence et les contrôles symlink restent en place. Le test devient plus précis et indépendant du parent temporaire.
+**Validation locale.** Test cloud ciblé puis suite complète : `504 passed, 43 subtests passed`.
+**Verdict.** `PASS` local pour l’assertion de confinement. Rerun Windows/Linux `PENDING`; M8 ne devient pas multi-plateforme avant sa réussite explicite.
+**Suite.** Commiter/publier le correctif et son record avec garde de divergence, puis observer la troisième matrice native sans lancer de release.
