@@ -1,7 +1,7 @@
 # M7 — Architecture desktop, CLI et distribution VERA
 
 **Date :** 2026-08-27  
-**Statut :** `PARTIAL_PASS` : contrat et bridge stdio génériques validés ; packaging Tauri Windows/Linux et exécution hôte réelle restent `NOT_RUN`.  
+**Statut :** `PARTIAL_PASS` : contrat, bridge stdio, enveloppe Tauri et paquet Debian de développement validés ; build Windows natif, AppImage, signature et exécution hôte réelle restent `NOT_RUN`.
 **Portée :** application desktop humaine, CLI automatisable, état project-local non destructif et dashboard statique sans privilège local.
 
 ## 1. Décision
@@ -47,6 +47,7 @@ La sélection de dossier est déclenchée par un dialogue natif Tauri. Le fronte
 | `adapter.install.preview` | `agentProfileId` | adapter allowlisté et profile project-local | preview de configuration | aucune |
 | `adapter.install.apply` | `previewHash`, `confirm: true` | preview caché, adapter résolu côté bridge, revalidation adapter | reçu project-local | project-local seulement |
 | `adapter.doctor` | `agentProfileId` | adapter allowlisté et profile local | `DoctorReport/v1` | aucune |
+| `memory.sync` | aucune | policy `.vera-mmu/sync-policy.json` validée par le Core | statut de synchronisation mémoire | commit/push limité à `.vera-mmu/` si autorisé |
 
 Le navigateur ou le WebView ne peut jamais fournir un shell, un chemin, un adapter brut, un hash de confiance, un verdict, un artifact, un code de sortie ou un contenu à écrire. Les entrées présentes dans ce tableau sont des sélecteurs et confirmations ; les données sensibles sont dérivées ou revalidées côté VERA.
 
@@ -79,11 +80,18 @@ GitHub est le transport de l’état **que le projet décide de versionner**. Da
 | Situation Git | Règle VERA |
 |---|---|
 | Clone ou checkout d’un commit connu | Le MCP ouvre la mémoire SQLite de ce checkout après validation de l’identité du projet. |
-| État local modifié | L’utilisateur, la CLI ou l’agent utilise le workflow Git du projet pour commit/push ; le MCP ne réalise pas de synchronisation réseau en arrière-plan. |
+| Transaction Core réussie et policy active | VERA consolide WAL puis committe seulement `.vera-mmu/`; si `auto_push=true`, il pousse `origin` sur la branche courante. Le MCP ne reçoit ni commande, ni remote, ni branche, ni chemin. |
+| État local modifié hors mutation Core | L’utilisateur ou le workflow Git du projet conserve le contrôle. La CLI `vmmu memory-sync`, le tool MCP sans argument et l’action desktop peuvent demander un essai contrôlé selon la même policy. |
 | Conflit Git sur `memory.sqlite` | Refus explicite : aucun merge automatique, aucun choix implicite d’une base binaire. Une procédure ultérieure doit restaurer une base choisie ou reconstruire un bundle VERA attesté. |
 | État temporaire SQLite | Les fichiers journaux temporaires ne sont pas des artefacts de partage ; VERA doit fermer/contrôler la base avant une opération Git de sauvegarde. |
 
 Cette distinction préserve la continuité entre sessions sans transformer GitHub en API de contrôle du MCP ni laisser un état concurrent se faire passer pour une mémoire canonique. Les données récupérées conservent leurs statuts : une entrée SQLite ne promeut jamais `UNKNOWN`, `FAIL`, `SKIPPED` ou `ERROR` en `PASS`.
+
+### 6.2 Synchronisation automatique restreinte
+
+L’initialisation VERA prévisualise et écrit, après confirmation, une policy project-local `vera-memory-sync-policy/v1`. Elle active `auto_commit` et `auto_push`, impose le remote littéral `origin` et la branche courante (`CURRENT`). Toute clé inconnue, fichier irrégulier/symlinké, racine Git hors projet, base SQLite non consolidable, HEAD détachée ou absence de remote est un statut de refus explicite. Aucun de ces cas ne transforme la transaction SQLite déjà committée en échec métier : le résultat de synchronisation est conservé pour diagnostic.
+
+Le pathspec Git est toujours `.vera-mmu/`. Des changements métier parallèles restent dans le working tree et ne sont jamais ajoutés au commit mémoire. La façade MCP appelle l’essai automatique seulement après ses opérations mutantes qui ont déjà réussi ; ses lectures, previews et refus ne déclenchent aucun accès Git. Les surfaces manuelles — CLI, MCP et desktop — ne prennent aucune donnée Git du client.
 
 ## 7. Packaging et release
 
@@ -112,7 +120,18 @@ Le commit fonctionnel `57279e1` introduit `vmmu-desktop-bridge`, un sidecar **st
 
 Les tests rouges ont précédé l’implémentation. Les tests verts valident notamment l’absence de racine fournie par l’interface, le refus de nonce/opération/champ/volume invalides, l’installation d’une initialisation uniquement depuis le preview caché et confirmé, ainsi que le parcours MCP générique génération → staging confirmé → preview → contrôle de fraîcheur → application. Une modification de `.mcp.json` après affichage provoque `PREVIEW_STALE`, sans écrasement. La suite VERA passe à `493 passed, 37 subtests passed`; une roue isolée contient et exécute `vmmu-desktop-bridge` sur stdin/stdout.
 
-**Verdict.** `PASS` pour le transport desktop stdio borné et le parcours contrôlé générique. Les routes emploient le catalogue pour les autres Agent Profiles, mais leurs intégrations hôte spécifiques ne sont pas pour autant une preuve live. L’enveloppe Tauri, les artefacts Windows/Linux, la signature et la campagne d’hôtes réels restent des lots distincts.
+**Verdict.** `PASS` pour le transport desktop stdio borné et le parcours contrôlé générique. Les routes emploient le catalogue pour les autres Agent Profiles, mais leurs intégrations hôte spécifiques ne sont pas pour autant une preuve live. L’enveloppe Tauri et le paquet Debian debug ont depuis été vérifiés ; les artefacts Windows, AppImage, la signature et la campagne d’hôtes réels restent des lots distincts.
+
+## 10. Prérequis de build et compatibilité des artefacts
+
+Le build de développement Tauri sous Debian/Ubuntu requiert notamment `libwebkit2gtk-4.1-dev`, les outils C, `libssl-dev`, `libxdo-dev`, `libayatana-appindicator3-dev` et `librsvg2-dev`.[6] Ces paquets sont requis par la machine de construction Linux ; ils ne constituent pas une permission supplémentaire pour le WebView VERA ni une dépendance installée dans le projet de l’utilisateur.
+
+Le paquet Debian produit par Tauri déclare les dépendances d’exécution WebKitGTK/GTK correspondantes. Pour préserver la compatibilité, les binaires Linux doivent être construits à partir de la plus ancienne base supportée qui fournit WebKitGTK 4.1, et non seulement depuis la dernière distribution disponible.[7] Cette exigence sera encodée dans la matrice CI de release.
+
+Le premier assemblage de développement `VERA-MMU_0.1.0_amd64.deb` a été produit localement. Son contenu contient le sidecar autonome `usr/bin/vmmu-desktop-bridge`, et ce sidecar extrait a répondu à une requête `project.scan` sur stdin/stdout. Cela atteste l’inclusion du Core dans l’artefact Linux de développement, non une release signée ou une validation d’installation sur une machine utilisateur.
+
+[6]: https://v2.tauri.app/start/prerequisites/ "Tauri v2 — Prerequisites"
+[7]: https://v2.tauri.app/distribute/debian/ "Tauri v2 — Debian distribution"
 
 ## Références
 

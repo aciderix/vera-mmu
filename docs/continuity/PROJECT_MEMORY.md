@@ -1050,3 +1050,14 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Effet opérationnel :** Le MCP ne réalise pas de sync réseau implicite. Git transporte les commits choisis par le projet ; tout conflit sur SQLite est refusé et exige une résolution explicite, jamais un merge binaire ou une promotion implicite de statut.
 **Provenance :** Décision explicite du propriétaire du projet ; `m7_desktop_distribution_architecture_2026-08-27.md`, section 6.1.
 **Journal :** `LOG-0206`.
+
+### MEM-DEC-155 — M7-C : synchronisation Git automatique strictement limitée à la mémoire VERA
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour le Core, CLI, MCP, bridge et paquet Debian de développement ; builds Windows/AppImage, signature et hôtes réels `NOT_RUN`
+**Décision :** `SUPERSEDES` l’effet de `MEM-DEC-154` qui excluait toute synchronisation réseau automatique du MCP. La mémoire `.vera-mmu/memory.sqlite` reste project-local et versionnable par Git. Après une transaction Core externe réussie, VERA tente une synchronisation uniquement si `.vera-mmu/sync-policy.json` satisfait `vera-memory-sync-policy/v1`. Cette policy impose `origin` et `CURRENT` : aucun client, agent, WebView ou MCP ne fournit remote, branche, commande ou chemin Git.
+**Motif :** Préserver la continuité ARET : la mémoire évoluée doit atteindre le checkout Git que récupérera une nouvelle session, sans étendre l’autorité d’un agent à l’ensemble du dépôt.
+**Effet opérationnel :** VERA consolide le WAL avant commit, utilise exclusivement le pathspec `.vera-mmu/` et laisse les changements métier étrangers dans le working tree. Policy inconnue, symlink, base/racine ambiguë, remote absent, HEAD détachée ou erreur Git donnent un statut de refus explicite. La transaction SQLite déjà committée n’est jamais annulée ni promue par le résultat Git ; le statut de synchronisation reste distinct et observable.
+**Surfaces :** `vmmu memory-sync <project.yaml>`, `mmu_sync_memory()` sans entrée Git et `memory.sync` du bridge desktop à entrée vide délèguent au même Core. Les mutations MCP réussies déclenchent le même essai post-transaction ; lectures, previews et refus ne le déclenchent pas.
+**Provenance :** `tests/test_memory_sync.py`, `tests/test_operations_cli.py`, `tests/test_mcp_lifecycle_acknowledgement.py`, `tests/test_desktop_bridge.py`, `src/vera_mmu/memory_sync.py`, `docs/continuity/artifacts/m7_desktop_distribution_architecture_2026-08-27.md`; suite `500 passed, 37 subtests passed`.
+**Limites :** Pas de fusion SQLite automatique, pas de `pull` implicite, pas de build Windows natif, AppImage, signature ou campagne hôte réelle dans ce lot.
+**Journal :** `LOG-0207`.
