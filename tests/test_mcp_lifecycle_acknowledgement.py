@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 import os
 from pathlib import Path
+import subprocess
 import sys
 from tempfile import TemporaryDirectory
 import unittest
@@ -22,6 +23,7 @@ class MCPLifecycleAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
         "mmu_decide_admission",
         "mmu_evaluate_gate",
         "mmu_acknowledge_resume",
+        "mmu_sync_memory",
     }
     _forbidden_fields = {
         "session_id",
@@ -36,7 +38,7 @@ class MCPLifecycleAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
     }
 
     @asynccontextmanager
-    async def _session(self, context: str):
+    async def _session(self, context: str, *, sync: bool = False):
         from mcp.client.session import ClientSession
         from mcp.client.stdio import StdioServerParameters, stdio_client
 
@@ -65,6 +67,22 @@ identity:
             + "\n",
             encoding="utf-8",
         )
+        remote = None
+        if sync:
+            memory = runtime / ".vera-mmu"
+            memory.mkdir()
+            (memory / "sync-policy.json").write_text(
+                '{"auto_commit":true,"auto_push":true,"branch":"CURRENT","format":"vera-memory-sync-policy/v1","remote":"origin"}\n',
+                encoding="utf-8",
+            )
+            remote = runtime.parent / f"mcp-memory-remote-{runtime.name}.git"
+            for command in (("init", "-b", "main"), ("config", "user.name", "VERA MCP tests"), ("config", "user.email", "vera-mcp@example.invalid")):
+                subprocess.run(["git", "-C", str(runtime), *command], check=True, text=True, capture_output=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, text=True, capture_output=True)
+            subprocess.run(["git", "-C", str(runtime), "remote", "add", "origin", str(remote)], check=True, text=True, capture_output=True)
+            subprocess.run(["git", "-C", str(runtime), "add", "--", "project.yaml", ".vera-mmu/sync-policy.json"], check=True, text=True, capture_output=True)
+            subprocess.run(["git", "-C", str(runtime), "commit", "-m", "MCP sync baseline"], check=True, text=True, capture_output=True)
+            subprocess.run(["git", "-C", str(runtime), "push", "-u", "origin", "main"], check=True, text=True, capture_output=True)
         parameters = StdioServerParameters(
             command=sys.executable,
             args=[str(FIXTURE_SERVER), "--profile", str(profile), "--context", context],
@@ -123,6 +141,23 @@ identity:
             result = self._payload(await session.call_tool("mmu_acknowledge_resume", {"sections": self._sections()}))
             self.assertFalse(result["ok"])
             self.assertEqual(result["error"]["code"], "VERA_ERROR")
+
+    async def test_i001_i007_memory_sync_exposes_no_git_input(self) -> None:
+        async with self._session("ready") as session:
+            tools = await session.list_tools()
+            tool = next(item for item in tools.tools if item.name == "mmu_sync_memory")
+            self.assertEqual(set(tool.input_schema.get("properties", {})), set())
+            result = self._payload(await session.call_tool("mmu_sync_memory", {}))
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["result"]["status"], "DISABLED")
+
+    async def test_i001_i007_acknowledgement_auto_syncs_memory_when_project_policy_allows_it(self) -> None:
+        async with self._session("ready", sync=True) as session:
+            result = self._payload(await session.call_tool("mmu_acknowledge_resume", {"sections": self._sections()}))
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["result"], {"acknowledged": True})
+            self.assertEqual(result["memory_sync"]["status"], "SYNCED")
+            self.assertTrue(result["memory_sync"]["pushed"])
 
 
 if __name__ == "__main__":

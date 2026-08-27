@@ -101,6 +101,19 @@ class DesktopBridgeTests(unittest.TestCase):
             oversized = bridge.handle_line("x" * 16_385)  # type: ignore[attr-defined]
             self.assertEqual(json.loads(oversized)["error"]["code"], "MESSAGE_TOO_LARGE")
 
+    def test_i001_i007_memory_sync_has_no_git_input_in_desktop_protocol(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            preview = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "sync-desktop", "projectName": "Sync desktop"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+            injected = self._call(bridge, "memory.sync", {"remote": "untrusted"})
+            self.assertFalse(injected["ok"])
+            self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            result = self._call(bridge, "memory.sync", {})
+            self.assertTrue(result["ok"])
+            self.assertEqual(result["result"]["status"], "REFUSED")  # type: ignore[index]
+
     def test_i002_i005_routes_generic_mcp_only_from_a_declared_agent_profile_and_cached_preview(self) -> None:
         from vera_mmu.capabilities import CapabilityService
         from vera_mmu.capability_contracts import CapabilityContractService

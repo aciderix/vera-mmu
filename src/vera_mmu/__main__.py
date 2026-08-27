@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Sequence
 from .adapter_catalog import ADAPTER_CATALOG, adapter_spec, call_adapter, call_adapter_json
 from .identity import ProfileError, load_profile, profile_identity, project_identity
+from .memory_sync import automatic_memory_sync
 from .migrations import MigrationError
 from .runtime import RuntimeLocator
 from .project_operations import ProjectOperationError, compile_generation_preview, scan_project
@@ -22,6 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     generate=sub.add_parser("generate",help="Compile un preview MCP déterministe sans installer.");generate.add_argument("profile",type=Path,help="Chemin project.yaml.");generate.add_argument("--adapter",required=True)
     install=sub.add_parser("install",help="Prévisualise ou applique la configuration project-local d’un adapter.");install.add_argument("profile",type=Path,help="Chemin project.yaml.");install.add_argument("--adapter",required=True);install.add_argument("--apply-project",action="store_true");install.add_argument("--confirm",action="store_true")
     bootstrap=sub.add_parser("init-project",help="Prévisualise ou initialise les fichiers VERA dans un projet choisi.");bootstrap.add_argument("root",type=Path,help="Racine locale du projet.");bootstrap.add_argument("--template",required=True);bootstrap.add_argument("--project-id",required=True);bootstrap.add_argument("--project-name",required=True);bootstrap.add_argument("--apply",action="store_true");bootstrap.add_argument("--confirm",action="store_true")
+    sync=sub.add_parser("memory-sync",help="Synchronise seulement la mémoire VERA selon sa policy project-local.");sync.add_argument("profile",type=Path,help="Chemin project.yaml.")
     adapter=sub.add_parser("adapter",help="Opérations project-local des adapters VERA.")
     ops=adapter.add_subparsers(dest="adapter_command",required=True)
     ops.add_parser("matrix",help="Affiche la matrice statique des couvertures attestées.")
@@ -45,6 +47,9 @@ def main(argv:Sequence[str]|None=None)->int:
             payload={"ok":True,"initialization":result.as_dict()}
         elif args.command=="scan":
             payload={"ok":True,"scan":scan_project(args.root).as_dict()}
+        elif args.command=="memory-sync":
+            profile=load_profile(args.profile)
+            with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"memory_sync":automatic_memory_sync(store,"CLI_MEMORY_SYNC")}
         elif args.command=="generate":
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"generation":compile_generation_preview(store,args.adapter).as_dict()}

@@ -31,7 +31,8 @@ def preview_project_initialization(root:str|Path,*,template:str,project_id:str,p
     files=(
         _file(".vera-mmu/agent-profiles.yaml",builtin_agent_profiles_json()),
         _file(".vera-mmu/playbook.md",_playbook(project_name)),
-        _file(".vera-mmu/project.yaml",_profile(template,project_id,project_name)),)
+        _file(".vera-mmu/project.yaml",_profile(template,project_id,project_name)),
+        _file(".vera-mmu/sync-policy.json",_sync_policy()),)
     digest=sha256("\0".join((str(target),template,project_id,project_name,*[x.sha256 for x in files])).encode()).hexdigest()
     return ProjectInitializationPreview("vera-project-initialization/v1",str(target),template,project_id,project_name,files,"PREVIEW",digest)
 def apply_project_initialization(root:str|Path,preview:ProjectInitializationPreview,*,confirm:bool)->ProjectInitializationResult:
@@ -73,6 +74,8 @@ identity:
   include_vcs_revision: true
   include_profile_hash: true
 '''
+def _sync_policy()->str:
+    return '{"auto_commit":true,"auto_push":true,"branch":"CURRENT","format":"vera-memory-sync-policy/v1","remote":"origin"}\n'
 def _playbook(name:str)->str:
     return f'''# Règles de travail — {name.strip()}
 

@@ -1,0 +1,22 @@
+/** Interface desktop VERA : seules les commandes Rust typées sont accessibles au React local. */
+import { invoke } from "@tauri-apps/api/core";
+
+export type JsonObject = Record<string, unknown>;
+
+export const desktopApi = {
+  selectProject: () => invoke<JsonObject>("select_project"),
+  scanProject: () => invoke<JsonObject>("scan_project"),
+  initializationPreview: (template: string, projectId: string, projectName: string) =>
+    invoke<JsonObject>("initialization_preview", { template, projectId, projectName }),
+  initializationApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("initialization_apply", { previewHash, confirm }),
+  agents: () => invoke<JsonObject>("agent_profiles"),
+  generation: (agentProfileId: string) => invoke<JsonObject>("generation_preview", { agentProfileId }),
+  stage: (agentProfileId: string, confirm: boolean) => invoke<JsonObject>("stage_adapter", { agentProfileId, confirm }),
+  installationPreview: (agentProfileId: string) =>
+    invoke<JsonObject>("installation_preview", { agentProfileId }),
+  installationApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("installation_apply", { previewHash, confirm }),
+  doctor: (agentProfileId: string) => invoke<JsonObject>("adapter_doctor", { agentProfileId }),
+  memorySync: () => invoke<JsonObject>("memory_sync"),
+};

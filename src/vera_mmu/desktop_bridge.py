@@ -14,6 +14,7 @@ from typing import Any, Callable, Mapping, Sequence
 from .adapter_catalog import adapter_spec, call_adapter_json
 from .agent_profiles import builtin_agent_profiles
 from .identity import load_profile
+from .memory_sync import automatic_memory_sync
 from .project_bootstrap import (
     ProjectBootstrapError,
     ProjectInitializationPreview,
@@ -55,6 +56,7 @@ class DesktopBridge:
             "project.scan": self._scan,
             "project.init.preview": self._initialization_preview,
             "project.init.apply": self._initialization_apply,
+            "memory.sync": self._memory_sync,
             "agents.list": self._agents_list,
             "adapter.generate": self._adapter_generate,
             "adapter.stage": self._adapter_stage,
@@ -136,6 +138,12 @@ class DesktopBridge:
     def _agents_list(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, set())
         return {"format": "vera-agent-profiles/v1", "profiles": [profile.as_dict() for profile in builtin_agent_profiles().values()]}
+
+    def _memory_sync(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, set())
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            return automatic_memory_sync(store, "DESKTOP_MEMORY_SYNC")
 
     def _adapter_generate(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, {"agentProfileId"})

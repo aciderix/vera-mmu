@@ -25,6 +25,7 @@ from .gates import GateService
 from .identity import load_profile
 from .mcp_adapters import RuntimeAdapterRegistry
 from .lifecycle_adapters import LifecycleAdapterPlan, LifecycleAdapterRegistry
+from .memory_sync import automatic_memory_sync
 from .mcp_instructions import MCPInstructions, compile_mcp_instructions
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
 from .session_lifecycle import ResumeGuardService
@@ -107,6 +108,14 @@ def _call(operation: str, fn: Callable[[], Mapping[str, object]]) -> dict[str, o
         return _error(operation, StoreError("Erreur interne de la façade MCP VERA."))
 
 
+def _mutating_call(operation: str, store: MemoryStore, fn: Callable[[], Mapping[str, object]]) -> dict[str, object]:
+    """Sync memory only after a Core mutation succeeded; Git never changes the mutation verdict."""
+    payload = _call(operation, fn)
+    if payload["ok"] is True:
+        payload["memory_sync"] = automatic_memory_sync(store, f"MCP_{operation.upper()}")
+    return payload
+
+
 def _catalog(store: MemoryStore, allowed_capability_ids: frozenset[str] | None = None) -> dict[str, object]:
     rows = store.connection.execute(
         """
@@ -183,7 +192,7 @@ def create_server(
     asset_validator_id: str = DEFAULT_ASSET_VALIDATOR_ID,
     actor: str = "vera-mcp",
 ) -> MCPServer:
-    """Crée la façade MCP VERA avec exactement huit tools publics et bornés."""
+    """Crée la façade MCP VERA avec neuf tools publics et bornés."""
     if not isinstance(actor, str) or not actor or actor != actor.strip() or "/" in actor:
         raise ValueError("Actor MCP invalide.")
     if not isinstance(asset_validator_id, str) or not asset_validator_id or "/" in asset_validator_id:
@@ -270,7 +279,7 @@ def create_server(
                 raise StoreError("Adapter MCP : verdict non persistant ou incohérent.")
             return result
 
-        return _call("run_capability", run)
+        return _mutating_call("run_capability", store, run)
 
     @server.tool(name="mmu_get_execution", structured_output=True)
     async def mmu_get_execution(execution_id: str) -> dict[str, object]:
@@ -302,7 +311,7 @@ def create_server(
             )
             return {"validation_id": validation.id, "evidence_id": validation.evidence_id, "verdict": validation.verdict}
 
-        return _call("validate_evidence", validate)
+        return _mutating_call("validate_evidence", store, validate)
 
     @server.tool(name="mmu_decide_admission", structured_output=True)
     async def mmu_decide_admission(evidence_id: str, validation_id: str) -> dict[str, object]:
@@ -318,7 +327,7 @@ def create_server(
             )
             return {"admission_id": admission.id, "evidence_id": admission.evidence_id, "decision": admission.decision}
 
-        return _call("decide_admission", decide)
+        return _mutating_call("decide_admission", store, decide)
 
     @server.tool(name="mmu_evaluate_gate", structured_output=True)
     async def mmu_evaluate_gate(gate_id: str) -> dict[str, object]:
@@ -347,7 +356,17 @@ def create_server(
                 raise StoreError("Acquittement de reprise refusé par l’état lifecycle persistant.")
             return {"acknowledged": True}
 
-        return _call("acknowledge_resume", acknowledge)
+        return _mutating_call("acknowledge_resume", store, acknowledge)
+
+    @server.tool(name="mmu_sync_memory", structured_output=True)
+    async def mmu_sync_memory() -> dict[str, object]:
+        """Synchronise seulement `.vera-mmu/` selon la policy persistée du projet.
+
+        Le client ne fournit ni chemin, ni remote, ni branche, ni message Git. Un échec
+        de synchronisation reste un statut observé ; il ne transforme pas une mutation
+        mémoire déjà validée en succès ou en échec métier différent.
+        """
+        return _call("sync_memory", lambda: automatic_memory_sync(store, "MCP_MEMORY_SYNC"))
 
     return server
 

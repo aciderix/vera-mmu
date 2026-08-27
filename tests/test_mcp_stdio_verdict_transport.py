@@ -30,6 +30,7 @@ class MCPStdioVerdictTransportTests(unittest.IsolatedAsyncioTestCase):
         "mmu_decide_admission",
         "mmu_evaluate_gate",
         "mmu_acknowledge_resume",
+        "mmu_sync_memory",
     }
     _forbidden_client_fields = {
         "verdict",

@@ -57,4 +57,8 @@ class OperationsCLITests(unittest.TestCase):
             self.assertEqual(code,2);self.assertFalse(payload["ok"]);self.assertIn("user-scope",payload["error"])
             code,payload=invoke(["adapter","doctor","--profile",str(profile),"--adapter","unknown"])
             self.assertEqual(code,2);self.assertFalse(payload["ok"])
+    def test_i001_i007_memory_sync_command_has_no_git_arguments_and_reports_policy_state(self)->None:
+        with TemporaryDirectory() as directory:
+            profile=self._profile(Path(directory));code,payload=invoke(["memory-sync",str(profile)])
+            self.assertEqual(code,0);self.assertTrue(payload["ok"]);self.assertEqual(payload["memory_sync"]["status"],"DISABLED")
 if __name__=="__main__":unittest.main()

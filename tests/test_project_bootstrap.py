@@ -27,7 +27,7 @@ class ProjectBootstrapTests(unittest.TestCase):
         from vera_mmu.project_bootstrap import preview_project_initialization
         with TemporaryDirectory() as directory:
             root=Path(directory);first=preview_project_initialization(root,template="software",project_id="my-app",project_name="My App");second=preview_project_initialization(root,template="software",project_id="my-app",project_name="My App")
-            self.assertEqual(first,second);self.assertEqual(first.status,"PREVIEW");self.assertEqual([item.path for item in first.files],[".vera-mmu/agent-profiles.yaml",".vera-mmu/playbook.md",".vera-mmu/project.yaml"]);self.assertIn("domain: software",first.files[-1].content)
+            self.assertEqual(first,second);self.assertEqual(first.status,"PREVIEW");self.assertEqual([item.path for item in first.files],[".vera-mmu/agent-profiles.yaml",".vera-mmu/playbook.md",".vera-mmu/project.yaml",".vera-mmu/sync-policy.json"]);self.assertIn("domain: software",first.files[2].content);self.assertIn('"auto_push":true',first.files[3].content)
             self.assertFalse((root/".vera-mmu").exists())
             code,payload=invoke(["init-project",str(root),"--template","software","--project-id","my-app","--project-name","My App"]);self.assertEqual(code,0);self.assertEqual(payload["initialization"]["status"],"PREVIEW");self.assertFalse((root/".vera-mmu").exists())
     def test_i007_i011_init_apply_is_confirmed_non_destructive_and_refuses_symlink(self)->None:

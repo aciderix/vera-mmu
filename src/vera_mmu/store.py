@@ -38,6 +38,7 @@ class MemoryStore:
         self.workspace = workspace
         self.identity = identity
         self.migrations = migrations
+        self.last_sync_status: dict[str, object] = {"format": "vera-memory-sync/v1", "status": "NOT_ATTEMPTED"}
 
     @classmethod
     def open(
@@ -125,6 +126,7 @@ class MemoryStore:
                 self._connection.execute(f"RELEASE SAVEPOINT {savepoint}")
             else:
                 self._connection.execute("COMMIT")
+                self._auto_sync_after_commit()
         except Exception:
             try:
                 if nested:
@@ -154,6 +156,25 @@ class MemoryStore:
     def close(self) -> None:
         """Close the underlying SQLite connection without modifying the store."""
         self._connection.close()
+
+    def _auto_sync_after_commit(self) -> None:
+        """Persist only memory after a successful outer Core transaction.
+
+        Git failure is retained for diagnostics and never rolls a committed SQLite
+        transaction back or changes its business result.
+        """
+        try:
+            from .memory_sync import automatic_memory_sync
+
+            self.last_sync_status = automatic_memory_sync(self, "CORE_MUTATION")
+        except Exception:
+            self.last_sync_status = {
+                "format": "vera-memory-sync/v1",
+                "status": "ERROR",
+                "committed": False,
+                "pushed": False,
+                "reason": "Synchronisation mémoire indisponible après mutation Core.",
+            }
 
     def __enter__(self) -> "MemoryStore":
         return self
