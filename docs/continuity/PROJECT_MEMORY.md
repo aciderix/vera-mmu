@@ -1194,3 +1194,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Validation :** Cargo offline puis locked, build frontend, tests builder/assembleur `6 passed` et suite `510 passed, 43 subtests passed`.
 **Limites :** Windows native doit reconstruire MSI depuis le tag rc.2 avant publication. Aucune release rc.1 n’est créée.
 **Journal :** `LOG-0224`.
+
+### MEM-DEC-172 — M9-E : checksum de release final non auto-référent, rc.3 préparé
+**Type :** `CORRECTION`
+**Statut :** `PASS` local ; tag/run rc.3 `PENDING`
+**Observation.** L’artefact Linux du tag rc.2 contient un `SHA256SUMS` final qui inclut sa propre entrée ; `sha256sum -c` valide les quatre assets mais échoue nécessairement sur cette auto-référence. Le bug est dans l’assembleur de release, non dans les hashes d’assets ou le Core.
+**Décision.** L’assembleur vérifie d’abord le `SHA256SUMS` source de CLI, puis publie le checksum final uniquement sur l’archive CLI, son manifest, l’AppImage/DEB ou les deux installers Windows, et le manifest final. Il refuse explicitement de hacher `SHA256SUMS` lui-même. rc.2 est conservé comme tag non publiable ; rc.3 prépare l’identité binaire `0.1.0-3`/Python `0.1.0rc3`.
+**Validation :** nouvelle régression anti-auto-référence, tests builder/assembleur et suite `511 passed, 43 subtests passed`; Cargo verrouillé repasse après l’actualisation de version.
+**Limites :** le candidat rc.3 doit être construit et contrôlé sous Windows/Linux depuis son tag avant release. Aucune GitHub Release n’est créée.
+**Journal :** `LOG-0225`.

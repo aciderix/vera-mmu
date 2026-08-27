@@ -23,10 +23,12 @@
 - [ ] Réécrire le README racine de VERA-MMU pour la préversion, avec badges, installation, parcours sécurisé, matrice de support, vérification et limites.
 - [ ] Ajouter le workflow de release par tag qui vérifie la version, produit les artefacts finaux, leurs manifests et SHA-256, sans contourner les gates de signature.
 - [ ] Préparer la configuration de signature hors dépôt et vérifier les binaires signés Windows/Linux avant toute publication GitHub Release.
-- [ ] Créer et publier la préversion `v0.1.0-rc.2` seulement après la validation du tag exact, avec notes, hashes et avertissement explicite de binaires non signés.
+- [ ] Créer et publier la préversion `v0.1.0-rc.3` seulement après la validation du tag exact, avec notes, hashes et avertissement explicite de binaires non signés.
 - [x] Versionner Apache-2.0, NOTICE, DCO, politique de marque, README de préversion et workflow de candidat par tag non signant.
-- [ ] Publier exceptionnellement `v0.1.0-rc.2` comme préversion gratuite non signée, après run de tag vert, avec hashes/manifests et avertissement d’éditeur non vérifié.
+- [ ] Publier exceptionnellement `v0.1.0-rc.3` comme préversion gratuite non signée, après run de tag vert, avec hashes/manifests et avertissement d’éditeur non vérifié.
 - [ ] Conserver la signature Authenticode Windows et la signature Linux comme prérequis de toute diffusion stable ou élargie ultérieure.
 - [x] Aligner les manifestes de préversion sur `v0.1.0-rc.1` (forme PEP 440 `0.1.0rc1` pour Python) et valider Python, frontend et Rust verrouillé.
 - [x] Qualifier `v0.1.0-rc.1` comme tag non publiable : MSI Windows refuse un identifiant de préversion textuel ; ne pas déplacer ce tag historique.
 - [x] Préparer `v0.1.0-rc.2` avec identité binaire MSI-compatible `0.1.0-2` et forme Python `0.1.0rc2` ; contrôles locaux verts.
+- [x] Qualifier `v0.1.0-rc.2` comme tag non publiable : son `SHA256SUMS` final s’auto-référençait et ne peut pas être stable.
+- [x] Corriger l’assembleur pour valider le checksum CLI source et exclure `SHA256SUMS` de son propre calcul final.

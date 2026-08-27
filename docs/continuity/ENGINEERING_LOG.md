@@ -2931,3 +2931,10 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Validation locale.** `cargo check --offline`, puis `cargo check --locked`, `pnpm build`, six tests builder/assembleur et la suite complète `510 passed, 43 subtests passed` passent.
 **Verdict.** rc.2 est le candidat de préversion corrigé ; tag rc.2 et validation native restent requis. La release non signée reste conditionnelle à ces preuves et ne peut pas être rc.1.
 **Suite.** Commiter/publier le correctif et cette continuité, créer le tag rc.2, puis n’attacher des assets à une GitHub Pre-release que si Linux et Windows réussissent depuis ce tag.
+
+## LOG-0225 — 2026-08-27 — M9-E : contrôle d’intégrité final corrigé, rc.3
+**Échec observé.** Après le run rc.2 vert, l’artefact Linux est téléchargé passivement et vérifié. `sha256sum -c` confirme l’archive CLI, le manifest CLI, AppImage, DEB et manifest final, puis échoue sur `SHA256SUMS` : l’assembleur écrivait le fichier final en le listant lui-même. Un checksum ne peut pas être un hash stable de son propre contenu.
+**Correction minimale.** `_verify_checksum_file` valide le checksum CLI source avant toute copie ; le candidat final ne copie plus le checksum intermédiaire. `_checksum_lines` interdit explicitement un nom `SHA256SUMS` et le fichier final liste les assets et le manifest, pas lui-même. Une régression isole ce refus.
+**Version.** rc.2 est documenté et conservé non publiable. La nouvelle préparation rc.3 utilise `0.1.0-3` pour desktop/MSI et `0.1.0rc3` pour Python ; le builder normalise la seule forme PEP 440 correspondante.
+**Validation.** Six tests builder/assembleur et la suite complète : `511 passed, 43 subtests passed`. Cargo offline/locked passe après le lock de version.
+**Verdict.** `PASS` local. Le tag rc.3 et son run de candidats doivent prouver la correction sur les artefacts natifs avant de publier une préversion non signée.
