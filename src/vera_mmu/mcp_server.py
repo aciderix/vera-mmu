@@ -109,10 +109,14 @@ def _call(operation: str, fn: Callable[[], Mapping[str, object]]) -> dict[str, o
 
 
 def _mutating_call(operation: str, store: MemoryStore, fn: Callable[[], Mapping[str, object]]) -> dict[str, object]:
-    """Sync memory only after a Core mutation succeeded; Git never changes the mutation verdict."""
+    """Expose the post-commit memory sync status without rerunning Git.
+
+    Core services synchronize only after their own successful outer SQLite transaction.
+    Recalling the sync here would turn a genuine SYNCED result into NO_CHANGES.
+    """
     payload = _call(operation, fn)
     if payload["ok"] is True:
-        payload["memory_sync"] = automatic_memory_sync(store, f"MCP_{operation.upper()}")
+        payload["memory_sync"] = dict(store.last_sync_status)
     return payload
 
 
