@@ -45,6 +45,20 @@ class ProjectBootstrapTests(unittest.TestCase):
         with self.assertRaises(ProfileError):validate_profile(profile)
         profile["capabilities"]={"catalog":".vera-mmu/capabilities.yaml"};profile["knowledge"]={"types":["RULE","RULE"]}
         with self.assertRaises(ProfileError):validate_profile(profile)
+    def test_i007_i011_project_catalogs_are_hashed_validated_and_confined(self)->None:
+        from vera_mmu.project_bootstrap import apply_project_initialization,preview_project_initialization
+        from vera_mmu.project_catalogs import ProjectCatalogError,load_project_catalogs
+        with TemporaryDirectory() as directory:
+            root=Path(directory);preview=preview_project_initialization(root,template="data",project_id="data-app",project_name="Data App");apply_project_initialization(root,preview,confirm=True)
+            catalogs=load_project_catalogs(root/".vera-mmu"/"project.yaml")
+            self.assertEqual(catalogs.capabilities["format"],"vera-capability-catalog/v1");self.assertEqual(catalogs.gates["format"],"vera-gate-catalog/v1");self.assertEqual(catalogs.policies["format"],"vera-policy-catalog/v1")
+            self.assertTrue(catalogs.capability_catalog_hash);self.assertTrue(catalogs.gate_catalog_hash);self.assertTrue(catalogs.policy_hash)
+            (root/".vera-mmu"/"capabilities.yaml").write_text("format: invalid\ncapabilities: []\n",encoding="utf-8")
+            with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
+            (root/".vera-mmu"/"capabilities.yaml").write_text("format: vera-capability-catalog/v1\ncapabilities: []\ncapabilities: []\n",encoding="utf-8")
+            with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
+            (root/".vera-mmu"/"capabilities.yaml").unlink();(root/".vera-mmu"/"capabilities.yaml").symlink_to(root/".vera-mmu"/"gates.yaml")
+            with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
     def test_i007_i011_init_apply_is_confirmed_non_destructive_and_refuses_symlink(self)->None:
         from vera_mmu.project_bootstrap import ProjectBootstrapError,apply_project_initialization,preview_project_initialization
         with TemporaryDirectory() as directory:
