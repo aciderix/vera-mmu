@@ -3138,3 +3138,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 | Validation liée | Contrat M11-J : `2 passed in 2.05s`; cible evidence/execution/capability/MCP : `30 passed in 17.85s`; intégral : `549 passed in 63.57s`; diff et scan de frontière : `PASS`. |
 | Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
 | Statut | `M11-J = PASS` dans le périmètre documenté. |
+
+
+## LOG-0243 — 2026-08-27 — M11-K : parcours relationnel borné
+
+**Résultat.** `ReadService.related` parcourt en largeur les relations d’une racine entité VERA canonique du projet courant. Les seules directions sont `INBOUND`, `OUTBOUND` et `BOTH`; profondeur 1–3 et cardinalité 1–50 sont contrôlées au Core. Les relations sont triées par identifiant, les voisins sont dédupliqués, et les cycles ne peuvent ni faire croître la réponse ni provoquer une boucle. CLI `related` et MCP `mmu_get_related` délèguent à ce service; le tool est inscrit au manifeste canonique.
+
+**Preuves.** Le contrat construit un cycle d’entités et une branche, puis contrôle l’ordre BFS, la déduplication, les bornes, les racines invalides/cross-project et l’absence d’audit. Contrat : `1 passed in 0.16s`; cible relations/lecture/CLI/MCP : `27 passed in 17.29s`; régression intégrale : **`550 passed in 68.70s`**.
+
+**Verdict.** `M11-K = PASS`. Il ne livre pas une requête de graphe générale, un filtrage relationnel, un traversal work/evidence, une mutation, une capability ou une gate. Artefact : `artifacts/m11_k_bounded_related_traversal_2026-08-27.md`; mémoire : `MEM-DEC-186`.

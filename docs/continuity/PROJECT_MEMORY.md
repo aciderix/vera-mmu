@@ -1374,3 +1374,22 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_j_capability_execution_evidence_reads_2026-08-27.md`; contrat M11-J `2 passed`, cible `30 passed`, régression intégrale `549 passed in 63.57s`.
 
 **Limites conservées :** pas de get/listing des preuves, de listing evidence/execution, de traversal relationnel, de READ asset générique, de symbol/profile, de work graph/gates, de mutation ou de compatibilité/parité ARET. L’universalisation globale reste non terminée.
+
+
+## MEM-DEC-186 — M11-K : parcours relationnel `related` borné
+
+**Date :** 2026-08-27
+**Décision :** fournir un parcours BFS Core de relations d’entités à profondeur et cardinalité explicitement bornées, plutôt qu’une API de graphe générale contrôlable par le client.
+
+| Garantie | Décision effective |
+|---|---|
+| Racine | Adresse VERA canonique de type `entity` et `project_id` du store exigés. |
+| Direction | Seules `INBOUND`, `OUTBOUND` et `BOTH` sont admises. |
+| Bornes | Profondeur 1–3 et voisins 1–50; elles sont contrôlées en Core. |
+| Déterminisme | BFS, relations triées par `id`, entités vues dédupliquées; aucun cycle ne peut prolonger le parcours. |
+| Transport | CLI `related` et MCP `mmu_get_related` ne prennent qu’adresse/direction/bornes; le tool est manifesté et hashé. |
+| Non-mutation | La lecture ne crée aucun audit, ne déclenche aucune capability ou gate, et n’évalue aucune policy métier. |
+
+**Evidence :** `docs/continuity/artifacts/m11_k_bounded_related_traversal_2026-08-27.md`; contrat `1 passed`, cible `27 passed`, régression intégrale `550 passed in 68.70s`.
+
+**Limites conservées :** pas de filtres relationnels libres, pagination, traversal work/evidence, search/indexation, écriture, capabilities, gates ou policy. Les lectures symbol/profile et historiques/listings restent hors lot.

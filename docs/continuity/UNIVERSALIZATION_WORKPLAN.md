@@ -162,7 +162,8 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Transport bundle/import, CLI associée et Doctor composite | `PASS` dans le périmètre M11-C | M11-C clos |
 | Boot, FIND et READ exact/batch pour knowledge/entity/work-item | `PASS` dans le périmètre M11-H | M11-H clos |
 | Lectures Front/handoff courants et READ relation/front/handoff exact | `PASS` dans le périmètre M11-I | M11-I clos |
-| READ exact capability/execution/evidence | `PASS` dans le périmètre M11-J | M11-J clos ; assets/gates/symbol/profile et `related` → lots dédiés |
+| READ exact capability/execution/evidence | `PASS` dans le périmètre M11-J | M11-J clos |
+| Parcours relationnel `related` entité-à-entité borné | `PASS` dans le périmètre M11-K | M11-K clos ; symbol/profile, historiques/listings et traversals spécialisés → lots dédiés |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
 | Documentation dérivée et rapport coverage | `MISSING` | M11-E |
 | Adresse/compatibilité/VCS | `PARTIAL` | M11-F |
@@ -235,3 +236,12 @@ La lecture exacte de `capability`, `execution` et `evidence` est maintenant int�
 Les assets restent intentionnellement sur la lecture dédiée `mmu_read_artifact`, qui contrôle hash et taille du contenu binaire. Les gates continuent d’utiliser leur évaluation dédiée, car elles sont des vues de gouvernance et non un accès table générique. La cible atteint `30 passed` et la régression intégrale **`549 passed in 63.57s`**.
 
 > **Frontière conservée :** listing/history de preuves et evidences, assets au travers de READ, gates/work graph, symboles, profile, `related`, resume détaillé et mutations restent des lots distincts. Preuve : `artifacts/m11_j_capability_execution_evidence_reads_2026-08-27.md`; mémoire : `MEM-DEC-185`; journal : `LOG-0241`.
+
+
+### 11.9 M11-K — Parcours relationnel `related` borné : `PASS`
+
+Le Core fournit maintenant un parcours en largeur depuis une entité VERA canonique. La direction est fermée (`INBOUND`, `OUTBOUND`, `BOTH`), la profondeur est limitée à trois sauts et le nombre de voisins à cinquante. Les relations sont lues dans l’ordre d’identifiant, les voisins dédupliqués, et les cycles ne peuvent pas se propager. La réponse comporte des références compactes d’entités et d’arêtes, sans description ou contenu d’entité.
+
+La CLI `related` et le MCP `mmu_get_related` délèguent au même contrat Core; le MCP n’accepte ni SQL, ni filtre libre, ni identité de projet, ni record. La validation atteint `27 passed` en cible et **`550 passed in 68.70s`** en régression intégrale.
+
+> **Frontière conservée :** aucun traversal work/evidence, filtrage relationnel, pagination, recherche sémantique, mutation, capacité ou gate n’est introduit. Lectures de symbol/profile et historiques/listings restent à traiter séparément. Preuve : `artifacts/m11_k_bounded_related_traversal_2026-08-27.md`; mémoire : `MEM-DEC-186`; journal : `LOG-0243`.
