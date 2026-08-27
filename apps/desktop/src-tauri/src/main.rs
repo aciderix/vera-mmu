@@ -150,6 +150,16 @@ fn scan_project(state: State<'_, AppState>) -> Result<Value, String> { with_brid
 fn project_status(state: State<'_, AppState>) -> Result<Value, String> { with_bridge(&state, |bridge| bridge.call("project.status", json!({}))) }
 
 #[tauri::command]
+fn capability_preview(state: State<'_, AppState>, identifier: String, name: String, kind: String, version: String, description: String) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("capability.preview", json!({"identifier": identifier, "name": name, "kind": kind, "version": version, "description": description})))
+}
+
+#[tauri::command]
+fn capability_apply(state: State<'_, AppState>, preview_hash: String, confirm: bool) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("capability.apply", json!({"previewHash": preview_hash, "confirm": confirm})))
+}
+
+#[tauri::command]
 fn initialization_preview(state: State<'_, AppState>, template: String, project_id: String, project_name: String) -> Result<Value, String> {
     with_bridge(&state, |bridge| bridge.call("project.init.preview", json!({"template": template, "projectId": project_id, "projectName": project_name})))
 }
@@ -199,7 +209,7 @@ fn main() {
             app.manage(AppState { session: Mutex::new(None), executable });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![select_project, scan_project, project_status, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
+        .invoke_handler(tauri::generate_handler![select_project, scan_project, project_status, capability_preview, capability_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
         .run(tauri::generate_context!())
         .expect("échec de l’application desktop VERA");
 }

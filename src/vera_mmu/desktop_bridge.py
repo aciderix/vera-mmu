@@ -13,6 +13,7 @@ from typing import Any, Callable, Mapping, Sequence
 
 from .adapter_catalog import adapter_spec, call_adapter_json
 from .agent_profiles import builtin_agent_profiles
+from .capability_builder import CapabilityDraftPreview, apply_capability_draft, preview_capability_draft
 from .coverage_report import compile_coverage_report
 from .identity import load_profile
 from .read_api import ReadService
@@ -59,6 +60,8 @@ class DesktopBridge:
             "project.status": self._project_status,
             "project.init.preview": self._initialization_preview,
             "project.init.apply": self._initialization_apply,
+            "capability.preview": self._capability_preview,
+            "capability.apply": self._capability_apply,
             "memory.sync": self._memory_sync,
             "agents.list": self._agents_list,
             "adapter.generate": self._adapter_generate,
@@ -146,6 +149,35 @@ class DesktopBridge:
         result = apply_project_initialization(self._project_root, cached.value, confirm=True)
         del self._previews[preview_hash]
         return result.as_dict()
+
+    def _capability_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"identifier", "name", "kind", "version", "description"})
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            preview = preview_capability_draft(
+                store,
+                identifier=_string(value, "identifier"),
+                name=_string(value, "name"),
+                kind=_string(value, "kind"),
+                version=_string(value, "version"),
+                description=_optional_string(value, "description"),
+            )
+        self._previews[preview.preview_hash] = _CachedPreview("capability", preview)
+        return preview.as_dict()
+
+    def _capability_apply(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"previewHash", "confirm"})
+        preview_hash = _string(value, "previewHash")
+        if value.get("confirm") is not True:
+            raise _ProtocolError("CONFIRMATION_REQUIRED", "Application refusée sans confirmation explicite.")
+        cached = self._previews.get(preview_hash)
+        if cached is None or cached.kind != "capability" or not isinstance(cached.value, CapabilityDraftPreview):
+            raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de capability inconnue, expirée ou étrangère.")
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            result = apply_capability_draft(store, cached.value, confirm=True)
+        del self._previews[preview_hash]
+        return result
 
     def _agents_list(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, set())
@@ -264,6 +296,13 @@ def _exact_input(value: Mapping[str, Any], expected: set[str]) -> None:
 def _string(value: Mapping[str, Any], key: str) -> str:
     item = value.get(key)
     if not isinstance(item, str) or not item:
+        raise _ProtocolError("INPUT_INVALID", f"Champ bridge invalide : {key}.")
+    return item
+
+
+def _optional_string(value: Mapping[str, Any], key: str) -> str:
+    item = value.get(key)
+    if not isinstance(item, str):
         raise _ProtocolError("INPUT_INVALID", f"Champ bridge invalide : {key}.")
     return item
 

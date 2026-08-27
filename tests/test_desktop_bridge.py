@@ -116,6 +116,24 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertFalse(injected["ok"])
             self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
 
+    def test_m11dc_capability_builder_requires_closed_preview_and_confirmation(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            preview = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "builder-desktop", "projectName": "Builder desktop"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+            rejected = self._call(bridge, "capability.preview", {"identifier": "lint", "name": "Lint", "kind": "CHECK", "version": "1.0.0", "description": "", "command": "unsafe"})
+            self.assertFalse(rejected["ok"])
+            self.assertEqual(rejected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            draft = self._call(bridge, "capability.preview", {"identifier": "lint", "name": "Lint", "kind": "CHECK", "version": "1.0.0", "description": ""})
+            self.assertTrue(draft["ok"])
+            refused = self._call(bridge, "capability.apply", {"previewHash": draft["result"]["preview_hash"], "confirm": False})  # type: ignore[index]
+            self.assertFalse(refused["ok"])
+            self.assertEqual(refused["error"]["code"], "CONFIRMATION_REQUIRED")  # type: ignore[index]
+            applied = self._call(bridge, "capability.apply", {"previewHash": draft["result"]["preview_hash"], "confirm": True})  # type: ignore[index]
+            self.assertTrue(applied["ok"])
+            self.assertEqual(applied["result"]["capability"]["id"], "lint")  # type: ignore[index]
+
     def test_i001_i007_memory_sync_has_no_git_input_in_desktop_protocol(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)

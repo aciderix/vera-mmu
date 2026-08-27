@@ -7,6 +7,10 @@ export const desktopApi = {
   selectProject: () => invoke<JsonObject>("select_project"),
   scanProject: () => invoke<JsonObject>("scan_project"),
   projectStatus: () => invoke<JsonObject>("project_status"),
+  capabilityPreview: (identifier: string, name: string, kind: string, version: string, description: string) =>
+    invoke<JsonObject>("capability_preview", { identifier, name, kind, version, description }),
+  capabilityApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("capability_apply", { previewHash, confirm }),
   initializationPreview: (template: string, projectId: string, projectName: string) =>
     invoke<JsonObject>("initialization_preview", { template, projectId, projectName }),
   initializationApply: (previewHash: string, confirm: boolean) =>
