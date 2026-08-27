@@ -21,6 +21,7 @@ from mcp.server import MCPServer
 from .admission import AdmissionService
 from .assets import AssetService
 from .bundles import BundleService
+from .doctor import diagnose_project
 from .evidence import EvidenceService
 from .gates import GateService
 from .identity import load_profile
@@ -45,7 +46,8 @@ stdout, exit_code, score, verdict ni artifact à promouvoir. Une capability est 
 exclusivement par un adapter déclaré côté serveur. Les bundles sont toujours produits dans
 le runtime du projet; aucun chemin d’archive client n’est accepté. Les documents de projet
 sont explicitement listés, confinés au workspace, prévisualisés puis réévalués avant import.
-Toute erreur métier reste structurée et n’est jamais transformée en succès."""
+Le Doctor ne prend aucun chemin, runtime ou hôte contrôlé par le client. Toute erreur métier
+reste structurée et n’est jamais transformée en succès."""
 
 
 class MCPRuntimeAdapter(Protocol):
@@ -443,6 +445,15 @@ def create_server(
             return _project_import_payload(apply_project_document_import(store, preview, confirm=confirm))
 
         return _mutating_call("import_project_documents", store, import_documents)
+
+    @server.tool(name="mmu_doctor", structured_output=True)
+    async def mmu_doctor() -> dict[str, object]:
+        """Diagnostique le projet courant sans accepter d’entrée ni modifier le Core.
+
+        Le profile est celui auquel le store actif est déjà lié. Le diagnostic ne démarre pas
+        de serveur, ne lance pas de capability et n’ouvre pas le SQLite en écriture.
+        """
+        return _call("doctor", lambda: diagnose_project(store.workspace.profile_path).as_dict())
 
     @server.tool(name="mmu_sync_memory", structured_output=True)
     async def mmu_sync_memory() -> dict[str, object]:

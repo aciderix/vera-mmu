@@ -1300,3 +1300,21 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_c1_public_bundle_import_transport_2026-08-27.md`; tests CLI/MCP ciblés et régression intégrale `538 passed`.
 
 **Limite conservée :** M11-C global n’est pas clos. Doctor composite, API de boot/lecture complémentaires, commandes universelles restantes et intégrations complètes requièrent des lots indépendants.
+
+
+## MEM-DEC-182 — M11-C : transports publics et Doctor composite clos
+
+**Date :** 2026-08-27
+**Décision :** le lot M11-C est clos à `PASS` dans son périmètre : transports CLI/MCP contrôlés pour bundle et import documentaire, et Doctor composite Core non mutateur.
+
+| Garantie | Décision effective |
+|---|---|
+| Doctor | `diagnose_project` lit profile, workspace, catalogues, identité, runtime, SQLite, ledger, WAL, artefacts, reprise, transport MCP et VCS sans ouvrir/initier/migrer la base en écriture. |
+| États | VCS absent et store d’artefacts non matérialisé sont des états légitimes explicitement signalés; toute corruption ou ambiguïté de chemin est `FAIL` avec remédiation. |
+| CLI/MCP | `vmmu doctor` retourne le rapport et un code `2` en cas d’échec; `mmu_doctor` n’accepte aucune entrée et diagnostique seulement le profile déjà lié au store MCP actif. |
+| Non-mutation | Les tests comparent le hash SQLite et le journal d’audit avant/après Doctor; aucune écriture n’est attribuée au diagnostic. |
+| Manifest | Le tool Doctor figure dans le manifeste canonique, donc toute divergence change le `mcp_build_hash`. |
+
+**Evidence :** `docs/continuity/artifacts/m11_c_composite_doctor_2026-08-27.md`; 27 tests ciblés passants et régression intégrale `541 passed in 64.78s`.
+
+**Limites conservées :** API universelles boot/FIND/READ restantes, commandes CLI non livrées, Dashboard configurateur, documentation dérivée/coverage, VCS multi-provider, migration/parité ARET et hôtes agents réels demeurent hors M11-C. Aucun statut de parité ARET ou de conformité globale n’est modifié par cette clôture.

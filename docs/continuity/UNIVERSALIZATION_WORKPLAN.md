@@ -159,7 +159,7 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Profile et modèle projet déclaratif riche | `PASS` | M11-A clos ; preuve `m11_a_project_profile_catalogs_2026-08-27.md` |
 | Front/handoff persistants, Resume Dossier configurable et policy projet | `PASS` | M11-AF clos ; preuve `m11_af_front_handoff_resume_policy_2026-08-27.md` |
 | Bundle, export/import/restore et import projet avec provenance | `PASS` | M11-B clos ; preuve `m11_b_bundle_restore_project_import_2026-08-27.md` |
-| API MCP, CLI et Doctor complets | `PARTIAL` / `MISSING` | M11-C |
+| Transport bundle/import, CLI associée et Doctor composite | `PASS` dans le périmètre M11-C | M11-C clos ; API Core universelle restante → M11-H |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
 | Documentation dérivée et rapport coverage | `MISSING` | M11-E |
 | Adresse/compatibilité/VCS | `PARTIAL` | M11-F |
@@ -193,4 +193,15 @@ La CLI fournit désormais `bundle-export`, `bundle-restore` et `project-import`.
 
 La restauration demeure exclusivement disponible via CLI : un serveur MCP actif ne peut pas remplacer le runtime et le SQLite qu’il garde ouverts. Cette restriction est délibérée et conserve les garanties d’atomicité et de non-fusion. Les trois outils ajoutés, ainsi que `mmu_sync_memory`, sont inclus dans la liste canonique et le hash du manifeste MCP. Les contrats CLI/MCP/manifeste/lifecycle passent, et la régression intégrale atteint `538 passed in 58.99s`.
 
-> **Limite active.** Le Doctor composite, les API Core de boot/lecture absentes, les commandes universelles complémentaires et les intégrations de production ne sont pas clos par M11-C.1. La preuve détaillée est `artifacts/m11_c1_public_bundle_import_transport_2026-08-27.md`; voir `MEM-DEC-181` et `LOG-0233`.
+> **Limite historique de M11-C.1.** Le Doctor composite était encore requis après cette sous-tranche. Il est livré par M11-C final ci-dessous. Les API Core de boot/lecture, les commandes universelles complémentaires et les intégrations de production restent séparées. Voir `MEM-DEC-181` et `LOG-0233`.
+
+
+### 11.5 M11-C — Transports publics et Doctor composite : `PASS`
+
+M11-C est clos dans le périmètre de santé Core et de transport des primitives M11-B. `vmmu doctor` et `mmu_doctor` produisent le rapport `vera-doctor-report/v1`, avec contrôles profil, workspace, catalogues, identité, runtime, intégrité SQLite, ledger, WAL, artefacts, reprise, runtime MCP et VCS. Le diagnostic est explicitement non mutateur : SQLite est ouvert en lecture seule, aucun store n’est initialisé ou migré et les tests comparent le hash SQLite ainsi que le journal d’audit avant/après son exécution.
+
+Les commandes `bundle-export`, `bundle-restore` et `project-import`, ainsi que les tools MCP `mmu_export_bundle`, `mmu_preview_project_documents` et `mmu_import_project_documents`, restent contrôlés par confirmation, confinement et preview hashé. `mmu_doctor` ne prend aucune entrée client et fait partie du manifeste MCP canonique. Une restauration via MCP reste interdite : le mécanisme CLI hors store actif conserve l’atomicité de restauration non fusionnelle.
+
+La validation atteint `27 passed` sur les contrats M11-B/M11-C et **`541 passed in 64.78s`** en régression intégrale. L’artefact de preuve est `artifacts/m11_c_composite_doctor_2026-08-27.md`; voir `MEM-DEC-182` et `LOG-0235`.
+
+> **Prochain travail non couvert :** M11-H traite séparément les API universelles de boot/FIND/READ et les commandes de produit associées. M11-D, M11-E, M11-F et M11-G restent inchangés; ce verdict ne prétend ni Dashboard complet, ni parité ARET, ni hôte agent réel.

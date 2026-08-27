@@ -89,6 +89,7 @@ class MCPManifestTests(unittest.TestCase):
                     "mmu_export_bundle",
                     "mmu_preview_project_documents",
                     "mmu_import_project_documents",
+                    "mmu_doctor",
                 ))
 
     def test_i012_changes_to_declared_capability_change_build_hash(self) -> None:

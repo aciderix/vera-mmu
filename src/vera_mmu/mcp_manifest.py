@@ -31,6 +31,7 @@ TOOL_NAMES = (
     "mmu_export_bundle",
     "mmu_preview_project_documents",
     "mmu_import_project_documents",
+    "mmu_doctor",
 )
 _ADAPTER_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,127}")
 
