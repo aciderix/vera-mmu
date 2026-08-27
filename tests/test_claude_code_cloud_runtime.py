@@ -259,8 +259,8 @@ class ClaudeCodeCloudRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(result.settings_path.is_file())
             self.assertTrue(result.mcp_path.is_file())
             self.assertTrue(result.state_path.is_file())
-            self.assertNotIn(str(Path.home()), str(result.settings_path))
-            self.assertNotIn(str(Path.home()), str(result.mcp_path))
+            self.assertTrue(result.settings_path.is_relative_to(project.resolve()))
+            self.assertTrue(result.mcp_path.is_relative_to(project.resolve()))
             self.assertIn("vmmu-claude-code-cloud-hook", result.settings_path.read_text(encoding="utf-8"))
             self.assertIn("vmmu-claude-code-cloud-mcp", result.mcp_path.read_text(encoding="utf-8"))
 
