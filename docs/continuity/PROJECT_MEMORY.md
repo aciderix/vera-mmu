@@ -1137,3 +1137,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance native :** run `33065626744` pour `999a35e` : Linux job `98494854034`, `504 passed, 43 subtests passed` en 78,87 s et artefact `9643835349` ; Windows job `98494854423`, `504 passed, 43 subtests passed` en 220,82 s et artefact `9643897645`. Chaque job a aussi passé sidecar, bundles et téléversement.
 **Limites :** Les artefacts sont CI-only et non signés. Les fixtures n’attestent ni les sémantiques/outils métier de chaque domaine, ni l’installation sur machine utilisateur, ni la campagne d’hôtes agents réels.
 **Journal :** `LOG-0217`.
+
+### MEM-DEC-165 — M9-A : candidats CLI natifs et contrat de release, sans publication
+**Type :** `DECISION`
+**Statut :** `PASS` local ; CI native `PENDING`
+**Décision :** La CLI autonome est construite séparément de Tauri par `scripts/build_cli_bundle.py`, uniquement pour Linux x64 et Windows x64 natifs. Le builder impose un checkout propre, l’alignement des quatre manifestes de version, un manifest `vera-release-manifest/v1` contenant le SHA source et les SHA-256, puis une archive et `SHA256SUMS`. La CI exécute la suite VERA avant ce build.
+**Provenance :** `tests/test_cli_bundle_builder.py` (`4 passed`) ; suite après ajout `508 passed, 43 subtests passed`; contrat `docs/release/RELEASE_CONTRACT.md`; artefact M9-A. Voir `LOG-0218`.
+**Limites :** Le script produit un candidat CI non signé. Aucun tag, release, signature, publication Pages, licence définitive, installation utilisateur ou test d’hôte réel n’est créé ou revendiqué.
+**Journal :** `LOG-0218`.
