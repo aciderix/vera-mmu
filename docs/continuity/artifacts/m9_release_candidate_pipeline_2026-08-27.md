@@ -1,6 +1,6 @@
 # M9-A — Pipeline de candidats de release CLI
 
-**Statut :** `PASS` pour les candidats de vérification — builder, manifest, archive, checksums et matrice native Windows/Linux attestés. Toute diffusion publique, licence, signature, tag et release restent distincts et bloqués.
+**Statut :** `PARTIAL_PASS` — candidats CLI et desktop de vérification attestés ; M9-B ajoute le workflow final par tag, l’assembleur et la documentation Apache/DCO. Toute signature, création de tag et diffusion publique restent distinctes et non exécutées.
 
 ## 1. Portée exacte
 
@@ -43,5 +43,13 @@ Le run GitHub Actions `33067150688` est intégralement vert pour la révision `c
 | Windows x64 | `98499946792` | `508 passed, 43 subtests passed` en 198,53 s | `PASS` : archive `zip`, manifest et SHA-256 | `9644534152`, 89 113 204 octets |
 
 Les archives de workflow réunissent le candidat CLI et les bundles desktop ; elles restent temporaires et non signées. Une release est donc toujours interdite tant que la licence formelle n’est pas choisie, que la titularité/dépendances ne sont pas vérifiées, que les signatures de plateforme ne sont pas disponibles et que les notes de release ne relient pas leurs affirmations aux hashes et preuves correspondants.
+
+## 5. M9-B — candidat final par tag et documentation publique
+
+Le workflow `release-candidate.yml` prépare désormais une vérification à partir d’un tag `v*`, avec les mêmes deux runners natifs. Après les tests, il construit le sidecar, la CLI autonome et les deux bundles desktop de la plateforme, puis `assemble_release_candidate.py` réunit les quatre fichiers du target avec un manifest `vera-release-candidate/v1` et `SHA256SUMS`. Il refuse un candidat CLI ou desktop incomplet, une cible hors liste, un artefact absent/symlinké ou des noms ambigus.
+
+Le workflow ne possède qu’une permission `contents: read`, puis téléverse un artefact de vérification. Il ne signe pas, ne crée pas de tag, ne crée pas de release GitHub et ne publie pas GitHub Pages. Son contrat statique et celui du builder CLI sont couverts par six tests ; toute la suite locale passe à `510 passed, 43 subtests passed`.
+
+La préversion possède également son README public, `LICENSE` Apache-2.0, `NOTICE`, règles DCO `CONTRIBUTING.md` et politique de marque `TRADEMARKS.md`. Le retrait de `LICENSE-PENDING.md` est corroboré par les métadonnées de roue : `License: Apache-2.0` et classifieur OSI Apache. La titularité de droit demeure une responsabilité du propriétaire et des contributeurs ; le DCO structure les contributions futures mais ne remplace pas un audit juridique.
 
 Le [contrat de release](../../release/RELEASE_CONTRACT.md) et le [modèle de notes](../../release/RELEASE_NOTES_TEMPLATE.md) imposent ces limites. Le dashboard WebDev reste hors distribution VERA à ce stade : aucun transfert de source ou déploiement GitHub Pages n’est effectué par M9-A.

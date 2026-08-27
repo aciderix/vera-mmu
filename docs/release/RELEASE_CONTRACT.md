@@ -1,6 +1,6 @@
 # Contrat de release VERA-MMU
 
-**Statut :** `M9_PREPARATION` — contrat de distribution défini ; aucune release, aucun tag de release et aucune signature ne sont créés par ce document.
+**Statut :** `M9_PREPARATION` — Apache-2.0, DCO et politique de marque sont versionnés ; aucune release, aucun tag de release et aucune signature ne sont créés par ce document.
 
 ## 1. Objet et règle de sûreté
 
@@ -38,6 +38,8 @@ Les binaires de CLI et le sidecar Tauri ne deviennent jamais des serveurs HTTP, 
 
 Le workflow de vérification M9 exécute la suite VERA complète **avant** de construire les artefacts. Il produit les archives et leurs manifests comme artefacts CI temporaires, sans appeler d’API de release et sans publication GitHub Pages.
 
+Le workflow `release-candidate.yml` ne se déclenche que pour un tag `v*` ou manuellement sur une référence donnée. Il assemble, pour chaque runner natif, le ZIP/TAR.GZ CLI, les deux bundles desktop, leurs hashes et un manifest `vera-release-candidate/v1`. Son token n’a que la permission GitHub `contents: read` et il ne contient aucune étape de création de release, de signature ou de téléversement public.
+
 | Gate | Preuve obligatoire | Refus si absent ou divergent |
 |---|---|---|
 | `REL-01` — version | quatre manifestes alignés et tag validé lors d’une release | version/titre/tag divergents |
@@ -49,7 +51,7 @@ Le workflow de vérification M9 exécute la suite VERA complète **avant** de co
 | `REL-07` — signature | politique et clés disponibles, signature vérifiée sur les binaires ciblés | clé absente, certificat expiré ou signature non vérifiable |
 | `REL-08` — notes | notes factuelles, limites de preuve et procédure de rollback | promesse d’hôte réel ou garantie non attestée |
 
-Les gates `REL-06` et `REL-07` bloquent actuellement toute diffusion publique. Les clés de signature ne seront ni demandées, ni créées, ni stockées dans le dépôt. Toute opération de signature exige un environnement de secrets adapté, une clé contrôlée par le propriétaire et une confirmation explicite juste avant usage.
+La gate `REL-06` est satisfaite par `LICENSE`, `NOTICE`, `CONTRIBUTING.md` et `TRADEMARKS.md`, sous réserve que le propriétaire conserve la responsabilité de la titularité des contributions présentes et futures. La gate `REL-07` bloque encore toute diffusion publique : les clés de signature ne seront ni demandées, ni créées, ni stockées dans le dépôt. Toute opération de signature exige un environnement de secrets adapté, une clé contrôlée par le propriétaire et une confirmation explicite juste avant usage.
 
 ## 5. Politique de signature
 

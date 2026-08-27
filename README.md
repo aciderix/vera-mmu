@@ -1,91 +1,199 @@
 # VERA-MMU
 
-> **Verifiable Epistemics & Relational Architecture**
->
-> *A proof-oriented memory, provenance, and governance engine for AI-assisted projects.*
+[![CI native](https://github.com/aciderix/vera-mmu/actions/workflows/desktop-packaging.yml/badge.svg?branch=main)](https://github.com/aciderix/vera-mmu/actions/workflows/desktop-packaging.yml)
+[![Licence Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-0b7285.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg?logo=python&logoColor=white)](pyproject.toml)
+[![Desktop](https://img.shields.io/badge/Desktop-Windows%20x64%20%7C%20Linux%20x64-2f855a.svg)](apps/desktop/README.md)
+[![Préversion](https://img.shields.io/badge/Statut-pr%C3%A9version%20contr%C3%B4l%C3%A9e-d97706.svg)](docs/release/RELEASE_CONTRACT.md)
 
-VERA-MMU is an independent foundation for a project-aware MCP. It ensures that an agent’s assertion does not become a project fact merely because it was stated in a conversation. Canonical memory, exact `vera://` addressing, provenance, execution records, admissible evidence, policy decisions, and resumable work are first-class objects.
+> **VERA-MMU** — *Verifiable Epistemics & Relational Architecture* — est un moteur local de mémoire, provenance et gouvernance vérifiables pour projets assistés par IA.
 
-The product is intentionally broader than software delivery. The same Core must support software, research, data, documentation, game, and hardware projects through **Project Profiles** and optional **Domain Packs**. Its first compatibility target will be an ARET domain pack; ARET-specific concepts, toolchains, and rules must never become Core dependencies.
+VERA empêche qu’une affirmation formulée par un agent devienne un fait du projet par simple répétition. L’état canonique est conservé dans le projet, les preuves et décisions restent traçables, et chaque intégration MCP passe par une préparation explicite et non destructive.
 
-## Product principles
+**Le produit est en préversion contrôlée.** La chaîne de build Windows/Linux, la CLI autonome et l’application desktop sont validées en CI native. Aucune release GitHub signée n’est encore publiée et les tests réels des fournisseurs d’agents restent volontairement différés jusqu’à la campagne finale.
 
-| Principle | Operational meaning |
+## Pourquoi VERA-MMU ?
+
+| Problème courant | Réponse VERA |
 |---|---|
-| **Canonical state is external to the model** | SQLite-backed state, profiles, artifacts, and audit records—not model text—are the source of truth. |
-| **Discovery is not proof** | `FIND` identifies candidates; `READ` retrieves exact canonical objects; neither a search result nor a model statement is evidence. |
-| **Knowledge is append-only** | Material corrections create superseding records; silent rewrites are rejected. |
-| **Proof is traceable** | A promotable assertion must link to admissible `PASS` evidence and to the execution and environment that produced it. |
-| **Capabilities are closed and policy-gated** | The model selects a declared capability with schema-bounded parameters; it never submits an arbitrary shell command. |
-| **Continuity is verifiable** | Front state, handoffs, resume acknowledgements, project identity, profiles, and generated runtime are hash-linked. |
-| **Relations are first-class** | Knowledge, entities, work, executions, evidence, artifacts, and policies are connected through explicit typed relations. |
-| **Domains remain optional** | Business vocabulary, tools, workflows, and requirements live in packs and profiles—not in the Core. |
+| Une IA « se souvient » d’un fait non vérifié | Mémoire SQLite canonique, provenance, evidence et décisions explicites. |
+| Le contexte se dégrade ou une session redémarre | État project-local `.vera-mmu/`, reprise hashée et dossier de continuité. |
+| Un MCP peut modifier le projet de façon opaque | **preview → contrôle de fraîcheur → confirmation → écriture atomique ou refus**. |
+| Un agent pourrait obtenir un shell ou un chemin arbitraire | Capabilities, adapters, entrées et opérations strictement allowlistés. |
+| Le même moteur doit servir plusieurs domaines | Core générique ; concepts et outils métier confinés aux Project Profiles et Domain Packs optionnels. |
+| La mémoire doit suivre le projet Git | Synchronisation opt-in bornée à `.vera-mmu/`, sur `origin` et la branche actuellement checkoutée. |
 
-## Canonical identity
+## Capacités attestées
 
-| Surface | Identifier |
-|---|---|
-| Public project name | **VERA-MMU** |
-| Long form | **Verifiable Epistemics & Relational Architecture** |
-| Repository / distribution | `vera-mmu` |
-| Python namespace | `vera_mmu` |
-| CLI | `vmmu` |
-| Canonical resource scheme | `vera://<project>/<resource>/<id>` |
-| Project runtime directory | `.vera-mmu/` |
+VERA est testé sur des fixtures **software, data, research, documentation, game et hardware**, ainsi que sur les topologies sans Git, mono-repo, multi-repo et clone Git. La même séquence CLI, bridge desktop et MCP project-local est utilisée dans chaque cas.
 
-The composed name must be used consistently in public documentation and tooling. The naming audit records existing uses of the bare term “Vera”; VERA-MMU makes no claim of exclusive ownership over that term.
+| Surface | Ce qui est disponible | Ce qui n’est pas encore revendiqué |
+|---|---|---|
+| Core Python | SQLite project-bound, migrations, audit, entities, relations, knowledge, evidence, gates et lifecycle | Validation métier externe ou oracle de domaine universel |
+| CLI `vmmu` | Scan sans écriture, init project-local, génération, staging, preview/install contrôlé, doctor et memory sync | Une API de commandes libres ou un accès implicite à Git |
+| MCP | Façade fermée, modèles d’adapters, reprise et opérations project-local | Preuve live auprès de chaque fournisseur d’agent |
+| Desktop | Tauri v2 Windows/Linux, dialogue natif de dossier, bridge Python stdio embarqué | Installation effectivement testée sur une machine utilisateur |
+| Mémoire Git | Commit/push optionnels de `.vera-mmu/` sur la branche courante | Pull implicite, merge automatique de SQLite ou staging des fichiers métier |
+| Viewer web | Dashboard statique séparé, lecture/import-export de rapports | Installation MCP, accès au disque, shell ou bridge local depuis GitHub Pages |
 
-## Current status
+La suite actuelle compte **508 tests et 43 sous-tests**, passée sur Linux x64 et Windows x64 avec build CLI autonome, sidecar et bundles desktop. Les résultats et limites détaillés figurent dans les [records de conformance M8](docs/continuity/artifacts/m8_multi_domain_conformance_2026-08-27.md) et de [candidats M9](docs/continuity/artifacts/m9_release_candidate_pipeline_2026-08-27.md).
 
-This repository contains the **M1 identity Core**, the **M2 Universal Schema** (M2.1–M2.14), the published **M3.S1 operational slice** (M3.1–M3.6), **M3.7 bounded parameter validation**, **M3.8 explicit execution policy**, **M3.9 project HMAC policy**, **M3.10 local evidence integrity validation**, **M3.11 multi-evidence admission gates**, **M3.12 derived work lifecycle**, **M3.13 validated admission policy**, the **M3.14 closed local `EVIDENCE_HASH` runner**, **M3.15 immutable gate policies**, **M3.16 derived work readiness with optional strict start policy**, **M3.17 local required-field validation**, **M3.18 closed `EVIDENCE_FIELDS` runner**, **M3.19–M3.22 passive direct/transitive/gate/composite blocker diagnostics**, **M3.23 optional strict completion policy**, **M3.24 explicit strict admission–validation binding**, **M3.25 closed runner–validator compatibility catalogue**, the **M3.EXIT terminal Core gate**, the **M4.1 read-only ARET V1 address-compatibility pack**, the **M4.2 declarative legacy-runtime manifest**, the **M4.3 observed ARET V1 schema manifest**, the **M4.4 bounded ARET V1 compatibility profile**, the **M4.5 explicit structural mapping registry**, the **M4.6 fail-closed component-import preparation contract**, the **M4.7 read-only ARET V1 snapshot attestation**, the **M4.8 clean Git-source identity verification**, the **M4.9 read-only SQLite schema-manifest inspection**, the **M4.10 paginated raw component-source reader**, the **M4.11 zero-write component-import preflight**, the **M4.12 non-writable component-entity draft projection**, the **M4.13 read-only target-collision check**, the **M4.14 generic Core atomic entity-batch primitive**, the **M4.15 explicitly authorized, atomic first-page `component→entity` import**, and the **M4-A ledger-backed, explicitly authorized component-page series**. The Core provides a normalized Project Profile, deterministic project identities, a confined runtime, strict canonical `vera://` addresses, a migration ledger, a ProjectIdentity-bound SQLite store, technical audit records, generic entities and relations, append-only knowledge and declared provenance, direct supersession links, hash-verified SQLite assets, immutable associations, generic symbols, work-item records, and declarative capabilities/execution structure. M3 adds immutable closed capability contracts; a local, closed parameter-schema subset; an immutable `ALLOW`/`DENY`/`CONFIRM` policy; the local `NOOP`, `EVIDENCE_HASH` and `EVIDENCE_FIELDS` runners under `DENY_NETWORK`; immutable execution facts; hashed JSON evidence; immutable admission decisions; a project-level HMAC rule without any persistent secret; derived `PROVEN` proof records; direct work-item dependencies with multi-evidence admission gates and optional immutable `ALL`/`ANY`/`AT_LEAST` policies; the local `EVIDENCE_HASH` and `EVIDENCE_FIELDS` validators, whose runners accept only their exact matching validator kind and closed parameter schema; a derived lifecycle from append-only work events; derived work readiness and an optional strict start policy; an optional completion policy that can require derived readiness only for `COMPLETE`; and an admission policy that, in strict mode, requires an explicit binding to a pre-existing `PASS` validation of the same evidence before admission.
+## Installation depuis le source
 
-The enforced proof chain is deliberately narrow: an execution is not evidence; `PASS` evidence is not admitted automatically; a derived proof requires existing `PASS` evidence and an `ADMITTED` decision; and a proof record does not rewrite the historical knowledge status. An explicit admission policy can require a `PASS` validator result before `ADMITTED`; in strict mode it must name that result and it must belong to the same evidence, but it never triggers validation itself. Where requested, HMAC secrets are supplied only in memory and only their digest is persisted. A gate merely reads existing admissions: it never runs a capability, creates an admission, changes knowledge, or declares work complete.
-
-The repository still provides no external file or document fetch, implicit network access, arbitrary shell, generic external runner beyond the three closed local profiles, general JSON Schema validation, interactive confirmation or policy revision, validator of business content or external oracle (the local field validator checks only declared key presence), automatic admission, HMAC rotation/revocation/expiration or alternate algorithms, weighted, temporal, expiration or revocation gate semantics, lifecycle pause/reopen/orchestration or graph behaviour beyond the published passive blocker diagnostics and derived readiness, production MCP surface, an ARET importer beyond explicitly authorized ledger-backed `component` pages, merger with pre-existing records, proof or promotion from imported records, a complete functional compatibility pack, dashboard, or claimed ARET parity. Those omissions are intentional and remain separately gated.
-
-## Continuity records
-
-The universalization programme is governed through four linked, versioned documents. The [living work plan](docs/continuity/UNIVERSALIZATION_WORKPLAN.md) controls scope and gates; the [factual project memory](docs/continuity/PROJECT_MEMORY.md) preserves durable facts, decisions, risks, and the active resume; the [engineering log](docs/continuity/ENGINEERING_LOG.md) records searchable chronology, runs, evidence, comparisons, walls, and handoffs; and the [M4 completion register](docs/continuity/M4_COMPLETION_REGISTER.md) records every remaining compatibility gate and its blockers. These records must be read before material work after an interruption or context compaction.
-
-## Repository layout
-
-```text
-src/vera_mmu/             # Installable Python package and stable Core namespace
-docs/                     # Invariants, architecture, decoupling ledger, naming audit
-profiles/                 # Versioned Project Profile templates
-domains/                  # Optional domain packs; ARET is a future reference pack
-tests/                    # Unit, security, conformance, and compatibility tests
-```
-
-## Local start
+La première release ne doit pas encore être téléchargée : les artefacts CI sont des candidats de vérification, non des binaires officiels. Pour évaluer le code depuis le source :
 
 ```bash
-PYTHONPATH=src python3 -m pytest -q
-PYTHONPATH=src python3 -m vera_mmu identity profiles/minimal/project.yaml
-PYTHONPATH=src python3 -m vera_mmu inspect profiles/minimal/project.yaml
-PYTHONPATH=src python3 -m vera_mmu init profiles/minimal/project.yaml
+git clone https://github.com/aciderix/vera-mmu.git
+cd vera-mmu
+
+python3 -m venv .venv
+# Linux/macOS
+. .venv/bin/activate
+# Windows PowerShell : .\.venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+python -m pip install .
+vmmu --help
 ```
 
-The `identity` command validates the profile and prints its deterministic SHA-256 identity. The `inspect` command resolves project roots, optional local VCS markers, runtime, SQLite location, and artifact directory without opening a store or running Git. The `init` command opens only the profile-bound runtime, applies the checksum-protected migration ledger, records the ProjectIdentity and prints the resulting metadata. The public Python Core exposes exact, bounded services for the universal schema and M3: `CapabilityContractService`, `CapabilityPolicyService`, `ExecutionService.run_noop`, `ExecutionService.run_evidence_hash`, `EvidenceService`, `AdmissionPolicyService`, `AdmissionService`, `ProofPolicyService`, `ProofService`, `ValidatorService`, `GateService`, and `WorkLifecycleService` supplement the persistence services. A contract parameter schema is limited to an object root, named scalar properties, `required`, and `additionalProperties`; it is deliberately not general JSON Schema. A capability receives one immutable policy decision, `ALLOW`, `DENY`, or `CONFIRM`; only `ALLOW` permits `ExecutionService.run_noop` after parameter validation. `DENY`, `CONFIRM`, and no policy refuse before runner-side writes. `ExecutionService.run_noop` accepts only an existing `NOOP` / `DENY_NETWORK` contract with `yields_proof=false`; it starts no process, accesses no file, and contacts no network. `ExecutionService.run_evidence_hash` accepts only an exact `EVIDENCE_HASH` / `DENY_NETWORK` / `yields_proof=false` contract, an explicit `ALLOW` policy and the two closed parameters `validator_id` and `evidence_id`; it executes the existing local integrity validator and stores its `PASS` or `FAIL` result atomically with a completed execution. It starts no process, accesses no file, contacts no network, creates no evidence, admission or proof, and never promotes knowledge. `ExecutionService.run_evidence_fields` applies the same closed transaction boundary only to an `EVIDENCE_FIELDS` contract and validator; it records a local `PASS`/`FAIL` field-presence verdict plus execution, never an admission or proof. `AdmissionService` admits only existing `PASS` evidence. `ProofPolicyService` requires a singleton `HMAC_SHA256` project rule before a derived proof; where HMAC is required, its secret is supplied only in memory and only its digest is persisted. `ProofService` creates a separate immutable proof record only from knowledge plus admitted `PASS` evidence, leaving knowledge untouched. `ValidatorService` registers only `EVIDENCE_HASH` and `EVIDENCE_FIELDS` and writes a separate `PASS` or `FAIL` integrity result by recomputing the evidence’s canonical JSON hash; that result never admits evidence or promotes knowledge. `EVIDENCE_FIELDS` checks only a bounded immutable list of declared JSON keys and likewise never admits evidence or promotes knowledge. `GateService` adds direct dependencies with cycle refusal, can append additional evidence requirements to a policy-free gate, and evaluates only existing admissions without any execution or promotion side effect. A gate without a policy remains conjunctive (`ALL`); its optional immutable policy may instead select `ANY` or an `AT_LEAST` threshold, after which its evidence requirements are frozen. No weighted, temporal, expiration or revocation semantics are provided. `WorkReadinessService` derives `READY` or `BLOCKED` from existing completed prerequisites and passing gates without writing state; `WorkStartPolicyService` optionally makes only `START` refuse unless that readiness is `READY`. `WorkLifecycleService` records only `START`, `COMPLETE`, or `CANCEL` events and derives the current work state without rewriting the historical `work_item` record; `WorkCompletionPolicyService` can optionally require derived `READY` only for `COMPLETE`, before any event or audit is written. Completion is neither proof nor execution.
+VERA requiert **Python 3.11 ou plus récent**. L’application desktop de développement nécessite en outre Node.js, pnpm, Rust et les dépendances Tauri propres à la plateforme ; voir le [guide desktop](apps/desktop/README.md).
 
-## Roadmap
+## Parcours sûr : préparer un projet puis installer un MCP
 
-| Milestone | Outcome |
+Le flux ne touche pas le projet avant confirmation. Choisissez l’un des templates : `software`, `data`, `research`, `documentation`, `game` ou `hardware`.
+
+```bash
+# 1. Observer seulement : aucun contenu n’est lu et aucun fichier n’est créé.
+vmmu scan /chemin/vers/mon-projet
+
+# 2. Générer la preview de l’initialisation : toujours sans écriture.
+vmmu init-project /chemin/vers/mon-projet \
+  --template software \
+  --project-id mon-projet \
+  --project-name "Mon projet"
+
+# 3. Appliquer uniquement après relecture de la preview et confirmation explicite.
+vmmu init-project /chemin/vers/mon-projet \
+  --template software \
+  --project-id mon-projet \
+  --project-name "Mon projet" \
+  --apply --confirm
+```
+
+L’étape confirmée crée seulement les fichiers VERA project-local sous `.vera-mmu/`. Elle ne remplace pas un fichier existant, ne suit pas de symlink et refuse une configuration divergente.
+
+```bash
+# 4. Consulter les adapters déclarés et générer une configuration MCP en preview.
+vmmu adapter matrix
+vmmu generate /chemin/vers/mon-projet/.vera-mmu/project.yaml --adapter generic-mcp
+
+# 5. Prévisualiser l’installation, puis l’appliquer explicitement.
+vmmu install /chemin/vers/mon-projet/.vera-mmu/project.yaml --adapter generic-mcp
+vmmu install /chemin/vers/mon-projet/.vera-mmu/project.yaml \
+  --adapter generic-mcp --apply-project --confirm
+
+# 6. Observer l’état sans le modifier.
+vmmu adapter doctor --profile /chemin/vers/mon-projet/.vera-mmu/project.yaml --adapter generic-mcp
+```
+
+L’installation MCP peut écrire une configuration hôte **project-local** telle que `.mcp.json`, `.claude/`, `.codex/`, `.gemini/` ou `.antigravity/`, selon l’adapter choisi. Un conflit, une cible irrégulière ou un lien symbolique est un refus, jamais un écrasement.
+
+## Application desktop
+
+L’application desktop vise le parcours humain : lancer l’application, choisir un dossier par dialogue natif, scanner, renseigner le template, vérifier la preview puis confirmer l’installation. La fenêtre React n’a aucun plugin générique de filesystem ou de shell.
+
+Le processus Rust parent démarre uniquement le sidecar `vmmu-desktop-bridge` via stdin/stdout. Il conserve la racine sélectionnée et le nonce du bridge ; ni la racine brute, ni un shell, ni un adapter arbitraire, ni une écriture de confiance ne sont fournis par le WebView.
+
+Les formats actuellement construits en CI sont les suivants :
+
+| Plateforme | CLI candidate | Desktop candidate |
+|---|---|---|
+| Windows x64 | ZIP avec `vmmu.exe` | NSIS `.exe` et MSI `.msi` |
+| Linux x64 | TAR.GZ avec `vmmu` | AppImage et paquet Debian `.deb` |
+
+Avant une release, chaque archive sera reconstruite depuis le tag, hashée, signée et décrite dans les notes de version. Consultez le [contrat de release](docs/release/RELEASE_CONTRACT.md) pour les gates exactes.
+
+## Continuité Git et mémoire
+
+La mémoire est dans le projet : `.vera-mmu/memory.sqlite`. Elle peut donc voyager avec le commit Git du projet si le projet choisit de la versionner. VERA ne transforme pas GitHub en API de contrôle du MCP ; un clone récupère simplement la mémoire qui appartient au commit checkouté.
+
+La synchronisation est **opt-in** et pilotée par `.vera-mmu/sync-policy.json`. Après une transaction Core réussie, VERA consolide SQLite puis peut commit/push **uniquement** `.vera-mmu/`, vers le remote littéral `origin`, sur la branche courante (`CURRENT`).
+
+```bash
+# Lit la policy project-local ; ne prend aucun remote, branche ou commande Git en entrée.
+vmmu memory-sync /chemin/vers/mon-projet/.vera-mmu/project.yaml
+```
+
+VERA ne fait jamais de `pull` implicite, ne merge jamais deux bases SQLite, ne stage jamais les fichiers métier du projet et ne rétrograde pas une mutation SQLite réussie si Git échoue. Un conflit ou une policy invalide produit un statut de refus distinct.
+
+## Sécurité et modèle de confiance
+
+| Garantie | Règle appliquée |
 |---|---|
-| **M0 — Governance baseline** | Invariants, decoupling matrix, test conventions, provenance rules, naming audit, and independent package namespace. |
-| **M1 — Universal identity and profile** | Canonical Project Profile, profile/project/workspace hashes, confined runtime, mono/multi/no-Git resolution, and generic strict `vera://` addressing. Technical gates verified; ARET parity remains out of scope. |
-| **M2 — Universal Schema** | **Delivered and gated:** M2.1–M2.14 provide the SQLite substrate; generic entities and relations; append-only knowledge, declared provenance and direct supersession; hash-verified SQLite assets and explicit knowledge–asset associations; immutable symbols and work items; and declarative Capability/Execution schemas. M2.EXIT passed without a parité ARET claim. |
-| **M3 — Capability / Evidence / Gates** | **Delivered within the approved bounded Core contract.** M3.EXIT verifies fresh install and upgrade 001→032, the closed chain capability → execution → evidence → validation → admission → proof → gate → readiness → lifecycle, full Core tests, checksums, boundary scans and an isolated wheel. Deferred to M4+: business/external validators, additional runners, weighted/temporal gates, advanced graph/lifecycle, CLI/MCP, dashboard and ARET compatibility. M3 does not claim ARET parity: C05/C06/C16 remain `SPLIT`, C07 remains `BLOCKED` under `MEM-WALL-001`, and parity remains `UNKNOWN`. An execution event is never a proof. |
-| **M4 — ARET compatibility pack** | **In progress.** M4.1 parses canonical `ARET://` V1 addresses; M4.2 declares historical runtime names; M4.3 inventories the observed V1 application schema; M4.4 composes those declarations under a profile that explicitly forbids runtime resolution, SQLite reads, imports and VERA writes; M4.5 declares only the three reviewed structural targets (`component→entity`, `function_symbol→symbol`, `brick→work_item`), each requiring a future explicit import; M4.6 binds one future `component→entity` request to an explicit VERA `ProjectIdentity`, a canonical caller-declared source digest, a request ID and an actor, while marking it `PREPARED_NOT_EXECUTED` and `UNVERIFIED_DECLARATION`; M4.7 verifies that declared digest against only the expected regular, non-linked `.aret-memory/aret_memory.sqlite` snapshot under a caller-supplied absolute root, while binding the result to the fixed ARET V1 baseline reference and marking it `ATTESTED_SNAPSHOT_ONLY`; M4.8 binds that attestation to the expected commit and a clean Git worktree using only fixed `rev-parse` and `status` queries with hooks, global/system configuration and optional locks disabled; M4.9 opens the attested snapshot exclusively through SQLite `mode=ro&immutable=1`, enables `query_only`, and verifies only the V1 migration versions and application-table names against the immutable manifest; M4.10 then observes only bounded, stable-order pages of raw `component` source rows after that inspection, with hash checks before and after each read; M4.11 binds one such verified page to its explicit M4.6 target request and a policy of rejecting existing targets, forbidding merge, promotion and writes, while requiring rollback, audit and provenance before any future write; M4.12 projects the verified page deterministically into generic `entity` drafts with VERA addresses and source metadata while requiring a future entity-type registration; M4.13 then reads only exact type and entity-identifier collisions from a caller-supplied existing target store and rejects any existing target. M4.14 separately equips the domain-free Core with one bounded primitive that atomically registers an absent generic entity type and creates a validated batch of entities with audit records, rolling back the entire transaction on failure. M4.14 does not read a legacy source or invoke any Domain Pack; it is not an import. M4.15 is the separate write-path: after a caller creates an explicit authorization bound to M4.11–M4.13, it rechecks target collisions and calls only the atomic Core batch primitive. Against the verified baseline, one first page of 17 components was created in a temporary VERA store with source metadata and Core audits; any conflict rolls back, and the result is explicitly `IMPORTED_NO_PROMOTION`. M4-A subsequently adds a read-only ARET runtime resolver for the default layout or an explicit `ARET_MEMORY_DIR` override, with a fail-closed refusal of active WAL/SHM sidecars; a generic append-only/idempotent import ledger; a read-only deep conformance check for the `component` source columns; and a separately authorized page-series path. The real baseline runtime resolved through its default layout with no WAL/SHM sidecars, and its page produced 17 ledger links; exact replay made no write, evidence, proof link, admission, or promotion. The explicit override is now bound through attestation, Git identity, schema inspection, and the component reader; it still does not establish full migration, compatibility, or parity. It never modifies ARET, merges records, creates evidence/proofs, promotes knowledge, or establishes parity. The [M4 completion register](docs/continuity/M4_COMPLETION_REGISTER.md) defines the still-required source/runtime, full migration, data-invariant, toolchain, integration, bundle/VCS and executable-parity gates. In particular, C07/C08 remain blocked by `MEM-WALL-001`; M4 itself remains in progress. |
-| **M5 — MCP compiler and adapters** | Generated manifest, stable MCP Core API, runtime adapters, instructions, hooks and doctor. |
-| **M6+ — CLI, dashboard, multi-domain conformance** | Project scanner, configuration workflow, installation, visual editor and cross-domain fixtures. |
+| Verdicts | Seul un `PASS` validé peut alimenter admission, proof ou gate. `FAIL`, `SKIPPED`, `ERROR` et `UNKNOWN` ne sont jamais promus. |
+| Scan | Ne lit pas le contenu, ne suit pas les symlinks et n’exécute ni processus ni réseau. |
+| Écritures | Précédées d’une preview, d’un contrôle de fraîcheur et d’une confirmation ; écritures atomiques ou refus. |
+| Frontend desktop | Pas de privilège filesystem/shell générique ; commandes Tauri typées, bridge stdio fermé. |
+| Git | Remote, branche, pathspec et opération contrôlés côté Core ; aucune commande Git fournie par le client. |
+| Secrets | Aucun secret ne doit être commit, sérialisé dans la mémoire ou transmis par les surfaces UI. |
 
-## Provenance and boundaries
+Les réglages de confiance **au scope utilisateur**, les bootstraps réseau et les secrets ne font pas partie du flux d’installation général. Ils exigent un processus séparé et des confirmations explicites juste avant écriture.
 
-VERA-MMU is informed by the invariant-driven design of [ARET-MMU][1], but it is a **separate repository and implementation**. No ARET-MMU source code is copied into this foundation. Any future migration adapter must explicitly record the originating commit, hashes, source paths, and transformation report.
+## Développement et vérification
 
-The repository is public, but a formal licence must be selected by the project owner before third-party reuse or releases. Until then, contributors should treat the contents as non-redistributable unless the owner states otherwise.
+```bash
+# Suite complète
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m pytest -q
 
-## References
+# Build local d’un candidat CLI Linux depuis un checkout propre
+python3 scripts/build_cli_bundle.py x86_64-unknown-linux-gnu
 
-[1]: https://github.com/aciderix/ARET-MMU "ARET-MMU — reference repository"
+# Build du sidecar desktop, uniquement pour le triple natif
+python3 scripts/build_desktop_sidecar.py x86_64-unknown-linux-gnu
+```
+
+La CI GitHub exécute la suite VERA avant les builds de sidecar, de CLI autonome et de desktop sur Linux et Windows. Les builds croisés ne sont pas une preuve de distribution.
+
+## Architecture du dépôt
+
+```text
+src/vera_mmu/                 Core Python générique, CLI, MCP, adapters et bridge stdio
+src/vera_mmu/domain_packs/    Domain Packs optionnels ; ARET reste isolé dans son pack
+apps/desktop/                 Application Tauri v2 et frontend React sans droits locaux génériques
+scripts/                      Builders contrôlés de sidecar et de candidats CLI
+tests/                        Tests Core, sécurité, bridge, mémoire Git et conformance M8/M9
+docs/continuity/              Plan vivant, mémoire factuelle, journal et artefacts de preuve
+docs/release/                 Contrat, gates et modèle de notes de release
+```
+
+## Statut de roadmap
+
+| Lot | Statut |
+|---|---|
+| M1–M3 | Core universel, persistence, evidence, gates et lifecycle : livré dans son périmètre borné |
+| M4 | Pack ARET de compatibilité : conservé comme pack séparé ; la parité ARET complète n’est pas revendiquée |
+| M5–M7 | MCP, adapters, CLI, bridge desktop, Tauri et mémoire Git project-local : livrés et testés |
+| M8 | Conformance multi-domaines et topologies Git : `PASS` Linux/Windows |
+| M9-A | Candidats CLI natifs, manifests, SHA-256 et CI : `PASS` Linux/Windows |
+| Release officielle | En attente de licence, signature, tag, notes remplies et confirmation de publication |
+| Agents réels | Claude, Codex, Gemini et Antigravity : volontairement `NOT_RUN` avant la campagne finale |
+
+Les documents de contrôle détaillés sont le [plan vivant](docs/continuity/UNIVERSALIZATION_WORKPLAN.md), la [mémoire factuelle](docs/continuity/PROJECT_MEMORY.md), le [journal d’ingénierie](docs/continuity/ENGINEERING_LOG.md) et la [politique de sécurité](SECURITY.md).
+
+## Contribution
+
+Les contributions sont bienvenues sous **Apache-2.0**. Chaque contribution doit être signée selon le **Developer Certificate of Origin** avec `git commit -s`, respecter les frontières Core/Domain Pack et passer la suite de tests. Les règles complètes figurent dans [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Les futurs imports, portages ou adapters issus d’autres projets doivent documenter leur origine, licence, commit, hashes, crédits et compatibilité. VERA-MMU n’intègre pas implicitement du code source ARET-MMU.
+
+## Licence et marque
+
+Le code de VERA-MMU est distribué sous [Apache License 2.0](LICENSE). Le nom **VERA-MMU**, son développement long, son logo et l’identité des releases officielles sont traités séparément dans la [politique de marque](TRADEMARKS.md). Apache-2.0 ne donne pas le droit de présenter un fork ou un binaire modifié comme une release officielle.
+
+## Liens utiles
+
+- [Architecture de distribution desktop](docs/continuity/artifacts/m7_desktop_distribution_architecture_2026-08-27.md)
+- [Conformance multi-domaines M8](docs/continuity/artifacts/m8_multi_domain_conformance_2026-08-27.md)
+- [Pipeline de candidats M9](docs/continuity/artifacts/m9_release_candidate_pipeline_2026-08-27.md)
+- [Contrat de release](docs/release/RELEASE_CONTRACT.md)
+- [Signaler une vulnérabilité](SECURITY.md)

@@ -17,3 +17,11 @@
 - [x] Vérifier no-Git, mono-repo, multi-repo et continuité de mémoire SQLite project-local via clone Git sans fusion binaire implicite.
 - [x] Rejouer la matrice native Windows/Linux après le correctif de fermeture SQLite et d’alias de chemins Windows ; qualifier M8 uniquement avec les deux runners explicites.
 - [x] Définir le contrat de release, la version unique, le modèle de notes et la séparation viewer GitHub Pages sans publication automatique.
+- [x] Arrêter le modèle de licence VERA-MMU et la politique applicable aux contributions, dérivés et futurs imports de Domain Packs : Apache-2.0 avec DCO.
+- [x] Arrêter la politique de distribution : préversion publique contrôlée, Windows/Linux x64, GitHub Releases pour binaires et GitHub Pages viewer ultérieur.
+- [x] Ajouter les documents Apache-2.0, DCO, politique de marque et avis de tiers après contrôle de cohérence des sources et dépendances.
+- [ ] Réécrire le README racine de VERA-MMU pour la préversion, avec badges, installation, parcours sécurisé, matrice de support, vérification et limites.
+- [ ] Ajouter le workflow de release par tag qui vérifie la version, produit les artefacts finaux, leurs manifests et SHA-256, sans contourner les gates de signature.
+- [ ] Préparer la configuration de signature hors dépôt et vérifier les binaires signés Windows/Linux avant toute publication GitHub Release.
+- [ ] Créer et publier la préversion `v0.1.0-rc.1` seulement après la confirmation explicite de l’opération publique, avec notes, hashes et signatures vérifiées.
+- [x] Versionner Apache-2.0, NOTICE, DCO, politique de marque, README de préversion et workflow de candidat par tag non signant.

@@ -1161,3 +1161,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Artefacts :** `9644430339` Linux (214 364 237 octets) et `9644534152` Windows (89 113 204 octets), présents et non expirés comme artefacts de vérification GitHub Actions.
 **Limites :** Ces archives ne sont pas des releases : pas de licence formelle, tag, signature, publication GitHub, installation utilisateur ou campagne d’hôtes réels. La vérification de chaque fichier à l’intérieur des archives Windows CI reste une procédure de release, non une preuve de cette observation de workflow.
 **Journal :** `LOG-0220`.
+
+### MEM-DEC-168 — M9-B : chaîne de préversion par tag et documentation Apache
+**Type :** `DECISION`
+**Statut :** `PASS` local ; run par tag/signatures/release `NOT_RUN`
+**Décision :** Le propriétaire a retenu Apache-2.0, DCO, politique de marque d’identité officielle, préversion publique contrôlée Windows/Linux x64 et GitHub Pages viewer ultérieur. Le dépôt contient `LICENSE`, `NOTICE`, `CONTRIBUTING.md`, `TRADEMARKS.md` et un README de préversion. `release-candidate.yml` vérifie un tag sans pouvoir créer de release, et l’assembleur final produit manifest/hashes non signés.
+**Validation :** suite locale `510 passed, 43 subtests passed`; tests des contracts builder/assembleur `6 passed`; métadonnées de roue Apache-2.0 et classifieur OSI présents.
+**Limites :** Le workflow n’a pas encore été exécuté sur tag. Signature, tag, release, publication Pages, installation utilisateur et hôtes agents réels restent hors de ce record.
+**Journal :** `LOG-0221`.
