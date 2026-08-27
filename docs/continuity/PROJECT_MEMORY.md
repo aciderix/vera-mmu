@@ -1034,3 +1034,19 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 **Provenance :** `tests/test_project_bootstrap.py`; `docs/continuity/artifacts/m6c_guided_project_bootstrap_2026-08-27.md`; suite `488 passed, 37 subtests passed`.
 **Journal :** `LOG-0205`.
+### MEM-DEC-153 — M7-B : bridge desktop stdio fermé et catalogue partagé
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour le transport et le parcours MCP générique ; interfaces Tauri, binaires Windows/Linux et hôtes réels `NOT_RUN`
+**Décision :** Le commit fonctionnel `57279e1` ajoute `vmmu-desktop-bridge`, strictement stdio, et extrait le catalogue immutable d’adapters pour qu’il soit partagé entre CLI et bridge. La racine du projet est fournie seulement par le parent natif ; le bridge n’écoute aucun socket et ne reçoit aucun chemin, shell, adapter brut, verdict, contenu à écrire ou hash de confiance du WebView.
+**Motif :** L’application desktop doit faciliter la préparation et l’installation MCP project-local sans faire du frontend une source de confiance ni créer une seconde implémentation de VERA.
+**Effet opérationnel :** Le protocole JSON `vera-desktop-bridge/v1` exige une enveloppe exacte, un nonce privé, une taille bornée et une opération allowlistée. Les previews restent cachés dans le bridge ; `apply` exige confirmation et revalide l’état actuel. Le parcours `generic-mcp` testée couvre génération, staging, preview, refus de preview périmé et application project-local. Les autres adapters restent bornés par le même catalogue mais ne disposent d’aucune preuve hôte live.
+**Provenance :** `tests/test_desktop_bridge.py`; `src/vera_mmu/desktop_bridge.py`; `docs/continuity/artifacts/m7_desktop_distribution_architecture_2026-08-27.md`; suite `493 passed, 37 subtests passed`; roue isolée SHA-256 `fc0975912fcb623c8b3045cf288bceda887521358ec0e365156d2c3166099234`.
+**Journal :** `LOG-0206`.
+### MEM-DEC-154 — M7 : continuité Git de la mémoire SQLite project-local
+**Type :** `DECISION`
+**Statut :** `DECISION`, correction explicite de cadrage
+**Décision :** `SUPERSEDES` toute formulation laissant entendre que la mémoire VERA doit obligatoirement rester isolée par machine. La mémoire canonique `.vera-mmu/memory.sqlite` est project-local et peut être versionnée dans Git/GitHub avec le projet ; un checkout récupéré alimente la reprise du MCP local du même projet.
+**Motif :** Préserver la continuité ARET-MMU : une session fraîche doit pouvoir récupérer le projet et retrouver sa mémoire plutôt que repartir d’un contexte vide.
+**Effet opérationnel :** Le MCP ne réalise pas de sync réseau implicite. Git transporte les commits choisis par le projet ; tout conflit sur SQLite est refusé et exige une résolution explicite, jamais un merge binaire ou une promotion implicite de statut.
+**Provenance :** Décision explicite du propriétaire du projet ; `m7_desktop_distribution_architecture_2026-08-27.md`, section 6.1.
+**Journal :** `LOG-0206`.
