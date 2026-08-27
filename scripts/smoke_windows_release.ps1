@@ -37,7 +37,7 @@ function Assert-Starts([string]$Executable, [string]$Label) {
   $process = Start-Process -FilePath $Executable -PassThru
   try {
     Start-Sleep -Seconds 8
-    if ($process.HasExited) { throw "$Label s’est arrêté prématurément : $($process.ExitCode)" }
+    if ($process.HasExited) { throw "$Label stopped prematurely: $($process.ExitCode)" }
   } finally {
     if (-not $process.HasExited) { Stop-Process -Id $process.Id -Force; $process.WaitForExit() }
   }
@@ -50,13 +50,13 @@ try {
   if ($null -eq $cliArchive) { throw 'Archive CLI Windows absente.' }
   $cliDir = Join-Path $temp 'cli'; Expand-Archive -LiteralPath $cliArchive.FullName -DestinationPath $cliDir -Force
   $cli = Join-Path $cliDir 'vmmu.exe'
-  if (-not (Test-Path -LiteralPath $cli -PathType Leaf)) { throw 'vmmu.exe absent de l’archive.' }
+  if (-not (Test-Path -LiteralPath $cli -PathType Leaf)) { throw 'vmmu.exe absent de archive.' }
   & $cli --help | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw 'La CLI Windows ne répond pas à --help.' }
+  if ($LASTEXITCODE -ne 0) { throw 'CLI Windows --help did not return success.' }
   $project = Join-Path $temp 'project'; New-Item -ItemType Directory -Force -Path $project | Out-Null
   Set-Content -LiteralPath (Join-Path $project 'README.md') -Value 'runtime smoke only'
   $scan = (& $cli scan $project) | ConvertFrom-Json
-  if ($LASTEXITCODE -ne 0 -or -not $scan.ok -or $scan.scan.status -ne 'OBSERVED' -or (Test-Path -LiteralPath (Join-Path $project '.vera-mmu'))) { throw 'Le scan CLI Windows n’est pas observationnel.' }
+  if ($LASTEXITCODE -ne 0 -or -not $scan.ok -or $scan.scan.status -ne 'OBSERVED' -or (Test-Path -LiteralPath (Join-Path $project '.vera-mmu'))) { throw 'CLI Windows scan changed the project or failed.' }
 
   $nsis = Get-ChildItem -LiteralPath $candidate -Filter '*-setup.exe' | Select-Object -First 1
   $nsisRoot = Join-Path $temp 'nsis'; $nsisProcess = Start-Process -FilePath $nsis.FullName -ArgumentList "/S", "/D=$nsisRoot" -Wait -PassThru

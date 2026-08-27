@@ -43,3 +43,9 @@ def test_linux_deb_smoke_targets_the_application_not_the_sidecar() -> None:
     source = inspect.getsource(SMOKE._smoke_linux_desktop)
     assert 'rglob("vera-mmu-desktop")' in source
     assert "vmmu-desktop-bridge" not in source
+
+
+def test_windows_smoke_has_no_smart_quote_that_can_terminate_powershell_strings() -> None:
+    source = (ROOT / "scripts" / "smoke_windows_release.ps1").read_text(encoding="utf-8")
+    assert "\u2018" not in source
+    assert "\u2019" not in source
