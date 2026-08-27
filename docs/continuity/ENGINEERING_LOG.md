@@ -3072,3 +3072,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 | Validation liée | Doctor : `3 passed`; ciblé M11-B/M11-C : `27 passed in 19.39s`; intégral : `541 passed in 64.78s`; diff et scan de frontière : `PASS`. |
 | Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
 | Statut | `M11-C = PASS` dans le périmètre documenté. |
+
+
+## LOG-0237 — 2026-08-27 — M11-H : boot, FIND et READ génériques
+
+**Baseline et portée.** Le lot démarre à `b71cde9`, six commits locaux devant `origin/main`, avec `541 passed`. Il ajoute un service Core de lecture et des façades CLI/MCP, sans schéma, migration, mutation de connaissance, capability, preuve, provider, réseau ou interaction ARET.
+
+**Résultat.** `ReadService.boot()` retourne l’identité project-bound, les références disponibles de Front/handoff et `resume_status=NOT_ARMED`, sans armer ou acquitter de garde. `find()` interroge uniquement les titres de `knowledge`, `entity` et `work-item`; il retourne des références compactes déterministes et ne contient ni contenu ni description. `read()` impose une adresse `vera://` strictement canonique et liée au project id du store, puis délègue au service exact concerné. `read_batch()` est limité à 1–32 adresses et conserve l’ordre. CLI : `boot`, `find`, `read`, `read-batch`. MCP : `mmu_boot`, `mmu_find`, `mmu_read`, `mmu_read_batch`; les tools sont ajoutés à `TOOL_NAMES` et donc au `mcp_build_hash`.
+
+**Preuves.** Les trois tests M11-H initient un profile documentaire, puis vérifient les results de boot, la séparation FIND/READ, le refus d’adresse étrangère, les bornes de query/batch, l’absence d’audit nouveau, la CLI et une session MCP stdio sans profile path ni project id clients. Contrat : `3 passed in 2.04s`; cible CLI/MCP : `27 passed in 20.45s`; régression complète : **`544 passed in 62.63s`**.
+
+**Verdict.** `M11-H = PASS` pour les trois ressources et opérations documentées. Front/handoff/relations/preuves/assets/capabilities/gates/executions, `related`, resume status détaillé, mutations, work/evidence et recherche/indexation plus large restent explicitement hors lot. Artefact : `artifacts/m11_h_boot_find_read_2026-08-27.md`; mémoire : `MEM-DEC-183`.

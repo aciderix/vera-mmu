@@ -90,6 +90,10 @@ class MCPManifestTests(unittest.TestCase):
                     "mmu_preview_project_documents",
                     "mmu_import_project_documents",
                     "mmu_doctor",
+                    "mmu_boot",
+                    "mmu_find",
+                    "mmu_read",
+                    "mmu_read_batch",
                 ))
 
     def test_i012_changes_to_declared_capability_change_build_hash(self) -> None:

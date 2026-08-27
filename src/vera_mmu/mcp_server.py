@@ -31,6 +31,7 @@ from .memory_sync import automatic_memory_sync
 from .mcp_instructions import MCPInstructions, compile_mcp_instructions
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
 from .project_import import apply_project_document_import, preview_project_document_import
+from .read_api import ReadService
 from .session_lifecycle import ResumeGuardService
 from .store import MemoryStore, StoreError
 from .validators import ValidatorService
@@ -46,6 +47,7 @@ stdout, exit_code, score, verdict ni artifact à promouvoir. Une capability est 
 exclusivement par un adapter déclaré côté serveur. Les bundles sont toujours produits dans
 le runtime du projet; aucun chemin d’archive client n’est accepté. Les documents de projet
 sont explicitement listés, confinés au workspace, prévisualisés puis réévalués avant import.
+FIND ne retourne que des références compactes; READ exige une adresse VERA canonique exacte.
 Le Doctor ne prend aucun chemin, runtime ou hôte contrôlé par le client. Toute erreur métier
 reste structurée et n’est jamais transformée en succès."""
 
@@ -215,7 +217,7 @@ def create_server(
     asset_validator_id: str = DEFAULT_ASSET_VALIDATOR_ID,
     actor: str = "vera-mcp",
 ) -> MCPServer:
-    """Crée la façade MCP VERA avec neuf tools publics et bornés."""
+    """Crée la façade MCP VERA avec des tools publics, bornés et transport-neutral."""
     if not isinstance(actor, str) or not actor or actor != actor.strip() or "/" in actor:
         raise ValueError("Actor MCP invalide.")
     if not isinstance(asset_validator_id, str) or not asset_validator_id or "/" in asset_validator_id:
@@ -256,6 +258,26 @@ def create_server(
         instructions=SERVER_INSTRUCTIONS if instructions is None else instructions.text,
         version=SERVER_VERSION,
     )
+
+    @server.tool(name="mmu_boot", structured_output=True)
+    async def mmu_boot() -> dict[str, object]:
+        """Retourne l’état project-bound de démarrage sans armer ni modifier la reprise."""
+        return _call("boot", lambda: ReadService(store).boot())
+
+    @server.tool(name="mmu_find", structured_output=True)
+    async def mmu_find(query: str, resource_types: list[str] | None = None) -> dict[str, object]:
+        """Découvre des références par titre sans retourner contenu ni description."""
+        return _call("find", lambda: {"findings": ReadService(store).find(query, resource_types=resource_types)})
+
+    @server.tool(name="mmu_read", structured_output=True)
+    async def mmu_read(address: str) -> dict[str, object]:
+        """Lit exactement une ressource VERA par son adresse canonique project-bound."""
+        return _call("read", lambda: ReadService(store).read(address))
+
+    @server.tool(name="mmu_read_batch", structured_output=True)
+    async def mmu_read_batch(addresses: list[str]) -> dict[str, object]:
+        """Lit un batch explicitement borné d’adresses VERA exactes dans l’ordre fourni."""
+        return _call("read_batch", lambda: {"records": ReadService(store).read_batch(addresses)})
 
     @server.tool(name="mmu_get_capability_catalog", structured_output=True)
     async def mmu_get_capability_catalog() -> dict[str, object]:

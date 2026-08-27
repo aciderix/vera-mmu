@@ -1318,3 +1318,21 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_c_composite_doctor_2026-08-27.md`; 27 tests ciblés passants et régression intégrale `541 passed in 64.78s`.
 
 **Limites conservées :** API universelles boot/FIND/READ restantes, commandes CLI non livrées, Dashboard configurateur, documentation dérivée/coverage, VCS multi-provider, migration/parité ARET et hôtes agents réels demeurent hors M11-C. Aucun statut de parité ARET ou de conformité globale n’est modifié par cette clôture.
+
+
+## MEM-DEC-183 — M11-H : boot, FIND et READ Core bornés
+
+**Date :** 2026-08-27
+**Décision :** exposer une première API universelle de lecture via le service Core `ReadService`, puis par CLI/MCP, sans transformer l’ensemble des tables en une interface générique implicite.
+
+| Garantie | Décision effective |
+|---|---|
+| Boot | Retourne l’identité du store, les références du Front/handoff persistants et `resume_status=NOT_ARMED`; il n’arme ni n’acquitte de dossier. |
+| FIND | Ne recherche que les titres de `knowledge`, `entity` et `work-item`; son résultat compact exclut `content` et `description`, pour préserver FIND ≠ READ. |
+| READ | Exige une adresse `vera://` canonique dont le projet correspond au store courant. Chaque lecture délègue au service exact de ressource. |
+| Batch | Est borné à 1–32 adresses explicites, garde leur ordre et refuse toute adresse non canonique, étrangère ou non supportée. |
+| Transport | CLI : `boot`, `find`, `read`, `read-batch`. MCP : `mmu_boot`, `mmu_find`, `mmu_read`, `mmu_read_batch`; les quatre tools sont ajoutés au manifeste canonique. |
+
+**Evidence :** `docs/continuity/artifacts/m11_h_boot_find_read_2026-08-27.md`; contrat M11-H `3 passed`, cible CLI/MCP `27 passed`, régression intégrale `544 passed in 62.63s`.
+
+**Limites conservées :** les lectures de Front/handoff/relations/preuves/assets/capabilities/gates/executions, les parcours `related`, resume brief/status, les mutations de mémoire et les API de work/evidence restent hors M11-H. Aucune indexation de contenu, recherche sémantique, compatibilité ARET ou claim de couverture API totale n’est déduit de ce lot.

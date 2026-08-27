@@ -28,6 +28,10 @@ class MCPLifecycleAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
         "mmu_preview_project_documents",
         "mmu_import_project_documents",
         "mmu_doctor",
+        "mmu_boot",
+        "mmu_find",
+        "mmu_read",
+        "mmu_read_batch",
     }
     _forbidden_fields = {
         "session_id",

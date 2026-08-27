@@ -32,6 +32,10 @@ TOOL_NAMES = (
     "mmu_preview_project_documents",
     "mmu_import_project_documents",
     "mmu_doctor",
+    "mmu_boot",
+    "mmu_find",
+    "mmu_read",
+    "mmu_read_batch",
 )
 _ADAPTER_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,127}")
 

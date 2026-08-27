@@ -12,6 +12,7 @@ from .identity import ProfileError, load_profile, profile_identity, project_iden
 from .memory_sync import automatic_memory_sync
 from .migrations import MigrationError
 from .project_import import apply_project_document_import, preview_project_document_import
+from .read_api import ReadService
 from .runtime import RuntimeLocator
 from .project_operations import ProjectOperationError, compile_generation_preview, scan_project
 from .project_bootstrap import ProjectBootstrapError, apply_project_initialization, preview_project_initialization
@@ -30,6 +31,10 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap=sub.add_parser("init-project",help="Prévisualise ou initialise les fichiers VERA dans un projet choisi.");bootstrap.add_argument("root",type=Path,help="Racine locale du projet.");bootstrap.add_argument("--template",required=True);bootstrap.add_argument("--project-id",required=True);bootstrap.add_argument("--project-name",required=True);bootstrap.add_argument("--apply",action="store_true");bootstrap.add_argument("--confirm",action="store_true")
     sync=sub.add_parser("memory-sync",help="Synchronise seulement la mémoire VERA selon sa policy project-local.");sync.add_argument("profile",type=Path,help="Chemin project.yaml.")
     doctor=sub.add_parser("doctor",help="Diagnostique sans mutation le profile, runtime, SQLite, catalogues et transports VERA.");doctor.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    boot=sub.add_parser("boot",help="Lit l’état de démarrage VERA lié au profile sans armer ni modifier la reprise.");boot.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    find=sub.add_parser("find",help="Trouve des références VERA par titre, sans retourner de contenu.");find.add_argument("profile",type=Path,help="Chemin project.yaml.");find.add_argument("--query",required=True);find.add_argument("--resource",action="append",dest="resources")
+    read=sub.add_parser("read",help="Lit une ressource VERA exacte par adresse canonique.");read.add_argument("profile",type=Path,help="Chemin project.yaml.");read.add_argument("address")
+    read_batch=sub.add_parser("read-batch",help="Lit un batch borné d’adresses VERA exactes.");read_batch.add_argument("profile",type=Path,help="Chemin project.yaml.");read_batch.add_argument("--address",action="append",required=True,dest="addresses")
     export=sub.add_parser("bundle-export",help="Exporte un bundle VERA sous le runtime project-local après confirmation.");export.add_argument("profile",type=Path,help="Chemin project.yaml.");export.add_argument("--bundle-id",required=True);export.add_argument("--confirm",action="store_true")
     restore=sub.add_parser("bundle-restore",help="Restaure un bundle vérifié vers une cible VERA vide et de même identité.");restore.add_argument("profile",type=Path,help="Chemin project.yaml cible.");restore.add_argument("--bundle",type=Path,required=True,help="Archive ZIP VERA explicitement sélectionnée.");restore.add_argument("--confirm",action="store_true")
     project_import=sub.add_parser("project-import",help="Prévisualise ou importe explicitement des documents locaux comme observations provenancées.");project_import.add_argument("profile",type=Path,help="Chemin project.yaml.");project_import.add_argument("--document",action="append",required=True,help="Chemin relatif d’un document depuis une racine workspace.");project_import.add_argument("--batch-id",required=True);project_import.add_argument("--knowledge-type-id",required=True);project_import.add_argument("--knowledge-type-label",required=True);project_import.add_argument("--apply",action="store_true");project_import.add_argument("--confirm",action="store_true")
@@ -76,6 +81,14 @@ def main(argv:Sequence[str]|None=None)->int:
             report=diagnose_project(args.profile);payload={"ok":report.status=="PASS","doctor":report.as_dict()}
             if report.status!="PASS":
                 print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
+        elif args.command in {"boot","find","read","read-batch"}:
+            profile=load_profile(args.profile)
+            with MemoryStore.open(profile,args.profile) as store:
+                reader=ReadService(store)
+                if args.command=="boot":payload={"ok":True,"boot":reader.boot()}
+                elif args.command=="find":payload={"ok":True,"find":reader.find(args.query,resource_types=args.resources)}
+                elif args.command=="read":payload={"ok":True,"read":reader.read(args.address)}
+                else:payload={"ok":True,"read_batch":reader.read_batch(args.addresses)}
         elif args.command=="bundle-export":
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"bundle":asdict(BundleService(store).export(args.bundle_id,confirm=args.confirm))}

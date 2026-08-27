@@ -159,7 +159,8 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Profile et modèle projet déclaratif riche | `PASS` | M11-A clos ; preuve `m11_a_project_profile_catalogs_2026-08-27.md` |
 | Front/handoff persistants, Resume Dossier configurable et policy projet | `PASS` | M11-AF clos ; preuve `m11_af_front_handoff_resume_policy_2026-08-27.md` |
 | Bundle, export/import/restore et import projet avec provenance | `PASS` | M11-B clos ; preuve `m11_b_bundle_restore_project_import_2026-08-27.md` |
-| Transport bundle/import, CLI associée et Doctor composite | `PASS` dans le périmètre M11-C | M11-C clos ; API Core universelle restante → M11-H |
+| Transport bundle/import, CLI associée et Doctor composite | `PASS` dans le périmètre M11-C | M11-C clos |
+| Boot, FIND et READ exact/batch pour knowledge/entity/work-item | `PASS` dans le périmètre M11-H | M11-H clos ; lectures et API Core restantes → lots dédiés |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
 | Documentation dérivée et rapport coverage | `MISSING` | M11-E |
 | Adresse/compatibilité/VCS | `PARTIAL` | M11-F |
@@ -205,3 +206,12 @@ Les commandes `bundle-export`, `bundle-restore` et `project-import`, ainsi que l
 La validation atteint `27 passed` sur les contrats M11-B/M11-C et **`541 passed in 64.78s`** en régression intégrale. L’artefact de preuve est `artifacts/m11_c_composite_doctor_2026-08-27.md`; voir `MEM-DEC-182` et `LOG-0235`.
 
 > **Prochain travail non couvert :** M11-H traite séparément les API universelles de boot/FIND/READ et les commandes de produit associées. M11-D, M11-E, M11-F et M11-G restent inchangés; ce verdict ne prétend ni Dashboard complet, ni parité ARET, ni hôte agent réel.
+
+
+### 11.6 M11-H — Boot, FIND et READ universels : `PASS`
+
+Le service Core `ReadService` fournit désormais `boot`, `find`, `read` et `read_batch`, puis les expose de manière cohérente par CLI (`boot`, `find`, `read`, `read-batch`) et MCP (`mmu_boot`, `mmu_find`, `mmu_read`, `mmu_read_batch`). Le boot retourne uniquement l’identité de projet persistante et les références Front/handoff disponibles; aucune garde n’est armée ou acquittée. Les quatre tools figurent dans le manifeste canonique.
+
+FIND est intentionnellement limité à la découverte sans contenu pour `knowledge`, `entity` et `work-item`; les résultats sont déterministes, bornés à 100 et ne portent ni contenu ni description. READ exige une adresse `vera://` canonique liée au projet en cours et relit l’objet par son service Core exact. READ batch est limité à 32 adresses. Les tests couvrent l’identité croisée, les bornes, la séparation FIND/READ, l’absence d’audit lors de la lecture, la CLI et une session MCP stdio. La validation atteint `27 passed` en cible et **`544 passed in 62.63s`** en régression intégrale.
+
+> **Frontière conservée :** il ne s’agit pas encore d’une API universelle totale. La lecture d’autres ressources, `related`, le resume status/brief détaillé, les mutations mémoire/Front/handoff, les API evidence/work, les commandes de produit restantes et toute recherche de contenu sont exclus de M11-H. Preuve : `artifacts/m11_h_boot_find_read_2026-08-27.md`; mémoire : `MEM-DEC-183`; journal : `LOG-0237`.
