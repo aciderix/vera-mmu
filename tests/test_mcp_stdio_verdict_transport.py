@@ -115,6 +115,16 @@ identity:
             raise AssertionError(f"Réponse MCP structurée absente : {response}")
         return payload
 
+    async def test_mmu_read_alias_is_input_only_and_returns_canonical_vera_address(self) -> None:
+        async with self._session("pass") as session:
+            created = self._payload(await session.call_tool("mmu_run_capability", {"capability_id": "aret-oracle-difftest", "parameters": {}}))
+            self.assertTrue(created["ok"])
+            execution_id = created["result"]["execution_id"]
+            alias = f"mmu://mcp-verdict-transport/execution/{execution_id}"
+            read = self._payload(await session.call_tool("mmu_read", {"address": alias}))
+            self.assertTrue(read["ok"])
+            self.assertEqual(read["result"]["address"], f"vera://mcp-verdict-transport/execution/{execution_id}")
+
     async def test_generated_documentation_has_no_client_input(self) -> None:
         async with self._session("pass") as session:
             response = self._payload(await session.call_tool("mmu_get_documentation", {}))
