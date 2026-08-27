@@ -3309,3 +3309,9 @@ La commande `vmmu documentation` compile le bundle project-bound de six document
 **Statut : PASS pour la consultation Desktop read-only.**
 
 `project.documentation` est une opération bridge allowlistée sans entrée; Tauri délègue au bridge stdio authentifié et la console rend le bundle et son hash comme résultat inspectable. Les validations ciblées atteignent `17 passed in 10.34s`, le build React et les tests Tauri sont verts. Aucun export, chemin destination ni mutation de document n’est exposé.
+
+## LOG-0263 — Mise à jour du rapport de couverture dérivé
+
+**Statut : PASS.**
+
+La couverture dérivée reclasse précisément la documentation générée read-only et l’alias d’entrée `mmu://`, sans les confondre avec l’export documentaire ou une migration d’adresses persistées. Les tests ciblés passent et la régression complète atteint `598 passed in 65.18s`; les limites Dashboard global, VCS multi-provider, parité Pack et hôte réel restent explicitement non couvertes.

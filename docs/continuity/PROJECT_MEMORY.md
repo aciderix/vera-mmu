@@ -1634,3 +1634,10 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-211` | Dashboard / Documentation | Le Dashboard lit et affiche le bundle documentaire project-bound par bridge allowlisté, Tauri délégué et WebView inspectable. Aucun chemin, export ou contenu contrôlé par le client n’est introduit. | `OBSERVED` | Bridge/Tauri/UI et artefact M11-D documentation ; tests ciblés, build React et Tauri verts. | `LOG-0262` |
+
+
+## Addendum — M11 Couverture dérivée mise à jour
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-212` | Couverture / Transparence | Le rapport dérivé distingue désormais les surfaces de documentation/alias d’entrée réellement livrées des lacunes restantes d’export et de migration de stockage. Il conserve Dashboard global, VCS multi-provider, parité Pack et preuve hôte comme non couverts. | `OBSERVED` | `coverage_report.py`, tests ciblés et artefact M11 coverage update ; 598 tests Python passants. | `LOG-0263` |
