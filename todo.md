@@ -36,6 +36,16 @@
 - [x] Qualifier le smoke Linux M10 : intégrité, CLI `--help`, scan `OBSERVED`, démarrage contrôlé AppImage et payload Debian, en local puis sur runner Ubuntu GitHub Actions.
 - [ ] Effectuer sur une machine Windows utilisateur la vérification manuelle de démarrage du build/installeur MSI ; le smoke CI a atteint l’installation MSI mais n’a pas retrouvé son répertoire supposé après un code retour d’installation nul. Cette confirmation est distincte de M10, dont le seuil actuel est limité au démarrage contrôlé déjà prouvé pour Linux et pour la chaîne Windows CLI/NSIS.
 - [x] Auditer les contrats MCP existants, adapters et preuves d’hôtes afin de séparer le travail produit terminé des validations réelles restant à faire.
+- [x] Décomposer intégralement `UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md` en exigences atomiques et rapprocher chaque exigence d’une source, d’un test et d’un statut VERA vérifiable, hors validation manuelle Windows.
+- [x] Vérifier les exigences déclarées comme livrées contre le code, les tests, les artefacts et la configuration de distribution ; classer tout écart `PARTIAL`, `MISSING` ou `NOT_PROVEN` sans le combler artificiellement.
+- [x] Produire le registre de complétude VERA, mettre à jour la mémoire/le journal/le plan, puis seulement décider si l’affirmation « livré totalement hors Windows » est soutenable.
+- [ ] M11-A — Étendre le Project Profile et ses fichiers déclaratifs pour couvrir taxonomies, relations, Front/resume, capabilities, gates, policies et intégrations, avec édition validée plutôt que conventions implicites.
+- [ ] M11-B — Livrer bundle/export/import/restore non fusionnels et l’import de projet existant avec provenance `OBSERVED`, identité, hash, altération et rollback vérifiés.
+- [ ] M11-C — Compléter la surface publique CLI/MCP : lecture/mémoire/work, doctor composite, serve, migration, export/import et les commandes de gestion effectivement promises par le profil.
+- [ ] M11-D — Construire le Dashboard configurateur : recommandation de profil, éditeurs taxonomie/entités/relations/work/capabilities/gates/policies/resume, preview avec alertes et validation avant génération.
+- [ ] M11-E — Produire la documentation dérivée, le rapport de couverture MCP et le catalogue de modèles de domaine réellement éditables ; aucun chiffre de couverture ne doit être inventé.
+- [ ] M11-F — Terminer la politique de compatibilité (`mmu://`, lecture ARET et aliases si retenus) et décider/implémenter l’abstraction VCS réellement supportée, avec tests de migration.
+- [ ] M11-G — Clore la compatibilité ARET par les gates M4.EXIT : imports restants, preuves/relations/front/bundles/VCS/playbook, harnais de parité et absence de `SPLIT`/`UNKNOWN` pertinent.
 - [ ] Réaliser, lorsqu’ils seront explicitement autorisés, les essais hôtes réels et enregistrer un verdict séparé par client : trust/configuration, connexion MCP et événements lifecycle. Pour Claude Code cloud : preview réel puis deux confirmations immédiates distinctes avant toute écriture user-scope.
 - [x] Aligner les manifestes de préversion sur `v0.1.0-rc.1` (forme PEP 440 `0.1.0rc1` pour Python) et valider Python, frontend et Rust verrouillé.
 - [x] Qualifier `v0.1.0-rc.1` comme tag non publiable : MSI Windows refuse un identifiant de préversion textuel ; ne pas déplacer ce tag historique.

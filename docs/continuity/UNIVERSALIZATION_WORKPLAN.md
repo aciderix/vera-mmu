@@ -2,7 +2,7 @@
 
 > **Statut :** actif — document de contrôle évolutif.
 >
-> **Dernière revue factuelle :** 26 août 2026 — M4-A importe la page baseline de `component` dans un store temporaire ; M4-B a ensuite importé et post-validé la série source complète de 9 `function_symbol` en 3 pages et de 13 `brick` en 5 pages ; M4-C a importé 532 `knowledge` en 6 pages et livré le ledger/projection read-only de `knowledge_source`. La branche toolkit fournie a restauré la précondition source/toolchain et permis des exécutions externes hashées, mais `winediff` échoue à `255/264`. L’audit M4.EXIT reste donc `NOT_ELIGIBLE` : C07/C08 sont `IN_PROGRESS`, les couplages restent `SPLIT` et la parité est `UNKNOWN`.
+> **Dernière revue factuelle :** 27 août 2026 — l’audit M11 contre la spécification finale (artefact `m11_specification_completeness_audit_2026-08-27.md`) conclut `NOT_DONE`, hors validation MSI Windows explicitement différée. Le Core générique, la conformance déclarative, le MCP stdio, les adapters, la CLI de préparation et la console Tauri sont présents. Le modèle de projet riche, bundles/import/restore, API/CLI complète, Dashboard configurateur, Doctor composite, documentation/coverage, VCS multi-provider et parité ARET restent partiels ou absents. M4.EXIT demeure `NOT_ELIGIBLE` : C07/C08 sont `IN_PROGRESS`, les couplages restent `SPLIT` et la parité est `UNKNOWN`.
 >
 > **Sources de vérité complémentaires :** [mémoire factuelle](PROJECT_MEMORY.md) et [journal d’ingénierie](ENGINEERING_LOG.md).
 
@@ -149,3 +149,20 @@ La spécification Universal Dev-MMU et la doctrine de travail ARET mentionnées 
 > **Règle de clôture.** M3 passe `PASS` uniquement si `M3.22` à `M3.25` sont `PASS` et si `M3.EXIT` satisfait toutes ses gates cumulatives. Les états C05/C06/C16 et la parité ARET ne sont pas déduits de M3.EXIT : C05/C06/C16 restent `SPLIT`, C07 reste `BLOCKED` sous `MEM-WALL-001` et la parité reste `UNKNOWN` jusqu’à M4.
 
 > **Transfert explicite.** Les oracles et runners externes relèvent de Domain Packs post-M3 ; la confirmation interactive, CLI, MCP et intégrations relèvent de M5/M6/M7 ; la rotation HMAC, les gates pondérées/temporelles/révocables sont des évolutions post-M3 sous contrats séparés.
+
+## 11. Audit de complétude M11 — spécification finale
+
+L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’autorise aucune promotion des états d’hôte. Il constate que la livraison complète définie par la spécification n’est pas atteinte, même en retirant le démarrage MSI Windows de l’évaluation.
+
+| Groupe d’écarts | Statut | Prochain lot obligatoire |
+|---|---|---|
+| Profile et modèle projet déclaratif riche | `PARTIAL` | M11-A |
+| Bundle, export/import/restore et import projet avec provenance | `MISSING` | M11-B |
+| API MCP, CLI et Doctor complets | `PARTIAL` / `MISSING` | M11-C |
+| Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
+| Documentation dérivée et rapport coverage | `MISSING` | M11-E |
+| Adresse/compatibilité/VCS | `PARTIAL` | M11-F |
+| Migration et parité ARET | `PARTIAL` / `NOT_ELIGIBLE` | M11-G |
+| Hôtes agents réels | `NOT_PROVEN` | Campagne distincte, après autorisation et gates requises |
+
+La référence est `artifacts/m11_specification_completeness_audit_2026-08-27.md`, reliée à `MEM-DEC-177` et `LOG-0230`.

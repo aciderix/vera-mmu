@@ -1234,3 +1234,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Type :** `OBSERVATION`
 **Statut :** `PARTIAL_PASS`
 **Énoncé :** `SUPERSEDES: MEM-DEC-175` seulement pour l’attente d’une première matrice runtime. Le candidat Linux est maintenant exécuté localement et sur le runner Ubuntu GitHub Actions du run `33089780117` à la révision `1f81421b097c3903ad0d0815cc85380107b5fbda`. Les checks d’intégrité, CLI `--help`, scan `OBSERVED`, AppImage et payload Debian démarrent puis sont arrêtés contrôlément. La suite post-correction du smoke atteint `518 passed, 43 subtests passed`.
+
+### MEM-DEC-177 — M11 : audit de complétude contre la spécification finale
+**Type :** `DECISION` et `OBSERVATION`
+**Statut :** `NOT_DONE`
+**Énoncé :** La spécification finale Universal Dev-MMU fournie, version 1.0 du 2026-08-23, SHA-256 `d8e5d01b673e243e0104a30fb62328bc2a7fc650373ab91b1a103652a1737d75`, a été comparée à VERA `9ac62d972633c04e9daa56723470f8d6ae7cab74`. La suite VERA passe `518 passed, 43 subtests passed` et le scan du Core hors `domain_packs/aret` est vert. Cela établit un Core générique solide, mais non la totalité du produit spécifié.
+**Constat :** Les mécanismes Core (identité, SQLite, knowledge/provenance bornée, entités, relations, work/gates, execution/evidence/admission/proof) sont livrés. Le compilateur MCP, les adapters, la CLI et la console Tauri sont réels mais partiels. Le Profile riche, les runners génériques, bundle/export/import/restore, API/CLI complète, Dashboard configurateur, import project avec provenance, Doctor composite, génération documentaire, rapport de couverture MCP, VCS multi-provider, compatibilité ARET de bout en bout et la parité restent `PARTIAL` ou `MISSING`. Les hôtes agents réels restent `NOT_PROVEN`, non parce que leur mécanisme serait absent, mais parce que les preuves hôte sont différées. Windows MSI reste hors de ce verdict à la demande du propriétaire.
+**Décision :** Il est interdit de présenter VERA comme « totalement livré selon la spécification finale », même hors test Windows. Toute progression future doit traiter les lots M11-A à M11-G du `todo.md` sous gates distinctes. L’audit ne déclenche ni agent réel, ni write user-scope, ni migration ARET.
+**Source :** `artifacts/m11_specification_completeness_audit_2026-08-27.md`.
+**Journal :** `LOG-0230`.
