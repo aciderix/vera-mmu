@@ -1229,3 +1229,8 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Corrections de test :** filtrage des vieux bundles par version courante, découverte de l’exécutable desktop réel plutôt que le nom d’affichage, et arrêt `killpg` pour éviter les enfants Xvfb orphelins.
 **Limites :** Windows native doit encore exécuter NSIS/MSI/CLI ; aucune installation utilisateur ni host/agent réel n’est attesté.
 **Journal :** `LOG-0228`.
+
+### MEM-STATE-128 — M10-B : démarrage Linux natif confirmé et Windows MSI différé
+**Type :** `OBSERVATION`
+**Statut :** `PARTIAL_PASS`
+**Énoncé :** `SUPERSEDES: MEM-DEC-175` seulement pour l’attente d’une première matrice runtime. Le candidat Linux est maintenant exécuté localement et sur le runner Ubuntu GitHub Actions du run `33089780117` à la révision `1f81421b097c3903ad0d0815cc85380107b5fbda`. Les checks d’intégrité, CLI `--help`, scan `OBSERVED`, AppImage et payload Debian démarrent puis sont arrêtés contrôlément. La suite post-correction du smoke atteint `518 passed, 43 subtests passed`.
