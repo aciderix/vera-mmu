@@ -45,6 +45,9 @@ vmmu-antigravity-stage = "vera_mmu.antigravity_adapter:antigravity_stage_main"
 vmmu-antigravity-hook = "vera_mmu.antigravity_adapter:antigravity_hook_main"
 vmmu-antigravity-mcp = "vera_mmu.antigravity_adapter:antigravity_mcp_main"
 vmmu-antigravity-config = "vera_mmu.antigravity_adapter:antigravity_config_main"
+vmmu-generic-mcp-stage = "vera_mmu.generic_mcp_adapter:generic_mcp_stage_main"
+vmmu-generic-mcp = "vera_mmu.generic_mcp_adapter:generic_mcp_main"
+vmmu-generic-mcp-config = "vera_mmu.generic_mcp_adapter:generic_mcp_config_main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
