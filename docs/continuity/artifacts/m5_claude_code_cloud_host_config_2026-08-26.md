@@ -55,7 +55,7 @@ Cette confirmation protège un write-path de projet. Elle n’autorise pas et ne
 | Setup, roue ou bootstrap réseau | `NOT_DELIVERED` | Aucun téléchargement, installation ou accès réseau n’est ajouté. |
 | Preuve Claude Code web fraîche | `NOT_RUN` | Aucun environnement cloud réel ni trust effectif n’est actionné dans ce lot. |
 
-M5-M.3b devra isoler une preview de trust, une fusion user-scope et une exécution sous **double confirmation explicite au moment de l’opération**, puis seulement une preuve web contrôlée. Cette étape est distincte de M5-M.3a et ne peut pas être déclenchée par un hook.
+M5-M.3b isole désormais la preview de trust, la fusion user-scope et la barrière de **double confirmation explicite au moment de l’opération**. Son mécanisme est distinct de M5-M.3a et ne peut pas être déclenché par un hook ; une écriture réelle puis la preuve web contrôlée restent des actes opératoires séparés.
 
 ## 5. Preuves contrôlées
 

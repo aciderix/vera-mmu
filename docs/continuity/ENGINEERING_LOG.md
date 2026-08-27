@@ -2662,3 +2662,26 @@ Le commit fonctionnel `ed9f2e8` rend M5-M.3a `PASS` pour **le preview, la fusion
 ### Limites et suite
 
 Le statut de l’approbation user-scope est `NOT_DELIVERED` par construction. M5-M.3b devra être un nouveau contrat : preview non secret de la modification user-scope, détection de conflit, puis double confirmation explicite et transactionnelle avant toute écriture sous `$HOME/.claude/settings.json`. Après seulement, une session cloud fraîche pourra suivre le protocole de preuve live. Secrets, setup, roue/bootstrap et réseau restent hors périmètre.
+
+## LOG-0198 — 2026-08-27 — M5-M.3b : trust MCP user-scope préparé, double confirmation
+
+### Intention
+
+Préparer, sans l’exécuter dans l’environnement réel, le seul write-path user-scope nécessaire à l’approbation d’un serveur MCP VERA déclaré par le projet cloud. Cette préparation doit rester distincte de la configuration project-local M5-M.3a, de la présence d’un fichier dans le home et du trust effectivement constaté par Claude Code web.
+
+### Cycle de preuve
+
+1. Recherche officielle : un repository non trusted ne s’auto-approuve pas via ses réglages committés ; les approbations user/managed/`--settings` sont cependant des voies reconnues par l’hôte. Les settings user ont une portée machine et ne constituent pas à eux seuls une preuve d’une session cloud.
+2. Cycle rouge : `3 failed`, car le preview et l’application user-scope n’existaient pas.
+3. Implémentation : preview `vera-claude-code-cloud-user-trust/v1` lié au reçu M5-M.3a, fusion de la seule entrée `enabledMcpjsonServers`, refus de `disabledMcpjsonServers` et `Path.home()` comme chemin fixe sans argument client.
+4. Double gate : `apply_claude_code_cloud_user_trust` exige exactement `confirm_preview=True` et `confirm_user_scope=True`, revalide le preview contre le fichier courant puis écrit atomiquement. La CLI sépare `--preview-user-scope` de `--apply-user-scope --confirm-preview --confirm-user-scope`.
+5. Conformance : home temporaire patché, absence du reçu M5-M.3a, conflit disabled, préservation de réglages tiers, symlink, chaque confirmation isolée et preview CLI sans écriture sont couverts.
+6. Validation : tests runtime `11 passed`, suite `465 passed, 37 subtests passed`; compilation, scans, `git diff --check` et roue isolée passent.
+
+### Décision
+
+Le commit fonctionnel `3f26dad` rend M5-M.3b `PASS` pour le **mécanisme de preview/fusion et ses garde-fous sous home simulé**. Il ne qualifie pas une écriture réelle, un trust host ou une compatibilité Claude Code web : ils restent `NOT_RUN`.
+
+### Limite et prochain acte
+
+Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’acte suivant doit être opératoire et non automatique : montrer le preview de l’environnement cible, puis demander deux confirmations utilisateur explicites et distinctes immédiatement avant l’écriture. Après seulement, contrôler le statut MCP réel et suivre le protocole de session fraîche. Aucun réseau, setup, secret ou bootstrap n’est autorisé.

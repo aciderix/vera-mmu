@@ -45,13 +45,13 @@ M5-M.3a produit un preview attesté et une application confirmée des deux décl
 | Hooks projet Claude | Commandes fixes `vmmu-claude-code-cloud-hook --profile <profil> --event <événement>` pour `SessionStart`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact`, `Stop`. | `PASS` en simulation contrôlée, via `.claude/settings.json` project-local. |
 | MCP projet | Commande fixe `vmmu-claude-code-cloud-mcp --profile <profil>` et environnement non secret project/hash-bound. | `PASS` en simulation contrôlée, via `.mcp.json` project-local. |
 | État runtime | `vera-claude-code-cloud-host-config/v1`, hash des deux JSON canoniques et user-scope `NOT_DELIVERED`. | `PASS`. |
-| Approbation user-scope cloud | Serveur VERA projet reconnu par l’hôte. | `NOT_DELIVERED` : écriture sous `$HOME/.claude/settings.json` sensible, jamais déclenchée par un hook. |
+| Approbation user-scope cloud | Serveur VERA projet reconnu par l’hôte. | Preview/fusion M5-M.3b `PASS` sous home simulé ; écriture réelle `NOT_RUN` jusqu’à deux confirmations explicites, jamais déclenchée par un hook. |
 
 > Les identités de session, adapter, hash de dossier, résultat d’acquittement et bindings ne sont jamais des paramètres de ces commandes ni des données configurées par le client MCP.
 
 ## 5. Séquence de preuve live future
 
-Après M5-M.3b, qui devra traiter et faire confirmer séparément le trust user-scope, une session Claude Code web fraîche doit démontrer les étapes suivantes, dans cet ordre.
+M5-M.3b fournit désormais le preview/fusion user-scope et le chemin d’écriture à deux confirmations, testés sous home simulé. Après une écriture réellement doublement confirmée et une vérification de son résultat par le host, une session Claude Code web fraîche doit démontrer les étapes suivantes, dans cet ordre.
 
 | Étape | Observation admissible | Refus attendu si incomplète |
 |---|---|---|
@@ -62,11 +62,11 @@ Après M5-M.3b, qui devra traiter et faire confirmer séparément le trust user-
 | Compaction | `PostCompact` injecte un nouveau dossier et réarme le refus. | Action autorisée sans second ack : `FAIL` critique. |
 | Nouvelle session | Une session cloud distincte n’hérite pas de l’acquittement précédent. | Réutilisation silencieuse : `FAIL` critique. |
 
-## 6. Limites après M5-M.3a
+## 6. Limites après M5-M.3b
 
-M5-M.2 distribue le hook, le serveur MCP et le staging ; M5-M.3a ajoute la configuration project-local attestée. L’ensemble **ne peut pas encore être présenté comme compatible Claude Code web de bout en bout** : la lacune est explicitement le trust user-scope effectif et sa preuve dans une session cloud fraîche, pas l’absence de transport MCP, de lifecycle ou de fichiers project-local testés.
+M5-M.2 distribue le hook, le serveur MCP et le staging ; M5-M.3a ajoute la configuration project-local attestée ; M5-M.3b ajoute le preview/fusion user-scope et la barrière de double confirmation. L’ensemble **ne peut pas encore être présenté comme compatible Claude Code web de bout en bout** : la lacune est l’exécution réellement confirmée dans le home de l’environnement cible et son observation de trust/connexion par une session cloud fraîche, pas l’absence de transport MCP, de lifecycle ou de mécanisme de configuration testés.
 
-Le prochain lot M5-M.3b doit fournir : preview non secret de la modification user-scope, fusion non destructive, refus de symlink/conflit et deux confirmations explicites, puis doctor post-installation et preuve réelle dans une session cloud. Le bootstrap par roue et toute action réseau restent ultérieurs.
+Le prochain acte opératoire n’est pas un patch automatique : il doit présenter le preview réel, obtenir une première puis une seconde confirmation explicites au moment de l’écriture user-scope, contrôler le retour du host, puis exécuter la preuve réelle dans une session cloud. Le bootstrap par roue et toute action réseau restent ultérieurs.
 
 ## Références
 

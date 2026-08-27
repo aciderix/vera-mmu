@@ -922,3 +922,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Preuves.** Cycle rouge `3 failed` avant implémentation ; tests runtime cloud `7 passed`, suite `462 passed, 37 subtests passed`, compilation/scans/diff et roue isolée avec quatre entry points cloud `PASS`. La simulation contrôlée couvre preview stable, conservation de réglages tiers, conflits hook/MCP, symlink, confirmation et application project-local. La session Claude Code web, son chargement effectif de configuration et son trust restent `NOT_RUN`.
 
 **Traçabilité.** Commit fonctionnel `ed9f2e8`; log `LOG-0197`; artefact `m5_claude_code_cloud_host_config_2026-08-26.md`; protocole live M5 cloud mis à jour. M5-M.3b reste requis pour preview/fusion/apply user-scope sous double confirmation, puis preuve web fraîche.
+
+### MEM-DEC-145 — M5-M.3b : trust MCP user-scope préparé à double confirmation
+
+**Décision.** M5-M.3b ajoute un preview/fusion du trust MCP user-scope lié à la configuration project-local attestée M5-M.3a. Il ajoute uniquement l’identifiant MCP VERA cloud attesté à `enabledMcpjsonServers`, dans le chemin fixe `$HOME/.claude/settings.json`; aucun appelant ne peut fournir chemin ou serveur. L’application exige deux confirmations nominatives distinctes : `confirm_preview=True` et `confirm_user_scope=True`.
+
+**Pourquoi.** La documentation Claude Code précise qu’un dépôt non trusted ne peut pas approuver son propre serveur `.mcp.json`, alors que l’approbation user-scope peut être reconnue. Le mécanisme VERA doit donc préparer cette seule mutation minimale sans tromper sur la portée réelle d’un home en environnement cloud et sans confondre configuration écrite et trust host observé.
+
+**Garanties.** Le preview requiert runtime M5-M.2 staged et reçu M5-M.3a cohérent avec les fichiers project-local. Il préserve tous réglages tiers, refuse `disabledMcpjsonServers`, listes invalides/doublonnées, reçu/project divergents et symlink. L’application revalide le preview contre le fichier courant puis écrit atomiquement seulement si les deux confirmations sont vraies. Aucun home réel d’ingénierie n’est lu ou écrit pendant les tests : `Path.home()` est redirigé vers un répertoire temporaire.
+
+**Preuves.** Cycle rouge `3 failed` avant implémentation ; runtime cloud `11 passed`, suite `465 passed, 37 subtests passed`, compilation/scans/diff et roue isolée `PASS`. La CLI `--preview-user-scope` est testée sans écriture. L’application user-scope est démontrée sous home simulé, pas dans l’environnement Claude Code cloud effectif.
+
+**Limite.** Aucune écriture user-scope réelle, aucun trust hôte, connexion MCP ni déclenchement de hook web n’a été exécuté. Ils restent `NOT_RUN` jusqu’à presentation du preview réel et deux confirmations explicites et séparées immédiatement avant l’opération. L’assertion de compatibilité Claude Code web de bout en bout reste interdite.
+
+**Traçabilité.** Commit fonctionnel `3f26dad`; log `LOG-0198`; artefact `m5_claude_code_cloud_user_trust_2026-08-27.md`; protocole live M5 cloud mis à jour. L’acte opératoire suivant est une demande de confirmations, non un patch automatique.
