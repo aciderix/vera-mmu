@@ -1145,3 +1145,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** `tests/test_cli_bundle_builder.py` (`4 passed`) ; suite après ajout `508 passed, 43 subtests passed`; contrat `docs/release/RELEASE_CONTRACT.md`; artefact M9-A. Voir `LOG-0218`.
 **Limites :** Le script produit un candidat CI non signé. Aucun tag, release, signature, publication Pages, licence définitive, installation utilisateur ou test d’hôte réel n’est créé ou revendiqué.
 **Journal :** `LOG-0218`.
+
+### MEM-DEC-166 — M9-A : candidat CLI Linux construit et vérifié après extraction
+**Type :** `OBSERVATION`
+**Statut :** `PASS` local Linux ; CI Windows/Linux `PENDING`
+**Décision :** Le builder M9 construit, depuis un checkout propre, l’archive `vera-mmu-cli_0.1.0_linux-x64.tar.gz`, son manifest et `SHA256SUMS`. Les hashes de l’archive et du manifest valident dans le répertoire candidat. L’archive extraite contient `vmmu` et `release-manifest.json`; son scan d’un projet vide retourne `vera-scan-report/v1` `OBSERVED`.
+**Provenance :** manifest `vera-release-manifest/v1`, révision source `98080dbc684245a9ab485b4ba78f3dc4868d61cc`, target `x86_64-unknown-linux-gnu`, hash binaire `17bc1e491c27cc85a5a4b9009f7867768f3a3b4f5941c8184321d0d494c590ee`. Voir `LOG-0219`.
+**Limites :** Candidat local non signé, non publié et versionné `0.1.0` seulement. Aucun candidat Windows, tag, licence, signature ou installation utilisateur n’est attesté ici.
+**Journal :** `LOG-0219`.

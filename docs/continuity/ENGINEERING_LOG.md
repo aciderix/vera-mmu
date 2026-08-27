@@ -2890,3 +2890,9 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Décision viewer.** Le dashboard WebDev checkpoint `f28ac0fa` reste séparé ; aucune copie silencieuse dans VERA ni GitHub Pages n’est opérée. Un viewer publiable exige une source explicitement versionnée ultérieurement sous `apps/viewer/`, sans privilège local.
 **Verdict.** `PASS` local pour M9-A. Les candidats Windows/Linux de la nouvelle matrice, la licence formelle, les signatures et toute release demeurent `PENDING`/`NOT_RUN`.
 **Suite.** Commiter code puis continuité, appliquer la garde de divergence, pousser et vérifier la nouvelle matrice avant de préparer davantage de release.
+
+## LOG-0219 — 2026-08-27 — M9-A : smoke test du candidat CLI Linux extrait
+**Exécution.** Depuis le checkout propre à `98080dbc684245a9ab485b4ba78f3dc4868d61cc`, `scripts/build_cli_bundle.py x86_64-unknown-linux-gnu` construit un exécutable PyInstaller et l’archive `vera-mmu-cli_0.1.0_linux-x64.tar.gz`. `SHA256SUMS` valide l’archive et `release-manifest.json` dans le répertoire de candidat.
+**Inspection.** L’archive contient seulement `vmmu` et le manifest de release. Après extraction dans `/tmp/vera-m9-cli-check`, l’exécutable autonome lance `vmmu scan` sur un répertoire de projet vide et retourne `ok: true`, format `vera-scan-report/v1`, statut `OBSERVED`. Le manifest lie l’archive au triple Linux, à la version `0.1.0`, au SHA source et au SHA-256 `17bc1e491c27cc85a5a4b9009f7867768f3a3b4f5941c8184321d0d494c590ee` du binaire.
+**Verdict.** `PASS` pour le candidat CLI Linux local, son intégrité et son entrée observationnelle. Ce n’est pas une preuve Windows ni une release : aucun tag, signature, licence définitive, publication ou installation utilisateur n’est créé.
+**Suite.** Enregistrer cette observation, publier après garde Git, puis lire la matrice native M9 qui doit construire et vérifier les candidats CLI sous Linux et Windows avant le développement de la suite de release.

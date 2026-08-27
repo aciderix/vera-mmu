@@ -29,6 +29,9 @@ La matrice `desktop-packaging.yml` exécute dans l’ordre : suite VERA complèt
 |---|---|
 | Contrat du builder : alignement de version, allowlist Linux/Windows, refus cross-build, JSON canonique | `4 passed` |
 | Suite VERA complète après ajout | `508 passed, 43 subtests passed` |
+| Candidat Linux extrait : `tar.gz`, `SHA256SUMS`, manifest et `vmmu scan` | archive et manifest `OK`; scan `OBSERVED` |
+
+La construction locale Linux produit `vera-mmu-cli_0.1.0_linux-x64.tar.gz`. Les deux entrées de `SHA256SUMS` valident l’archive et `release-manifest.json`; l’archive contient uniquement `vmmu` et son manifest. Après extraction dans un répertoire temporaire indépendant, `vmmu scan <projet-vide>` retourne une enveloppe réussie avec `vera-scan-report/v1` et `status: OBSERVED`. Le manifest référence la révision source `98080dbc684245a9ab485b4ba78f3dc4868d61cc`, le triple Linux x64 et le SHA-256 du binaire emballé.
 
 ## 4. Gates ouvertes
 
