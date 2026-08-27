@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from vera_mmu.addressing import AddressError, make_address, parse_address
+from vera_mmu.addressing import AddressError, make_address, parse_address, parse_compat_address
 
 
 class AddressTests(unittest.TestCase):
@@ -35,6 +35,23 @@ class AddressTests(unittest.TestCase):
         for address in invalid_addresses:
             with self.subTest(address=address), self.assertRaises(AddressError):
                 parse_address(address)
+
+    def test_m11f_compatibility_bridge_accepts_only_canonical_mmu_and_normalizes_to_vera(self) -> None:
+        parsed = parse_compat_address("mmu://demo-project/knowledge/decision%20alpha%3A1")
+        self.assertEqual(parsed.project_id, "demo-project")
+        self.assertEqual(parsed.resource_type, "knowledge")
+        self.assertEqual(parsed.identifier, "decision alpha:1")
+        self.assertEqual(parsed.canonical, "vera://demo-project/knowledge/decision%20alpha%3A1")
+        for address in (
+            "MMU://demo-project/knowledge/item",
+            "mmu://demo-project/unknown/item",
+            "mmu://demo-project/knowledge/a%2Fb",
+            "mmu://demo-project/knowledge/item%7E",
+            "mmu://demo-project/knowledge",
+            "aret://demo-project/knowledge/item",
+        ):
+            with self.subTest(address=address), self.assertRaises(AddressError):
+                parse_compat_address(address)
 
     def test_constructor_rejects_path_like_identifiers(self) -> None:
         for identifier in ("", ".", "..", "one/two", "one\\two", "\x00"):

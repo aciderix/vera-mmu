@@ -93,3 +93,18 @@ def parse_address(address: str) -> Address:
     if address != canonical:
         raise AddressError("Adresse VERA non canonique.")
     return Address(project_id=project_id, resource_type=resource_type, identifier=identifier)
+
+
+def parse_compat_address(address: str) -> Address:
+    """Accept one strict `mmu://` transition alias and normalize it to canonical VERA.
+
+    The alias is input-only: persistent identities and every returned address remain `vera://`
+    until an explicit storage/address migration exists. No historical or domain scheme is parsed.
+    """
+    if not isinstance(address, str):
+        raise AddressError("Adresse de compatibilité VERA invalide.")
+    if address.startswith("vera://"):
+        return parse_address(address)
+    if address.startswith("mmu://"):
+        return parse_address("vera://" + address[len("mmu://") :])
+    raise AddressError("Adresse de compatibilité invalide : vera:// ou mmu:// requis.")

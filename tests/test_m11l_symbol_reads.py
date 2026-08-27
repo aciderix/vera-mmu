@@ -70,6 +70,9 @@ class SymbolReadTests(unittest.TestCase):
                     "address": "vera://m11l-symbol/symbol/symbol-1",
                 })
                 self.assertEqual(store.audit_events(), audits)
+                bridged = ReadService(store).read("mmu://m11l-symbol/symbol/symbol-1")
+                self.assertEqual(bridged["address"], "vera://m11l-symbol/symbol/symbol-1")
+                self.assertEqual(bridged["record"]["identifier"], "entry")
                 self.assertEqual(ReadService(store).find("entry"), [])
                 with self.assertRaises(ReadApiError):
                     ReadService(store).read("vera://other/symbol/symbol-1")
@@ -88,7 +91,7 @@ class SymbolReadTests(unittest.TestCase):
                 SymbolService(store).create("symbol-cli", "owner", "FUNCTION", "src/cli.py", "main")
             output = StringIO()
             with redirect_stdout(output):
-                status = main(["read", str(profile), "vera://m11l-symbol/symbol/symbol-cli"])
+                status = main(["read", str(profile), "mmu://m11l-symbol/symbol/symbol-cli"])
             payload = json.loads(output.getvalue())
             self.assertEqual(status, 0)
             self.assertTrue(payload["ok"])
@@ -126,7 +129,7 @@ class SymbolReadMCPTests(unittest.IsolatedAsyncioTestCase):
             async with self._session(profile) as session:
                 tools = {tool.name: tool for tool in (await session.list_tools()).tools}
                 self.assertEqual(set(tools["mmu_read"].input_schema.get("properties", {})), {"address"})
-                response = await session.call_tool("mmu_read", {"address": "vera://m11l-symbol/symbol/symbol-mcp"})
+                response = await session.call_tool("mmu_read", {"address": "mmu://m11l-symbol/symbol/symbol-mcp"})
                 payload = response.structured_content
                 self.assertIsInstance(payload, dict)
                 self.assertTrue(payload["ok"])

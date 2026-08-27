@@ -5,7 +5,7 @@ from dataclasses import asdict
 import json
 from typing import Iterable
 
-from .addressing import AddressError, make_address, parse_address
+from .addressing import AddressError, make_address, parse_compat_address
 from .capabilities import CapabilityService
 from .entities import EntityService
 from .evidence import EvidenceService
@@ -147,7 +147,7 @@ class ReadService:
     def related(self, address: str, *, direction: str = "BOTH", max_depth: int = 1, max_nodes: int = 20) -> dict[str, object]:
         """Traverse bounded entity relations breadth-first without exposing arbitrary graph queries."""
         try:
-            root = parse_address(address)
+            root = parse_compat_address(address)
         except AddressError as exc:
             raise ReadApiError("Adresse related VERA invalide ou non canonique.") from exc
         if root.project_id != self.store.identity.project_id or root.resource_type != "entity":
@@ -252,7 +252,7 @@ class ReadService:
     def read(self, address: str) -> dict[str, object]:
         """Read one exact resource after validating its canonical address and project identity."""
         try:
-            parsed = parse_address(address)
+            parsed = parse_compat_address(address)
         except AddressError as exc:
             raise ReadApiError("Adresse READ VERA invalide ou non canonique.") from exc
         if parsed.project_id != self.store.identity.project_id:
