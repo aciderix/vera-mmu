@@ -1599,3 +1599,9 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 |---|---|---|---|---|---|
 | `MEM-DEC-204` | Identité / Migration Profile | Le rebind contrôlé couvre maintenant `project.id`, `project.name`, `project.domain` et `project.description`. Après preview/fraîcheur/confirmation, la métadonnée d’identité SQLite est réalignée de façon auditée et les adresses publiques sont à nouveau dérivées avec le nouvel identifiant. | `OBSERVED` | `profile_rebind.py`, bridge/Tauri/Dashboard et tests M11-D-B2 ; 595 tests Python passants. | `LOG-0257` |
 | `MEM-DEC-205` | Limite de migration | Les chemins workspace/storage et les catalogues externes restent exclus : ils impliquent déplacement/validation d’artefacts persistants et feront l’objet de migrations physiques distinctes, jamais d’une édition de formulaire. | `DECISION` | Contrat M11-D-B2. | `LOG-0257` |
+
+## Addendum — Conception de migration physique Profile/runtime
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-206` | Migration Profile / runtime | Les mutations workspace, storage et catalogues ne sont pas admissibles via le rebind d’identité. Elles requièrent une migration physique journalisée, préflightée, confinée, récupérable et testée contre interruption avant toute écriture de chemin. | `DECISION` | Artefact de conception M11 physical migration. | `LOG-0258` |

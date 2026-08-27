@@ -3277,3 +3277,9 @@ La validation observée est : tests ciblés `16 passed in 2.49s`, build React PA
 Le rebind contrôlé étend le preview aux quatre champs `projectId`, `projectName`, `projectDomain` et `projectDescription`. Après confirmation et recalcul de fraîcheur, l’identité persistée est réalignée dans SQLite et les adresses dérivées sont relues avec le nouvel identifiant. Le bridge refuse toute entrée workspace, storage, catalogue, policy ou chemin.
 
 Validation : ciblés Core/bridge `15 passed in 1.42s`, build React PASS, Tauri `2 passed in 0.10s`, intégral Python `595 passed in 64.98s`, diff et scan frontière PASS. Les mutations physiques du runtime et des catalogues restent expressément hors lot.
+
+## LOG-0258 — Conception préalable de migration physique Profile/runtime
+
+**Statut : DESIGN_REQUIRED.**
+
+La résolution actuelle ancre un Profile `project.yaml` sous `.vera-mmu`; déplacer workspace ou storage modifie l’ancre, la SQLite WAL, les artefacts et les catalogues. Ces mutations doivent donc passer par préflight, journal durable hors runtime, inventaire/hash, renommages atomiques même filesystem, reprise confirmée et validation Doctor. Aucune écriture de chemin n’est implémentée dans cette décision.
