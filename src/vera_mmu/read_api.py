@@ -15,11 +15,12 @@ from .handoff import Handoff, HandoffService
 from .knowledge import KnowledgeService
 from .relations import RelationService
 from .store import MemoryStore, StoreError
+from .symbols import SymbolService
 from .work_items import WorkItemService
 
 
 FINDABLE_RESOURCE_TYPES = frozenset({"knowledge", "entity", "work-item"})
-READABLE_RESOURCE_TYPES = FINDABLE_RESOURCE_TYPES | frozenset({"front", "handoff", "relation", "capability", "execution", "evidence"})
+READABLE_RESOURCE_TYPES = FINDABLE_RESOURCE_TYPES | frozenset({"front", "handoff", "relation", "capability", "execution", "evidence", "symbol"})
 MAX_FIND_QUERY_CHARACTERS = 256
 MAX_FIND_RESULTS = 100
 MAX_READ_BATCH = 32
@@ -223,6 +224,8 @@ class ReadService:
                 record = asdict(ExecutionService(self.store).get(parsed.identifier))
             elif parsed.resource_type == "evidence":
                 record = asdict(EvidenceService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "symbol":
+                record = asdict(SymbolService(self.store).get(parsed.identifier))
             else:
                 raise ReadApiError("Type de ressource READ non exposé dans le contrat fermé M11-J.")
         except ReadApiError:
