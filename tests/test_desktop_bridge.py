@@ -83,6 +83,16 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertEqual(applied["result"]["status"], "INITIALIZED")  # type: ignore[index]
             self.assertTrue((root / ".vera-mmu" / "project.yaml").is_file())
 
+    def test_profile_at_project_root_can_open_dashboard_status(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            content = "mmu:\n  version: '2.0'\nproject:\n  id: 'root-profile'\n  name: 'Root Profile'\n  domain: 'generic'\nworkspace:\n  root: '.'\nstorage:\n  memory_dir: '.vera-mmu'\n  sqlite_file: 'memory.sqlite'\n  artifacts_dir: 'artifacts'\n"
+            profile = root / "project.yaml"
+            profile.write_text(content, encoding="utf-8")
+            response = self._call(self._bridge(root), "project.status", {})
+            self.assertTrue(response["ok"])
+            self.assertEqual(response["result"]["coverage"]["project_identity"]["project_id"], "root-profile")  # type: ignore[index]
+
     def test_profile_discovery_refuses_competing_canonical_locations(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
