@@ -1,12 +1,15 @@
 """Command-line entry point for VERA-MMU and bounded adapter operations."""
 from __future__ import annotations
 import argparse
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 from pathlib import Path
 from typing import Callable, Sequence
 from .identity import ProfileError, load_profile, profile_identity, project_identity
 from .migrations import MigrationError
 from .runtime import RuntimeLocator
+from .project_operations import ProjectOperationError, compile_generation_preview, scan_project
 from .store import MemoryStore, StoreError
 from .workspace import WorkspaceError, resolve_workspace
 
@@ -24,6 +27,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub=parser.add_subparsers(dest="command",required=True)
     for name,help_text in (("identity","Valide un Project Profile et affiche son identité canonique."),("inspect","Valide le profile, workspace et confinement runtime."),("init","Initialise le substrat SQLite lié au profile.")):
         child=sub.add_parser(name,help=help_text);child.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    scan=sub.add_parser("scan",help="Observe une arborescence locale sans lire de contenu ni écrire.");scan.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
+    generate=sub.add_parser("generate",help="Compile un preview MCP déterministe sans installer.");generate.add_argument("profile",type=Path,help="Chemin project.yaml.");generate.add_argument("--adapter",required=True)
+    install=sub.add_parser("install",help="Prévisualise ou applique la configuration project-local d’un adapter.");install.add_argument("profile",type=Path,help="Chemin project.yaml.");install.add_argument("--adapter",required=True);install.add_argument("--apply-project",action="store_true");install.add_argument("--confirm",action="store_true")
     adapter=sub.add_parser("adapter",help="Opérations project-local des adapters VERA.")
     ops=adapter.add_subparsers(dest="adapter_command",required=True)
     ops.add_parser("matrix",help="Affiche la matrice statique des couvertures attestées.")
@@ -43,6 +49,14 @@ def _call(entry:str,args:list[str])->int:
     module=__import__(module_name,fromlist=[function_name]);function=getattr(module,function_name)
     if not callable(function):raise StoreError("Entry point d’adapter invalide.")
     return int(function(args))
+def _adapter_call_json(entry:str,args:list[str])->tuple[int,dict[str,object]]:
+    stream=StringIO()
+    with redirect_stdout(stream): code=_call(entry,args)
+    try: payload=json.loads(stream.getvalue())
+    except json.JSONDecodeError as exc: raise StoreError("Réponse adapter non JSON.") from exc
+    if not isinstance(payload,dict): raise StoreError("Réponse adapter non objet.")
+    return code,payload
+
 def _doctor(profile_path:Path,name:str)->dict[str,object]:
     adapter=_adapter(name);profile=load_profile(profile_path);workspace=resolve_workspace(profile,profile_path);locator=RuntimeLocator.from_workspace(profile,workspace)
     runtime=locator.runtime_dir/"generated"/str(adapter["runtime"]);config=workspace.project_root/str(adapter["config"])
@@ -51,7 +65,17 @@ def _doctor(profile_path:Path,name:str)->dict[str,object]:
 def main(argv:Sequence[str]|None=None)->int:
     try:
         args=build_parser().parse_args(argv)
-        if args.command=="adapter":
+        if args.command=="scan":
+            payload={"ok":True,"scan":scan_project(args.root).as_dict()}
+        elif args.command=="generate":
+            profile=load_profile(args.profile)
+            with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"generation":compile_generation_preview(store,args.adapter).as_dict()}
+        elif args.command=="install":
+            adapter=_adapter(args.adapter);config_args=["--profile",str(args.profile)]+(["--apply-project"] if args.apply_project else [])+(["--confirm"] if args.confirm else [])
+            code,adapter_payload=_adapter_call_json(str(adapter["configure"]),config_args)
+            if code!=0 or adapter_payload.get("ok") is not True:raise StoreError(str(adapter_payload.get("error","Installation adapter refusée.")))
+            payload={"ok":True,"installation":{key:value for key,value in adapter_payload.items() if key!="ok"}}
+        elif args.command=="adapter":
             if args.adapter_command=="matrix":payload={"ok":True,"adapters":[{"adapter":name,"coverage":data["coverage"],"config":data["config"],"runtime":data["runtime"]} for name,data in sorted(_ADAPTERS.items())]}
             elif args.adapter_command=="doctor":payload={"ok":True,"doctor":_doctor(args.profile,args.adapter)}
             elif args.adapter_command=="validate":
@@ -70,7 +94,7 @@ def main(argv:Sequence[str]|None=None)->int:
             elif args.command=="init":
                 with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"identity":store.identity.as_dict(),"migration_checksums":store.migration_checksums,"metadata":store.metadata()}
             else:raise StoreError("Commande inconnue.")
-    except (MigrationError,ProfileError,StoreError,WorkspaceError,ValueError) as exc:
+    except (MigrationError,ProfileError,ProjectOperationError,StoreError,WorkspaceError,ValueError) as exc:
         print(json.dumps({"ok":False,"error":str(exc)},ensure_ascii=False,sort_keys=True));return 2
     print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 0
 if __name__=="__main__":raise SystemExit(main())
