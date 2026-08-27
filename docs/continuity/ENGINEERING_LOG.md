@@ -3227,3 +3227,13 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** `tests/test_profile_edit_identity_guard.py` change uniquement `project.description` puis vérifie le refus : `1 passed in 0.10s`. La régression intégrale atteint **`565 passed in 64.32s`**.
 
 **Verdict.** L’édition Profile est `NOT_ELIGIBLE` à ce stade, non absente par oubli. Le futur M11-D-B devra prouver une préparation, confirmation/fraîcheur, coordination durable profile+SQLite, rollback et reprise Doctor. Aucun rebind ni écriture Profile n’est introduit. Mémoire : `MEM-DEC-195`.
+
+## LOG-0253 — M11-D-D1 : Dashboard Gate Policy Builder
+
+**Statut : PASS dans le périmètre explicitement borné.**
+
+Le Core ajoute un preview de déclaration de policy de Gate, hashé contre les exigences actuelles, et une application déléguée à `GateService.declare_policy`. Le bridge Desktop conserve le preview dans la session liée au nonce, exige des ensembles de champs exacts, une confirmation explicite et rejette les previews inconnus ou périmés. L’interface expose seulement l’identifiant de Gate, les modes fermés `ALL`/`ANY`/`AT_LEAST` et le seuil conditionnel.
+
+Les validations observées sont : tests ciblés Core/bridge `19 passed in 1.41s`, build React PASS, tests Tauri natifs `2 passed in 0.10s`, régression Python intégrale `576 passed in 66.88s`. L’artefact est `docs/continuity/artifacts/m11_dd1_dashboard_gate_policy_builder_2026-08-27.md`.
+
+**Exclusions vérifiées :** ce lot ne crée aucune Gate structurelle, ne modifie aucune exigence, ne collecte ni evidence ni admission, ne produit aucun verdict et ne permet pas de changer une policy après scellement. Il n’ajoute aucun concept ARET au Core ni shell, processus ou réseau au builder.

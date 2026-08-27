@@ -253,3 +253,12 @@ Le Core fournit maintenant un parcours en largeur depuis une entité VERA canoni
 La CLI `related` et le MCP `mmu_get_related` délèguent au même contrat Core; le MCP n’accepte ni SQL, ni filtre libre, ni identité de projet, ni record. La validation atteint `27 passed` en cible et **`550 passed in 68.70s`** en régression intégrale.
 
 > **Frontière conservée :** aucun traversal work/evidence, filtrage relationnel, pagination, recherche sémantique, mutation, capacité ou gate n’est introduit. Lectures de symbol/profile et historiques/listings restent à traiter séparément. Preuve : `artifacts/m11_k_bounded_related_traversal_2026-08-27.md`; mémoire : `MEM-DEC-186`; journal : `LOG-0243`.
+
+## Addendum de suivi — M11-D-D1
+
+| Sous-lot | Statut | Preuve et limite |
+|---|---|---|
+| `M11-D-D1` — Builder Dashboard de policy Gate existante | `PASS` dans le périmètre borné | Preview non mutateur, fraîcheur, confirmation, modes fermés et seuil `AT_LEAST` borné; `576 passed`, build React et tests Tauri passants. Ne crée pas de Gate, n’édite pas les exigences, ne produit pas verdict/admission/evidence et ne modifie pas une policy scellée. |
+| `M11-D-D2` — Builder de structure de Gate | `NEXT` | À ouvrir séparément : work-item, evidence principale et exigences exactes avant scellement, avec preview/fraîcheur/confirmation/atomicité et sans policy ni verdict client. |
+
+Le Dashboard global reste `PARTIAL`; l’édition directe du Project Profile demeure `NOT_ELIGIBLE` jusqu’à l’existence d’un protocole durable de rebind profile filesystem + metadata SQLite, rollback et reprise Doctor.

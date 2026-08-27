@@ -1559,3 +1559,11 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | Reprise et Doctor d’un état interrompu | À concevoir |
 
 **Evidence :** garde ciblée `1 passed`; régression intégrale **`565 passed in 64.32s`**. Cette décision ne bloque pas les builders déclaratifs qui n’altèrent pas l’identité Profile.
+
+
+## Addendum — M11-D-D1 Dashboard Gate Policy Builder
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-196` | Dashboard / Gate policy | Le Dashboard peut préparer puis appliquer, après confirmation et contrôle de fraîcheur, une déclaration de policy sur une Gate déjà existante. Les valeurs de `mode` sont fermées à `ALL`, `ANY`, `AT_LEAST`; `minimum_admissions` est nul pour `ALL`/`ANY` et entier borné pour `AT_LEAST`. | `OBSERVED` | `gate_policy_builder.py`, bridge nonce-scoped, façade Tauri/UI et artefact M11-D-D1 ; 576 tests Python passants. | `LOG-0253` |
+| `MEM-DEC-197` | Limite M11-D-D1 | Le lot ne crée pas de Gate structurelle, ne modifie ni exigences ni profil, ne produit aucun verdict, admission ou evidence, et ne permet aucune modification de policy après scellement. L’évaluation demeure exclusivement dans le Core à partir des admissions persistées. | `DECISION` | Contrat M11-D-D1 et artefact de preuve. | `LOG-0253` |
