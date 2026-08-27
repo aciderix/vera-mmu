@@ -50,7 +50,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils xvfb
       - name: Install build dependencies
         run: python -m pip install --upgrade pip pyinstaller pytest .
       - name: Run VERA conformance suite
@@ -66,6 +66,13 @@ jobs:
           pnpm tauri build --bundles ${{ matrix.bundles }}
       - name: Assemble non-signed release candidate
         run: python scripts/assemble_release_candidate.py ${{ matrix.target }}
+      - name: Smoke Linux release runtime
+        if: runner.os == 'Linux'
+        run: python scripts/smoke_release_runtime.py ${{ matrix.target }}
+      - name: Smoke Windows release runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/smoke_windows_release.ps1 -CandidateDirectory .build/release-candidate/${{ matrix.target }}
       - name: Upload non-signed candidate for verification
         uses: actions/upload-artifact@v4
         with:
