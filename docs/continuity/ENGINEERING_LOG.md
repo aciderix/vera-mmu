@@ -3182,3 +3182,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** Le contrat vérifie déterminisme, identité project-bound, surfaces symbol/historiques, liste FIND, absence de chemins workspace/profile et absence d’audit. CLI et MCP stdio sont exécutés réellement; le schéma du tool MCP est vide. Contrat : `14 passed in 16.88s`; intégral : **`559 passed in 71.67s`**.
 
 **Verdict.** `M11-E = PASS` pour le rapport de couverture public limité. Les générateurs documentaires complets, pourcentages métier, hôtes réels, alias `mmu://`, VCS et parité ARET ne sont pas livrés ni déclarés couverts. Artefact : `artifacts/m11_e_derived_coverage_report_2026-08-27.md`; mémoire : `MEM-DEC-190`.
+
+
+## LOG-0248 — 2026-08-27 — M11-F-A : bridge `mmu://` de lecture
+
+**Résultat.** `parse_compat_address` accepte `mmu://` canonique comme alias d’entrée de lecture, puis délègue toute validation à `parse_address` en forme `vera://`. `ReadService.read` et `related` utilisent ce bridge; leurs sorties, records et identités restent `vera://`. CLI et MCP sont ainsi compatibles en lecture sans nouveau champ ou tool.
+
+**Preuves.** Les tests couvrent adresse `mmu://` valide, formes invalides, une lecture Core, CLI réelle et MCP stdio réelle; toutes les réponses normalisent vers VERA persisté. Cible adressage/lecture : `12 passed in 3.09s`; intégral : **`560 passed in 68.01s`**.
+
+**Verdict.** `M11-F-A = PASS`. Le parseur canonique VERA, les écritures, le schéma SQLite et le VCS ne changent pas. Pas d’alias `aret_*`, de lecteur `ARET://`, de migration d’adresses, de provider multi-VCS ou de parité ARET. Artefact : `artifacts/m11_fa_mmu_read_address_bridge_2026-08-27.md`; mémoire : `MEM-DEC-191`.

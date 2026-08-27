@@ -1468,3 +1468,22 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_e_derived_coverage_report_2026-08-27.md`; contrat `14 passed`, régression intégrale `559 passed in 71.67s`.
 
 **Limites conservées :** ce rapport ne réalise pas les six documents dérivés complets de la spécification, ne fournit pas de pourcentage métier, et ne prouve ni hôte réel, VCS, compatibilité `mmu://` ni parité ARET.
+
+
+## MEM-DEC-191 — M11-F-A : bridge `mmu://` input-only pour lecture
+
+**Date :** 2026-08-27
+**Décision :** accepter le schéma de transition `mmu://` seulement dans un parseur de compatibilité explicite utilisé par les lectures, puis normaliser vers l’adresse `vera://` persistée. Le parseur canonique et toute écriture restent exclusivement VERA.
+
+| Garantie | Décision effective |
+|---|---|
+| Entrées | `vera://` et `mmu://` strictement canoniques seulement, pour READ/related/batch par délégation. |
+| Sorties/stockage | Toujours `vera://`; aucune migration implicite de schema, record ou identité. |
+| Validation | Les restrictions de type, project id, encodage et traversal de `parse_address` sont réutilisées. |
+| Refus | `ARET://`, variantes de casse, types inconnus, formes non canoniques et séparateurs encodés restent refusés. |
+| Transports | CLI `read` et MCP `mmu_read` réutilisent le bridge sans nouveau champ ou tool. |
+| VCS | La synchronisation Git bornée reste inchangée; aucun provider multi-VCS, remote client ou push nouveau n’est introduit. |
+
+**Evidence :** `docs/continuity/artifacts/m11_fa_mmu_read_address_bridge_2026-08-27.md`; cible `12 passed`, régression intégrale `560 passed in 68.01s`.
+
+**Limites conservées :** pas de migration des adresses canoniques vers `mmu://`, aliases `aret_*`, lecteur `ARET://`, compatibilité/parité ARET, ni abstraction Git/Mercurial/SVN.
