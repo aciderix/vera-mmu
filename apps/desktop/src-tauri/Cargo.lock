@@ -4219,7 +4219,7 @@ dependencies = [
 
 [[package]]
 name = "vera-mmu-desktop"
-version = "0.1.0-3"
+version = "0.1.0-4"
 dependencies = [
  "rand 0.8.8",
  "rfd",

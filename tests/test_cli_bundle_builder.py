@@ -20,7 +20,7 @@ SPEC.loader.exec_module(builder)
 
 class CliBundleBuilderTests(unittest.TestCase):
     def test_release_versions_are_aligned_across_all_distributed_manifests(self) -> None:
-        self.assertEqual(builder.product_version(), "0.1.0-3")
+        self.assertEqual(builder.product_version(), "0.1.0-4")
 
     def test_supported_targets_have_closed_names_and_platform_specific_archives(self) -> None:
         self.assertEqual(set(builder.TARGETS), {"x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"})

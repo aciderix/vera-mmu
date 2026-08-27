@@ -1,6 +1,6 @@
 [package]
 name = "vera-mmu-desktop"
-version = "0.1.0-3"
+version = "0.1.0-4"
 description = "Application desktop contrôlée de VERA-MMU"
 authors = ["VERA-MMU contributors"]
 edition = "2021"

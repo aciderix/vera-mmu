@@ -75,6 +75,18 @@ def _checksum_lines(paths: tuple[Path, ...]) -> str:
     return "".join(f"{_sha256(path)}  {path.name}\n" for path in paths)
 
 
+def _candidate_sources(cli_archive: Path, cli_manifest: Path, desktop_outputs: tuple[Path, ...]) -> tuple[tuple[Path, str], ...]:
+    """Renomme le manifest CLI pour réserver le nom canonique au manifest final."""
+
+    sources = ((cli_archive, cli_archive.name), (cli_manifest, "cli-release-manifest.json")) + tuple(
+        (path, path.name) for path in desktop_outputs
+    )
+    names = [name for _, name in sources]
+    if len(names) != len(set(names)) or "release-manifest.json" in names:
+        raise ReleaseCandidateError("Noms d’artefacts de candidat ambigus.")
+    return sources
+
+
 def _desktop_outputs(target: str) -> tuple[Path, ...]:
     bundle = ROOT / "apps" / "desktop" / "src-tauri" / "target" / "release" / "bundle"
     patterns = {
@@ -107,12 +119,12 @@ def assemble(target: str) -> Path:
     output = ROOT / ".build" / "release-candidate" / target
     shutil.rmtree(output, ignore_errors=True)
     output.mkdir(parents=True, exist_ok=True)
-    candidates = (*cli_archives, cli_manifest, *_desktop_outputs(target))
+    candidates = _candidate_sources(cli_archives[0], cli_manifest, _desktop_outputs(target))
     copied: list[Path] = []
-    for source in candidates:
+    for source, output_name in candidates:
         if not source.is_file() or source.is_symlink():
             raise ReleaseCandidateError(f"Artefact source absent ou ambigu : {source}")
-        destination = output / source.name
+        destination = output / output_name
         if destination.exists():
             raise ReleaseCandidateError(f"Nom d’artefact ambigu : {source.name}")
         shutil.copyfile(source, destination)

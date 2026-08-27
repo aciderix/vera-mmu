@@ -37,6 +37,12 @@ class ReleaseCandidateAssemblyTests(unittest.TestCase):
             with self.assertRaises(assembly.ReleaseCandidateError):
                 assembly._checksum_lines((checksum,))
 
+    def test_cli_manifest_is_renamed_to_prevent_collision_with_final_manifest(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            sources = assembly._candidate_sources(root / "vmmu.tar.gz", root / "release-manifest.json", (root / "desktop.AppImage", root / "desktop.deb"))
+            self.assertEqual([name for _, name in sources], ["vmmu.tar.gz", "cli-release-manifest.json", "desktop.AppImage", "desktop.deb"])
+
 
 if __name__ == "__main__":
     unittest.main()
