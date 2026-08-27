@@ -28,7 +28,7 @@ class M3ExitTests(unittest.TestCase):
  def _open(self,schema_dir:Path|None=None):return MemoryStore.open(load_profile(self.p),self.p,schema_dir=schema_dir)
  def test_fresh_store_runs_the_entire_closed_m3_chain(self):
   with self._open() as s:
-   self.assertEqual(s.metadata()['store_format'],{'schema_version':38});self.assertEqual(set(s.migration_checksums),set(range(1,39)))
+   self.assertEqual(s.metadata()['store_format'],{'schema_version':39});self.assertEqual(set(s.migration_checksums),set(range(1,40)))
    k=KnowledgeService(s);k.register_type('fact','Fact');k.append('knowledge','fact','OBSERVED','Terminal chain','content')
    CapabilityService(s).create('source','Source','CHECK','1.0.0');CapabilityContractService(s).declare('source','NOOP','DENY_NETWORK',30);CapabilityPolicyService(s).declare('source','ALLOW','exit');ExecutionService(s).run_noop('source-run','source',{});EvidenceService(s).record('evidence','source-run','TEST_PROOF','PASS',{'claim':'terminal'})
    v=ValidatorService(s);v.register('hash','EVIDENCE_HASH');CapabilityService(s).create('hash-cap','Hash','CHECK','1.0.0');CapabilityContractService(s).declare('hash-cap','EVIDENCE_HASH','DENY_NETWORK',30,parameter_schema=S);CapabilityPolicyService(s).declare('hash-cap','ALLOW','exit');self.assertEqual(ExecutionService(s).run_evidence_hash('hash-run','hash-cap',{'validator_id':'hash','evidence_id':'evidence'},validation_id='validation').status,'COMPLETED');self.assertEqual(v.get_result('validation').verdict,'PASS')
