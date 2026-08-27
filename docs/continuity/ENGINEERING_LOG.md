@@ -3303,3 +3303,9 @@ La commande `vmmu documentation` compile le bundle project-bound de six document
 **Statut : PASS pour la projection documentaire MCP read-only.**
 
 `mmu_get_documentation` ne prend aucun argument client et s’appuie sur le Profile lié au workspace du store. Une session MCP stdio réelle a détecté puis permis de corriger l’hypothèse erronée d’un Profile forcément sous le runtime. La suite complète passe à `598 passed in 67.00s`; aucune écriture, chemin client, processus ou réseau n’est ajouté.
+
+## LOG-0262 — Documentation générée dans le Dashboard
+
+**Statut : PASS pour la consultation Desktop read-only.**
+
+`project.documentation` est une opération bridge allowlistée sans entrée; Tauri délègue au bridge stdio authentifié et la console rend le bundle et son hash comme résultat inspectable. Les validations ciblées atteignent `17 passed in 10.34s`, le build React et les tests Tauri sont verts. Aucun export, chemin destination ni mutation de document n’est exposé.

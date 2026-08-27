@@ -1627,3 +1627,10 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-210` | Documentation / MCP | `mmu_get_documentation` expose une projection documentaire sans argument client sur une session stdio réelle. La résolution utilise le Profile lié au workspace du store, pas un emplacement runtime présumé. | `OBSERVED` | `mcp_server.py`, test MCP stdio, artefact M11 documentation MCP ; 598 tests Python passants. | `LOG-0261` |
+
+
+## Addendum — M11-D Documentation générée
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-211` | Dashboard / Documentation | Le Dashboard lit et affiche le bundle documentaire project-bound par bridge allowlisté, Tauri délégué et WebView inspectable. Aucun chemin, export ou contenu contrôlé par le client n’est introduit. | `OBSERVED` | Bridge/Tauri/UI et artefact M11-D documentation ; tests ciblés, build React et Tauri verts. | `LOG-0262` |
