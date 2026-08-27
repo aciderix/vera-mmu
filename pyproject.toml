@@ -41,6 +41,10 @@ vmmu-gemini-stage = "vera_mmu.gemini_adapter:gemini_stage_main"
 vmmu-gemini-hook = "vera_mmu.gemini_adapter:gemini_hook_main"
 vmmu-gemini-mcp = "vera_mmu.gemini_adapter:gemini_mcp_main"
 vmmu-gemini-config = "vera_mmu.gemini_adapter:gemini_config_main"
+vmmu-antigravity-stage = "vera_mmu.antigravity_adapter:antigravity_stage_main"
+vmmu-antigravity-hook = "vera_mmu.antigravity_adapter:antigravity_hook_main"
+vmmu-antigravity-mcp = "vera_mmu.antigravity_adapter:antigravity_mcp_main"
+vmmu-antigravity-config = "vera_mmu.antigravity_adapter:antigravity_config_main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
