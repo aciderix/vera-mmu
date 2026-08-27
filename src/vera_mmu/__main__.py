@@ -10,6 +10,7 @@ from .identity import ProfileError, load_profile, profile_identity, project_iden
 from .migrations import MigrationError
 from .runtime import RuntimeLocator
 from .project_operations import ProjectOperationError, compile_generation_preview, scan_project
+from .project_bootstrap import ProjectBootstrapError, apply_project_initialization, preview_project_initialization
 from .store import MemoryStore, StoreError
 from .workspace import WorkspaceError, resolve_workspace
 
@@ -30,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan=sub.add_parser("scan",help="Observe une arborescence locale sans lire de contenu ni écrire.");scan.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
     generate=sub.add_parser("generate",help="Compile un preview MCP déterministe sans installer.");generate.add_argument("profile",type=Path,help="Chemin project.yaml.");generate.add_argument("--adapter",required=True)
     install=sub.add_parser("install",help="Prévisualise ou applique la configuration project-local d’un adapter.");install.add_argument("profile",type=Path,help="Chemin project.yaml.");install.add_argument("--adapter",required=True);install.add_argument("--apply-project",action="store_true");install.add_argument("--confirm",action="store_true")
+    bootstrap=sub.add_parser("init-project",help="Prévisualise ou initialise les fichiers VERA dans un projet choisi.");bootstrap.add_argument("root",type=Path,help="Racine locale du projet.");bootstrap.add_argument("--template",required=True);bootstrap.add_argument("--project-id",required=True);bootstrap.add_argument("--project-name",required=True);bootstrap.add_argument("--apply",action="store_true");bootstrap.add_argument("--confirm",action="store_true")
     adapter=sub.add_parser("adapter",help="Opérations project-local des adapters VERA.")
     ops=adapter.add_subparsers(dest="adapter_command",required=True)
     ops.add_parser("matrix",help="Affiche la matrice statique des couvertures attestées.")
@@ -65,7 +67,11 @@ def _doctor(profile_path:Path,name:str)->dict[str,object]:
 def main(argv:Sequence[str]|None=None)->int:
     try:
         args=build_parser().parse_args(argv)
-        if args.command=="scan":
+        if args.command=="init-project":
+            preview=preview_project_initialization(args.root,template=args.template,project_id=args.project_id,project_name=args.project_name)
+            result=apply_project_initialization(args.root,preview,confirm=args.confirm) if args.apply else preview
+            payload={"ok":True,"initialization":result.as_dict()}
+        elif args.command=="scan":
             payload={"ok":True,"scan":scan_project(args.root).as_dict()}
         elif args.command=="generate":
             profile=load_profile(args.profile)
@@ -94,7 +100,7 @@ def main(argv:Sequence[str]|None=None)->int:
             elif args.command=="init":
                 with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"identity":store.identity.as_dict(),"migration_checksums":store.migration_checksums,"metadata":store.metadata()}
             else:raise StoreError("Commande inconnue.")
-    except (MigrationError,ProfileError,ProjectOperationError,StoreError,WorkspaceError,ValueError) as exc:
+    except (MigrationError,ProfileError,ProjectBootstrapError,ProjectOperationError,StoreError,WorkspaceError,ValueError) as exc:
         print(json.dumps({"ok":False,"error":str(exc)},ensure_ascii=False,sort_keys=True));return 2
     print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 0
 if __name__=="__main__":raise SystemExit(main())
