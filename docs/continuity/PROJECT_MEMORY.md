@@ -1020,3 +1020,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 **Provenance :** `tests/test_project_operations.py`; `docs/continuity/artifacts/m6b_shared_operations_contract_2026-08-27.md`; suite `485 passed, 37 subtests passed`.
 **Journal :** `LOG-0204`.
+
+
+### MEM-DEC-152 — M6-C : bootstrap project-local et Agent Profiles déclaratifs
+
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour le mécanisme contrôlé ; agents réels et dashboard `NOT_RUN` / `NOT_DELIVERED`
+**Décision :** M6-C publie au commit fonctionnel `5cd679a` le registre d’`AgentProfile` et `vmmu init-project`. La CLI construit d’abord un preview puis ne crée `.vera-mmu/project.yaml`, `playbook.md` et `agent-profiles.yaml` que sous `--apply --confirm`.
+
+**Motif :** Préparer un projet ne doit pas exiger de copier un template manuel, mais aucun modèle de domaine ou d’agent ne doit devenir une vérité, capability, policy ou plugin exécutable implicite. L’UI future et la CLI doivent consommer les mêmes objets déclaratifs validés.
+
+**Effet opérationnel :** Les profils built-in sont bornés aux adapters installés et à leur couverture maximale. Les templates software/data/research/documentation/game/hardware sont seulement des propositions. L’écriture demeure project-local, atomique, non destructive et refuse symlinks, previews altérés et divergences. Aucun home, réseau, processus, secret ou hôte réel n’est contacté.
+
+**Provenance :** `tests/test_project_bootstrap.py`; `docs/continuity/artifacts/m6c_guided_project_bootstrap_2026-08-27.md`; suite `488 passed, 37 subtests passed`.
+**Journal :** `LOG-0205`.

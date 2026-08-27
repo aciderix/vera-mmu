@@ -2775,3 +2775,18 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Verdict.** `PASS` pour les contrats/opérations M6-B contrôlés. Aucun host réel, bridge local exposé, dashboard ou write-path user-scope n’est testé ou livré.
 
 **Suite.** Ouvrir M6-C : init guidé, templates de domaine et Agent Profiles déclaratifs, avant le Dashboard et sans modifier le Core pour ajouter un agent.
+
+
+## LOG-0205 — 2026-08-27 — M6-C : bootstrap guidé et profils d’agents déclaratifs
+
+**Hypothèse.** Un projet peut recevoir un Project Profile de départ et sélectionner un agent sans que l’interface crée une capacité, une commande ou une garantie non fournie par le Core/adapters.
+
+**Changement fonctionnel.** Le commit `5cd679a` ajoute `agent_profiles.py`, `project_bootstrap.py`, les tests associés et `vmmu init-project`. Les profils Claude local/cloud, Codex, Gemini, Antigravity et MCP générique déclarent identifiant, adapter allowlisté, mode, couverture et événements ; les templates de domaines proposent software, data, research, documentation, game et hardware.
+
+**Garde de sécurité.** Les champs inattendus — notamment commandes — sont refusés. Une couverture dépassant le maximum de l’adapter, un événement absent, un template/identité invalide, une racine/cible symlinkée, un preview divergent ou l’absence de `--apply --confirm` refusent. La création est strictement sous `.vera-mmu/`, atomique et idempotente seulement pour un contenu identique.
+
+**Tests et contrôles.** Trois tests rouges précèdent le code. Ils couvrent les profils déclaratifs, le preview sans écriture, l’application confirmée, l’idempotence, la divergence et les symlinks. Suite complète `488 passed, 37 subtests passed`; compilation, scans no-network/no-shell/no-home et roue isolée passent.
+
+**Verdict.** `PASS` pour M6-C contrôlé. Les templates ne sont pas une preuve, et aucune installation/test d’agent réel, dashboard ou bridge local n’a été exécuté.
+
+**Suite.** Construire M7 : Dashboard React séparé consommant les contrats M6-B/C via un bridge local borné ; une initialisation de projet web dédiée précédera le développement de l’interface.
