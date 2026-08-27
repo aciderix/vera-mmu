@@ -3249,3 +3249,15 @@ Le Core fournit `GateService.declare_with_requirements`, qui valide work-item et
 Les validations observées sont : ciblés Core/bridge `26 passed in 1.78s`, build React PASS, tests Tauri natifs `2 passed in 0.10s`, régression Python intégrale `589 passed in 64.46s`, `git diff --check` PASS et scan de frontière PASS.
 
 **Exclusions vérifiées :** aucune admission, evidence, exécution, verdict ou évaluation n’est créable depuis le Dashboard. Le lot n’édite pas les exigences après déclaration de policy et n’ajoute aucun concept ARET, shell, processus ou réseau au Core.
+
+## LOG-0255 — M11-D-B : Rebind contrôlé du Project Profile
+
+**Statut : PASS dans le périmètre explicitement borné.**
+
+Le builder Dashboard de Profile n’accepte que `projectName` et `projectDescription`. Il produit un preview contenant les hashes et identités avant/après; l’application exige cache bridge lié au nonce, confirmation explicite et recalcul de fraîcheur. Le Core n’expose pas d’écriture SQLite brute : `MemoryStore.rebind_identity` met à jour l’identité persistée dans une transaction auditée.
+
+Le protocole écrit d’abord une sauvegarde et un journal durable à permissions restreintes. Après l’alignement SQLite, le Profile est remplacé par écriture atomique. Un test simule une interruption entre ces étapes : le journal persiste, Doctor produit un échec explicite `profile_rebind`, puis `recover_project_profile_rebind` termine uniquement le contenu journalisé et rétablit l’ouverture sous identité cohérente.
+
+Validations : tests ciblés `17 passed in 2.59s`, build React PASS, Tauri natif `2 passed in 0.10s`, régression Python intégrale `593 passed in 63.09s`, `git diff --check` PASS et scan de frontière PASS.
+
+**Exclusions vérifiées :** l’UI ne modifie pas l’identifiant, le domaine, workspace, storage, catalogues, policy, capability, Gate, evidence, admission ou verdict. Doctor ne répare jamais implicitement; les divergences de journal ou de Profile sont refusées fail-closed. Aucun concept ARET, shell, processus ou réseau n’est ajouté au Core.

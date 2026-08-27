@@ -1575,3 +1575,12 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 |---|---|---|---|---|---|
 | `MEM-DEC-198` | Dashboard / Gate structure | Le Dashboard peut préparer puis déclarer une structure Gate nouvelle à partir d’un work-item, d’une evidence principale et d’exigences exactes déjà persistées. Le preview est non mutateur et hashé; son application requiert confirmation et fraîcheur. La primitive `GateService.declare_with_requirements` assure une transaction SQLite unique pour la Gate et toutes ses exigences. | `OBSERVED` | `gate_structure_builder.py`, `gates.py`, bridge nonce-scoped, façade Tauri/UI, tests M11-D-D2 et artefact dédié ; 589 tests Python passants. | `LOG-0254` |
 | `MEM-DEC-199` | Limite M11-D-D2 | La structure ne crée ni work-item ni evidence, ne déclare aucune policy, ne produit ni admission ni verdict, et ne permet aucune modification après scellement par policy. Elle ne confère aucune capacité de runner, shell, réseau ou concept ARET. | `DECISION` | Contrat et tests M11-D-D2. | `LOG-0254` |
+
+
+## Addendum — M11-D-B Rebind contrôlé du Project Profile
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-200` | Identité / Profile | Le changement contrôlé du nom et de la description du Project Profile est désormais possible via preview hashé, fraîcheur, confirmation, sauvegarde locale et journal durable. Le store expose `rebind_identity` : l’identité SQLite est réalignée dans une transaction auditée, sans ouvrir une écriture SQL brute au Dashboard. | `OBSERVED` | `profile_rebind.py`, `store.py`, bridge, Doctor et tests M11-D-B ; 593 tests Python passants. | `LOG-0255` |
+| `MEM-DEC-201` | Reprise fail-closed | Une interruption entre réalignement SQLite et remplacement atomique du Profile est détectable par Doctor. La récupération est explicite, rejoue uniquement le contenu consigné par le journal et refuse profils/journaux multiples ou divergents. Doctor demeure strictement observationnel. | `OBSERVED` | `recover_project_profile_rebind`, contrôle Doctor `profile_rebind`, test d’interruption M11-D-B. | `LOG-0255` |
+| `MEM-DEC-202` | Limite Profile Builder | L’interface n’expose ni `project.id`, ni domaine, workspace, storage, catalogues, policies, capabilities, Gates, evidence, admission ou verdict. Toute extension de surface requiert une hypothèse, un protocole de migration et des preuves indépendantes. | `DECISION` | Contrat du builder M11-D-B. | `LOG-0255` |

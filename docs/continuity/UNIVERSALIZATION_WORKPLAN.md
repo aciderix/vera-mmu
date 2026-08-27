@@ -272,3 +272,13 @@ Le Dashboard global reste `PARTIAL`; l’édition directe du Project Profile dem
 | `M11-D-B` — Project Profile | `NOT_ELIGIBLE` | Une édition directe reste interdite : il faut un protocole atomique profile filesystem + identité metadata SQLite, rollback, reprise Doctor et tests de crash/reprise avant toute exposition UI. |
 
 La clôture de ce lot ne vaut ni Dashboard global complet, ni modification de Profile, ni automatisation de verdict/admission, ni preuve d’hôte réel ou de parité ARET.
+
+## Addendum de suivi — M11-D-B et clôture M11-D
+
+| Sous-lot | Statut | Preuve et limite |
+|---|---|---|
+| `M11-D-B` — Rebind contrôlé du Project Profile | `PASS` dans le périmètre borné | Preview/fraîcheur/confirmation, sauvegarde/journal durable, identité SQLite réalignée dans une transaction auditée, écriture atomique du Profile et reprise explicite signalée par Doctor. `593 passed`, build React et tests Tauri passants. |
+| `M11-D` — Dashboard configurateur | `PASS` dans le périmètre livré | D-A état dérivé, D-B rebind Profile limité, D-C capability, D-D1 policy Gate et D-D2 structure Gate atomique sont couverts par bridge/Tauri/React et preuves distinctes. |
+| Extensions de Profile à identité structurelle | `NOT_STARTED` | Les changements d’identifiant, domaine, workspace, storage ou catalogues requièrent un protocole de migration distinct; ils ne sont ni implicites ni autorisés par M11-D-B. |
+
+La clôture M11-D ne prouve ni Dashboard global exhaustif, ni exécution hôte réelle, ni admission/verdict depuis le client, ni parité ARET. Ces limites restent ouvertes et explicites.
