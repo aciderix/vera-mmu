@@ -15,6 +15,7 @@ from .adapter_catalog import adapter_spec, call_adapter_json
 from .agent_profiles import builtin_agent_profiles
 from .capability_builder import CapabilityDraftPreview, apply_capability_draft, preview_capability_draft
 from .coverage_report import compile_coverage_report
+from .documentation_generator import compile_project_documentation
 from .gate_policy_builder import GatePolicyDraftPreview, apply_gate_policy_draft, preview_gate_policy_draft
 from .gate_structure_builder import GateStructureDraftPreview, apply_gate_structure_draft, preview_gate_structure_draft
 from .identity import load_profile
@@ -61,6 +62,7 @@ class DesktopBridge:
         self._handlers: Mapping[str, Callable[[dict[str, Any]], dict[str, object]]] = {
             "project.scan": self._scan,
             "project.status": self._project_status,
+            "project.documentation": self._project_documentation,
             "profile.rebind.preview": self._profile_rebind_preview,
             "profile.rebind.apply": self._profile_rebind_apply,
             "profile.rebind.recovery.preview": self._profile_rebind_recovery_preview,
@@ -138,6 +140,13 @@ class DesktopBridge:
                 "coverage": compile_coverage_report(store).as_dict(),
                 "vcs": ReadService(store).vcs_status(),
             }
+
+    def _project_documentation(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, set())
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            documentation = compile_project_documentation(store, str(profile_path))
+            return {"project_identity": documentation.project_identity, "documents": documentation.documents, "bundle_hash": documentation.bundle_hash}
 
     def _profile_rebind_preview(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, {"projectId", "projectName", "projectDomain", "projectDescription"})
