@@ -101,7 +101,7 @@ class ClaudeCodeMCPInstallerTests(unittest.TestCase):
                 manifest, instructions, integration, hooks, plan = self._snapshots(store)
                 result = install_claude_code_mcp(store, manifest, instructions, integration, hooks, plan, confirm=True)
                 self.assertEqual(result.status, "INSTALLED")
-                self.assertEqual(result.path, target)
+                self.assertEqual(result.path, target.resolve())
                 merged = json.loads(target.read_text(encoding="utf-8"))
                 generated = json.loads(integration.json_text)
                 self.assertEqual(merged["retained"], {"x": 1})

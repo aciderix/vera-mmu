@@ -70,18 +70,20 @@ class MemorySyncTests(unittest.TestCase):
             root = Path(temp) / "project"
             root.mkdir()
             store, remote = self._store(root, policy=policy)
-            self.addCleanup(store.close)
-            (root / "work-in-progress.txt").write_text("do not stage\n", encoding="utf-8")
-            self._mutate(store)
-            result = store.last_sync_status
-            self.assertEqual(result["status"], "SYNCED")
-            self.assertTrue(result["committed"])
-            self.assertTrue(result["pushed"])
-            self.assertEqual(git(root, "status", "--porcelain=v1"), "?? work-in-progress.txt")
-            committed_paths = git(root, "show", "--format=", "--name-only", "HEAD").splitlines()
-            self.assertTrue(committed_paths)
-            self.assertTrue(all(path == ".vera-mmu" or path.startswith(".vera-mmu/") for path in committed_paths))
-            self.assertEqual(git(remote, "rev-parse", "main"), git(root, "rev-parse", "HEAD"))
+            try:
+                (root / "work-in-progress.txt").write_text("do not stage\n", encoding="utf-8")
+                self._mutate(store)
+                result = store.last_sync_status
+                self.assertEqual(result["status"], "SYNCED")
+                self.assertTrue(result["committed"])
+                self.assertTrue(result["pushed"])
+                self.assertEqual(git(root, "status", "--porcelain=v1"), "?? work-in-progress.txt")
+                committed_paths = git(root, "show", "--format=", "--name-only", "HEAD").splitlines()
+                self.assertTrue(committed_paths)
+                self.assertTrue(all(path == ".vera-mmu" or path.startswith(".vera-mmu/") for path in committed_paths))
+                self.assertEqual(git(remote, "rev-parse", "main"), git(root, "rev-parse", "HEAD"))
+            finally:
+                store.close()
 
     def test_i001_i007_policy_disabled_never_commits_or_pushes(self) -> None:
         policy = {"format": "vera-memory-sync-policy/v1", "auto_commit": False, "auto_push": False, "remote": "origin", "branch": "CURRENT"}
@@ -89,13 +91,15 @@ class MemorySyncTests(unittest.TestCase):
             root = Path(temp) / "project"
             root.mkdir()
             store, _ = self._store(root, policy=policy)
-            self.addCleanup(store.close)
-            baseline = git(root, "rev-parse", "HEAD")
-            self._mutate(store)
-            result = store.last_sync_status
-            self.assertEqual(result["status"], "DISABLED")
-            self.assertEqual(git(root, "rev-parse", "HEAD"), baseline)
-            self.assertTrue((root / ".vera-mmu" / "memory.sqlite-wal").exists() or (root / ".vera-mmu" / "memory.sqlite").exists())
+            try:
+                baseline = git(root, "rev-parse", "HEAD")
+                self._mutate(store)
+                result = store.last_sync_status
+                self.assertEqual(result["status"], "DISABLED")
+                self.assertEqual(git(root, "rev-parse", "HEAD"), baseline)
+                self.assertTrue((root / ".vera-mmu" / "memory.sqlite-wal").exists() or (root / ".vera-mmu" / "memory.sqlite").exists())
+            finally:
+                store.close()
 
     def test_i007_i011_rejects_invalid_policy_symlink_and_missing_remote_without_claiming_push(self) -> None:
         policy = {"format": "vera-memory-sync-policy/v1", "auto_commit": True, "auto_push": True, "remote": "origin", "branch": "CURRENT"}
@@ -103,18 +107,20 @@ class MemorySyncTests(unittest.TestCase):
             root = Path(temp) / "project"
             root.mkdir()
             store, _ = self._store(root, policy=policy, remote=False)
-            self.addCleanup(store.close)
-            self._mutate(store)
-            missing_remote = store.last_sync_status
-            self.assertEqual(missing_remote["status"], "REFUSED")
-            self.assertFalse(missing_remote["pushed"])
+            try:
+                self._mutate(store)
+                missing_remote = store.last_sync_status
+                self.assertEqual(missing_remote["status"], "REFUSED")
+                self.assertFalse(missing_remote["pushed"])
 
-            (root / ".vera-mmu" / "sync-policy.json").unlink()
-            (root / ".vera-mmu" / "sync-policy.json").symlink_to(root / "outside.json")
-            self._mutate(store)
-            symlink = store.last_sync_status
-            self.assertEqual(symlink["status"], "REFUSED")
-            self.assertFalse(symlink["committed"])
+                (root / ".vera-mmu" / "sync-policy.json").unlink()
+                (root / ".vera-mmu" / "sync-policy.json").symlink_to(root / "outside.json")
+                self._mutate(store)
+                symlink = store.last_sync_status
+                self.assertEqual(symlink["status"], "REFUSED")
+                self.assertFalse(symlink["committed"])
+            finally:
+                store.close()
 
     def test_i007_i014_rejects_unknown_policy_fields_and_operation_identifier(self) -> None:
         policy = {"format": "vera-memory-sync-policy/v1", "auto_commit": True, "auto_push": True, "remote": "origin", "branch": "CURRENT", "command": "git push elsewhere"}
@@ -122,14 +128,16 @@ class MemorySyncTests(unittest.TestCase):
             root = Path(temp) / "project"
             root.mkdir()
             store, _ = self._store(root, policy=policy)
-            self.addCleanup(store.close)
-            self._mutate(store)
-            bad_policy = store.last_sync_status
-            self.assertEqual(bad_policy["status"], "REFUSED")
-            valid_policy = {"format": "vera-memory-sync-policy/v1", "auto_commit": True, "auto_push": False, "remote": "origin", "branch": "CURRENT"}
-            (root / ".vera-mmu" / "sync-policy.json").write_text(json.dumps(valid_policy) + "\n", encoding="utf-8")
-            invalid_operation = automatic_memory_sync(store, "mcp mutation; push")
-            self.assertEqual(invalid_operation["status"], "REFUSED")
+            try:
+                self._mutate(store)
+                bad_policy = store.last_sync_status
+                self.assertEqual(bad_policy["status"], "REFUSED")
+                valid_policy = {"format": "vera-memory-sync-policy/v1", "auto_commit": True, "auto_push": False, "remote": "origin", "branch": "CURRENT"}
+                (root / ".vera-mmu" / "sync-policy.json").write_text(json.dumps(valid_policy) + "\n", encoding="utf-8")
+                invalid_operation = automatic_memory_sync(store, "mcp mutation; push")
+                self.assertEqual(invalid_operation["status"], "REFUSED")
+            finally:
+                store.close()
 
 
 if __name__ == "__main__":

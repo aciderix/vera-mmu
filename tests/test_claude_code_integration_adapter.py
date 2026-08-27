@@ -125,7 +125,7 @@ class ClaudeCodeIntegrationAdapterTests(unittest.TestCase):
                 manifest, instructions, integration, hooks = self._snapshots(store)
                 plan = compile_claude_code_integration_plan(store, manifest, instructions, integration, hooks)
                 target = write_claude_code_integration_preview(store, plan)
-                self.assertEqual(target, project / ".vera-mmu" / "generated" / "claude-code-integration.json")
+                self.assertEqual(target, project.resolve() / ".vera-mmu" / "generated" / "claude-code-integration.json")
                 self.assertEqual(target.read_text(encoding="utf-8"), plan.json_text)
                 with self.assertRaises(FileExistsError):
                     write_claude_code_integration_preview(store, plan)

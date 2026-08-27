@@ -114,7 +114,7 @@ class MCPHookPlanTests(unittest.TestCase):
                 integration = compile_mcp_integration(store, manifest, instructions)
                 plan = compile_mcp_hook_plan(store, manifest, instructions, integration)
                 target = write_mcp_hook_plan_preview(store, plan)
-                self.assertEqual(target, project / ".vera-mmu" / "generated" / "hooks.json")
+                self.assertEqual(target, project.resolve() / ".vera-mmu" / "generated" / "hooks.json")
                 self.assertEqual(target.read_text(encoding="utf-8"), plan.json_text)
                 with self.assertRaises(FileExistsError):
                     write_mcp_hook_plan_preview(store, plan)

@@ -113,7 +113,7 @@ class MCPIntegrationConfigTests(unittest.TestCase):
                 instructions = compile_mcp_instructions(store, manifest)
                 integration = compile_mcp_integration(store, manifest, instructions)
                 preview = write_mcp_integration_preview(store, integration)
-                self.assertEqual(preview, project / ".vera-mmu" / "generated" / "mcp.json")
+                self.assertEqual(preview, project.resolve() / ".vera-mmu" / "generated" / "mcp.json")
                 self.assertEqual(preview.read_text(encoding="utf-8"), integration.json_text)
                 with self.assertRaises(FileExistsError):
                     write_mcp_integration_preview(store, integration)
