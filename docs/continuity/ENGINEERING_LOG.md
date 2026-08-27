@@ -2859,3 +2859,10 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Validation locale.** Les six modules précédemment affectés, puis toute la suite : `504 passed, 43 subtests passed`.
 **Verdict.** Correctif de test `PASS` local. Windows native reste `PENDING` jusqu’à la seconde matrice ; la qualification M8 reste donc `PARTIAL_PASS`.
 **Suite.** Publier après garde de divergence, attendre la matrice Windows/Linux et n’enregistrer un `PASS` M8 multi-plateforme qu’après les deux résultats explicites.
+
+## LOG-0215 — 2026-08-27 — M8-C : déclencheur CI étendu aux corrections de tests
+**Observation.** Après le push du correctif Windows, `gh run list` ne présentait aucun nouveau run pour la révision concernée. Le workflow filtre les événements par chemins, et les commits `25d3df5`/`70eb6df` ne changeaient que `tests/**` et la continuité ; ce motif n’était pas inclus.
+**Correction.** `desktop-packaging.yml` inclut `tests/**` dans les filtres `pull_request.paths` et `push.paths`. Le workflow exécute déjà toute la suite VERA avant le sidecar et les bundles ; le déclencheur devient donc cohérent avec cette responsabilité.
+**Portée.** Aucun code de produit, test d’acceptation, capability, policy Git ou artefact de release n’a changé. La matrice suivante demeure exclusivement de vérification, non signée et non publiée comme release.
+**Verdict.** `PASS` pour le diagnostic et le déclencheur. `PENDING` pour la preuve Windows/Linux déclenchée par le commit CI.
+**Suite.** Commiter la continuité, appliquer la garde de divergence, pousser et attendre les deux jobs avant toute qualification M8.

@@ -1112,3 +1112,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Validation :** sous Linux après correction, six fichiers de régression puis la suite complète : `504 passed, 43 subtests passed`.
 **Limites :** La répétition Windows x64 est nécessaire pour convertir cette correction locale en preuve multi-plateforme. Hôtes réels et comportements métier de domaine restent hors M8.
 **Journal :** `LOG-0214`.
+
+### MEM-DEC-162 — M8-C : les changements de tests déclenchent la matrice native
+**Type :** `CORRECTION`
+**Statut :** `OBSERVED`
+**Décision :** Les filtres `paths` de `desktop-packaging.yml` couvrent explicitement `tests/**` sur `push` et `pull_request`. Ainsi, un correctif de portabilité qui ne modifie pas le Core provoque tout de même l’exécution de `python -m pytest -q`, du sidecar et des bundles sur Windows/Linux.
+**Provenance :** Après le commit de tests `25d3df5`, aucun nouveau run n’est apparu car les tests étaient absents de la liste. Le commit CI associé ajoute uniquement deux motifs de chemin. Voir `LOG-0215`.
+**Limites :** Cette correction déclenche la vérification ; elle n’est pas une réussite Windows. Le rerun reste la preuve requise.
+**Journal :** `LOG-0215`.

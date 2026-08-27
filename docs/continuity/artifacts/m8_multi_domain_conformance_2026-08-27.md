@@ -57,6 +57,8 @@ Il ne s’agit ni d’un contournement de test, ni d’une modification du Core 
 
 La suite complète après correction est de nouveau `504 passed, 43 subtests passed` localement. La seconde matrice CI doit reproduire ce résultat sur Windows et reconstruire les artefacts de vérification avant que M8 soit qualifié sur les deux plateformes.
 
+Le premier push du correctif de tests n’a pas créé de nouvelle matrice car les filtres `paths` du workflow ne couvraient que le Core, le bridge, le packaging et le manifeste Python. Le workflow inclut désormais `tests/**` pour les événements `push` et `pull_request`. Cette correction CI ne modifie ni les tests exécutés, ni le produit, ni les artefacts attendus ; elle garantit qu’un changement de conformance est vérifié sur les mêmes runners natifs que le desktop.
+
 ## 7. Limites et suite
 
 M8 n’exécute aucun agent réel, oracle de domaine, installation sur machine utilisateur, merge de SQLite concurrentes ou release. Les tests d’hôtes Claude, Codex, Gemini et Antigravity restent explicitement différés à la campagne finale.
