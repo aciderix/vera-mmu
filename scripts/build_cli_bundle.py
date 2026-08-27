@@ -89,14 +89,17 @@ def _version_from_cargo(path: Path) -> str:
 
 
 def product_version() -> str:
-    """Exige l’alignement de version Python, npm, Cargo et Tauri."""
+    """Exige l’alignement de la version de release, avec normalisation PEP 440."""
 
     with (ROOT / "pyproject.toml").open("rb") as handle:
         pyproject = tomllib.load(handle)
     package = json.loads((ROOT / "apps" / "desktop" / "package.json").read_text(encoding="utf-8"))
     tauri = json.loads((ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
+    python_version = pyproject.get("project", {}).get("version")
+    if isinstance(python_version, str):
+        python_version = re.sub(r"^([0-9]+\.[0-9]+\.[0-9]+)rc([0-9]+)$", r"\1-rc.\2", python_version)
     versions = {
-        "pyproject": pyproject.get("project", {}).get("version"),
+        "pyproject": python_version,
         "package.json": package.get("version"),
         "Cargo.toml": _version_from_cargo(ROOT / "apps" / "desktop" / "src-tauri" / "Cargo.toml"),
         "tauri.conf.json": tauri.get("version"),
