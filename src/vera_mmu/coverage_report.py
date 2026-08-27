@@ -52,7 +52,8 @@ def compile_coverage_report(store: MemoryStore) -> CoverageReport:
         "unsupported_surfaces": [
             "dashboard-configurator",
             "document-generation-write",
-            "mmu-address-alias",
+            "document-generation-project-export",
+            "legacy-address-storage-migration",
             "vcs-multi-provider",
             "domain-pack-migration-parity",
             "host-runtime-proof",
