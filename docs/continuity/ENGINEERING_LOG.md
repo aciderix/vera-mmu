@@ -3283,3 +3283,11 @@ Validation : ciblés Core/bridge `15 passed in 1.42s`, build React PASS, Tauri `
 **Statut : DESIGN_REQUIRED.**
 
 La résolution actuelle ancre un Profile `project.yaml` sous `.vera-mmu`; déplacer workspace ou storage modifie l’ancre, la SQLite WAL, les artefacts et les catalogues. Ces mutations doivent donc passer par préflight, journal durable hors runtime, inventaire/hash, renommages atomiques même filesystem, reprise confirmée et validation Doctor. Aucune écriture de chemin n’est implémentée dans cette décision.
+
+## LOG-0259 — Générateur documentaire project-bound
+
+**Statut : PASS pour la projection documentaire read-only.**
+
+Le Core compile un bundle déterministe `MMU_SETUP`, `TOOLS`, `GATES`, `POLICIES`, `ARCHITECTURE` et `MAINTENANCE` depuis le Profile, les catalogues et la couverture VERA. Il vérifie que l’identité du Profile est celle du store et ne crée aucune transaction/audit. La validation atteint `596 passed in 64.40s`, avec diff et scan de frontière verts.
+
+L’export project-local confirmé et les façades publiques restent ouverts : cette entrée ne les assimile pas à une livraison.

@@ -1605,3 +1605,11 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-206` | Migration Profile / runtime | Les mutations workspace, storage et catalogues ne sont pas admissibles via le rebind d’identité. Elles requièrent une migration physique journalisée, préflightée, confinée, récupérable et testée contre interruption avant toute écriture de chemin. | `DECISION` | Artefact de conception M11 physical migration. | `LOG-0258` |
+
+
+## Addendum — M11 Génération documentaire project-bound
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-207` | Documentation dérivée | Le Core compile désormais un bundle documentaire déterministe de six documents depuis le Profile, les catalogues et la couverture validés. La projection est liée à l’identité du store, refuse un Profile divergent et ne produit aucune écriture ou audit. | `OBSERVED` | `documentation_generator.py`, test de déterminisme/non-mutation/divergence ; 596 tests Python passants. | `LOG-0259` |
+| `MEM-DEC-208` | Limite d’export documentaire | La projection est encore en mémoire. Son écriture project-local confirmée, et les façades CLI/MCP/Dashboard, restent des sous-lots distincts ; l’absence d’export ne doit pas être masquée par ce PASS de compilation. | `DECISION` | Artefact M11 documentation générée. | `LOG-0259` |
