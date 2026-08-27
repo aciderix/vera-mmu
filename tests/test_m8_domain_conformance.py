@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 from pathlib import Path
 import subprocess
@@ -7,6 +9,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from vera_mmu.agent_profiles import builtin_agent_profiles
+from vera_mmu.__main__ import main
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
 from vera_mmu.capability_policies import CapabilityPolicyService
@@ -40,6 +43,13 @@ def _call(bridge: DesktopBridge, operation: str, payload: dict[str, object], req
     return json.loads(bridge.handle_line(json.dumps(envelope)))
 
 
+def _invoke(argv: list[str]) -> tuple[int, dict[str, object]]:
+    output = StringIO()
+    with redirect_stdout(output):
+        code = main(argv)
+    return code, json.loads(output.getvalue())
+
+
 def _seed(profile: Path) -> list[dict[str, object]]:
     statuses: list[dict[str, object]] = []
     with MemoryStore.open(load_profile(profile), profile) as store:
@@ -62,6 +72,15 @@ class M8DomainConformanceTests(unittest.TestCase):
                 path.write_text("marker only\n", encoding="utf-8")
                 scan = scan_project(root)
                 self.assertEqual(scan.status, "OBSERVED")
+                self.assertFalse((root / ".vera-mmu").exists())
+                code, payload = _invoke(["scan", str(root)])
+                self.assertEqual(code, 0)
+                self.assertEqual(payload["scan"]["status"], "OBSERVED")
+                self.assertFalse((root / ".vera-mmu").exists())
+
+                code, payload = _invoke(["init-project", str(root), "--template", domain, "--project-id", f"m8-{domain}", "--project-name", f"M8 {domain}"])
+                self.assertEqual(code, 0)
+                self.assertEqual(payload["initialization"]["status"], "PREVIEW")
                 self.assertFalse((root / ".vera-mmu").exists())
 
                 bridge = DesktopBridge(root, nonce=NONCE)
