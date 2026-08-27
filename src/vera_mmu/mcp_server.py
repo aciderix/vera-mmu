@@ -22,6 +22,7 @@ from .admission import AdmissionService
 from .assets import AssetService
 from .bundles import BundleService
 from .doctor import diagnose_project
+from .documentation_generator import compile_project_documentation
 from .coverage_report import compile_coverage_report
 from .evidence import EvidenceService
 from .gates import GateService
@@ -183,6 +184,11 @@ def _project_import_payload(result: object) -> dict[str, object]:
     return asdict(result)
 
 
+def _documentation_payload(store: MemoryStore) -> dict[str, object]:
+    documentation = compile_project_documentation(store, str(store.workspace.profile_path))
+    return {"project_identity": documentation.project_identity, "documents": documentation.documents, "bundle_hash": documentation.bundle_hash}
+
+
 def _execution(store: MemoryStore, execution_id: str) -> dict[str, object]:
     if not isinstance(execution_id, str) or not execution_id or "/" in execution_id:
         raise StoreError("Identifiant d’execution MCP invalide.")
@@ -269,6 +275,11 @@ def create_server(
     async def mmu_get_coverage_report() -> dict[str, object]:
         """Retourne la couverture publique dérivée sans chemin ni entrée client."""
         return _call("get_coverage_report", lambda: compile_coverage_report(store).as_dict())
+
+    @server.tool(name="mmu_get_documentation", structured_output=True)
+    async def mmu_get_documentation() -> dict[str, object]:
+        """Compile la documentation project-bound sans argument client ni écriture."""
+        return _call("get_documentation", lambda: _documentation_payload(store))
 
     @server.tool(name="mmu_get_vcs_status", structured_output=True)
     async def mmu_get_vcs_status() -> dict[str, object]:

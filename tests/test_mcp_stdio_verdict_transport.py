@@ -36,6 +36,7 @@ class MCPStdioVerdictTransportTests(unittest.IsolatedAsyncioTestCase):
         "mmu_import_project_documents",
         "mmu_doctor",
         "mmu_get_coverage_report",
+        "mmu_get_documentation",
         "mmu_get_vcs_status",
         "mmu_boot",
         "mmu_get_front",
@@ -113,6 +114,12 @@ identity:
         if not isinstance(payload, dict):
             raise AssertionError(f"Réponse MCP structurée absente : {response}")
         return payload
+
+    async def test_generated_documentation_has_no_client_input(self) -> None:
+        async with self._session("pass") as session:
+            response = self._payload(await session.call_tool("mmu_get_documentation", {}))
+            self.assertTrue(response["ok"])
+            self.assertEqual(set(response["result"]["documents"]), {"MMU_SETUP.md", "TOOLS.md", "GATES.md", "POLICIES.md", "ARCHITECTURE.md", "MAINTENANCE.md"})
 
     async def test_catalog_is_closed_and_execution_input_cannot_inject_results(self) -> None:
         async with self._session("pass") as session:
