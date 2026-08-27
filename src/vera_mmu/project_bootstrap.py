@@ -30,7 +30,10 @@ def preview_project_initialization(root:str|Path,*,template:str,project_id:str,p
     if not isinstance(project_name,str) or not project_name.strip() or len(project_name)>160:raise ProjectBootstrapError("project_name invalide.")
     files=(
         _file(".vera-mmu/agent-profiles.yaml",builtin_agent_profiles_json()),
+        _file(".vera-mmu/capabilities.yaml",_capabilities()),
+        _file(".vera-mmu/gates.yaml",_gates()),
         _file(".vera-mmu/playbook.md",_playbook(project_name)),
+        _file(".vera-mmu/policies.yaml",_policies()),
         _file(".vera-mmu/project.yaml",_profile(template,project_id,project_name)),
         _file(".vera-mmu/sync-policy.json",_sync_policy()),)
     digest=sha256("\0".join((str(target),template,project_id,project_name,*[x.sha256 for x in files])).encode()).hexdigest()
@@ -63,17 +66,71 @@ def _profile(template:str,project_id:str,name:str)->str:
 project:
   id: "{project_id}"
   name: "{name.strip()}"
+  description: "Profil VERA initialisé pour {name.strip()}"
   domain: {template}
 workspace:
   root: "."
+  additional_roots: []
 storage:
   memory_dir: ".vera-mmu"
   sqlite_file: "memory.sqlite"
   artifacts_dir: "artifacts"
+  max_context_bytes: 18500
+  max_resume_bytes: 12500
 identity:
   include_vcs_revision: true
   include_profile_hash: true
+resume:
+  template: engineering
+  sections:
+    - id: rules
+      required: true
+    - id: current_state
+      required: true
+    - id: validated_facts
+      required: true
+    - id: risks
+      required: true
+    - id: next_action
+      required: true
+knowledge:
+  types: [RULE, DECISION, OBSERVATION, HYPOTHESIS, STATE, MEASUREMENT, DISCOVERY, ARCHITECTURE]
+entities:
+  types: [COMPONENT]
+relations:
+  types: [VERIFIED_BY, SUPERSEDES, INFORMED_BY, BLOCKED_BY, IMPLEMENTS, DERIVED_FROM, CONCERNS, APPLIES_TO, CAUSED_BY, EVOLVES_TO]
+work:
+  enabled: true
+capabilities:
+  catalog: ".vera-mmu/capabilities.yaml"
+gates:
+  catalog: ".vera-mmu/gates.yaml"
+policies:
+  file: ".vera-mmu/policies.yaml"
+integrations:
+  agent_profiles: ".vera-mmu/agent-profiles.yaml"
 '''
+def _capabilities()->str:
+    return "format: vera-capability-catalog/v1\ncapabilities: []\n"
+def _gates()->str:
+    return "format: vera-gate-catalog/v1\ngates: []\n"
+def _policies()->str:
+    return """format: vera-policy-catalog/v1
+filesystem:
+  read: allow
+  write: confirm
+network:
+  default: deny
+process:
+  allowed_runners: []
+git:
+  commit: confirm
+  push: confirm
+destructive:
+  default: confirm
+promotion:
+  proven_requires: [admissible_pass]
+"""
 def _sync_policy()->str:
     return '{"auto_commit":true,"auto_push":true,"branch":"CURRENT","format":"vera-memory-sync-policy/v1","remote":"origin"}\n'
 def _playbook(name:str)->str:

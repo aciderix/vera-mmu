@@ -122,7 +122,7 @@ class M8DomainConformanceTests(unittest.TestCase):
             preview = preview_project_initialization(root, template="software", project_id="m8-mono", project_name="M8 mono")
             apply_project_initialization(root, preview, confirm=True)
             profile = root / ".vera-mmu" / "project.yaml"
-            text = profile.read_text(encoding="utf-8").replace('  root: "."\n', '  root: "."\n  additional_roots: ["services/api", "clients/ui"]\n')
+            text = profile.read_text(encoding="utf-8").replace('  additional_roots: []\n', '  additional_roots: ["services/api", "clients/ui"]\n')
             profile.write_text(text, encoding="utf-8")
             workspace = resolve_workspace(load_profile(profile), profile)
             self.assertEqual(workspace.vcs_roots, (root.resolve(),))
@@ -135,7 +135,7 @@ class M8DomainConformanceTests(unittest.TestCase):
             preview = preview_project_initialization(root, template="software", project_id="m8-multi", project_name="M8 multi")
             apply_project_initialization(root, preview, confirm=True)
             profile = root / ".vera-mmu" / "project.yaml"
-            text = profile.read_text(encoding="utf-8").replace('  root: "."\n', '  root: "."\n  additional_roots: ["vendor"]\n')
+            text = profile.read_text(encoding="utf-8").replace('  additional_roots: []\n', '  additional_roots: ["vendor"]\n')
             profile.write_text(text, encoding="utf-8")
             workspace = resolve_workspace(load_profile(profile), profile)
             self.assertEqual(workspace.vcs_roots, (root.resolve(), (root / "vendor").resolve()))

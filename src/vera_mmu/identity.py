@@ -15,6 +15,11 @@ from .workspace import Workspace
 
 
 PROJECT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,63}$")
+DECLARATION_ID_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
+RESUME_SECTION_ID_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+CORE_KNOWLEDGE_TYPES = ("RULE", "DECISION", "OBSERVATION", "HYPOTHESIS", "STATE", "MEASUREMENT", "DISCOVERY", "ARCHITECTURE")
+CORE_RELATION_TYPES = ("VERIFIED_BY", "SUPERSEDES", "INFORMED_BY", "BLOCKED_BY", "IMPLEMENTS", "DERIVED_FROM", "CONCERNS", "APPLIES_TO", "CAUSED_BY", "EVOLVES_TO")
+DEFAULT_RESUME_SECTIONS = ("rules", "current_state", "validated_facts", "risks", "next_action")
 
 
 class ProfileError(ValueError):
@@ -95,6 +100,51 @@ def _require_bool(mapping: Mapping[str, Any], key: str, label: str, default: boo
     return value
 
 
+def _require_declaration_ids(value: Any, label: str, defaults: tuple[str, ...]) -> list[str]:
+    items = list(defaults) if value is None else value
+    if not isinstance(items, list) or not items:
+        raise ProfileError(f"{label} doit être une liste non vide de types déclarés.")
+    normalized: list[str] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, str) or DECLARATION_ID_RE.fullmatch(item.strip()) is None:
+            raise ProfileError(f"{label}[{index}] doit être un identifiant déclaratif majuscule valide.")
+        item = item.strip()
+        if item in normalized:
+            raise ProfileError(f"{label} ne doit pas contenir de type dupliqué.")
+        normalized.append(item)
+    return normalized
+
+
+def _require_runtime_path(value: Any, label: str, memory_dir: str, *, default: str) -> str:
+    path = _require_relative_path({"value": default if value is None else value}, "value", label, allow_dot=False)
+    runtime = Path(memory_dir)
+    candidate = Path(path)
+    if candidate.parts[: len(runtime.parts)] != runtime.parts:
+        raise ProfileError(f"{label} doit rester sous storage.memory_dir.")
+    return candidate.as_posix()
+
+
+def _require_resume(value: Any) -> dict[str, Any]:
+    source = _require_mapping({} if value is None else value, "resume")
+    template = _require_string({"template": source.get("template", "engineering")}, "template", "resume")
+    raw_sections = source.get("sections", list(DEFAULT_RESUME_SECTIONS))
+    if not isinstance(raw_sections, list) or not raw_sections:
+        raise ProfileError("resume.sections doit être une liste non vide.")
+    sections: list[dict[str, Any]] = []
+    ids: set[str] = set()
+    for index, item in enumerate(raw_sections):
+        source_item = {"id": item, "required": True} if isinstance(item, str) else _require_mapping(item, f"resume.sections[{index}]")
+        section_id = _require_string(source_item, "id", f"resume.sections[{index}]")
+        if RESUME_SECTION_ID_RE.fullmatch(section_id) is None:
+            raise ProfileError(f"resume.sections[{index}].id doit être un identifiant de section valide.")
+        if section_id in ids:
+            raise ProfileError("resume.sections ne doit pas contenir de section dupliquée.")
+        required = _require_bool(source_item, "required", f"resume.sections[{index}]", True)
+        sections.append({"id": section_id, "required": required})
+        ids.add(section_id)
+    return {"template": template, "sections": sections}
+
+
 def validate_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
     """Validate the small Core-owned contract and return normalized JSON data.
 
@@ -157,6 +207,20 @@ def validate_profile(profile: Mapping[str, Any]) -> dict[str, Any]:
         "include_vcs_revision": include_vcs_revision,
         "include_profile_hash": include_profile_hash,
     }
+    root["resume"] = _require_resume(root.get("resume"))
+    root["knowledge"] = {"types": _require_declaration_ids(_require_mapping(root.get("knowledge", {}), "knowledge").get("types"), "knowledge.types", CORE_KNOWLEDGE_TYPES)}
+    root["entities"] = {"types": _require_declaration_ids(_require_mapping(root.get("entities", {}), "entities").get("types"), "entities.types", ("COMPONENT",))}
+    root["relations"] = {"types": _require_declaration_ids(_require_mapping(root.get("relations", {}), "relations").get("types"), "relations.types", CORE_RELATION_TYPES)}
+    work = _require_mapping(root.get("work", {}), "work")
+    root["work"] = {"enabled": _require_bool(work, "enabled", "work", True)}
+    capabilities = _require_mapping(root.get("capabilities", {}), "capabilities")
+    gates = _require_mapping(root.get("gates", {}), "gates")
+    policies = _require_mapping(root.get("policies", {}), "policies")
+    integrations = _require_mapping(root.get("integrations", {}), "integrations")
+    root["capabilities"] = {"catalog": _require_runtime_path(capabilities.get("catalog"), "capabilities.catalog", memory_dir, default=f"{memory_dir}/capabilities.yaml")}
+    root["gates"] = {"catalog": _require_runtime_path(gates.get("catalog"), "gates.catalog", memory_dir, default=f"{memory_dir}/gates.yaml")}
+    root["policies"] = {"file": _require_runtime_path(policies.get("file"), "policies.file", memory_dir, default=f"{memory_dir}/policies.yaml")}
+    root["integrations"] = {"agent_profiles": _require_runtime_path(integrations.get("agent_profiles"), "integrations.agent_profiles", memory_dir, default=f"{memory_dir}/agent-profiles.yaml")}
     return json.loads(canonical_json(root))
 
 
