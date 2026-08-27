@@ -158,7 +158,7 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 |---|---|---|
 | Profile et modèle projet déclaratif riche | `PASS` | M11-A clos ; preuve `m11_a_project_profile_catalogs_2026-08-27.md` |
 | Front/handoff persistants, Resume Dossier configurable et policy projet | `PASS` | M11-AF clos ; preuve `m11_af_front_handoff_resume_policy_2026-08-27.md` |
-| Bundle, export/import/restore et import projet avec provenance | `MISSING` | M11-B |
+| Bundle, export/import/restore et import projet avec provenance | `PASS` | M11-B clos ; preuve `m11_b_bundle_restore_project_import_2026-08-27.md` |
 | API MCP, CLI et Doctor complets | `PARTIAL` / `MISSING` | M11-C |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
 | Documentation dérivée et rapport coverage | `MISSING` | M11-E |
@@ -176,4 +176,12 @@ Les sept fichiers initialisés, le profile enrichi, le Front/resume, les taxonom
 
 Le Front est maintenant un snapshot project-profile-bound, hashé et append-only; le handoff est lié au Front courant et au Resume Dossier compilé depuis les sections de reprise exigées par le profile. Les mutations sont précédées de la policy project-local fermée : `deny`, catalogue invalide/absent et absence de confirmation refusent avant transaction; `allow` n’écarte pas la confirmation explicite. La migration checksummée 039 est testée sur une base 038 existante avec conservation d’identité et triggers append-only exercés.
 
-Les adapters Claude local/cloud, Codex, Gemini et Antigravity consomment le dossier dérivé du profile sous leurs garanties déjà déclarées; cela ne qualifie aucun hôte réel. Les preuves ciblées atteignent `15 passed`, les suites adapters/MCP `63 passed, 12 subtests passed`, et la suite intégrale `529 passed, 43 subtests passed`. La preuve détaillée est `artifacts/m11_af_front_handoff_resume_policy_2026-08-27.md`. **Pause obligatoire :** M11-B et tout lot ultérieur restent interdits sans nouvelle instruction explicite du propriétaire.
+Les adapters Claude local/cloud, Codex, Gemini et Antigravity consomment le dossier dérivé du profile sous leurs garanties déjà déclarées; cela ne qualifie aucun hôte réel. Les preuves ciblées atteignent `15 passed`, les suites adapters/MCP `63 passed, 12 subtests passed`, et la suite intégrale `529 passed, 43 subtests passed`. La preuve détaillée est `artifacts/m11_af_front_handoff_resume_policy_2026-08-27.md`. La pause M11-B a été levée par une instruction explicite ultérieure du propriétaire.
+
+### 11.3 M11-B — Bundle, restauration et import documentaire : `PASS`
+
+Le Core dispose d’un export ZIP placé sous `.vera-mmu/bundles`, avec manifest JSON canonique, checkpoint WAL, snapshot SQLite, ledger de migrations, inventaire SHA-256 et artefacts runtime. La restauration contrôle l’archive, les hashes, le schéma, l’intégrité SQLite et l’identité de projet avant toute permutation ; une cible non vide est refusée sauf si elle est exactement identique, et un échec de permutation remet en place le runtime antérieur.
+
+L’import de projet est volontairement restreint à une liste explicite de documents réguliers UTF-8 situés dans les racines de workspace. Il relit le preview hashé avant l’écriture, enregistre des knowledge `OBSERVED` uniquement et attache la provenance immuable. Toute fusion de knowledge est refusée, sauf replay exact. Les validations donnent 7 tests M11-B, 54 tests ciblés et `536 passed` en régression intégrale. La preuve détaillée est `artifacts/m11_b_bundle_restore_project_import_2026-08-27.md`.
+
+> **Frontière conservée.** M11-B ne publie pas encore de commande CLI ni d’outil MCP de bundle/import/restore, n’automatise pas l’indexation d’un projet et n’importe aucune source réseau. Ces surfaces restent M11-C et les lots dédiés suivants.

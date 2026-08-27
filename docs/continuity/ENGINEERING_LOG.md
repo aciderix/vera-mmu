@@ -2993,3 +2993,25 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Résultat.** La migration checksummée 039 crée `front_revision` et `handoff` avec FKs, indexes et triggers anti-mutation. `FrontService` écrit des snapshots complets, versionnés, hashés et profile-bound; `HandoffService` lie un Front courant au Resume Dossier vérifié. Le dossier est dérivé des sections de reprise obligatoires et du budget du profil. `require_project_write` charge le catalogue validé avant toute mutation, exige `confirm=True`, refuse `deny` et toute policy invalide/absente, et ne laisse pas `allow` éliminer la confirmation d’une écriture M11-AF.
 **Preuves.** Les scénarios Front/handoff/reprise passent à `15 passed`; les adapters/hooks/MCP qui consomment le dossier passent à `63 passed, 12 subtests passed`; la régression intégrale atteint `529 passed, 43 subtests passed` en 108,67 s. La régression historique 038→039 conserve `project_identity`, atteint le format 39 et exerce les écritures/locks append-only. Le contrôle `git diff --check` ne remonte aucun défaut avant l’index fonctionnel.
 **Verdict.** `M11-AF = PASS` dans son périmètre. La conformité globale demeure `NOT_DONE` : les lots M11-B à M11.EXIT et la campagne d’hôtes réels restent ouverts. Après le push documentaire, l’exécution doit se mettre en pause sans commencer M11-B. Source : `artifacts/m11_af_front_handoff_resume_policy_2026-08-27.md`; mémoire : `MEM-DEC-179`.
+
+
+### LOG-0180 — Verdict M11-B : bundle Core, restauration non fusionnelle et import documentaire
+
+| Champ | Valeur |
+|---|---|
+| Date | 27 août 2026 |
+| Type | `BASELINE` / `RUN` / `EVIDENCE` / `COMPARISON` / `VERDICT` |
+| Baseline | `HEAD = origin/main = merge-base = bb3606ae1ad390cd437e2e89e66d5986bfd67030`, arbre propre, suite initiale `529 passed`. Les dépôts ARET de référence ont été consultés en lecture seule. |
+| Hypothèse | Un mécanisme Core peut exporter/restaurer un snapshot VERA sans fusion, à identité et hashes vérifiés, et importer un ensemble explicite de documents locaux comme observations provenancées, sans connaître ARET ni exécuter de code projet. |
+| Changement minimal | Ajout de `bundles.py` (`BundleService.export`, `restore_bundle`), `project_import.py` (preview/apply documentaire), extension minimale de `project_policy.py` pour vérifier une policy cible avant ouverture/mutation. Aucun changement de migration, CLI, MCP, schéma ou dépôt ARET. |
+| Contrat bundle | ZIP borné, manifest JSON canonique, checkpoint WAL, snapshot SQLite, ledger des migrations, inventaire intégral SHA-256 et artefacts. Les symlinks, doublons ZIP, traversal, tailles excessives, ratios de compression, hash/ledger/SQLite/identité incohérents sont refusés avant mutation. |
+| Contrat restore | `ProjectIdentity`, hash de profil, métadonnées SQLite, intégrité SQLite, clés étrangères et migrations supportées doivent être identiques. Cible mémoire non vide refusée sauf égalité exacte; staging puis rollback du runtime antérieur si la permutation finale échoue. |
+| Contrat import | Le client fournit une liste explicite de documents réguliers UTF-8 situés dans les racines du workspace. Le preview hashé est relu avant commit. Une cible knowledge non vide est refusée, sauf replay exact; les knowledge importées restent `OBSERVED` avec provenance hashée, sans `PROVEN`. |
+| Tests-first | `tests/test_m11b_bundle_project_import.py` : 7 `PASS`, couvrant E2E, altération, identité divergente, non-fusion, replay, confirmation, rollback, symlink et preview périmé. |
+| Régression ciblée | 54 `PASS` en 3,31 s sur M11-B, bootstrap, opérations projet, Front/handoff, resume, ledgers d’import et memory-sync. |
+| Régression complète | `PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m pytest -q` : **536 passed in 52,96 s**. |
+| Contrôles additionnels | `git diff --check` : `PASS`; contrôle lexical ciblé sans `ARET`, `Wine`, `MinGW`, `Ghidra` ou `PE32` dans les nouveaux modules : `PASS`. |
+| Invariants | I003, I010, I011, I013, I014, I015. |
+| Limites | Pas de CLI/MCP publique, pas de Dashboard, pas d’import automatique ou réseau, pas d’import de Git/issues, pas de nouvelle migration ni parité ARET. La surface de transport et l’interface publique restent M11-C. |
+| Verdict | `PASS` pour **M11-B Core**. `IN_PROGRESS` pour M11 et `UNKNOWN` pour la parité ARET exhaustive. |
+| Mémoire liée | `MEM-DEC-180`; artefact `continuity/artifacts/m11_b_bundle_restore_project_import_2026-08-27.md`. |

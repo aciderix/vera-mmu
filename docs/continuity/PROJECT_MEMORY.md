@@ -1263,3 +1263,22 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Décision :** M11-AF est clos à `PASS`; une pause est obligatoire et M11-B ou tout lot suivant est interdit sans instruction explicite du propriétaire.
 **Source :** `artifacts/m11_af_front_handoff_resume_policy_2026-08-27.md`, commit `43e027a`.
 **Journal :** `LOG-0232`.
+
+
+## MEM-DEC-180 — M11-B : bundle Core et import documentaire explicite livrés
+
+**Date :** 2026-08-27
+**Décision :** le lot M11-B est autorisé comme primitive Core project-agnostic, sans publication CLI/MCP dans ce lot. Il ajoute un export ZIP vérifiable, une restauration non fusionnelle liée à `ProjectIdentity`, et un import documentaire local explicite qui crée uniquement des knowledge `OBSERVED` avec provenance hashée.
+
+| Garantie | Décision effective |
+|---|---|
+| Bundle | Manifest JSON canonique, inventaire exhaustif SHA-256, ledger de migrations, checkpoint WAL, snapshot SQLite et artefacts runtime. |
+| Restore | Validation avant mutation : ZIP borné, chemins non ambigus, hashes, intégrité SQLite, clés étrangères, migrations et identité stricte. Cible non vide refusée, sauf égalité exacte idempotente. |
+| Rollback | La permutation du runtime utilise un staging et remet le runtime précédent en place si la permutation finale échoue. |
+| Import existant | Aucun scan automatique ni source réseau. Les documents sont sélectionnés explicitement, relus au moment de l’application et importés dans une mémoire knowledge vide seulement. |
+| Épistémologie | Le statut importé reste `OBSERVED`; aucune promotion, preuve admissible ou vérité de domaine n’est inférée. |
+| Policy | Toute écriture requiert la décision `filesystem.write` et une confirmation explicite. |
+
+**Evidence :** `docs/continuity/artifacts/m11_b_bundle_restore_project_import_2026-08-27.md`; 7 nouveaux tests M11-B, 54 tests ciblés passants, régression intégrale `536 passed`.
+
+**Limite conservée :** les commandes/outils publics `mmu_export_bundle`, `mmu_import_bundle` et `mmu_restore` restent explicitement à réaliser dans M11-C. L’import de projet ne couvre pas encore les documents distants, les exports d’issues, l’historique VCS ou une indexation automatique.
