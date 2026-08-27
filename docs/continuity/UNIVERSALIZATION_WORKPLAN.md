@@ -262,3 +262,13 @@ La CLI `related` et le MCP `mmu_get_related` délèguent au même contrat Core; 
 | `M11-D-D2` — Builder de structure de Gate | `NEXT` | À ouvrir séparément : work-item, evidence principale et exigences exactes avant scellement, avec preview/fraîcheur/confirmation/atomicité et sans policy ni verdict client. |
 
 Le Dashboard global reste `PARTIAL`; l’édition directe du Project Profile demeure `NOT_ELIGIBLE` jusqu’à l’existence d’un protocole durable de rebind profile filesystem + metadata SQLite, rollback et reprise Doctor.
+
+## Addendum de suivi — M11-D-D2 et clôture des builders Gate
+
+| Sous-lot | Statut | Preuve et limite |
+|---|---|---|
+| `M11-D-D2` — Builder Dashboard de structure Gate | `PASS` dans le périmètre borné | Création atomique d’une Gate avec work-item/evidence principale/exigences existants, preview hashé, fraîcheur et confirmation. `589 passed`, build React et tests Tauri passants. Aucune policy, admission, evidence, exécution ou verdict client. |
+| `M11-D` — Dashboard configurateur | `PARTIAL_PASS` | D-A (état dérivé), D-C (capability), D-D1 (policy Gate) et D-D2 (structure Gate) sont livrés. Le Dashboard reste incomplet tant que le Profile n’a pas un rebind durable testable. |
+| `M11-D-B` — Project Profile | `NOT_ELIGIBLE` | Une édition directe reste interdite : il faut un protocole atomique profile filesystem + identité metadata SQLite, rollback, reprise Doctor et tests de crash/reprise avant toute exposition UI. |
+
+La clôture de ce lot ne vaut ni Dashboard global complet, ni modification de Profile, ni automatisation de verdict/admission, ni preuve d’hôte réel ou de parité ARET.

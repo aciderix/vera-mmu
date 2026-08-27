@@ -1567,3 +1567,11 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 |---|---|---|---|---|---|
 | `MEM-DEC-196` | Dashboard / Gate policy | Le Dashboard peut préparer puis appliquer, après confirmation et contrôle de fraîcheur, une déclaration de policy sur une Gate déjà existante. Les valeurs de `mode` sont fermées à `ALL`, `ANY`, `AT_LEAST`; `minimum_admissions` est nul pour `ALL`/`ANY` et entier borné pour `AT_LEAST`. | `OBSERVED` | `gate_policy_builder.py`, bridge nonce-scoped, façade Tauri/UI et artefact M11-D-D1 ; 576 tests Python passants. | `LOG-0253` |
 | `MEM-DEC-197` | Limite M11-D-D1 | Le lot ne crée pas de Gate structurelle, ne modifie ni exigences ni profil, ne produit aucun verdict, admission ou evidence, et ne permet aucune modification de policy après scellement. L’évaluation demeure exclusivement dans le Core à partir des admissions persistées. | `DECISION` | Contrat M11-D-D1 et artefact de preuve. | `LOG-0253` |
+
+
+## Addendum — M11-D-D2 Dashboard Gate Structure Builder
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-198` | Dashboard / Gate structure | Le Dashboard peut préparer puis déclarer une structure Gate nouvelle à partir d’un work-item, d’une evidence principale et d’exigences exactes déjà persistées. Le preview est non mutateur et hashé; son application requiert confirmation et fraîcheur. La primitive `GateService.declare_with_requirements` assure une transaction SQLite unique pour la Gate et toutes ses exigences. | `OBSERVED` | `gate_structure_builder.py`, `gates.py`, bridge nonce-scoped, façade Tauri/UI, tests M11-D-D2 et artefact dédié ; 589 tests Python passants. | `LOG-0254` |
+| `MEM-DEC-199` | Limite M11-D-D2 | La structure ne crée ni work-item ni evidence, ne déclare aucune policy, ne produit ni admission ni verdict, et ne permet aucune modification après scellement par policy. Elle ne confère aucune capacité de runner, shell, réseau ou concept ARET. | `DECISION` | Contrat et tests M11-D-D2. | `LOG-0254` |

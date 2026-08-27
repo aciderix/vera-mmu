@@ -3237,3 +3237,15 @@ Le Core ajoute un preview de déclaration de policy de Gate, hashé contre les e
 Les validations observées sont : tests ciblés Core/bridge `19 passed in 1.41s`, build React PASS, tests Tauri natifs `2 passed in 0.10s`, régression Python intégrale `576 passed in 66.88s`. L’artefact est `docs/continuity/artifacts/m11_dd1_dashboard_gate_policy_builder_2026-08-27.md`.
 
 **Exclusions vérifiées :** ce lot ne crée aucune Gate structurelle, ne modifie aucune exigence, ne collecte ni evidence ni admission, ne produit aucun verdict et ne permet pas de changer une policy après scellement. Il n’ajoute aucun concept ARET au Core ni shell, processus ou réseau au builder.
+
+## LOG-0254 — M11-D-D2 : Dashboard Gate Structure Builder
+
+**Statut : PASS dans le périmètre explicitement borné.**
+
+Le Dashboard propose un preview non mutateur de structure Gate : `gate_id`, `work_item_id`, evidence principale et exigences exactes. Le bridge exige l’enveloppe authentifiée, les champs fermés et le cache de preview lié au nonce; l’application exige confirmation et rejettera un snapshot modifié ou périmé.
+
+Le Core fournit `GateService.declare_with_requirements`, qui valide work-item et evidences existants, interdit les doublons et inscrit la Gate ainsi que toutes les exigences dans une transaction SQLite unique. Aucune Gate partielle ne peut persister après une erreur.
+
+Les validations observées sont : ciblés Core/bridge `26 passed in 1.78s`, build React PASS, tests Tauri natifs `2 passed in 0.10s`, régression Python intégrale `589 passed in 64.46s`, `git diff --check` PASS et scan de frontière PASS.
+
+**Exclusions vérifiées :** aucune admission, evidence, exécution, verdict ou évaluation n’est créable depuis le Dashboard. Le lot n’édite pas les exigences après déclaration de policy et n’ajoute aucun concept ARET, shell, processus ou réseau au Core.
