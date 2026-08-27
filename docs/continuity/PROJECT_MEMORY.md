@@ -1078,3 +1078,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Motif :** Distinguer l’échec localisé de préparation de ressource d’un résultat de portabilité Windows. Une build arrêtée avant bundling n’est ni une preuve ni une réfutation de l’application Windows.
 **Provenance :** Run GitHub Actions `33059519088`, job Windows `98474533553`; builds React/Rust Linux locaux et hashes de `icon.ico`/`icon.png`. Voir `LOG-0210`.
 **Journal :** `LOG-0210`.
+
+### MEM-DEC-158 — M7-D : ICO Windows explicitement déclaré pour NSIS et MSI
+**Type :** `OBSERVATION`
+**Statut :** NSIS `OBSERVED` par le runner Windows ; MSI `NOT_RUN` après refus de configuration identifié
+**Décision :** Le run `33060333681` prouve que le runner Windows construit le sidecar et atteint le bundling : NSIS est produit après ajout de `icon.ico`. Le bundler MSI refuse ensuite « Couldn’t find a .ico icon » car la configuration ne déclarait que le PNG. `tauri.conf.json` déclare désormais explicitement `icons/icon.png` et `icons/icon.ico`; aucune autre capacité desktop n’est modifiée.
+**Provenance :** Run `33060333681`, job Windows `98477237293`; build Debian local validé après la modification. Voir `LOG-0211`.
+**Limites :** L’artefact NSIS du run partiellement échoué n’est pas téléversé comme artefact de workflow. MSI et la matrice Windows totalement verte restent `NOT_RUN` jusqu’au run suivant.
+**Journal :** `LOG-0211`.

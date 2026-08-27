@@ -2830,3 +2830,10 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Correction.** `pnpm tauri icon` a généré `apps/desktop/src-tauri/icons/icon.ico` depuis le symbole PNG VERA. Les variantes inutiles ont été retirées ; seuls PNG et ICO sont conservés. Le builder sidecar Linux, le build React, les tests Rust et la compilation release locale passent après ce changement.
 **Verdict.** `PASS` pour le diagnostic et la correction minimale ; `NOT_RUN` pour NSIS/MSI jusqu’à une nouvelle exécution CI native Windows.
 **Suite.** Commiter l’icône et cette continuité, appliquer la garde de divergence, pousser, puis inspecter les artefacts Windows/Linux du prochain run sans publier de release.
+
+## LOG-0211 — 2026-08-27 — M7-D : refus MSI sur déclaration ICO et correctif de configuration
+**Observation.** Le run `33060333681` passe sous Linux x64. Sous Windows, après construction du sidecar et de l’exécutable Tauri, NSIS produit `VERA-MMU_0.1.0_x64-setup.exe`. Le même job échoue ensuite durant le bundle MSI avec `Couldn't find a .ico icon`.
+**Cause observée.** L’ICO existe et permet la ressource de l’exécutable/NSIS, mais la liste `bundle.icon` de `tauri.conf.json` ne contenait que `icons/icon.png`. Le bundler WiX/MSI requiert une ICO explicitement déclarée.
+**Correction.** `tauri.conf.json` inclut désormais les deux formats, PNG et ICO. Le builder sidecar Linux, le build React et le bundle Debian local passent après cette modification. Aucun chemin de bridge, accès WebView, policy Git ou configuration MCP n’est touché.
+**Verdict.** `PASS` pour le diagnostic et correctif de configuration ; `NOT_RUN` pour MSI/NSIS de la matrice suivante.
+**Suite.** Créer les commits fonctionnel et documentaire, vérifier la divergence, pousser et observer le run Windows/Linux suivant sans release ni publication GitHub Pages.
