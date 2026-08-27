@@ -16,10 +16,11 @@ from .workspace import Workspace
 
 PROJECT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,63}$")
 DECLARATION_ID_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
-RESUME_SECTION_ID_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+RESUME_SECTION_ID_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
+FRONT_FIELD_ID_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 CORE_KNOWLEDGE_TYPES = ("RULE", "DECISION", "OBSERVATION", "HYPOTHESIS", "STATE", "MEASUREMENT", "DISCOVERY", "ARCHITECTURE")
 CORE_RELATION_TYPES = ("VERIFIED_BY", "SUPERSEDES", "INFORMED_BY", "BLOCKED_BY", "IMPLEMENTS", "DERIVED_FROM", "CONCERNS", "APPLIES_TO", "CAUSED_BY", "EVOLVES_TO")
-DEFAULT_RESUME_SECTIONS = ("rules", "current_state", "validated_facts", "risks", "next_action")
+DEFAULT_RESUME_SECTIONS = ("working-rules", "current-state")
 DEFAULT_FRONT_FIELDS = ("active_goal", "current_work", "validated_facts", "blockers", "risks", "next_action")
 
 
@@ -135,7 +136,7 @@ def _require_resume(value: Any) -> dict[str, Any]:
     ids: set[str] = set()
     for index, item in enumerate(raw_sections):
         source_item = {"id": item, "required": True} if isinstance(item, str) else _require_mapping(item, f"resume.sections[{index}]")
-        section_id = _require_string(source_item, "id", f"resume.sections[{index}]")
+        section_id = _require_string(source_item, "id", f"resume.sections[{index}]").replace("_", "-")
         if RESUME_SECTION_ID_RE.fullmatch(section_id) is None:
             raise ProfileError(f"resume.sections[{index}].id doit être un identifiant de section valide.")
         if section_id in ids:
@@ -153,7 +154,7 @@ def _require_front(value: Any) -> dict[str, Any]:
         raise ProfileError("front.fields doit être une liste non vide.")
     fields: list[str] = []
     for index, item in enumerate(raw_fields):
-        if not isinstance(item, str) or RESUME_SECTION_ID_RE.fullmatch(item.strip()) is None:
+        if not isinstance(item, str) or FRONT_FIELD_ID_RE.fullmatch(item.strip()) is None:
             raise ProfileError(f"front.fields[{index}] doit être un identifiant de champ valide.")
         field = item.strip()
         if field in fields:

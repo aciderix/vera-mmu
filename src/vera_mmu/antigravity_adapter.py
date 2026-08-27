@@ -19,6 +19,7 @@ from .mcp_instructions import MCPInstructions, compile_mcp_instructions
 from .mcp_integration import MCPIntegration, compile_mcp_integration
 from .mcp_manifest import MCPManifest, compile_mcp_manifest, verify_mcp_manifest
 from .mcp_server import DenyRuntimeAdapter, create_server
+from .profile_resume import compile_profile_resume_dossier, profile_resume_sections
 from .session_lifecycle import GuardDecision, ResumeDossierService, ResumeGuardService, ResumeSectionRequirement
 from .store import MemoryStore, StoreError
 
@@ -212,7 +213,7 @@ def _cwd(s:MemoryStore,v:object)->None:
     if not isinstance(v,str) or not v:raise AntigravityAdapterError("Répertoire Antigravity absent.")
     try:Path(v).resolve(strict=False).relative_to(s.workspace.project_root.resolve(strict=False))
     except ValueError as exc:raise AntigravityAdapterError("Répertoire Antigravity hors projet.") from exc
-def _dossier(s:MemoryStore):return ResumeDossierService(s).compile((ResumeSectionRequirement("working-rules",12,512),ResumeSectionRequirement("current-state",12,512)),{"working-rules":"Mesurer les faits avant toute conclusion.","current-state":"La garde Antigravity attend un acquittement."})
+def _dossier(s:MemoryStore):return compile_profile_resume_dossier(s,profile_resume_sections(s,"La garde Antigravity attend un acquittement avant toute action contrôlée."))
 def _ack_tools(s:MemoryStore)->frozenset[str]:return frozenset(("mmu_acknowledge_resume",f"mcp_vera-mmu-{s.identity.project_id}_mmu_acknowledge_resume"))
 def _deny(s:MemoryStore)->dict[str,str]:
     rows=s.connection.execute("SELECT capability_id FROM capability_policy WHERE decision = 'ALLOW' ORDER BY capability_id").fetchall();v={str(r["capability_id"]):"antigravity-deny-v1" for r in rows}

@@ -21,6 +21,7 @@ from .mcp_instructions import MCPInstructions, MCPInstructionsError, compile_mcp
 from .mcp_integration import MCPIntegration, MCPIntegrationError, compile_mcp_integration
 from .mcp_manifest import MCPManifest, MCPManifestError, compile_mcp_manifest, verify_mcp_manifest
 from .mcp_server import DenyRuntimeAdapter, create_server
+from .profile_resume import compile_profile_resume_dossier, profile_resume_sections
 from .session_lifecycle import GuardDecision, ResumeDossierService, ResumeGuardService, ResumeSectionRequirement
 from .store import MemoryStore, StoreError
 
@@ -272,7 +273,7 @@ def _cwd(store:MemoryStore,value:object)->None:
     if not isinstance(value,str) or not value:raise GeminiAdapterError("Répertoire courant Gemini absent.")
     try:Path(value).resolve(strict=False).relative_to(store.workspace.project_root.resolve(strict=False))
     except ValueError as exc:raise GeminiAdapterError("Répertoire Gemini hors projet.") from exc
-def _dossier(store:MemoryStore):return ResumeDossierService(store).compile((ResumeSectionRequirement("working-rules",12,512),ResumeSectionRequirement("current-state",12,512)),{"working-rules":"Mesurer les faits avant toute conclusion.","current-state":"La garde Gemini attend un acquittement."})
+def _dossier(store:MemoryStore):return compile_profile_resume_dossier(store,profile_resume_sections(store,"La garde Gemini attend un acquittement avant toute action contrôlée."))
 def _ack_tools(store:MemoryStore)->frozenset[str]:return frozenset(("mmu_acknowledge_resume",f"mcp_vera-mmu-{store.identity.project_id}_mmu_acknowledge_resume"))
 def _deny_bindings(store:MemoryStore)->dict[str,str]:
     rows=store.connection.execute("SELECT capability_id FROM capability_policy WHERE decision = 'ALLOW' ORDER BY capability_id").fetchall(); value={str(r["capability_id"]):"gemini-deny-v1" for r in rows}

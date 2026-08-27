@@ -24,6 +24,7 @@ from .mcp_instructions import MCPInstructions, MCPInstructionsError, compile_mcp
 from .mcp_integration import MCPIntegration, MCPIntegrationError, compile_mcp_integration
 from .mcp_manifest import MCPManifest, MCPManifestError, compile_mcp_manifest, verify_mcp_manifest
 from .mcp_server import DenyRuntimeAdapter, create_server
+from .profile_resume import compile_profile_resume_dossier, profile_resume_sections
 from .session_lifecycle import GuardDecision, ResumeDossierService, ResumeGuardService, ResumeSectionRequirement
 from .store import MemoryStore, StoreError
 
@@ -728,10 +729,7 @@ def _release_codex_session(store: MemoryStore, session_id: str) -> None:
 
 
 def _compile_codex_dossier(store: MemoryStore):
-    return ResumeDossierService(store).compile(
-        (ResumeSectionRequirement("working-rules", 12, 512), ResumeSectionRequirement("current-state", 12, 512)),
-        {"working-rules": "Mesurer les faits avant toute conclusion.", "current-state": "La garde Codex attend un acquittement."},
-    )
+    return compile_profile_resume_dossier(store, profile_resume_sections(store, "La garde Codex attend un acquittement avant toute action contrôlée."))
 
 
 def _acknowledgement_tool_names(store: MemoryStore) -> frozenset[str]:

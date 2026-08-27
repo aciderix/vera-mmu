@@ -92,15 +92,15 @@ identity:
 resume:
   template: engineering
   sections:
-    - id: rules
+    - id: working-rules
       required: true
-    - id: current_state
+    - id: current-state
       required: true
-    - id: validated_facts
+    - id: validated-facts
       required: true
     - id: risks
       required: true
-    - id: next_action
+    - id: next-action
       required: true
 front:
   fields: [active_goal, current_work, validated_facts, blockers, risks, next_action]
