@@ -3039,3 +3039,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** Les contrats nouveaux passent à `2 passed` en 2,03 s; la cible CLI/MCP/manifeste/stdio/lifecycle atteint `17 passed` en 15,27 s. La régression complète atteint **`538 passed in 58.99s`**. Les assertions couvrent confirmation, confinement de sortie, absence de `path` dans l’export MCP, preview sans contenu, hash de preview, statut `OBSERVED`, manifest canonique et non-régression stdio.
 
 **Verdict.** `M11-C.1 = PASS`; `M11-C global = IN_PROGRESS`. Doctor composite, API universelle de lecture/boot, commandes restantes, Dashboard et intégrations de production ne sont pas déduits de cette tranche. Artefact : `artifacts/m11_c1_public_bundle_import_transport_2026-08-27.md`; mémoire : `MEM-DEC-181`.
+
+
+### LOG-0234 — Commit local M11-C.1
+
+| Champ | Valeur |
+|---|---|
+| Commit | `85c59aa77750115049b43f491f1568589b656322` — `feat: expose verified bundle import transports`. |
+| Contenu | CLI bundle-export/bundle-restore/project-import, trois outils MCP bornés, manifeste canonique étendu, contrats stdio/CLI et artefact M11-C.1. |
+| Validation liée | Ciblé : `17 passed in 15.27s`; intégral : `538 passed in 58.99s`; `git diff --check` et scan lexical de frontière : `PASS`. |
+| Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
+| Statut | `PASS` pour l’enregistrement local de M11-C.1; M11-C global reste `IN_PROGRESS`. |
