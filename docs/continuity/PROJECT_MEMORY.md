@@ -1177,3 +1177,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Artefacts :** Linux `9645991442` (214 368 098 octets) et Windows `9646108111` (89 111 512 octets), CI-only, non expirés et non signés.
 **Limites :** Ce run a été déclenché manuellement sur `b5b41b9`, pas par tag. Un téléchargement local Linux a échoué par `unexpected EOF` avant toute inspection/exécution. Le run issu du tag exact devra être récupéré et ses SHA-256 validés avant publication.
 **Journal :** `LOG-0222`.
+
+### MEM-DEC-170 — M9-C : identité de préversion alignée avant tag
+**Type :** `OBSERVATION`
+**Statut :** `PASS` local ; tag/release `PENDING`
+**Décision :** La préversion publique non signée utilise le tag `v0.1.0-rc.1`. Les manifestes npm, Cargo et Tauri portent `0.1.0-rc.1`; `pyproject.toml` porte sa forme PEP 440 `0.1.0rc1`. Le builder convertit seulement cette représentation normative avant d’imposer l’identité de release unique.
+**Validation :** tests builder/assembleur puis suite `510 passed, 43 subtests passed`; `pnpm build` réussi ; `cargo check --offline`, puis `cargo check --locked` réussis après mise à jour uniquement de la version package dans `Cargo.lock`.
+**Limites :** Aucun tag, asset de release, signature, installation utilisateur ou hôte agent réel n’est produit par ce gel de version.
+**Journal :** `LOG-0223`.

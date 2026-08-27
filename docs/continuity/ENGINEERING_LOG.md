@@ -2917,3 +2917,10 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Contrôle local.** Le transfert passif de l’archive Linux a échoué par EOF imprévu avant son extraction ; aucun binaire CI n’a été exécuté. Les preuves du job suffisent au statut CI, mais ne remplacent pas la vérification de checksums qui devra être réalisée sur les artefacts du tag exact.
 **Verdict.** `PASS` pour M9-B : la chaîne non signante est prête et exécutée nativement. `NOT_RUN` pour tag, signature, GitHub Release, téléchargement officiel, installation utilisateur et agents réels.
 **Suite.** Commiter/publier ce record. Demander confirmation exacte avant de créer `v0.1.0-rc.1`, effectuer le run de tag et, faute de clés de signature disponibles, ne publier aucun binaire à ce stade.
+
+## LOG-0223 — 2026-08-27 — M9-C : version `v0.1.0-rc.1` cohérente et vérifiée
+**Problème prévenu.** Le tag `v0.1.0-rc.1` et les manifestes précédents `0.1.0` auraient produit une identité ambiguë : PyPI/packaging Python impose une forme PEP 440, alors que Tauri/Cargo/npm acceptent SemVer prérelease.
+**Correction.** Les manifestes desktop sont alignés sur `0.1.0-rc.1`, `pyproject.toml` sur `0.1.0rc1`, et le builder convertit explicitement cette seule forme Python vers la représentation release avant son contrôle d’égalité. `Cargo.lock` ne change que la version du package local.
+**Validation.** Les tests builder/assembleur et la suite complète passent (`510 passed, 43 subtests passed`). Le frontend passe `pnpm build`; Rust passe `cargo check --offline` puis `cargo check --locked`. Le premier check verrouillé avait correctement refusé le lock obsolète, mis à jour hors réseau avant revalidation.
+**Verdict.** `PASS` pour l’identité de préversion. Tag, run déclenché par tag, signature, GitHub Release, installation utilisateur et agents réels restent `NOT_RUN`.
+**Suite.** Publier cette cohérence, puis créer le tag annoté autorisé et n’attacher des artefacts non signés qu’après la matrice de ce tag exact.

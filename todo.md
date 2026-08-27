@@ -25,3 +25,6 @@
 - [ ] Préparer la configuration de signature hors dépôt et vérifier les binaires signés Windows/Linux avant toute publication GitHub Release.
 - [ ] Créer et publier la préversion `v0.1.0-rc.1` seulement après la confirmation explicite de l’opération publique, avec notes, hashes et signatures vérifiées.
 - [x] Versionner Apache-2.0, NOTICE, DCO, politique de marque, README de préversion et workflow de candidat par tag non signant.
+- [ ] Publier exceptionnellement `v0.1.0-rc.1` comme préversion gratuite non signée, après run de tag vert, avec hashes/manifests et avertissement d’éditeur non vérifié.
+- [ ] Conserver la signature Authenticode Windows et la signature Linux comme prérequis de toute diffusion stable ou élargie ultérieure.
+- [x] Aligner les manifestes de préversion sur `v0.1.0-rc.1` (forme PEP 440 `0.1.0rc1` pour Python) et valider Python, frontend et Rust verrouillé.
