@@ -143,6 +143,37 @@ class DesktopBridgeTests(unittest.TestCase):
             with MemoryStore.open(load_profile(profile), profile) as store:
                 self.assertEqual(store.metadata()["project_identity"], store.identity.as_dict())
 
+    def test_m11d_doctor_recovery_requires_closed_preview_and_confirmation(self) -> None:
+        from unittest.mock import patch
+        from vera_mmu.identity import load_profile
+        from vera_mmu.profile_rebind import apply_project_profile_rebind, preview_project_profile_rebind
+        from vera_mmu.store import MemoryStore
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            init = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "recovery-profile", "projectName": "Recovery profile"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": init["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+            profile = root / ".vera-mmu" / "project.yaml"
+            with MemoryStore.open(load_profile(profile), profile):
+                pass
+            preview = preview_project_profile_rebind(profile, project_name="Interrupted profile", project_description="Interrupted deliberately")
+            with patch("vera_mmu.profile_rebind._write_atomic", side_effect=OSError("simulated interruption")):
+                with self.assertRaises(OSError):
+                    apply_project_profile_rebind(profile, preview, confirm=True)
+            injected = self._call(bridge, "profile.rebind.recovery.preview", {"previewHash": "untrusted"})
+            self.assertFalse(injected["ok"])
+            self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            recovery = self._call(bridge, "profile.rebind.recovery.preview", {})
+            self.assertTrue(recovery["ok"])
+            recovery_hash = recovery["result"]["preview_hash"]  # type: ignore[index]
+            refused = self._call(bridge, "profile.rebind.recovery.apply", {"previewHash": recovery_hash, "confirm": False})
+            self.assertFalse(refused["ok"])
+            self.assertEqual(refused["error"]["code"], "CONFIRMATION_REQUIRED")  # type: ignore[index]
+            recovered = self._call(bridge, "profile.rebind.recovery.apply", {"previewHash": recovery_hash, "confirm": True})
+            self.assertTrue(recovered["ok"])
+            self.assertEqual(recovered["result"]["status"], "RECOVERED")  # type: ignore[index]
+
     def test_m11dc_capability_builder_requires_closed_preview_and_confirmation(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
