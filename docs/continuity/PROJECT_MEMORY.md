@@ -1449,3 +1449,22 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_o_bounded_evidence_history_2026-08-27.md`; contrat `13 passed`, cible `27 passed`, régression intégrale `557 passed in 67.38s`.
 
 **Limites conservées :** pas de recherche, filtre, pagination, contenu de preuve, export, reprise/session, mutation ou compatibilité `mmu://`.
+
+
+## MEM-DEC-190 — M11-E : rapport de couverture dérivé
+
+**Date :** 2026-08-27
+**Décision :** compiler un rapport déterministe de couverture publique depuis les contrats statiques Core/MCP, plutôt que maintenir manuellement un inventaire de surface ou inférer une parité de domaines et d’hôtes.
+
+| Garantie | Décision effective |
+|---|---|
+| Source | Identité du store, `TOOL_NAMES`, types FIND/READ et bornes d’historique seulement; aucun scan workspace ou profile brut. |
+| Format | `vera-coverage-report/v1`, hashé par la sérialisation canonique de sa projection. |
+| Confidentialité | Aucun chemin local, profile source, secret, donnée métier, execution/evidence persistée ou état de session n’est rendu. |
+| Transparence | Dashboard, génération documentaire d’écriture, alias `mmu://`, VCS multi-provider, migration/parité ARET et preuve hôte sont explicitement déclarés hors couverture. |
+| Transports | CLI `coverage` et MCP `mmu_get_coverage_report` délèguent au même compilateur; le tool MCP n’a aucune entrée et appartient au manifeste hashé. |
+| Non-mutation | Aucune transaction, audit, sync, génération de fichier ou installation ne se produit. |
+
+**Evidence :** `docs/continuity/artifacts/m11_e_derived_coverage_report_2026-08-27.md`; contrat `14 passed`, régression intégrale `559 passed in 71.67s`.
+
+**Limites conservées :** ce rapport ne réalise pas les six documents dérivés complets de la spécification, ne fournit pas de pourcentage métier, et ne prouve ni hôte réel, VCS, compatibilité `mmu://` ni parité ARET.

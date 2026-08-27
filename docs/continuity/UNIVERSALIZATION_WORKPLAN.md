@@ -168,7 +168,7 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Historique d’executions compact et borné | `PASS` dans le périmètre M11-N | M11-N clos ; filtres, pagination, payloads et reprise → lots dédiés |
 | Historique d’evidences compact et borné | `PASS` dans le périmètre M11-O | M11-O clos ; filtres, pagination, contenu de preuve et reprise → lots dédiés |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
-| Documentation dérivée et rapport coverage | `MISSING` | M11-E |
+| Rapport de couverture dérivé (Core/CLI/MCP) | `PASS` dans le périmètre M11-E | Rapport M11-E clos ; générateurs `MMU_SETUP`/`TOOLS`/`GATES`/`POLICIES`/`ARCHITECTURE`/`MAINTENANCE` restent ouverts |
 | Adresse/compatibilité/VCS | `PARTIAL` | M11-F |
 | Migration et parité ARET | `PARTIAL` / `NOT_ELIGIBLE` | M11-G |
 | Hôtes agents réels | `NOT_PROVEN` | Campagne distincte, après autorisation et gates requises |

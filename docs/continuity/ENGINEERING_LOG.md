@@ -3173,3 +3173,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** La fixture crée trois executions et evidences par les services canoniques, puis contrôle ordre, borne, adresses project-bound, projection sans contenu/acteur, refus des bornes invalides et absence d’audit. Elle appelle la CLI et le serveur/client MCP stdio; le schema MCP est `{max_items}` et une borne 101 est refusée. Contrat : `13 passed in 15.61s`; cible evidence/lecture/CLI/MCP : `27 passed in 17.87s`; intégral : **`557 passed in 67.38s`**.
 
 **Verdict.** `M11-O = PASS`. Aucun filtre, recherche, pagination, contenu d’evidence, session de reprise, mutation, admission, proof, gate ou sync n’est ajouté. Artefact : `artifacts/m11_o_bounded_evidence_history_2026-08-27.md`; mémoire : `MEM-DEC-189`.
+
+
+## LOG-0247 — 2026-08-27 — M11-E : rapport de couverture dérivé
+
+**Résultat.** `compile_coverage_report` produit une projection `vera-coverage-report/v1` déterministe et hashée depuis l’identité du store, le manifeste MCP fermé, les ressources FIND/READ et les bornes d’historique. CLI `coverage` et MCP `mmu_get_coverage_report` exposent la même vue; le tool MCP est sans argument et appartient au manifeste hashé.
+
+**Preuves.** Le contrat vérifie déterminisme, identité project-bound, surfaces symbol/historiques, liste FIND, absence de chemins workspace/profile et absence d’audit. CLI et MCP stdio sont exécutés réellement; le schéma du tool MCP est vide. Contrat : `14 passed in 16.88s`; intégral : **`559 passed in 71.67s`**.
+
+**Verdict.** `M11-E = PASS` pour le rapport de couverture public limité. Les générateurs documentaires complets, pourcentages métier, hôtes réels, alias `mmu://`, VCS et parité ARET ne sont pas livrés ni déclarés couverts. Artefact : `artifacts/m11_e_derived_coverage_report_2026-08-27.md`; mémoire : `MEM-DEC-190`.
