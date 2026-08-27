@@ -150,8 +150,8 @@ fn scan_project(state: State<'_, AppState>) -> Result<Value, String> { with_brid
 fn project_status(state: State<'_, AppState>) -> Result<Value, String> { with_bridge(&state, |bridge| bridge.call("project.status", json!({}))) }
 
 #[tauri::command]
-fn profile_rebind_preview(state: State<'_, AppState>, project_name: String, project_description: String) -> Result<Value, String> {
-    with_bridge(&state, |bridge| bridge.call("profile.rebind.preview", json!({"projectName": project_name, "projectDescription": project_description})))
+fn profile_rebind_preview(state: State<'_, AppState>, project_id: String, project_name: String, project_domain: String, project_description: String) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("profile.rebind.preview", json!({"projectId": project_id, "projectName": project_name, "projectDomain": project_domain, "projectDescription": project_description})))
 }
 
 #[tauri::command]

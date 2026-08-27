@@ -28,12 +28,14 @@ class ProjectProfileRebindPreview:
     new_profile_hash: str
     old_identity: dict[str, str]
     new_identity: dict[str, str]
+    project_id: str
     project_name: str
+    project_domain: str
     project_description: str
     preview_hash: str
 
     def as_dict(self) -> dict[str, object]:
-        return {"format": "vera-profile-rebind/v1", "profile_path": self.profile_path, "old_profile_hash": self.old_profile_hash, "new_profile_hash": self.new_profile_hash, "old_identity": self.old_identity, "new_identity": self.new_identity, "project_name": self.project_name, "project_description": self.project_description, "preview_hash": self.preview_hash, "status": "PREVIEW"}
+        return {"format": "vera-profile-rebind/v1", "profile_path": self.profile_path, "old_profile_hash": self.old_profile_hash, "new_profile_hash": self.new_profile_hash, "old_identity": self.old_identity, "new_identity": self.new_identity, "project_id": self.project_id, "project_name": self.project_name, "project_domain": self.project_domain, "project_description": self.project_description, "preview_hash": self.preview_hash, "status": "PREVIEW"}
 
 
 def _profile_path(value: str | Path) -> Path:
@@ -43,7 +45,7 @@ def _profile_path(value: str | Path) -> Path:
     return path.resolve(strict=True)
 
 
-def _candidate(path: Path, *, project_name: str, project_description: str) -> tuple[dict[str, Any], str]:
+def _candidate(path: Path, *, project_id: str | None, project_name: str, project_domain: str | None, project_description: str) -> tuple[dict[str, Any], str]:
     if not isinstance(project_name, str) or not project_name.strip() or len(project_name) > 160:
         raise ProfileRebindError("Nom de projet invalide.")
     if not isinstance(project_description, str) or len(project_description) > 2000:
@@ -52,24 +54,29 @@ def _candidate(path: Path, *, project_name: str, project_description: str) -> tu
     project = profile.get("project")
     if not isinstance(project, dict):
         raise ProfileRebindError("Section project invalide.")
+    if project_id is not None:
+        project["id"] = project_id
     project["name"] = project_name.strip()
+    if project_domain is not None:
+        project["domain"] = project_domain
     project["description"] = project_description
     content = yaml.safe_dump(profile, allow_unicode=True, default_flow_style=False, sort_keys=False)
     return profile, content
 
 
-def preview_project_profile_rebind(profile_path: str | Path, *, project_name: str, project_description: str) -> ProjectProfileRebindPreview:
+def preview_project_profile_rebind(profile_path: str | Path, *, project_name: str, project_description: str, project_id: str | None = None, project_domain: str | None = None) -> ProjectProfileRebindPreview:
     path = _profile_path(profile_path)
     old_content = path.read_text(encoding="utf-8")
     old_profile = load_profile(path)
     workspace = resolve_workspace(old_profile, path)
     old_identity = project_identity(old_profile, workspace)
-    new_profile, new_content = _candidate(path, project_name=project_name, project_description=project_description)
+    new_profile, new_content = _candidate(path, project_id=project_id, project_name=project_name, project_domain=project_domain, project_description=project_description)
     new_identity = project_identity(new_profile, resolve_workspace(new_profile, path))
     old_hash = sha256(old_content.encode()).hexdigest()
     new_hash = sha256(new_content.encode()).hexdigest()
     payload = {"profile_path": str(path), "old_profile_hash": old_hash, "new_profile_hash": new_hash, "old_identity": old_identity.as_dict(), "new_identity": new_identity.as_dict()}
-    return ProjectProfileRebindPreview(str(path), old_hash, new_hash, old_identity.as_dict(), new_identity.as_dict(), project_name.strip(), project_description, sha256(canonical_json(payload).encode()).hexdigest())
+    normalized_project = new_profile["project"]
+    return ProjectProfileRebindPreview(str(path), old_hash, new_hash, old_identity.as_dict(), new_identity.as_dict(), str(normalized_project["id"]), project_name.strip(), str(normalized_project["domain"]), project_description, sha256(canonical_json(payload).encode()).hexdigest())
 
 
 def _write_atomic(path: Path, content: str, prefix: str) -> None:
@@ -94,10 +101,10 @@ def apply_project_profile_rebind(profile_path: str | Path, preview: ProjectProfi
     path = _profile_path(profile_path)
     if not isinstance(preview, ProjectProfileRebindPreview) or preview.profile_path != str(path):
         raise ProfileRebindError("Preview de rebind invalide ou lié à un autre profil.")
-    current = preview_project_profile_rebind(path, project_name=preview.project_name, project_description=preview.project_description)
+    current = preview_project_profile_rebind(path, project_id=preview.project_id, project_name=preview.project_name, project_domain=preview.project_domain, project_description=preview.project_description)
     if current != preview:
         raise ProfileRebindError("Preview de rebind altéré ou périmé.")
-    new_profile, new_content = _candidate(path, project_name=preview.project_name, project_description=preview.project_description)
+    new_profile, new_content = _candidate(path, project_id=preview.project_id, project_name=preview.project_name, project_domain=preview.project_domain, project_description=preview.project_description)
     backup = path.parent / f".profile-rebind-{preview.preview_hash}.backup"
     journal = path.parent / f".profile-rebind-{preview.preview_hash}.json"
     if backup.exists() or journal.exists():

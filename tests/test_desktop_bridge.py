@@ -128,10 +128,10 @@ class DesktopBridgeTests(unittest.TestCase):
             profile = root / ".vera-mmu" / "project.yaml"
             with MemoryStore.open(load_profile(profile), profile):
                 pass
-            injected = self._call(bridge, "profile.rebind.preview", {"projectName": "Rebound profile", "projectDescription": "Confirmed rebind", "projectId": "unsafe"})
+            injected = self._call(bridge, "profile.rebind.preview", {"projectId": "profile-rebind", "projectName": "Rebound profile", "projectDomain": "software", "projectDescription": "Confirmed rebind", "storage": "unsafe"})
             self.assertFalse(injected["ok"])
             self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
-            preview = self._call(bridge, "profile.rebind.preview", {"projectName": "Rebound profile", "projectDescription": "Confirmed rebind"})
+            preview = self._call(bridge, "profile.rebind.preview", {"projectId": "profile-rebind-next", "projectName": "Rebound profile", "projectDomain": "documentation", "projectDescription": "Confirmed rebind"})
             self.assertTrue(preview["ok"])
             preview_hash = preview["result"]["preview_hash"]  # type: ignore[index]
             refused = self._call(bridge, "profile.rebind.apply", {"previewHash": preview_hash, "confirm": False})

@@ -7,8 +7,8 @@ export const desktopApi = {
   selectProject: () => invoke<JsonObject>("select_project"),
   scanProject: () => invoke<JsonObject>("scan_project"),
   projectStatus: () => invoke<JsonObject>("project_status"),
-  profileRebindPreview: (projectName: string, projectDescription: string) =>
-    invoke<JsonObject>("profile_rebind_preview", { projectName, projectDescription }),
+  profileRebindPreview: (projectId: string, projectName: string, projectDomain: string, projectDescription: string) =>
+    invoke<JsonObject>("profile_rebind_preview", { projectId, projectName, projectDomain, projectDescription }),
   profileRebindApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("profile_rebind_apply", { previewHash, confirm }),
   profileRebindRecoveryPreview: () =>

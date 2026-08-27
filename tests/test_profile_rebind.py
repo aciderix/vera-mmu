@@ -37,6 +37,18 @@ class ProfileRebindTests(unittest.TestCase):
             self.assertEqual(store.metadata()["project_identity"], store.identity.as_dict())
             self.assertEqual(store.audit_events()[-1]["action"], "PROJECT_PROFILE_REBOUND")
 
+    def test_project_identifier_and_domain_rebind_update_the_project_binding(self) -> None:
+        from vera_mmu.profile_rebind import apply_project_profile_rebind, preview_project_profile_rebind
+        from vera_mmu.work_items import WorkItemService
+
+        with MemoryStore.open(load_profile(self.profile_path), self.profile_path) as store:
+            WorkItemService(store).create("work", "SUBTASK", "Work")
+        preview = preview_project_profile_rebind(self.profile_path, project_id="profile-guard-next", project_name="Next Profile", project_domain="documentation", project_description="Migrated binding")
+        apply_project_profile_rebind(self.profile_path, preview, confirm=True)
+        with MemoryStore.open(load_profile(self.profile_path), self.profile_path) as store:
+            self.assertEqual(store.identity.project_id, "profile-guard-next")
+            self.assertEqual(WorkItemService(store).get("work").address, "vera://profile-guard-next/work-item/work")
+
     def test_interrupted_rebind_is_recovered_deterministically(self) -> None:
         from unittest.mock import patch
         from vera_mmu.profile_rebind import apply_project_profile_rebind, apply_project_profile_rebind_recovery, preview_project_profile_rebind, preview_project_profile_rebind_recovery

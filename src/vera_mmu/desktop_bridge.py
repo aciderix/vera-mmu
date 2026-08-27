@@ -140,10 +140,12 @@ class DesktopBridge:
             }
 
     def _profile_rebind_preview(self, value: dict[str, Any]) -> dict[str, object]:
-        _exact_input(value, {"projectName", "projectDescription"})
+        _exact_input(value, {"projectId", "projectName", "projectDomain", "projectDescription"})
         preview = preview_project_profile_rebind(
             self._profile_path(),
+            project_id=_string(value, "projectId"),
             project_name=_string(value, "projectName"),
+            project_domain=_string(value, "projectDomain"),
             project_description=_optional_string(value, "projectDescription"),
         )
         self._previews[preview.preview_hash] = _CachedPreview("profile.rebind", preview)
