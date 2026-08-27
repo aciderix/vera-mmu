@@ -70,6 +70,8 @@ jobs:
           pnpm install --frozen-lockfile
       - name: Build native VERA sidecar
         run: python scripts/build_desktop_sidecar.py ${{ matrix.target }}
+      - name: Build standalone VERA CLI archive
+        run: python scripts/build_cli_bundle.py ${{ matrix.target }}
       - name: Build desktop bundles
         working-directory: apps/desktop
         run: pnpm tauri build --bundles ${{ matrix.bundles }}
@@ -83,3 +85,4 @@ jobs:
             apps/desktop/src-tauri/target/release/bundle/**/*.deb
             apps/desktop/src-tauri/target/release/bundle/**/*.exe
             apps/desktop/src-tauri/target/release/bundle/**/*.msi
+            .build/cli-release/${{ matrix.target }}/**
