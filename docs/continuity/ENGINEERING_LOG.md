@@ -3155,3 +3155,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** Le contrat M11-L crée un symbole immutable avec metadata JSON, lit le record exact, vérifie l’absence d’audit, le refus cross-project et missing, et confirme que FIND ne retourne pas les symboles. Il exécute également `vmmu read` et un appel MCP stdio réel de `mmu_read`, dont le schéma reste `{address}`. Contrat : `3 passed in 2.07s`; cible lecture/CLI/MCP/symboles : `33 passed in 19.72s`; régression intégrale : **`553 passed in 67.48s`**.
 
 **Verdict.** `M11-L = PASS`. Aucun FIND/listing, filtre kind/propriétaire, scan/résolution, chemin local, import, mutation, capability, gate, proof ou compatibilité historique n’est livré. Artefact : `artifacts/m11_l_symbol_read_2026-08-27.md`; mémoire : `MEM-DEC-187`.
+
+
+## LOG-0245 — 2026-08-27 — M11-N : historique d’executions borné
+
+**Résultat.** `ReadService.execution_history` retourne une projection compacte des executions persistées du projet actif, avec `max_items` de 1 à 100 et ordre total `started_at DESC, id DESC`. La projection exclut explicitement paramètres, environnement et résultat. CLI `list-executions` et MCP `mmu_list_executions` délèguent à cette primitive; le tool est ajouté au manifeste canonique hashé.
+
+**Preuves.** La fixture crée trois executions `NOOP` par les services canoniques et contrôle ordre, borne, adresses project-bound, projection sans payload, refus des types/bornes invalides et absence d’audit. Elle appelle la CLI et le serveur/client MCP stdio; le schema MCP est `{max_items}` et une borne 101 est refusée. Contrat : `13 passed in 16.27s`; cible execution/lecture/CLI/MCP : `24 passed in 18.63s`; intégral : **`555 passed in 70.43s`**.
+
+**Verdict.** `M11-N = PASS`. Aucun filtre, recherche, pagination, contenu execution/evidence, session de reprise, mutation, admission, proof, gate ou sync n’est ajouté. Artefact : `artifacts/m11_n_bounded_execution_history_2026-08-27.md`; mémoire : `MEM-DEC-188`.

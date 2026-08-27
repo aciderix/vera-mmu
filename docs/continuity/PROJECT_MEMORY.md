@@ -1411,3 +1411,22 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_l_symbol_read_2026-08-27.md`; contrat Core/CLI/MCP `3 passed`, cible `33 passed`, régression intégrale `553 passed in 67.48s`.
 
 **Limites conservées :** pas de listing/FIND de symboles, filtrage kind/propriétaire, scan/résolution, accès local, proof/gate/capability. La compatibilité `mmu://`, le Dashboard, VCS et la parité ARET restent hors lot.
+
+
+## MEM-DEC-188 — M11-N : historique d’executions borné
+
+**Date :** 2026-08-27
+**Décision :** exposer uniquement une projection compacte et ordonnée des executions persistées du projet actif, avec une unique borne `max_items`, au lieu d’une recherche ou d’un listing filtrable par le client.
+
+| Garantie | Décision effective |
+|---|---|
+| Source | Lecture de la table SQLite `execution` canonique seulement; aucun adapter/runtime/fichier/réseau/session n’est consulté. |
+| Borne | `max_items` entier strict 1–100, défaut 20; aucun autre filtre n’est admis. |
+| Ordre | `started_at DESC, id DESC` fournit un ordre total déterministe. |
+| Projection | Adresses, ids, capability, statut, timestamps et hash d’artefact seulement; paramètres, environnement et résultat restent exclus. |
+| Transports | CLI `list-executions` et MCP `mmu_list_executions` délèguent au Core; le schéma MCP est exactement `{max_items}` et le tool est manifesté/hashé. |
+| Non-mutation | Aucune transaction, audit, execution, evidence, admission, proof, gate ou sync n’est déclenché. |
+
+**Evidence :** `docs/continuity/artifacts/m11_n_bounded_execution_history_2026-08-27.md`; contrat `13 passed`, cible `24 passed`, régression intégrale `555 passed in 70.43s`.
+
+**Limites conservées :** pas de recherche, filtre, pagination, listing d’evidence, contenu de payload, export, reprise/session, mutation ou compatibilité `mmu://`.

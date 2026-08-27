@@ -165,6 +165,7 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | READ exact capability/execution/evidence | `PASS` dans le périmètre M11-J | M11-J clos |
 | Parcours relationnel `related` entité-à-entité borné | `PASS` dans le périmètre M11-K | M11-K clos ; profile, historiques/listings et traversals spécialisés → lots dédiés |
 | READ exact du symbole Core | `PASS` dans le périmètre M11-L | M11-L clos ; FIND/listing, filtres, scan/résolution et profile → lots dédiés |
+| Historique d’executions compact et borné | `PASS` dans le périmètre M11-N | M11-N clos ; filtres, pagination, historique evidence, payloads et reprise → lots dédiés |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
 | Documentation dérivée et rapport coverage | `MISSING` | M11-E |
 | Adresse/compatibilité/VCS | `PARTIAL` | M11-F |
