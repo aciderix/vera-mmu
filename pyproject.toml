@@ -26,6 +26,7 @@ dependencies = [
 
 [project.scripts]
 vmmu = "vera_mmu.__main__:main"
+vmmu-desktop-bridge = "vera_mmu.desktop_bridge:desktop_bridge_main"
 vmmu-mcp = "vera_mmu.mcp_server:main"
 vmmu-claude-code-local-hook = "vera_mmu.claude_code_local:claude_code_local_hook_main"
 vmmu-claude-code-local-mcp = "vera_mmu.claude_code_local:claude_code_local_mcp_main"
