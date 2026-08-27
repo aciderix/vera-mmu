@@ -1505,3 +1505,21 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_fb_local_vcs_status_2026-08-27.md`; cible `13 passed`, intégral `561 passed in 67.71s`.
 
 **Limites conservées :** pas de provider Mercurial/SVN, revision, branches/remotes, log, staging, sync, commit/push ou parité VCS complète.
+
+
+## MEM-DEC-193 — M11-D-A : état Dashboard dérivé et non mutateur
+
+**Date :** 2026-08-27
+**Décision :** exposer dans le Dashboard Tauri une vue `project.status` strictement project-bound, qui compose le rapport de couverture Core et le statut VCS local sans accorder au WebView une capacité système ou VCS.
+
+| Garantie | Décision effective |
+|---|---|
+| Bridge | `project.status` exige un objet d’entrée vide et le profile project-local déjà validé. |
+| Données | Couverture publique dérivée et statut VCS minimal seulement; aucun chemin, secret, profile brut, remote, contenu métier ou état de session. |
+| UI | L’état `initialized` est explicite et ne passe à vrai qu’après application confirmée; le panneau d’état apparaît alors seulement. |
+| Effets | L’actualisation d’état est une lecture; preview/confirmation/staleness des écritures existantes ne changent pas. |
+| Boundaries | React → commande Tauri sans paramètre → bridge stdio avec nonce → Core; aucune API filesystem/shell/Git directe côté WebView. |
+
+**Evidence :** `docs/continuity/artifacts/m11_da_dashboard_project_status_2026-08-27.md`; bridge `7 passed`, build React `PASS`, Tauri `2 passed`, intégral Python `562 passed in 65.34s`.
+
+**Limites conservées :** aucun builder visuel complet Profile/Capability/Gate, template enrichi, Dashboard web, preuve hôte réel, migration/parité ARET ou génération documentaire complète.

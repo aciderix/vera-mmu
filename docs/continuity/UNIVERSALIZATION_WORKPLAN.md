@@ -167,7 +167,8 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | READ exact du symbole Core | `PASS` dans le périmètre M11-L | M11-L clos ; FIND/listing, filtres, scan/résolution et profile → lots dédiés |
 | Historique d’executions compact et borné | `PASS` dans le périmètre M11-N | M11-N clos ; filtres, pagination, payloads et reprise → lots dédiés |
 | Historique d’evidences compact et borné | `PASS` dans le périmètre M11-O | M11-O clos ; filtres, pagination, contenu de preuve et reprise → lots dédiés |
-| Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
+| Vue Dashboard d’état projet dérivée | `PASS` dans le périmètre M11-D-A | Couverture/VCS visibles après initialisation ; builders Profile/Capability/Gate et templates enrichis restent ouverts |
+| Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D reste ouvert au-delà de M11-D-A |
 | Rapport de couverture dérivé (Core/CLI/MCP) | `PASS` dans le périmètre M11-E | Rapport M11-E clos ; générateurs `MMU_SETUP`/`TOOLS`/`GATES`/`POLICIES`/`ARCHITECTURE`/`MAINTENANCE` restent ouverts |
 | Bridge d’adresse `mmu://` pour lecture | `PASS` dans le périmètre M11-F-A | Alias input-only validé ; migration canonique, aliases `aret_*`, lecteur legacy et VCS multi-provider restent ouverts |
 | Diagnostic VCS local Git/no-VCS | `PASS` dans le périmètre M11-F-B | Observation sans commande validée ; providers Mercurial/SVN et opérations VCS restent ouverts |

@@ -3200,3 +3200,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** Le contrat couvre no-VCS, Git marker régulier, symlink ambigu et absence d’audit. La cible Core/manifeste/CLI/MCP compte `13 passed in 14.56s`; la suite intégrale compte **`561 passed in 67.71s`**.
 
 **Verdict.** `M11-F-B = PASS`. Aucun subprocess/réseau, revision, branche, remote, log, sync, commit/push, provider Mercurial/SVN ou parité VCS n’est livré. Artefact : `artifacts/m11_fb_local_vcs_status_2026-08-27.md`; mémoire : `MEM-DEC-192`.
+
+
+## LOG-0250 — 2026-08-27 — M11-D-A : vue Dashboard d’état projet
+
+**Résultat.** Le bridge desktop expose `project.status` avec entrée `{}` seulement, puis compose le rapport Core de couverture et le statut VCS local du projet déjà initialisé. Rust expose `project_status` sans argument; React affiche tools MCP déclarés et VCS après une initialisation confirmée. L’ancien calcul implicite d’initialisation est remplacé par un état explicite mis à jour seulement après succès.
+
+**Preuves.** `tests/test_desktop_bridge.py` valide la lecture dérivée et le refus d’une racine client : `7 passed in 1.04s`. `pnpm build` passe. Avec Rust stable 1.98, PyInstaller, GTK/WebKit et le sidecar native construits dans le sandbox, `cargo test` passe : `2 passed in 0.14s`. Python intégral : **`562 passed in 65.34s`**.
+
+**Verdict.** `M11-D-A = PASS`. Le sidecar et `target/` générés sont ignorés par Git. Aucun builder visuel Profile/Capability/Gate, template enrichi, hôte réel ou parité ARET n’est déclaré livré. Artefact : `artifacts/m11_da_dashboard_project_status_2026-08-27.md`; mémoire : `MEM-DEC-193`.
