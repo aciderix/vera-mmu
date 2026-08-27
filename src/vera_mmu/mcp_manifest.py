@@ -32,6 +32,7 @@ TOOL_NAMES = (
     "mmu_preview_project_documents",
     "mmu_import_project_documents",
     "mmu_doctor",
+    "mmu_get_coverage_report",
     "mmu_boot",
     "mmu_get_front",
     "mmu_get_handoff",

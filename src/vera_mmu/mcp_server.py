@@ -22,6 +22,7 @@ from .admission import AdmissionService
 from .assets import AssetService
 from .bundles import BundleService
 from .doctor import diagnose_project
+from .coverage_report import compile_coverage_report
 from .evidence import EvidenceService
 from .gates import GateService
 from .identity import load_profile
@@ -52,6 +53,7 @@ Le parcours relationnel part d’une entité exacte, avec direction, profondeur 
 L’historique d’execution est une projection compacte, project-bound et bornée, sans payload d’execution.
 L’historique d’evidence est une projection compacte, project-bound et bornée, sans contenu ni acteur d’evidence.
 Les pointeurs Front et handoff sont résolus uniquement depuis l’état persistant du store actif.
+Le rapport de couverture est une projection statique sans chemin, runtime, hôte ou donnée client.
 Le Doctor ne prend aucun chemin, runtime ou hôte contrôlé par le client. Toute erreur métier
 reste structurée et n’est jamais transformée en succès."""
 
@@ -262,6 +264,11 @@ def create_server(
         instructions=SERVER_INSTRUCTIONS if instructions is None else instructions.text,
         version=SERVER_VERSION,
     )
+
+    @server.tool(name="mmu_get_coverage_report", structured_output=True)
+    async def mmu_get_coverage_report() -> dict[str, object]:
+        """Retourne la couverture publique dérivée sans chemin ni entrée client."""
+        return _call("get_coverage_report", lambda: compile_coverage_report(store).as_dict())
 
     @server.tool(name="mmu_boot", structured_output=True)
     async def mmu_boot() -> dict[str, object]:
