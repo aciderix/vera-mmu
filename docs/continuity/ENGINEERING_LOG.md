@@ -2685,3 +2685,18 @@ Le commit fonctionnel `3f26dad` rend M5-M.3b `PASS` pour le **mécanisme de prev
 ### Limite et prochain acte
 
 Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’acte suivant doit être opératoire et non automatique : montrer le preview de l’environnement cible, puis demander deux confirmations utilisateur explicites et distinctes immédiatement avant l’écriture. Après seulement, contrôler le statut MCP réel et suivre le protocole de session fraîche. Aucun réseau, setup, secret ou bootstrap n’est autorisé.
+
+
+## LOG-0199 — 2026-08-27 — M5-N : adapter Codex lifecycle à couverture bornée
+
+**Hypothèse.** Codex peut recevoir l’adapter lifecycle universel VERA sans copier la logique Claude, à condition de limiter le claim aux événements et tools réellement documentés par le host.
+
+**Sources vérifiées.** Les références officielles Codex consultées le 2026-08-27 documentent les fichiers `.codex/hooks.json` et `.codex/config.toml`, les événements `SessionStart`, `PreToolUse`, `PostToolUse`, `PreCompact`, `PostCompact` et `Stop`, les serveurs MCP stdio et la revue/trust obligatoire des hooks non managed. Elles indiquent aussi que des tools hosted ou chemins spécialisés échappent au chemin hook. Le niveau de garantie retenu est donc `PARTIAL_LOCAL_TOOLS`, pas `HARD` universel.
+
+**Changement fonctionnel.** Le commit `588c886` ajoute `codex_adapter.py`, `tests/test_codex_adapter.py` et les commandes `vmmu-codex-stage`, `vmmu-codex-hook`, `vmmu-codex-mcp`, `vmmu-codex-config`. Le runtime staged recompile et revérifie le manifeste, les instructions, l’intégration, le plan de hooks et l’adapter lifecycle `codex-v1`. Le serveur MCP ne permet que l’acquittement lifecycle au-dessus de `DenyRuntimeAdapter`.
+
+**Tests et contrôles.** Cycle rouge : trois tests échouent avant l’implémentation. Chaîne M5-N : `4 passed` après staging, conservation de configuration tiers, conflit, symlink, application confirmée, hook JSON, MCP stdio réel, acquittement et réarmement PostCompact. Suite VERA : `470 passed, 37 subtests passed`. Compilation, `git diff --check`, scans absence ARET/réseau/bootstrap/home/auto-approve dans l’adapter : `PASS`. Roue isolée : `PASS` pour les quatre entry points Codex. Présence du client : `CODEX_PRESENT=NO` ; aucune installation ni connexion n’a été lancée.
+
+**Verdict.** `PASS` pour le mécanisme contrôlé et distribué ; `NOT_RUN` pour l’observation par Codex réel, la revue/trust du host et les outils non interceptés. Les fichiers `~/.codex/`, le réseau, bootstrap, secrets, OAuth et auto-approbation restent hors portée.
+
+**Suite.** Poursuivre M5-O (Gemini) en conservant un adapter/version/contrat distinct ; ne pas conclure à une équivalence Codex/Gemini/Claude.

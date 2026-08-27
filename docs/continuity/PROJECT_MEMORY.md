@@ -936,3 +936,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Limite.** Aucune écriture user-scope réelle, aucun trust hôte, connexion MCP ni déclenchement de hook web n’a été exécuté. Ils restent `NOT_RUN` jusqu’à presentation du preview réel et deux confirmations explicites et séparées immédiatement avant l’opération. L’assertion de compatibilité Claude Code web de bout en bout reste interdite.
 
 **Traçabilité.** Commit fonctionnel `3f26dad`; log `LOG-0198`; artefact `m5_claude_code_cloud_user_trust_2026-08-27.md`; protocole live M5 cloud mis à jour. L’acte opératoire suivant est une demande de confirmations, non un patch automatique.
+
+
+### MEM-DEC-146 — M5-N : adapter Codex à garde lifecycle explicitement partielle
+
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour la chaîne contrôlée ; `NOT_RUN` pour un client Codex réel
+**Décision :** M5-N publie l’adapter `codex-v1` au commit fonctionnel `588c886`, avec runtime project-bound staged, hooks de lifecycle, MCP stdio deny-by-default et configuration `.codex/` explicitement confirmée. La garantie de garde est déclarée `PARTIAL_LOCAL_TOOLS` : elle couvre uniquement les outils locaux qui empruntent le chemin hook documenté, jamais les outils hosted ou les chemins hôte spécialisés.
+
+**Motif :** Les sources officielles Codex documentent bien `SessionStart`, `PreToolUse`, `PreCompact` et `PostCompact`, ainsi que le MCP et la configuration `.codex/`; elles indiquent également que certains tools hosted et spécialisés ne suivent pas le parcours hook. Une promesse de garde universelle serait donc non démontrée.
+
+**Effet opérationnel :** Le hook injecte/réarme le dossier, bloque l’action locale couverte jusqu’à `mmu_acknowledge_resume`, puis réautorise après acquittement MCP. Les configurations host ne sont écrites que dans le projet et sont refusées sur divergence/symlink. Aucun accès `~/.codex/`, trust hôte, installation, réseau, token ou preuve Codex live n’est livré. La preuve contrôlée passe par MCP stdio ; l’exécution par un client Codex installé reste `NOT_RUN` (`CODEX_PRESENT=NO`).
+
+**Provenance :** `tests/test_codex_adapter.py`; `docs/continuity/artifacts/m5_codex_adapter_2026-08-27.md`; OpenAI Hooks/MCP/Config docs consultées le 2026-08-27.
+**Journal :** `LOG-0199`.
