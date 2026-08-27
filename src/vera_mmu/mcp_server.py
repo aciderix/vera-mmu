@@ -48,6 +48,7 @@ exclusivement par un adapter déclaré côté serveur. Les bundles sont toujours
 le runtime du projet; aucun chemin d’archive client n’est accepté. Les documents de projet
 sont explicitement listés, confinés au workspace, prévisualisés puis réévalués avant import.
 FIND ne retourne que des références compactes; READ exige une adresse VERA canonique exacte.
+Les pointeurs Front et handoff sont résolus uniquement depuis l’état persistant du store actif.
 Le Doctor ne prend aucun chemin, runtime ou hôte contrôlé par le client. Toute erreur métier
 reste structurée et n’est jamais transformée en succès."""
 
@@ -263,6 +264,16 @@ def create_server(
     async def mmu_boot() -> dict[str, object]:
         """Retourne l’état project-bound de démarrage sans armer ni modifier la reprise."""
         return _call("boot", lambda: ReadService(store).boot())
+
+    @server.tool(name="mmu_get_front", structured_output=True)
+    async def mmu_get_front() -> dict[str, object]:
+        """Lit le Front courant persistant sans sélectionner de révision côté client."""
+        return _call("get_front", lambda: ReadService(store).current_front())
+
+    @server.tool(name="mmu_get_handoff", structured_output=True)
+    async def mmu_get_handoff() -> dict[str, object]:
+        """Lit le dernier handoff persistant sans sélectionner de dossier côté client."""
+        return _call("get_handoff", lambda: ReadService(store).latest_handoff())
 
     @server.tool(name="mmu_find", structured_output=True)
     async def mmu_find(query: str, resource_types: list[str] | None = None) -> dict[str, object]:

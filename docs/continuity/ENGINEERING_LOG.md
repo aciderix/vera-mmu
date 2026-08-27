@@ -3094,3 +3094,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 | Validation liée | Contrat M11-H : `3 passed in 2.04s`; cible CLI/MCP : `27 passed in 20.45s`; intégral final : `544 passed in 62.63s`; diff et scan de frontière : `PASS`. |
 | Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
 | Statut | `M11-H = PASS` dans le périmètre documenté. |
+
+
+## LOG-0239 — 2026-08-27 — M11-I : lectures Front, handoff et relation
+
+**Baseline et portée.** Le lot démarre à `5d3b9b7`, M11-H livré localement à `544 passed`. Il étend `ReadService` sans modifier les services Front, handoff ou relation, sans migration, mutation, provider, réseau, artefact ou dépendance ARET.
+
+**Résultat.** `current_front()` et `latest_handoff()` lisent les pointeurs persistants sans paramètre de sélection; la CLI les expose par `get-front` et `get-handoff`, et le MCP par `mmu_get_front` et `mmu_get_handoff`, tous sans entrées client. La lecture exacte accepte désormais `front`, `handoff` et `relation`: `handoff` est inscrit au contrat d’adressage, le payload handoff déjà validé est retourné comme JSON structuré et toute erreur des services est convertie en `ReadApiError` fail-closed. Front, handoff et relation restent exclus de FIND. Les tools ajoutés participent au manifeste canonique.
+
+**Preuves.** `tests/test_m11i_specialized_reads.py` crée un Front profilé, un Resume Dossier réel, un handoff, une paire d’entités et une relation déclarée. Il vérifie les références/id/hashes/payload, les adresses d’extrémités, le refus cross-project et absent, l’absence d’audit de lecture, les commandes CLI et une session MCP stdio. Contrat : `3 passed in 2.17s`; cible M11-H/Front/relations/MCP/CLI : `30 passed in 17.45s`; régression complète : **`547 passed in 63.06s`**.
+
+**Verdict.** `M11-I = PASS` pour Front/handoff/relation. Assets, preuves/evidence, capabilities, gates, executions, symboles, profil, traversal `related`, resume brief/status détaillé, recherche de contenu et mutations sont toujours hors lot. Artefact : `artifacts/m11_i_specialized_front_handoff_relation_reads_2026-08-27.md`; mémoire : `MEM-DEC-184`.

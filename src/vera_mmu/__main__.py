@@ -35,6 +35,8 @@ def build_parser() -> argparse.ArgumentParser:
     find=sub.add_parser("find",help="Trouve des références VERA par titre, sans retourner de contenu.");find.add_argument("profile",type=Path,help="Chemin project.yaml.");find.add_argument("--query",required=True);find.add_argument("--resource",action="append",dest="resources")
     read=sub.add_parser("read",help="Lit une ressource VERA exacte par adresse canonique.");read.add_argument("profile",type=Path,help="Chemin project.yaml.");read.add_argument("address")
     read_batch=sub.add_parser("read-batch",help="Lit un batch borné d’adresses VERA exactes.");read_batch.add_argument("profile",type=Path,help="Chemin project.yaml.");read_batch.add_argument("--address",action="append",required=True,dest="addresses")
+    get_front=sub.add_parser("get-front",help="Lit le Front courant du projet sans accepter d’identifiant client.");get_front.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    get_handoff=sub.add_parser("get-handoff",help="Lit le dernier handoff vérifié du projet sans accepter d’identifiant client.");get_handoff.add_argument("profile",type=Path,help="Chemin project.yaml.")
     export=sub.add_parser("bundle-export",help="Exporte un bundle VERA sous le runtime project-local après confirmation.");export.add_argument("profile",type=Path,help="Chemin project.yaml.");export.add_argument("--bundle-id",required=True);export.add_argument("--confirm",action="store_true")
     restore=sub.add_parser("bundle-restore",help="Restaure un bundle vérifié vers une cible VERA vide et de même identité.");restore.add_argument("profile",type=Path,help="Chemin project.yaml cible.");restore.add_argument("--bundle",type=Path,required=True,help="Archive ZIP VERA explicitement sélectionnée.");restore.add_argument("--confirm",action="store_true")
     project_import=sub.add_parser("project-import",help="Prévisualise ou importe explicitement des documents locaux comme observations provenancées.");project_import.add_argument("profile",type=Path,help="Chemin project.yaml.");project_import.add_argument("--document",action="append",required=True,help="Chemin relatif d’un document depuis une racine workspace.");project_import.add_argument("--batch-id",required=True);project_import.add_argument("--knowledge-type-id",required=True);project_import.add_argument("--knowledge-type-label",required=True);project_import.add_argument("--apply",action="store_true");project_import.add_argument("--confirm",action="store_true")
@@ -81,14 +83,16 @@ def main(argv:Sequence[str]|None=None)->int:
             report=diagnose_project(args.profile);payload={"ok":report.status=="PASS","doctor":report.as_dict()}
             if report.status!="PASS":
                 print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
-        elif args.command in {"boot","find","read","read-batch"}:
+        elif args.command in {"boot","find","read","read-batch","get-front","get-handoff"}:
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:
                 reader=ReadService(store)
                 if args.command=="boot":payload={"ok":True,"boot":reader.boot()}
                 elif args.command=="find":payload={"ok":True,"find":reader.find(args.query,resource_types=args.resources)}
                 elif args.command=="read":payload={"ok":True,"read":reader.read(args.address)}
-                else:payload={"ok":True,"read_batch":reader.read_batch(args.addresses)}
+                elif args.command=="read-batch":payload={"ok":True,"read_batch":reader.read_batch(args.addresses)}
+                elif args.command=="get-front":payload={"ok":True,"front":reader.current_front()}
+                else:payload={"ok":True,"handoff":reader.latest_handoff()}
         elif args.command=="bundle-export":
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"bundle":asdict(BundleService(store).export(args.bundle_id,confirm=args.confirm))}

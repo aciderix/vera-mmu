@@ -2,18 +2,21 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import Any, Iterable, Mapping
+import json
+from typing import Iterable
 
 from .addressing import AddressError, make_address, parse_address
 from .entities import EntityService
-from .front import FrontService
-from .handoff import HandoffService
+from .front import FrontRevision, FrontService
+from .handoff import Handoff, HandoffService
 from .knowledge import KnowledgeService
+from .relations import RelationService
 from .store import MemoryStore, StoreError
 from .work_items import WorkItemService
 
 
-READABLE_RESOURCE_TYPES = frozenset({"knowledge", "entity", "work-item"})
+FINDABLE_RESOURCE_TYPES = frozenset({"knowledge", "entity", "work-item"})
+READABLE_RESOURCE_TYPES = FINDABLE_RESOURCE_TYPES | frozenset({"front", "handoff", "relation"})
 MAX_FIND_QUERY_CHARACTERS = 256
 MAX_FIND_RESULTS = 100
 MAX_READ_BATCH = 32
@@ -50,6 +53,7 @@ class ReadService:
                 "created_at": front.created_at,
             },
             "latest_handoff": None if handoff is None else {
+                "address": make_address(self.store.identity.project_id, "handoff", handoff.id),
                 "id": handoff.id,
                 "front_revision_id": handoff.front_revision_id,
                 "payload_hash": handoff.payload_hash,
@@ -57,6 +61,28 @@ class ReadService:
                 "created_at": handoff.created_at,
             },
             "resume_status": "NOT_ARMED",
+        }
+
+    def current_front(self) -> dict[str, object]:
+        """Read the current immutable Front snapshot without accepting a client-selected id."""
+        front = FrontService(self.store).current()
+        if front is None:
+            raise ReadApiError("Aucun Front courant VERA à lire.")
+        return {
+            "address": front_address(self.store.identity.project_id, front.id),
+            "resource_type": "front",
+            "record": _front_record(front),
+        }
+
+    def latest_handoff(self) -> dict[str, object]:
+        """Read the latest verified handoff without accepting a client-selected id."""
+        handoff = HandoffService(self.store).latest()
+        if handoff is None:
+            raise ReadApiError("Aucun handoff VERA courant à lire.")
+        return {
+            "address": make_address(self.store.identity.project_id, "handoff", handoff.id),
+            "resource_type": "handoff",
+            "record": _handoff_record(handoff),
         }
 
     def find(self, query: str, *, resource_types: Iterable[str] | None = None) -> list[dict[str, object]]:
@@ -121,14 +147,25 @@ class ReadService:
             raise ReadApiError("Adresse READ VERA invalide ou non canonique.") from exc
         if parsed.project_id != self.store.identity.project_id:
             raise ReadApiError("Adresse READ liée à une autre identité de projet.")
-        if parsed.resource_type == "knowledge":
-            record = asdict(KnowledgeService(self.store).get(parsed.identifier))
-        elif parsed.resource_type == "entity":
-            record = asdict(EntityService(self.store).get(parsed.identifier))
-        elif parsed.resource_type == "work-item":
-            record = asdict(WorkItemService(self.store).get(parsed.identifier))
-        else:
-            raise ReadApiError("Type de ressource READ non exposé dans le contrat fermé M11-H.")
+        try:
+            if parsed.resource_type == "knowledge":
+                record = asdict(KnowledgeService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "entity":
+                record = asdict(EntityService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "work-item":
+                record = asdict(WorkItemService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "front":
+                record = _front_record(FrontService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "handoff":
+                record = _handoff_record(HandoffService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "relation":
+                record = asdict(RelationService(self.store).get(parsed.identifier))
+            else:
+                raise ReadApiError("Type de ressource READ non exposé dans le contrat fermé M11-I.")
+        except ReadApiError:
+            raise
+        except StoreError as exc:
+            raise ReadApiError("Ressource VERA exacte introuvable ou incohérente.") from exc
         return {"address": parsed.canonical, "resource_type": parsed.resource_type, "record": record}
 
     def read_batch(self, addresses: Iterable[str]) -> list[dict[str, object]]:
@@ -143,9 +180,21 @@ class ReadService:
 
 def front_address(project_id: str, identifier: str) -> str:
     """Keep the Front reference an exact VERA address without exposing a path."""
-    from .addressing import make_address
-
     return make_address(project_id, "front", identifier)
+
+
+def _front_record(front: FrontRevision) -> dict[str, object]:
+    return asdict(front)
+
+
+def _handoff_record(handoff: Handoff) -> dict[str, object]:
+    record = asdict(handoff)
+    payload_json = record.pop("payload_json")
+    try:
+        record["payload"] = json.loads(str(payload_json))
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise ReadApiError("Handoff persistant illisible ou altéré.") from exc
+    return record
 
 
 def _query(value: str) -> str:
@@ -156,14 +205,14 @@ def _query(value: str) -> str:
 
 def _resource_types(value: Iterable[str] | None) -> frozenset[str]:
     if value is None:
-        return READABLE_RESOURCE_TYPES
+        return FINDABLE_RESOURCE_TYPES
     if isinstance(value, (str, bytes)):
         raise ReadApiError("resource_types FIND doit être une liste de types de ressources.")
     values = list(value)
-    if not values or len(values) > len(READABLE_RESOURCE_TYPES) or any(not isinstance(item, str) for item in values):
+    if not values or len(values) > len(FINDABLE_RESOURCE_TYPES) or any(not isinstance(item, str) for item in values):
         raise ReadApiError("resource_types FIND invalide.")
     resources = frozenset(values)
-    if not resources.issubset(READABLE_RESOURCE_TYPES):
+    if not resources.issubset(FINDABLE_RESOURCE_TYPES):
         raise ReadApiError("resource_types FIND contient une ressource non exposée.")
     return resources
 

@@ -21,6 +21,7 @@ CORE_RESOURCE_TYPES = frozenset(
         "evidence",
         "execution",
         "front",
+        "handoff",
         "knowledge",
         "profile",
         "relation",

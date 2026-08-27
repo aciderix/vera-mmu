@@ -91,6 +91,8 @@ class MCPManifestTests(unittest.TestCase):
                     "mmu_import_project_documents",
                     "mmu_doctor",
                     "mmu_boot",
+                    "mmu_get_front",
+                    "mmu_get_handoff",
                     "mmu_find",
                     "mmu_read",
                     "mmu_read_batch",

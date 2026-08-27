@@ -160,7 +160,8 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Front/handoff persistants, Resume Dossier configurable et policy projet | `PASS` | M11-AF clos ; preuve `m11_af_front_handoff_resume_policy_2026-08-27.md` |
 | Bundle, export/import/restore et import projet avec provenance | `PASS` | M11-B clos ; preuve `m11_b_bundle_restore_project_import_2026-08-27.md` |
 | Transport bundle/import, CLI associée et Doctor composite | `PASS` dans le périmètre M11-C | M11-C clos |
-| Boot, FIND et READ exact/batch pour knowledge/entity/work-item | `PASS` dans le périmètre M11-H | M11-H clos ; lectures et API Core restantes → lots dédiés |
+| Boot, FIND et READ exact/batch pour knowledge/entity/work-item | `PASS` dans le périmètre M11-H | M11-H clos |
+| Lectures Front/handoff courants et READ relation/front/handoff exact | `PASS` dans le périmètre M11-I | M11-I clos ; autres ressources spécialisées et `related` → lots dédiés |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
 | Documentation dérivée et rapport coverage | `MISSING` | M11-E |
 | Adresse/compatibilité/VCS | `PARTIAL` | M11-F |
@@ -215,3 +216,12 @@ Le service Core `ReadService` fournit désormais `boot`, `find`, `read` et `read
 FIND est intentionnellement limité à la découverte sans contenu pour `knowledge`, `entity` et `work-item`; les résultats sont déterministes, bornés à 100 et ne portent ni contenu ni description. READ exige une adresse `vera://` canonique liée au projet en cours et relit l’objet par son service Core exact. READ batch est limité à 32 adresses. Les tests couvrent l’identité croisée, les bornes, la séparation FIND/READ, l’absence d’audit lors de la lecture, la CLI et une session MCP stdio. La validation atteint `27 passed` en cible et **`544 passed in 62.63s`** en régression intégrale.
 
 > **Frontière conservée :** il ne s’agit pas encore d’une API universelle totale. La lecture d’autres ressources, `related`, le resume status/brief détaillé, les mutations mémoire/Front/handoff, les API evidence/work, les commandes de produit restantes et toute recherche de contenu sont exclus de M11-H. Preuve : `artifacts/m11_h_boot_find_read_2026-08-27.md`; mémoire : `MEM-DEC-183`; journal : `LOG-0237`.
+
+
+### 11.7 M11-I — Lectures spécialisées Front, handoff et relation : `PASS`
+
+`ReadService` couvre désormais les snapshots Front, les handoffs et les relations par `read` exact. Les nouveaux pointeurs `current_front` et `latest_handoff` ne sélectionnent jamais une version depuis le client : ils lisent le snapshot ou handoff le plus récent validé par le store. Ils sont exposés par CLI (`get-front`, `get-handoff`) et MCP (`mmu_get_front`, `mmu_get_handoff`) sans paramètres. `handoff` est ajouté aux types du contrat d’adressage VERA, et son payload JSON déjà validé est retourné de façon structurée. Les erreurs de lecture exacte sont normalisées sous une erreur API fermée.
+
+Aucune de ces ressources ne rejoint FIND : celui-ci reste une découverte par titre des seules ressources déjà indexées. Les tests couvrent Front/handoff réels, relation déclarée, adresses canoniques, refus cross-project/inexistant, absence d’audit, commandes CLI et session MCP stdio. La cible atteint `30 passed` et la régression intégrale **`547 passed in 63.06s`**.
+
+> **Frontière conservée :** assets, preuves/evidence, capabilities, gates, executions, symboles, profil, `related`, resume brief/status détaillé et mutations n’ont pas été généralisés par M11-I. Preuve : `artifacts/m11_i_specialized_front_handoff_relation_reads_2026-08-27.md`; mémoire : `MEM-DEC-184`; journal : `LOG-0239`.

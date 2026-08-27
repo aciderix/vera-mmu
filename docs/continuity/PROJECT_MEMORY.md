@@ -1336,3 +1336,22 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_h_boot_find_read_2026-08-27.md`; contrat M11-H `3 passed`, cible CLI/MCP `27 passed`, régression intégrale `544 passed in 62.63s`.
 
 **Limites conservées :** les lectures de Front/handoff/relations/preuves/assets/capabilities/gates/executions, les parcours `related`, resume brief/status, les mutations de mémoire et les API de work/evidence restent hors M11-H. Aucune indexation de contenu, recherche sémantique, compatibilité ARET ou claim de couverture API totale n’est déduit de ce lot.
+
+
+## MEM-DEC-184 — M11-I : lectures spécialisées Front, handoff et relation
+
+**Date :** 2026-08-27
+**Décision :** étendre `ReadService` avec trois ressources persistées spécialisées sans les introduire dans FIND ni recréer une API SQL globale.
+
+| Garantie | Décision effective |
+|---|---|
+| Front courant | `current_front` résout uniquement la révision persistante la plus récente; CLI `get-front` et MCP `mmu_get_front` ne prennent aucun identifiant. |
+| Handoff courant | `latest_handoff` résout uniquement le dernier handoff vérifié; CLI `get-handoff` et MCP `mmu_get_handoff` ne prennent aucun dossier, hash, session, chemin ou identifiant client. |
+| READ exact | Les adresses `front/<id>`, `handoff/<id>` et `relation/<id>` sont lues uniquement si canoniques et liées au `project_id` du store. Les erreurs de service sont normalisées en refus fermé `ReadApiError`. |
+| Handoff address | `handoff` est ajouté au contrat d’adressage `CORE_RESOURCE_TYPES`; les adresses sont formées/vérifiées par le mécanisme canonique. |
+| FIND | Ne couvre toujours que `knowledge`, `entity` et `work-item`; aucune recherche de Front, handoff ou relation n’est prétendue. |
+| Manifest | `mmu_get_front` et `mmu_get_handoff` appartiennent à la liste de tools MCP hashée. |
+
+**Evidence :** `docs/continuity/artifacts/m11_i_specialized_front_handoff_relation_reads_2026-08-27.md`; contrat M11-I `3 passed`, cible `30 passed`, régression intégrale `547 passed in 63.06s`.
+
+**Limites conservées :** assets, preuves, evidence, capabilities, gates, executions, symboles, profile, traversals `related`, resume brief/status détaillé et toute mutation restent hors M11-I. Ce lot n’établit ni indexation globale ni parité ARET ni couverture universelle totale.
