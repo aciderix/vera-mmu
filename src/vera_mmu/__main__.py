@@ -37,6 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     read_batch=sub.add_parser("read-batch",help="Lit un batch borné d’adresses VERA exactes.");read_batch.add_argument("profile",type=Path,help="Chemin project.yaml.");read_batch.add_argument("--address",action="append",required=True,dest="addresses")
     related=sub.add_parser("related",help="Parcourt un voisinage relationnel VERA borné depuis une entité exacte.");related.add_argument("profile",type=Path,help="Chemin project.yaml.");related.add_argument("address");related.add_argument("--direction",choices=("INBOUND","OUTBOUND","BOTH"),default="BOTH");related.add_argument("--max-depth",type=int,default=1);related.add_argument("--max-nodes",type=int,default=20)
     executions=sub.add_parser("list-executions",help="Liste un historique d’executions VERA compact et borné.");executions.add_argument("profile",type=Path,help="Chemin project.yaml.");executions.add_argument("--max-items",type=int,default=20)
+    evidence=sub.add_parser("list-evidence",help="Liste un historique d’evidences VERA compact et borné.");evidence.add_argument("profile",type=Path,help="Chemin project.yaml.");evidence.add_argument("--max-items",type=int,default=20)
     get_front=sub.add_parser("get-front",help="Lit le Front courant du projet sans accepter d’identifiant client.");get_front.add_argument("profile",type=Path,help="Chemin project.yaml.")
     get_handoff=sub.add_parser("get-handoff",help="Lit le dernier handoff vérifié du projet sans accepter d’identifiant client.");get_handoff.add_argument("profile",type=Path,help="Chemin project.yaml.")
     export=sub.add_parser("bundle-export",help="Exporte un bundle VERA sous le runtime project-local après confirmation.");export.add_argument("profile",type=Path,help="Chemin project.yaml.");export.add_argument("--bundle-id",required=True);export.add_argument("--confirm",action="store_true")
@@ -85,7 +86,7 @@ def main(argv:Sequence[str]|None=None)->int:
             report=diagnose_project(args.profile);payload={"ok":report.status=="PASS","doctor":report.as_dict()}
             if report.status!="PASS":
                 print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
-        elif args.command in {"boot","find","read","read-batch","related","list-executions","get-front","get-handoff"}:
+        elif args.command in {"boot","find","read","read-batch","related","list-executions","list-evidence","get-front","get-handoff"}:
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:
                 reader=ReadService(store)
@@ -95,6 +96,7 @@ def main(argv:Sequence[str]|None=None)->int:
                 elif args.command=="read-batch":payload={"ok":True,"read_batch":reader.read_batch(args.addresses)}
                 elif args.command=="related":payload={"ok":True,"related":reader.related(args.address,direction=args.direction,max_depth=args.max_depth,max_nodes=args.max_nodes)}
                 elif args.command=="list-executions":payload={"ok":True,"executions":reader.execution_history(max_items=args.max_items)}
+                elif args.command=="list-evidence":payload={"ok":True,"evidence":reader.evidence_history(max_items=args.max_items)}
                 elif args.command=="get-front":payload={"ok":True,"front":reader.current_front()}
                 else:payload={"ok":True,"handoff":reader.latest_handoff()}
         elif args.command=="bundle-export":

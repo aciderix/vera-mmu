@@ -38,6 +38,7 @@ TOOL_NAMES = (
     "mmu_find",
     "mmu_get_related",
     "mmu_list_executions",
+    "mmu_list_evidence",
     "mmu_read",
     "mmu_read_batch",
 )

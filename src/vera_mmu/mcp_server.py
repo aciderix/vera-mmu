@@ -50,6 +50,7 @@ sont explicitement listés, confinés au workspace, prévisualisés puis rééva
 FIND ne retourne que des références compactes; READ exige une adresse VERA canonique exacte.
 Le parcours relationnel part d’une entité exacte, avec direction, profondeur et cardinalité strictement bornées.
 L’historique d’execution est une projection compacte, project-bound et bornée, sans payload d’execution.
+L’historique d’evidence est une projection compacte, project-bound et bornée, sans contenu ni acteur d’evidence.
 Les pointeurs Front et handoff sont résolus uniquement depuis l’état persistant du store actif.
 Le Doctor ne prend aucun chemin, runtime ou hôte contrôlé par le client. Toute erreur métier
 reste structurée et n’est jamais transformée en succès."""
@@ -291,6 +292,11 @@ def create_server(
     async def mmu_list_executions(max_items: int = 20) -> dict[str, object]:
         """Liste un historique compact et borné des executions persistées du projet actif."""
         return _call("list_executions", lambda: ReadService(store).execution_history(max_items=max_items))
+
+    @server.tool(name="mmu_list_evidence", structured_output=True)
+    async def mmu_list_evidence(max_items: int = 20) -> dict[str, object]:
+        """Liste un historique compact et borné des evidences persistées du projet actif."""
+        return _call("list_evidence", lambda: ReadService(store).evidence_history(max_items=max_items))
 
     @server.tool(name="mmu_read", structured_output=True)
     async def mmu_read(address: str) -> dict[str, object]:

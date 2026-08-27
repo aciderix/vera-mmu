@@ -223,6 +223,32 @@ class ReadService:
             ],
         }
 
+    def evidence_history(self, *, max_items: int = 20) -> dict[str, object]:
+        """List a small deterministic evidence projection without content or actor disclosure."""
+        if isinstance(max_items, bool) or not isinstance(max_items, int) or not 1 <= max_items <= MAX_EXECUTION_HISTORY:
+            raise ReadApiError(f"Historique evidence invalide : 1 à {MAX_EXECUTION_HISTORY} éléments requis.")
+        rows = self.store.connection.execute(
+            "SELECT id, execution_id, evidence_type, verdict, content_hash, admission_status, created_at "
+            "FROM evidence ORDER BY created_at DESC, id DESC LIMIT ?",
+            (max_items,),
+        ).fetchall()
+        return {
+            "max_items": max_items,
+            "evidence": [
+                {
+                    "address": make_address(self.store.identity.project_id, "evidence", str(row["id"])),
+                    "id": str(row["id"]),
+                    "execution_id": str(row["execution_id"]),
+                    "evidence_type": str(row["evidence_type"]),
+                    "verdict": str(row["verdict"]),
+                    "content_hash": str(row["content_hash"]),
+                    "admission_status": str(row["admission_status"]),
+                    "created_at": str(row["created_at"]),
+                }
+                for row in rows
+            ],
+        }
+
     def read(self, address: str) -> dict[str, object]:
         """Read one exact resource after validating its canonical address and project identity."""
         try:
