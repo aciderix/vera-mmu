@@ -1523,3 +1523,21 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_da_dashboard_project_status_2026-08-27.md`; bridge `7 passed`, build React `PASS`, Tauri `2 passed`, intégral Python `562 passed in 65.34s`.
 
 **Limites conservées :** aucun builder visuel complet Profile/Capability/Gate, template enrichi, Dashboard web, preuve hôte réel, migration/parité ARET ou génération documentaire complète.
+
+
+## MEM-DEC-194 — M11-D-C : builder Dashboard de déclaration de Capability
+
+**Date :** 2026-08-27
+**Décision :** exposer un builder limité à une déclaration de Capability immuable, avec preview hashé, snapshot de catalogue, fraîcheur et confirmation, plutôt qu’autoriser l’édition de runner, policy ou Project Profile.
+
+| Garantie | Décision effective |
+|---|---|
+| Champs | Seulement identifier, nom, kind fermé, version et description; aucun runner, contrat, policy, gate, chemin, URL ou commande. |
+| Preview | Validation non mutatrice et hashée, liée au catalogue ordonné de capabilities du store. |
+| Application | `confirm=true`, preview bridge caché et réévaluation de fraîcheur; la création délègue à `CapabilityService.create` et sa transaction/audit canonique. |
+| UI | Formulaire React de cinq champs, preview inspectable et confirmation; pont Tauri et bridge stdio à nonce sans root/profile WebView. |
+| Refus | Champ supplémentaire, kind/identifiant/version invalide, preview inconnu ou altéré, absence de confirmation et catalogue modifié sont refusés. |
+
+**Evidence :** `docs/continuity/artifacts/m11_dc_dashboard_capability_builder_2026-08-27.md`; Core/bridge `9 passed`, build React `PASS`, Tauri `2 passed`, intégral `564 passed in 64.55s`.
+
+**Limites conservées :** M11-D-B Profile reste différé car `profile_hash` participe à l’identité store; un protocole de rebind atomique est requis. Aucun builder de runner/policy/gate ou modification/suppression de capability n’est livré.

@@ -3209,3 +3209,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** `tests/test_desktop_bridge.py` valide la lecture dérivée et le refus d’une racine client : `7 passed in 1.04s`. `pnpm build` passe. Avec Rust stable 1.98, PyInstaller, GTK/WebKit et le sidecar native construits dans le sandbox, `cargo test` passe : `2 passed in 0.14s`. Python intégral : **`562 passed in 65.34s`**.
 
 **Verdict.** `M11-D-A = PASS`. Le sidecar et `target/` générés sont ignorés par Git. Aucun builder visuel Profile/Capability/Gate, template enrichi, hôte réel ou parité ARET n’est déclaré livré. Artefact : `artifacts/m11_da_dashboard_project_status_2026-08-27.md`; mémoire : `MEM-DEC-193`.
+
+
+## LOG-0251 — 2026-08-27 — M11-D-C : builder Dashboard de Capability
+
+**Résultat.** `capability_builder` valide et prévisualise une déclaration à cinq champs, lie le preview au hash du catalogue courant puis délègue une application confirmée à `CapabilityService.create`. Le bridge expose `capability.preview`/`capability.apply` avec ensembles de champs exacts et cache nonce-scoped; Tauri et React fournissent un formulaire sans runner/commande/path/policy.
+
+**Preuves.** Core/bridge : `9 passed in 1.12s`; React : `pnpm build PASS`; Tauri natif : `2 passed in 0.10s`; Python intégral : **`564 passed in 64.55s`**. Preview non mutateur, confirmation, stale catalog, id/kind invalides et champ bridge injecté sont refusés.
+
+**Verdict.** `M11-D-C = PASS`. M11-D-B (Profile) est différé : `profile_hash` participe à l’identité SQLite et requiert un protocole de rebind atomique dédié. Artefact : `artifacts/m11_dc_dashboard_capability_builder_2026-08-27.md`; mémoire : `MEM-DEC-194`.
