@@ -1584,3 +1584,10 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | `MEM-DEC-200` | Identité / Profile | Le changement contrôlé du nom et de la description du Project Profile est désormais possible via preview hashé, fraîcheur, confirmation, sauvegarde locale et journal durable. Le store expose `rebind_identity` : l’identité SQLite est réalignée dans une transaction auditée, sans ouvrir une écriture SQL brute au Dashboard. | `OBSERVED` | `profile_rebind.py`, `store.py`, bridge, Doctor et tests M11-D-B ; 593 tests Python passants. | `LOG-0255` |
 | `MEM-DEC-201` | Reprise fail-closed | Une interruption entre réalignement SQLite et remplacement atomique du Profile est détectable par Doctor. La récupération est explicite, rejoue uniquement le contenu consigné par le journal et refuse profils/journaux multiples ou divergents. Doctor demeure strictement observationnel. | `OBSERVED` | `recover_project_profile_rebind`, contrôle Doctor `profile_rebind`, test d’interruption M11-D-B. | `LOG-0255` |
 | `MEM-DEC-202` | Limite Profile Builder | L’interface n’expose ni `project.id`, ni domaine, workspace, storage, catalogues, policies, capabilities, Gates, evidence, admission ou verdict. Toute extension de surface requiert une hypothèse, un protocole de migration et des preuves indépendantes. | `DECISION` | Contrat du builder M11-D-B. | `LOG-0255` |
+
+
+## Addendum — M11-D Doctor Recovery
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-203` | Doctor / Reprise Profile | Le Doctor détecte sans effet de bord un journal de rebind Profile restant. Le Dashboard expose ensuite un preview de reprise et une confirmation, qui recalcule l’état journalisé avant de déléguer au Core. Aucun rétablissement ne survient automatiquement. | `OBSERVED` | `profile_rebind.py`, `doctor.py`, bridge/Tauri/UI et artefact M11-D Doctor Recovery ; 593 tests Python passants. | `LOG-0256` |

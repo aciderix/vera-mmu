@@ -3261,3 +3261,11 @@ Le protocole écrit d’abord une sauvegarde et un journal durable à permission
 Validations : tests ciblés `17 passed in 2.59s`, build React PASS, Tauri natif `2 passed in 0.10s`, régression Python intégrale `593 passed in 63.09s`, `git diff --check` PASS et scan de frontière PASS.
 
 **Exclusions vérifiées :** l’UI ne modifie pas l’identifiant, le domaine, workspace, storage, catalogues, policy, capability, Gate, evidence, admission ou verdict. Doctor ne répare jamais implicitement; les divergences de journal ou de Profile sont refusées fail-closed. Aucun concept ARET, shell, processus ou réseau n’est ajouté au Core.
+
+## LOG-0256 — M11-D Doctor Recovery : reprise Profile explicitement confirmée
+
+**Statut : PASS dans le périmètre de reprise Profile.**
+
+Le Doctor ajoute le contrôle read-only `profile_rebind`, qui signale un journal de rebind persistant sans tenter de réparer. Le bridge/Tauri/Dashboard exposent séparément un preview de reprise sans entrée client puis une application confirmée. Le Core recalcule le journal et le hash courant de Profile, et refuse journal multiple, symlinké, illisible ou divergent.
+
+La validation observée est : tests ciblés `16 passed in 2.49s`, build React PASS, Tauri `2 passed in 0.10s`, régression Python `593 passed in 64.28s`, `git diff --check` et scan de frontière PASS. La reprise n’ajoute aucune capacité client d’écrire un chemin, une identité, une evidence, une admission ou un verdict.
