@@ -1641,3 +1641,10 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-212` | Couverture / Transparence | Le rapport dérivé distingue désormais les surfaces de documentation/alias d’entrée réellement livrées des lacunes restantes d’export et de migration de stockage. Il conserve Dashboard global, VCS multi-provider, parité Pack et preuve hôte comme non couverts. | `OBSERVED` | `coverage_report.py`, tests ciblés et artefact M11 coverage update ; 598 tests Python passants. | `LOG-0263` |
+
+
+## Addendum — M11 Alias `mmu://` de lecture MCP
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-213` | Compatibilité d’adressage | L’alias strict `mmu://` est vérifié sur `mmu_read` MCP stdio comme entrée de lecture uniquement. Toute sortie reste l’adresse canonique `vera://`; aucune donnée ou adresse persistée ne change de schéma. | `OBSERVED` | Addressing, ReadService, test MCP stdio et artefact M11 alias. | `LOG-0264` |

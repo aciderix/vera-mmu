@@ -3315,3 +3315,9 @@ La commande `vmmu documentation` compile le bundle project-bound de six document
 **Statut : PASS.**
 
 La couverture dérivée reclasse précisément la documentation générée read-only et l’alias d’entrée `mmu://`, sans les confondre avec l’export documentaire ou une migration d’adresses persistées. Les tests ciblés passent et la régression complète atteint `598 passed in 65.18s`; les limites Dashboard global, VCS multi-provider, parité Pack et hôte réel restent explicitement non couvertes.
+
+## LOG-0264 — Alias `mmu://` de lecture vérifié sur MCP
+
+**Statut : PASS pour l’entrée READ seulement.**
+
+Une session MCP stdio réelle confirme que `mmu_read` accepte une adresse `mmu://` canonique et retourne exclusivement `vera://`. Aucune persistance, mutation, migration de schéma d’adresse ou parité ARET n’est introduite. Les tests addressing/MCP passent à `9 passed in 10.81s`.
