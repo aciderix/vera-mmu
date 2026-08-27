@@ -37,6 +37,10 @@ vmmu-codex-stage = "vera_mmu.codex_adapter:codex_stage_main"
 vmmu-codex-hook = "vera_mmu.codex_adapter:codex_hook_main"
 vmmu-codex-mcp = "vera_mmu.codex_adapter:codex_mcp_main"
 vmmu-codex-config = "vera_mmu.codex_adapter:codex_config_main"
+vmmu-gemini-stage = "vera_mmu.gemini_adapter:gemini_stage_main"
+vmmu-gemini-hook = "vera_mmu.gemini_adapter:gemini_hook_main"
+vmmu-gemini-mcp = "vera_mmu.gemini_adapter:gemini_mcp_main"
+vmmu-gemini-config = "vera_mmu.gemini_adapter:gemini_config_main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
