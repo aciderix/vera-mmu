@@ -20,6 +20,7 @@ from .gate_structure_builder import GateStructureDraftPreview, apply_gate_struct
 from .identity import load_profile
 from .read_api import ReadService
 from .memory_sync import automatic_memory_sync
+from .profile_rebind import ProjectProfileRebindPreview, apply_project_profile_rebind, preview_project_profile_rebind
 from .project_bootstrap import (
     ProjectBootstrapError,
     ProjectInitializationPreview,
@@ -60,6 +61,8 @@ class DesktopBridge:
         self._handlers: Mapping[str, Callable[[dict[str, Any]], dict[str, object]]] = {
             "project.scan": self._scan,
             "project.status": self._project_status,
+            "profile.rebind.preview": self._profile_rebind_preview,
+            "profile.rebind.apply": self._profile_rebind_apply,
             "project.init.preview": self._initialization_preview,
             "project.init.apply": self._initialization_apply,
             "capability.preview": self._capability_preview,
@@ -133,6 +136,28 @@ class DesktopBridge:
                 "coverage": compile_coverage_report(store).as_dict(),
                 "vcs": ReadService(store).vcs_status(),
             }
+
+    def _profile_rebind_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"projectName", "projectDescription"})
+        preview = preview_project_profile_rebind(
+            self._profile_path(),
+            project_name=_string(value, "projectName"),
+            project_description=_optional_string(value, "projectDescription"),
+        )
+        self._previews[preview.preview_hash] = _CachedPreview("profile.rebind", preview)
+        return preview.as_dict()
+
+    def _profile_rebind_apply(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"previewHash", "confirm"})
+        preview_hash = _string(value, "previewHash")
+        if value.get("confirm") is not True:
+            raise _ProtocolError("CONFIRMATION_REQUIRED", "Rebind Profile refusé sans confirmation explicite.")
+        cached = self._previews.get(preview_hash)
+        if cached is None or cached.kind != "profile.rebind" or not isinstance(cached.value, ProjectProfileRebindPreview):
+            raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de rebind Profile inconnu.")
+        result = apply_project_profile_rebind(self._profile_path(), cached.value, confirm=True)
+        del self._previews[preview_hash]
+        return result
 
     def _initialization_preview(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, {"template", "projectId", "projectName"})

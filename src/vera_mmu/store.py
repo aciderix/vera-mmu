@@ -153,6 +153,23 @@ class MemoryStore:
             raise StoreError("Payload d’audit invalide.")
         self._append_audit(connection, action, payload)
 
+    def rebind_identity(self, identity: ProjectIdentity, *, actor: str) -> None:
+        """Replace the bound identity only inside an explicit, auditable Core transaction."""
+        if not isinstance(identity, ProjectIdentity):
+            raise StoreError("Identité de rebind invalide.")
+        if not isinstance(actor, str) or not actor or actor != actor.strip() or len(actor) > 256:
+            raise StoreError("Actor de rebind invalide.")
+        old_identity = self.metadata().get("project_identity")
+        if old_identity != self.identity.as_dict():
+            raise StoreIdentityError("Identité SQLite inattendue pendant le rebind.")
+        with self.transaction() as connection:
+            connection.execute(
+                "UPDATE store_metadata SET value_json = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE key = 'project_identity'",
+                (canonical_json(identity.as_dict()),),
+            )
+            self._append_audit(connection, "PROJECT_PROFILE_REBOUND", {"old_identity": old_identity, "new_identity": identity.as_dict(), "actor": actor})
+        self.identity = identity
+
     def close(self) -> None:
         """Close the underlying SQLite connection without modifying the store."""
         self._connection.close()

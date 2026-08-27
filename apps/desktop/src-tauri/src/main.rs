@@ -150,6 +150,16 @@ fn scan_project(state: State<'_, AppState>) -> Result<Value, String> { with_brid
 fn project_status(state: State<'_, AppState>) -> Result<Value, String> { with_bridge(&state, |bridge| bridge.call("project.status", json!({}))) }
 
 #[tauri::command]
+fn profile_rebind_preview(state: State<'_, AppState>, project_name: String, project_description: String) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("profile.rebind.preview", json!({"projectName": project_name, "projectDescription": project_description})))
+}
+
+#[tauri::command]
+fn profile_rebind_apply(state: State<'_, AppState>, preview_hash: String, confirm: bool) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("profile.rebind.apply", json!({"previewHash": preview_hash, "confirm": confirm})))
+}
+
+#[tauri::command]
 fn capability_preview(state: State<'_, AppState>, identifier: String, name: String, kind: String, version: String, description: String) -> Result<Value, String> {
     with_bridge(&state, |bridge| bridge.call("capability.preview", json!({"identifier": identifier, "name": name, "kind": kind, "version": version, "description": description})))
 }
@@ -229,7 +239,7 @@ fn main() {
             app.manage(AppState { session: Mutex::new(None), executable });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![select_project, scan_project, project_status, capability_preview, capability_apply, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
+        .invoke_handler(tauri::generate_handler![select_project, scan_project, project_status, profile_rebind_preview, profile_rebind_apply, capability_preview, capability_apply, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
         .run(tauri::generate_context!())
         .expect("échec de l’application desktop VERA");
 }

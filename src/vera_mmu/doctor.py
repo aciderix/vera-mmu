@@ -17,6 +17,7 @@ DOCTOR_FORMAT = "vera-doctor-report/v1"
 _CHECK_ORDER = (
     "project_identity",
     "profile",
+    "profile_rebind",
     "workspace",
     "catalogs",
     "runtime",
@@ -85,6 +86,7 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
         checks["profile"] = _fail("profile", str(exc), "Corriger le Project Profile puis relancer le Doctor.")
 
     if profile is not None:
+        checks["profile_rebind"] = _diagnose_profile_rebind(path)
         try:
             workspace = resolve_workspace(profile, path)
             checks["workspace"] = _pass("workspace", f"Workspace confiné : {workspace.project_root}")
@@ -109,6 +111,7 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
             checks["project_identity"] = _fail("project_identity", str(exc), "Corriger profile/workspace puis vérifier l’identité du projet.")
         _diagnose_runtime(checks, profile, workspace, identity)
     else:
+        checks["profile_rebind"] = _diagnose_profile_rebind(path)
         checks.setdefault("project_identity", _fail("project_identity", "Identité indisponible sans profile et workspace valides.", "Réparer profile et workspace."))
         checks.setdefault("runtime", _fail("runtime", "Runtime indisponible sans workspace valide.", "Réparer le workspace du profile."))
         _database_unavailable(checks, "Runtime indisponible sans profile et workspace valides.")
@@ -125,6 +128,15 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
         project_identity=None if identity is None else identity.as_dict(),
         checks=ordered,
     )
+
+
+def _diagnose_profile_rebind(path: Path) -> DoctorCheck:
+    journals = list(path.parent.glob(".profile-rebind-*.json")) if path.parent.exists() and not path.parent.is_symlink() else []
+    if len(journals) > 1:
+        return _fail("profile_rebind", "Plusieurs journaux de rebind présents : reprise ambiguë.", "Exécuter une reprise explicite et conservatrice hors Doctor.")
+    if len(journals) == 1:
+        return _fail("profile_rebind", "Rebind de Project Profile interrompu ou non acquitté.", "Exécuter la reprise explicite du rebind puis relancer le Doctor.")
+    return _pass("profile_rebind", "Aucun rebind de Project Profile en attente.")
 
 
 def _diagnose_runtime(

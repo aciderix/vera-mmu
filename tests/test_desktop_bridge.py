@@ -116,6 +116,33 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertFalse(injected["ok"])
             self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
 
+    def test_m11db_profile_rebind_requires_closed_preview_and_confirmation(self) -> None:
+        from vera_mmu.identity import load_profile
+        from vera_mmu.store import MemoryStore
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            init = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "profile-rebind", "projectName": "Initial profile"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": init["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+            profile = root / ".vera-mmu" / "project.yaml"
+            with MemoryStore.open(load_profile(profile), profile):
+                pass
+            injected = self._call(bridge, "profile.rebind.preview", {"projectName": "Rebound profile", "projectDescription": "Confirmed rebind", "projectId": "unsafe"})
+            self.assertFalse(injected["ok"])
+            self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            preview = self._call(bridge, "profile.rebind.preview", {"projectName": "Rebound profile", "projectDescription": "Confirmed rebind"})
+            self.assertTrue(preview["ok"])
+            preview_hash = preview["result"]["preview_hash"]  # type: ignore[index]
+            refused = self._call(bridge, "profile.rebind.apply", {"previewHash": preview_hash, "confirm": False})
+            self.assertFalse(refused["ok"])
+            self.assertEqual(refused["error"]["code"], "CONFIRMATION_REQUIRED")  # type: ignore[index]
+            applied = self._call(bridge, "profile.rebind.apply", {"previewHash": preview_hash, "confirm": True})
+            self.assertTrue(applied["ok"])
+            self.assertEqual(applied["result"]["status"], "REBOUND")  # type: ignore[index]
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                self.assertEqual(store.metadata()["project_identity"], store.identity.as_dict())
+
     def test_m11dc_capability_builder_requires_closed_preview_and_confirmation(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)

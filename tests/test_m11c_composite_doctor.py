@@ -45,6 +45,7 @@ class CompositeDoctorTests(unittest.TestCase):
     _required_checks = {
         "project_identity",
         "profile",
+        "profile_rebind",
         "workspace",
         "catalogs",
         "runtime",
