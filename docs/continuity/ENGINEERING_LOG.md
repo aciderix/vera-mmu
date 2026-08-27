@@ -2730,3 +2730,18 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Verdict.** `PASS` pour le mécanisme VERA contrôlé et `TURN_GUARD_HARD`; `NOT_RUN` pour le host Antigravity, son trust et l’observation de hooks réels.
 
 **Suite.** Ouvrir M5-Q, adapter MCP générique, afin que tout client MCP puisse accéder de manière sûre à l’acquittement sans prétendre à une garde automatique.
+
+
+## LOG-0202 — 2026-08-27 — M5-Q : fallback MCP générique `MCP_ONLY`
+
+**Hypothèse.** Tout client MCP compatible peut recevoir une façade VERA sûre sans qu’un adapter n’invente une session, une garde pré-action ou une compaction dont le host ne fournit aucun événement attesté.
+
+**Changement fonctionnel.** Le commit `00f6cee` ajoute `generic_mcp_adapter.py`, `tests/test_generic_mcp_adapter.py` et les commandes `vmmu-generic-mcp-stage`, `vmmu-generic-mcp`, `vmmu-generic-mcp-config`. Le runtime lie manifeste et instructions compilés; la façade MCP est créée avec `DenyRuntimeAdapter` et sans registry lifecycle.
+
+**Contrat.** Le catalogue est disponible via le transport MCP stdio. Toute capability est refusée; l’acquittement lifecycle est également refusé en absence de contexte hôte. La configuration `.mcp.json` est project-local, non destructive et confirmée. Le niveau est `MCP_ONLY` : aucune automation lifecycle n’est promise.
+
+**Tests et contrôles.** Trois tests rouges précèdent l’implémentation. Les tests ciblés valident staging, preview/application, conflit/symlink, vrai `ClientSession` MCP, catalogue, refus d’acquittement sans session et refus de capability. La suite VERA atteint `479 passed, 37 subtests passed`; le premier scan de mot-clé a signalé la mention descriptive de « hook » dans une docstring, puis le contrôle structurel a confirmé l’absence de handler hook, registry lifecycle et `ResumeGuardService`. La roue isolée et ses trois entry points passent.
+
+**Verdict.** `PASS` pour le fallback VERA contrôlé. Aucun host, trust, hook, session, compaction, réseau ou exécution de capability ne peut être déduit de M5-Q.
+
+**Suite.** Ouvrir M6 pour fédérer les operations stage/configure/validate/doctor sous une CLI diagnostique, sans déplacer les règles d’adapter dans l’interface.

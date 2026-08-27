@@ -978,3 +978,17 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 
 **Provenance :** `tests/test_antigravity_adapter.py`; `docs/continuity/artifacts/m5_antigravity_adapter_2026-08-27.md`; documentation Antigravity consultée le 2026-08-27.
 **Journal :** `LOG-0201`.
+
+
+### MEM-DEC-149 — M5-Q : fallback MCP générique à couverture `MCP_ONLY`
+
+**Type :** `DECISION`
+**Statut :** `OBSERVED` pour le fallback contrôlé
+**Décision :** M5-Q publie au commit fonctionnel `00f6cee` un adapter MCP générique project-bound, avec runtime staged, preview/fusion confirmée d’une seule entrée `.mcp.json` et façade stdio `DenyRuntimeAdapter`. La garantie est strictement `MCP_ONLY`.
+
+**Motif :** MCP fournit un transport de tools mais n’établit ni session, ni hook, ni événement de compaction. Transformer sa simple présence en reprise automatique violerait les frontières client/serveur et ferait passer une absence de preuve pour une capacité d’hôte.
+
+**Effet opérationnel :** Le catalogue peut être lu; `mmu_run_capability` est refusé par défaut; `mmu_acknowledge_resume` reste refusé sans contexte lifecycle attesté. La configuration conserve les serveurs tiers mais refuse runtime altéré, JSON invalide, conflit, symlink, preview périmé et application non confirmée. Aucun hook, home, trust, réseau, secret ou host particulier ne participe au mécanisme.
+
+**Provenance :** `tests/test_generic_mcp_adapter.py`; `docs/continuity/artifacts/m5_generic_mcp_adapter_2026-08-27.md`; spécification MCP consultée le 2026-08-27.
+**Journal :** `LOG-0202`.
