@@ -3116,3 +3116,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 | Validation liée | Contrat M11-I : `3 passed in 2.17s`; cible M11-H/Front/relations/MCP/CLI : `30 passed in 17.45s`; intégral : `547 passed in 63.06s`; diff et scan de frontière : `PASS`. |
 | Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
 | Statut | `M11-I = PASS` dans le périmètre documenté. |
+
+
+## LOG-0241 — 2026-08-27 — M11-J : lectures capability, execution et evidence
+
+**Baseline et portée.** Le lot démarre à `9f2aca1`, M11-I livré localement à `547 passed`. Il étend la lecture Core de trois enregistrements persistés sans modifier schema, admission, policy, promotion, gate, capability runner, asset, provider, réseau ou compatibilité ARET.
+
+**Résultat.** `ReadService.read` délègue les capabilities à `CapabilityService.get`, les evidences à `EvidenceService.get` et les executions à la nouvelle primitive `ExecutionService.get`. Cette dernière parse et valide les trois payloads JSON persistants avant de retourner un record normalisé et son adresse canonique. `vmmu read` et `mmu_read` restent les transports uniques : l’adresse exacte project-bound est leur seule entrée de sélection. Assets restent lus par le chemin hashé dédié; gates restent évalués par leur outil existant et ne sont pas présentés comme une simple ressource SQL.
+
+**Preuves.** La fixture M11-J déclare une capability QUERY, son contract NOOP, sa policy ALLOW, exécute le runner NOOP réel puis enregistre une evidence TEST_PROOF réelle. Les deux tests contrôlent les champs persistants, cross-project, absent, non-mutation du journal d’audit et le schéma MCP `address` seul. Contrat : `2 passed in 2.05s`; cible evidence/execution/capability/MCP : `30 passed in 17.85s`; régression complète : **`549 passed in 63.57s`**.
+
+**Verdict.** `M11-J = PASS` pour capability/execution/evidence en lecture exacte. Listing/history de preuves et evidences, assets dans READ, gates/work graph, symboles/profile, traversal `related`, mutations, VCS, Dashboard, parité ARET et hôtes réels restent hors lot. Artefact : `artifacts/m11_j_capability_execution_evidence_reads_2026-08-27.md`; mémoire : `MEM-DEC-185`.

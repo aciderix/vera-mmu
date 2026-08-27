@@ -1355,3 +1355,22 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_i_specialized_front_handoff_relation_reads_2026-08-27.md`; contrat M11-I `3 passed`, cible `30 passed`, régression intégrale `547 passed in 63.06s`.
 
 **Limites conservées :** assets, preuves, evidence, capabilities, gates, executions, symboles, profile, traversals `related`, resume brief/status détaillé et toute mutation restent hors M11-I. Ce lot n’établit ni indexation globale ni parité ARET ni couverture universelle totale.
+
+
+## MEM-DEC-185 — M11-J : lectures exactes capability, execution et evidence
+
+**Date :** 2026-08-27
+**Décision :** étendre `ReadService.read` aux trois ressources persistées `capability`, `execution` et `evidence`, sans introduire de listing global, de recherche de contenu, de mutation ou de contournement d’admission.
+
+| Garantie | Décision effective |
+|---|---|
+| Capability | La lecture exacte délègue à `CapabilityService.get` et retourne la déclaration immutable, ses schemas et sa version. |
+| Execution | `ExecutionService.get` devient la primitive Core de lecture normalisée : paramètres, environnement, statut, timestamps, hash d’artefact et résultat sont issus de l’enregistrement persisté. |
+| Evidence | La lecture exacte délègue à `EvidenceService.get`; `content`, `content_hash`, verdict et admission sont lus ensemble, sans promotion implicite. |
+| Transport | L’unique sélection publique est `address` via `vmmu read` ou `mmu_read`; aucun record, statut, verdict, hash, contenu, environnement ou paramètre n’est fourni par le client. |
+| Assets | La lecture binaire reste sur le chemin dédié `AssetService.read` / `mmu_read_artifact` qui vérifie hash et taille. |
+| Gates | Restent sur `mmu_evaluate_gate`; aucune table de gate ou vue calculée n’est requalifiée en READ universel par ce lot. |
+
+**Evidence :** `docs/continuity/artifacts/m11_j_capability_execution_evidence_reads_2026-08-27.md`; contrat M11-J `2 passed`, cible `30 passed`, régression intégrale `549 passed in 63.57s`.
+
+**Limites conservées :** pas de get/listing des preuves, de listing evidence/execution, de traversal relationnel, de READ asset générique, de symbol/profile, de work graph/gates, de mutation ou de compatibilité/parité ARET. L’universalisation globale reste non terminée.

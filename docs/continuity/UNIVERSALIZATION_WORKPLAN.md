@@ -161,7 +161,8 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Bundle, export/import/restore et import projet avec provenance | `PASS` | M11-B clos ; preuve `m11_b_bundle_restore_project_import_2026-08-27.md` |
 | Transport bundle/import, CLI associée et Doctor composite | `PASS` dans le périmètre M11-C | M11-C clos |
 | Boot, FIND et READ exact/batch pour knowledge/entity/work-item | `PASS` dans le périmètre M11-H | M11-H clos |
-| Lectures Front/handoff courants et READ relation/front/handoff exact | `PASS` dans le périmètre M11-I | M11-I clos ; autres ressources spécialisées et `related` → lots dédiés |
+| Lectures Front/handoff courants et READ relation/front/handoff exact | `PASS` dans le périmètre M11-I | M11-I clos |
+| READ exact capability/execution/evidence | `PASS` dans le périmètre M11-J | M11-J clos ; assets/gates/symbol/profile et `related` → lots dédiés |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
 | Documentation dérivée et rapport coverage | `MISSING` | M11-E |
 | Adresse/compatibilité/VCS | `PARTIAL` | M11-F |
@@ -225,3 +226,12 @@ FIND est intentionnellement limité à la découverte sans contenu pour `knowled
 Aucune de ces ressources ne rejoint FIND : celui-ci reste une découverte par titre des seules ressources déjà indexées. Les tests couvrent Front/handoff réels, relation déclarée, adresses canoniques, refus cross-project/inexistant, absence d’audit, commandes CLI et session MCP stdio. La cible atteint `30 passed` et la régression intégrale **`547 passed in 63.06s`**.
 
 > **Frontière conservée :** assets, preuves/evidence, capabilities, gates, executions, symboles, profil, `related`, resume brief/status détaillé et mutations n’ont pas été généralisés par M11-I. Preuve : `artifacts/m11_i_specialized_front_handoff_relation_reads_2026-08-27.md`; mémoire : `MEM-DEC-184`; journal : `LOG-0239`.
+
+
+### 11.8 M11-J — Lectures capability, execution et evidence : `PASS`
+
+La lecture exacte de `capability`, `execution` et `evidence` est maintenant intégrée à `ReadService`. Les capabilities sont lues depuis leur registre immutable, les executions via `ExecutionService.get` (avec parsing strict de paramètres, environnement et résultat persistants), et les evidences via `EvidenceService.get` avec contenu, hash, verdict et statut d’admission associés. La sélection reste une unique adresse VERA canonique project-bound sur `vmmu read` et `mmu_read`; aucun record, verdict, hash ou payload ne vient du client.
+
+Les assets restent intentionnellement sur la lecture dédiée `mmu_read_artifact`, qui contrôle hash et taille du contenu binaire. Les gates continuent d’utiliser leur évaluation dédiée, car elles sont des vues de gouvernance et non un accès table générique. La cible atteint `30 passed` et la régression intégrale **`549 passed in 63.57s`**.
+
+> **Frontière conservée :** listing/history de preuves et evidences, assets au travers de READ, gates/work graph, symboles, profile, `related`, resume détaillé et mutations restent des lots distincts. Preuve : `artifacts/m11_j_capability_execution_evidence_reads_2026-08-27.md`; mémoire : `MEM-DEC-185`; journal : `LOG-0241`.

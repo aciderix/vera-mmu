@@ -4,6 +4,7 @@ import json
 import re
 import sqlite3
 from typing import Any, Mapping
+from .addressing import AddressError, make_address
 from .identity import canonical_json
 from .parameter_validation import ParameterValidationError, validate_parameters
 from .runner_validator_compatibility import RunnerValidatorCompatibilityError, ensure_runner_validator_compatibility
@@ -14,8 +15,22 @@ class ExecutionError(StoreError): pass
 @dataclass(frozen=True)
 class Execution:
  id: str; capability_id: str; status: str; exit_code: int | None; parameters: dict[str, Any]; artifact_hash: str | None
+@dataclass(frozen=True)
+class ExecutionRecord:
+ id: str; capability_id: str; status: str; exit_code: int | None; parameters: dict[str, Any]; environment: dict[str, Any]; started_at: str | None; finished_at: str | None; artifact_hash: str | None; result: dict[str, Any]; created_by: str; address: str
+
 class ExecutionService:
  def __init__(self, store: MemoryStore): self.store=store
+ def get(self, identifier: str) -> ExecutionRecord:
+  try: make_address(self.store.identity.project_id,'execution',identifier)
+  except AddressError as exc: raise ExecutionError('Identifiant execution VERA invalide.') from exc
+  row=self.store.connection.execute("SELECT id,capability_id,status,exit_code,parameters_json,environment_json,started_at,finished_at,artifact_hash,result_json,created_by FROM execution WHERE id=?",(identifier,)).fetchone()
+  if row is None: raise ExecutionError('Execution introuvable.')
+  try:
+   parameters=json.loads(str(row['parameters_json']));environment=json.loads(str(row['environment_json']));result=json.loads(str(row['result_json']))
+   if not all(isinstance(value,dict) for value in (parameters,environment,result)): raise ValueError
+  except (TypeError,ValueError,json.JSONDecodeError) as exc: raise ExecutionError('Execution persistée illisible ou altérée.') from exc
+  return ExecutionRecord(str(row['id']),str(row['capability_id']),str(row['status']),None if row['exit_code'] is None else int(row['exit_code']),parameters,environment,None if row['started_at'] is None else str(row['started_at']),None if row['finished_at'] is None else str(row['finished_at']),None if row['artifact_hash'] is None else str(row['artifact_hash']),result,str(row['created_by']),make_address(self.store.identity.project_id,'execution',identifier))
  def run_noop(self, identifier: str, capability_id: str, parameters: Mapping[str, Any], *, actor: str='system')->Execution:
   if not isinstance(identifier,str) or not identifier or '/' in identifier: raise ExecutionError('Identifiant execution invalide.')
   if not isinstance(parameters,Mapping): raise ExecutionError('Paramètres objet requis.')

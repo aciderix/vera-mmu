@@ -6,7 +6,10 @@ import json
 from typing import Iterable
 
 from .addressing import AddressError, make_address, parse_address
+from .capabilities import CapabilityService
 from .entities import EntityService
+from .evidence import EvidenceService
+from .executions import ExecutionService
 from .front import FrontRevision, FrontService
 from .handoff import Handoff, HandoffService
 from .knowledge import KnowledgeService
@@ -16,7 +19,7 @@ from .work_items import WorkItemService
 
 
 FINDABLE_RESOURCE_TYPES = frozenset({"knowledge", "entity", "work-item"})
-READABLE_RESOURCE_TYPES = FINDABLE_RESOURCE_TYPES | frozenset({"front", "handoff", "relation"})
+READABLE_RESOURCE_TYPES = FINDABLE_RESOURCE_TYPES | frozenset({"front", "handoff", "relation", "capability", "execution", "evidence"})
 MAX_FIND_QUERY_CHARACTERS = 256
 MAX_FIND_RESULTS = 100
 MAX_READ_BATCH = 32
@@ -160,8 +163,14 @@ class ReadService:
                 record = _handoff_record(HandoffService(self.store).get(parsed.identifier))
             elif parsed.resource_type == "relation":
                 record = asdict(RelationService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "capability":
+                record = asdict(CapabilityService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "execution":
+                record = asdict(ExecutionService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "evidence":
+                record = asdict(EvidenceService(self.store).get(parsed.identifier))
             else:
-                raise ReadApiError("Type de ressource READ non exposé dans le contrat fermé M11-I.")
+                raise ReadApiError("Type de ressource READ non exposé dans le contrat fermé M11-J.")
         except ReadApiError:
             raise
         except StoreError as exc:
