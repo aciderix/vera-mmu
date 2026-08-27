@@ -11,6 +11,7 @@ from typing import Any, Mapping
 import yaml
 from yaml.resolver import BaseResolver
 
+from .agent_profiles import AgentProfileError, validate_agent_profile
 from .identity import ProfileError, canonical_json, load_profile
 from .parameter_validation import ParameterValidationError, validate_parameter_schema
 from .workspace import Workspace, WorkspaceError, resolve_workspace
@@ -56,9 +57,11 @@ class ProjectCatalogs:
     capabilities: dict[str, Any]
     gates: dict[str, Any]
     policies: dict[str, Any]
+    agent_profiles: dict[str, dict[str, Any]]
     capability_catalog_hash: str
     gate_catalog_hash: str
     policy_hash: str
+    agent_profiles_hash: str
 
 
 def _mapping(value: Any, label: str) -> dict[str, Any]:
@@ -173,6 +176,25 @@ def _validate_gates(value: dict[str, Any], capabilities: Mapping[str, Any]) -> d
     return value
 
 
+def _validate_agent_profiles(value: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    if set(value) != {"format", "profiles"} or value.get("format") != "vera-agent-profiles/v1" or not isinstance(value.get("profiles"), list):
+        raise ProjectCatalogError("Format ou clés du catalogue agent-profiles invalides.")
+    profiles: dict[str, dict[str, Any]] = {}
+    for index, item in enumerate(value["profiles"]):
+        profile = _mapping(item, f"agent-profiles.profiles[{index}]")
+        if profile.get("format") != "vera-agent-profile/v1":
+            raise ProjectCatalogError(f"agent-profiles.profiles[{index}].format invalide.")
+        raw = {key: item_value for key, item_value in profile.items() if key != "format"}
+        try:
+            validated = validate_agent_profile(raw)
+        except AgentProfileError as exc:
+            raise ProjectCatalogError(f"agent-profiles.profiles[{index}] invalide.") from exc
+        if validated.id in profiles:
+            raise ProjectCatalogError("agent-profiles contient un identifiant dupliqué.")
+        profiles[validated.id] = validated.as_dict()
+    return profiles
+
+
 def _policy_catalog(value: dict[str, Any]) -> dict[str, Any]:
     allowed = {"format", "filesystem", "network", "process", "git", "destructive", "promotion"}
     if set(value) != allowed or value.get("format") != "vera-policy-catalog/v1":
@@ -217,11 +239,18 @@ def load_project_catalogs(profile_path: str | Path) -> ProjectCatalogs:
         capabilities,
     )
     policies = _policy_catalog(_load_yaml(workspace, profile["policies"]["file"], "policies"))
+    agent_profiles_source = _load_yaml(workspace, profile["integrations"]["agent_profiles"], "agent-profiles")
+    agent_profiles = _validate_agent_profiles(agent_profiles_source)
+    for integration_id in profile["integrations"]["enabled"]:
+        if integration_id not in agent_profiles:
+            raise ProjectCatalogError("integrations.enabled référence un Agent Profile absent du catalogue.")
     return ProjectCatalogs(
         capabilities=capabilities,
         gates=gates,
         policies=policies,
+        agent_profiles=agent_profiles,
         capability_catalog_hash=_hash(capabilities),
         gate_catalog_hash=_hash(gates),
         policy_hash=_hash(policies),
+        agent_profiles_hash=_hash(agent_profiles_source),
     )

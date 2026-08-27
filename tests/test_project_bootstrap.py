@@ -57,7 +57,7 @@ class ProjectBootstrapTests(unittest.TestCase):
             root=Path(directory);preview=preview_project_initialization(root,template="data",project_id="data-app",project_name="Data App");apply_project_initialization(root,preview,confirm=True)
             catalogs=load_project_catalogs(root/".vera-mmu"/"project.yaml")
             self.assertEqual(catalogs.capabilities["format"],"vera-capability-catalog/v1");self.assertEqual(catalogs.gates["format"],"vera-gate-catalog/v1");self.assertEqual(catalogs.policies["format"],"vera-policy-catalog/v1")
-            self.assertTrue(catalogs.capability_catalog_hash);self.assertTrue(catalogs.gate_catalog_hash);self.assertTrue(catalogs.policy_hash)
+            self.assertIn("generic-mcp",catalogs.agent_profiles);self.assertTrue(catalogs.capability_catalog_hash);self.assertTrue(catalogs.gate_catalog_hash);self.assertTrue(catalogs.policy_hash);self.assertTrue(catalogs.agent_profiles_hash)
             (root/".vera-mmu"/"capabilities.yaml").write_text("format: invalid\ncapabilities: []\n",encoding="utf-8")
             with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
             (root/".vera-mmu"/"capabilities.yaml").write_text("format: vera-capability-catalog/v1\ncapabilities: []\ncapabilities: []\n",encoding="utf-8")

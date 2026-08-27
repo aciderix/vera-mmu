@@ -11,6 +11,7 @@ from vera_mmu.__main__ import main
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
 from vera_mmu.capability_policies import CapabilityPolicyService
+from vera_mmu.agent_profiles import builtin_agent_profiles_json
 from vera_mmu.identity import load_profile
 from vera_mmu.store import MemoryStore
 
@@ -47,6 +48,7 @@ class ProjectOperationsTests(unittest.TestCase):
     def _profile(self,root:Path,seed:bool=False)->Path:
         profile=root/"project.yaml";profile.write_text(PROFILE,encoding="utf-8")
         runtime=root/".vera-mmu";runtime.mkdir()
+        (runtime/"agent-profiles.yaml").write_text(builtin_agent_profiles_json(),encoding="utf-8")
         (runtime/"capabilities.yaml").write_text("format: vera-capability-catalog/v1\ncapabilities: []\n",encoding="utf-8")
         (runtime/"gates.yaml").write_text("format: vera-gate-catalog/v1\ngates: []\n",encoding="utf-8")
         (runtime/"policies.yaml").write_text("""format: vera-policy-catalog/v1
