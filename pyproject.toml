@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vera-mmu"
-version = "0.1.0rc2"
+version = "0.1.0rc3"
 description = "Verifiable epistemics, relational provenance, and auditable continuity for AI-assisted projects"
 readme = "README.md"
 license = { text = "Apache-2.0" }
