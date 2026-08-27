@@ -1169,3 +1169,11 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Validation :** suite locale `510 passed, 43 subtests passed`; tests des contracts builder/assembleur `6 passed`; métadonnées de roue Apache-2.0 et classifieur OSI présents.
 **Limites :** Le workflow n’a pas encore été exécuté sur tag. Signature, tag, release, publication Pages, installation utilisateur et hôtes agents réels restent hors de ce record.
 **Journal :** `LOG-0221`.
+
+### MEM-DEC-169 — M9-B.EXIT : candidat final non signé validé sur runners natifs
+**Type :** `OBSERVATION`
+**Statut :** `PASS` de vérification CI ; release/signature `NOT_RUN`
+**Décision :** Le workflow de candidat final assemble les artefacts CLI et desktop en sortie hashée sur les deux runners sans permission de publication. Le run `33070861267` est vert : Linux job `98512443152` (`510 passed, 43 subtests passed`, 77,18 s), Windows job `98512443367` (même total, 265,58 s), puis builds/assemblage/téléversement réussis.
+**Artefacts :** Linux `9645991442` (214 368 098 octets) et Windows `9646108111` (89 111 512 octets), CI-only, non expirés et non signés.
+**Limites :** Ce run a été déclenché manuellement sur `b5b41b9`, pas par tag. Un téléchargement local Linux a échoué par `unexpected EOF` avant toute inspection/exécution. Le run issu du tag exact devra être récupéré et ses SHA-256 validés avant publication.
+**Journal :** `LOG-0222`.

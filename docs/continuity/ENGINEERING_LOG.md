@@ -2910,3 +2910,10 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Contrôles.** Les tests rouges de l’assembleur ont vérifié le refus d’un bundle incomplet dans une racine isolée. Les tests de builder/assembleur passent (`6 passed`), puis la suite VERA complète : `510 passed, 43 subtests passed`.
 **Verdict.** `PASS` local pour M9-B. Il ne s’agit pas encore d’un candidat de tag observé : aucune signature, release GitHub, hash public, installation utilisateur ou agent réel n’est revendiqué.
 **Suite.** Publier le code/doc après garde Git. La création de `v0.1.0-rc.1`, l’exécution du workflow de tag, toute signature et publication publique exigent une confirmation spécifique ; vérifier ensuite tous les artefacts avant de présenter la préversion comme téléchargeable.
+
+## LOG-0222 — 2026-08-27 — M9-B.EXIT : assemblage de préversion non signé sur CI native
+**Exécution.** Le workflow manuel `33070861267` à la révision `b5b41b9` réussit sur Linux x64 (`98512443152`) et Windows x64 (`98512443367`). Les suites passent respectivement `510 passed, 43 subtests passed` en 77,18 s et 265,58 s. Les builds sidecar/CLI, desktop, assemblage `vera-release-candidate/v1` et upload passent dans chaque job.
+**Sorties.** Les artefacts CI `9645991442` (Linux, 214 368 098 octets) et `9646108111` (Windows, 89 111 512 octets) sont présents, non expirés et explicitement non signés. Le workflow n’a que `contents: read` et n’a créé ni tag ni release.
+**Contrôle local.** Le transfert passif de l’archive Linux a échoué par EOF imprévu avant son extraction ; aucun binaire CI n’a été exécuté. Les preuves du job suffisent au statut CI, mais ne remplacent pas la vérification de checksums qui devra être réalisée sur les artefacts du tag exact.
+**Verdict.** `PASS` pour M9-B : la chaîne non signante est prête et exécutée nativement. `NOT_RUN` pour tag, signature, GitHub Release, téléchargement officiel, installation utilisateur et agents réels.
+**Suite.** Commiter/publier ce record. Demander confirmation exacte avant de créer `v0.1.0-rc.1`, effectuer le run de tag et, faute de clés de signature disponibles, ne publier aucun binaire à ce stade.

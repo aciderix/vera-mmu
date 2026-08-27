@@ -52,4 +52,13 @@ Le workflow ne possède qu’une permission `contents: read`, puis téléverse u
 
 La préversion possède également son README public, `LICENSE` Apache-2.0, `NOTICE`, règles DCO `CONTRIBUTING.md` et politique de marque `TRADEMARKS.md`. Le retrait de `LICENSE-PENDING.md` est corroboré par les métadonnées de roue : `License: Apache-2.0` et classifieur OSI Apache. La titularité de droit demeure une responsabilité du propriétaire et des contributeurs ; le DCO structure les contributions futures mais ne remplace pas un audit juridique.
 
+Le run manuel `33070861267`, sur la révision `b5b41b954634fcad08790b3bf159b9329a3d22bc`, a passé intégralement : Linux x64 (`98512443152`) exécute `510 passed, 43 subtests passed` en 77,18 s ; Windows x64 (`98512443367`) exécute le même total en 265,58 s. Les deux jobs passent ensuite la construction sidecar/CLI, les bundles desktop, l’assemblage final non signé et le téléversement.
+
+| Plateforme | Artefact CI candidat | Taille | Statut |
+|---|---:|---:|---|
+| Linux x64 | `9645991442` | 214 368 098 octets | présent, non expiré, non signé |
+| Windows x64 | `9646108111` | 89 111 512 octets | présent, non expiré, non signé |
+
+Une tentative de téléchargement local du ZIP Linux d’artefact s’est interrompue en transport (`unexpected EOF`) sans exécuter son contenu. Ce défaut de téléchargement local ne contredit pas les étapes CI `Assemble` et `Upload` réussies, mais la vérification finale devra re-télécharger les artefacts **issus du tag exact** et valider leurs `SHA256SUMS` avant publication.
+
 Le [contrat de release](../../release/RELEASE_CONTRACT.md) et le [modèle de notes](../../release/RELEASE_NOTES_TEMPLATE.md) imposent ces limites. Le dashboard WebDev reste hors distribution VERA à ce stade : aucun transfert de source ou déploiement GitHub Pages n’est effectué par M9-A.
