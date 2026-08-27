@@ -3269,3 +3269,11 @@ Validations : tests ciblés `17 passed in 2.59s`, build React PASS, Tauri natif 
 Le Doctor ajoute le contrôle read-only `profile_rebind`, qui signale un journal de rebind persistant sans tenter de réparer. Le bridge/Tauri/Dashboard exposent séparément un preview de reprise sans entrée client puis une application confirmée. Le Core recalcule le journal et le hash courant de Profile, et refuse journal multiple, symlinké, illisible ou divergent.
 
 La validation observée est : tests ciblés `16 passed in 2.49s`, build React PASS, Tauri `2 passed in 0.10s`, régression Python `593 passed in 64.28s`, `git diff --check` et scan de frontière PASS. La reprise n’ajoute aucune capacité client d’écrire un chemin, une identité, une evidence, une admission ou un verdict.
+
+## LOG-0257 — M11-D-B2 : rebind structurel d’identifiant et domaine
+
+**Statut : PASS dans le périmètre explicitement borné.**
+
+Le rebind contrôlé étend le preview aux quatre champs `projectId`, `projectName`, `projectDomain` et `projectDescription`. Après confirmation et recalcul de fraîcheur, l’identité persistée est réalignée dans SQLite et les adresses dérivées sont relues avec le nouvel identifiant. Le bridge refuse toute entrée workspace, storage, catalogue, policy ou chemin.
+
+Validation : ciblés Core/bridge `15 passed in 1.42s`, build React PASS, Tauri `2 passed in 0.10s`, intégral Python `595 passed in 64.98s`, diff et scan frontière PASS. Les mutations physiques du runtime et des catalogues restent expressément hors lot.

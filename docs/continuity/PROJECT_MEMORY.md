@@ -1591,3 +1591,11 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-203` | Doctor / Reprise Profile | Le Doctor détecte sans effet de bord un journal de rebind Profile restant. Le Dashboard expose ensuite un preview de reprise et une confirmation, qui recalcule l’état journalisé avant de déléguer au Core. Aucun rétablissement ne survient automatiquement. | `OBSERVED` | `profile_rebind.py`, `doctor.py`, bridge/Tauri/UI et artefact M11-D Doctor Recovery ; 593 tests Python passants. | `LOG-0256` |
+
+
+## Addendum — M11-D-B2 Rebind d’identité structurelle
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-204` | Identité / Migration Profile | Le rebind contrôlé couvre maintenant `project.id`, `project.name`, `project.domain` et `project.description`. Après preview/fraîcheur/confirmation, la métadonnée d’identité SQLite est réalignée de façon auditée et les adresses publiques sont à nouveau dérivées avec le nouvel identifiant. | `OBSERVED` | `profile_rebind.py`, bridge/Tauri/Dashboard et tests M11-D-B2 ; 595 tests Python passants. | `LOG-0257` |
+| `MEM-DEC-205` | Limite de migration | Les chemins workspace/storage et les catalogues externes restent exclus : ils impliquent déplacement/validation d’artefacts persistants et feront l’objet de migrations physiques distinctes, jamais d’une édition de formulaire. | `DECISION` | Contrat M11-D-B2. | `LOG-0257` |
