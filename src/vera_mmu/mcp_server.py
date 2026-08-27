@@ -48,6 +48,7 @@ exclusivement par un adapter déclaré côté serveur. Les bundles sont toujours
 le runtime du projet; aucun chemin d’archive client n’est accepté. Les documents de projet
 sont explicitement listés, confinés au workspace, prévisualisés puis réévalués avant import.
 FIND ne retourne que des références compactes; READ exige une adresse VERA canonique exacte.
+Le parcours relationnel part d’une entité exacte, avec direction, profondeur et cardinalité strictement bornées.
 Les pointeurs Front et handoff sont résolus uniquement depuis l’état persistant du store actif.
 Le Doctor ne prend aucun chemin, runtime ou hôte contrôlé par le client. Toute erreur métier
 reste structurée et n’est jamais transformée en succès."""
@@ -279,6 +280,11 @@ def create_server(
     async def mmu_find(query: str, resource_types: list[str] | None = None) -> dict[str, object]:
         """Découvre des références par titre sans retourner contenu ni description."""
         return _call("find", lambda: {"findings": ReadService(store).find(query, resource_types=resource_types)})
+
+    @server.tool(name="mmu_get_related", structured_output=True)
+    async def mmu_get_related(address: str, direction: str = "BOTH", max_depth: int = 1, max_nodes: int = 20) -> dict[str, object]:
+        """Parcourt un voisinage relationnel borné depuis une entité VERA exacte."""
+        return _call("related", lambda: ReadService(store).related(address, direction=direction, max_depth=max_depth, max_nodes=max_nodes))
 
     @server.tool(name="mmu_read", structured_output=True)
     async def mmu_read(address: str) -> dict[str, object]:

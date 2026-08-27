@@ -142,6 +142,60 @@ class ReadService:
         findings.sort(key=lambda item: (str(item["resource_type"]), str(item["id"])))
         return findings[:MAX_FIND_RESULTS]
 
+    def related(self, address: str, *, direction: str = "BOTH", max_depth: int = 1, max_nodes: int = 20) -> dict[str, object]:
+        """Traverse bounded entity relations breadth-first without exposing arbitrary graph queries."""
+        try:
+            root = parse_address(address)
+        except AddressError as exc:
+            raise ReadApiError("Adresse related VERA invalide ou non canonique.") from exc
+        if root.project_id != self.store.identity.project_id or root.resource_type != "entity":
+            raise ReadApiError("La racine related doit être une entité VERA du projet courant.")
+        if direction not in {"INBOUND", "OUTBOUND", "BOTH"}:
+            raise ReadApiError("Direction related inconnue ou non autorisée.")
+        if isinstance(max_depth, bool) or not isinstance(max_depth, int) or not 1 <= max_depth <= 3:
+            raise ReadApiError("Profondeur related invalide : 1 à 3 requise.")
+        if isinstance(max_nodes, bool) or not isinstance(max_nodes, int) or not 1 <= max_nodes <= 50:
+            raise ReadApiError("Cardinalité related invalide : 1 à 50 requise.")
+        try:
+            EntityService(self.store).get(root.identifier)
+            seen = {root.identifier}
+            frontier = [(root.identifier, 0)]
+            nodes: list[dict[str, object]] = []
+            relations: list[dict[str, object]] = []
+            relation_ids: set[str] = set()
+            service = RelationService(self.store)
+            while frontier and len(nodes) < max_nodes:
+                entity_id, depth = frontier.pop(0)
+                if depth >= max_depth:
+                    continue
+                clauses: list[str] = []
+                parameters: list[str] = []
+                if direction in {"OUTBOUND", "BOTH"}:
+                    clauses.append("from_entity_id = ?")
+                    parameters.append(entity_id)
+                if direction in {"INBOUND", "BOTH"}:
+                    clauses.append("to_entity_id = ?")
+                    parameters.append(entity_id)
+                rows = self.store.connection.execute(
+                    "SELECT id FROM relation WHERE " + " OR ".join(clauses) + " ORDER BY id ASC", parameters
+                ).fetchall()
+                for row in rows:
+                    relation = service.get(str(row[0]))
+                    neighbor = relation.to_entity_id if relation.from_entity_id == entity_id else relation.from_entity_id
+                    if neighbor not in seen:
+                        if len(nodes) >= max_nodes:
+                            continue
+                        seen.add(neighbor)
+                        entity = EntityService(self.store).get(neighbor)
+                        nodes.append({"address": make_address(self.store.identity.project_id, "entity", entity.id), "id": entity.id, "type_id": entity.type_id, "title": entity.title})
+                        frontier.append((neighbor, depth + 1))
+                    if relation.id not in relation_ids:
+                        relation_ids.add(relation.id)
+                        relations.append({"id": relation.id, "type_id": relation.relation_type_id, "from_address": relation.from_address, "to_address": relation.to_address})
+        except StoreError as exc:
+            raise ReadApiError("Graphe relationnel VERA introuvable ou incohérent.") from exc
+        return {"root_address": root.canonical, "direction": direction, "max_depth": max_depth, "max_nodes": max_nodes, "nodes": nodes, "relations": relations}
+
     def read(self, address: str) -> dict[str, object]:
         """Read one exact resource after validating its canonical address and project identity."""
         try:
