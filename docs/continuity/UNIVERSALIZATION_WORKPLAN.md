@@ -170,7 +170,8 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
 | Rapport de couverture dérivé (Core/CLI/MCP) | `PASS` dans le périmètre M11-E | Rapport M11-E clos ; générateurs `MMU_SETUP`/`TOOLS`/`GATES`/`POLICIES`/`ARCHITECTURE`/`MAINTENANCE` restent ouverts |
 | Bridge d’adresse `mmu://` pour lecture | `PASS` dans le périmètre M11-F-A | Alias input-only validé ; migration canonique, aliases `aret_*`, lecteur legacy et VCS multi-provider restent ouverts |
-| Adresse/compatibilité/VCS | `PARTIAL` | M11-F reste ouvert au-delà de M11-F-A |
+| Diagnostic VCS local Git/no-VCS | `PASS` dans le périmètre M11-F-B | Observation sans commande validée ; providers Mercurial/SVN et opérations VCS restent ouverts |
+| Adresse/compatibilité/VCS | `PARTIAL` | M11-F reste ouvert au-delà de M11-F-A/B |
 | Migration et parité ARET | `PARTIAL` / `NOT_ELIGIBLE` | M11-G |
 | Hôtes agents réels | `NOT_PROVEN` | Campagne distincte, après autorisation et gates requises |
 

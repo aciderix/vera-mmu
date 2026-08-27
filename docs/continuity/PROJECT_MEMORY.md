@@ -1487,3 +1487,21 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_fa_mmu_read_address_bridge_2026-08-27.md`; cible `12 passed`, régression intégrale `560 passed in 68.01s`.
 
 **Limites conservées :** pas de migration des adresses canoniques vers `mmu://`, aliases `aret_*`, lecteur `ARET://`, compatibilité/parité ARET, ni abstraction Git/Mercurial/SVN.
+
+
+## MEM-DEC-192 — M11-F-B : statut VCS local minimal
+
+**Date :** 2026-08-27
+**Décision :** introduire une observation transport-neutral de `.git` project-local, limitée à `GIT/OBSERVED` ou `NONE/NO_VCS`, au lieu d’étendre prématurément la synchronisation Git existante ou de déclarer des providers Mercurial/SVN.
+
+| Garantie | Décision effective |
+|---|---|
+| Source | Le seul marqueur observé est `.git` sous la racine du projet validée. |
+| États | Répertoire régulier → `GIT/OBSERVED`; absent → `NONE/NO_VCS`; symlink/non-répertoire → refus fermé. |
+| Confidentialité | Aucun chemin, revision, branche, remote, log, utilisateur ou statut de fichiers n’est retourné. |
+| Effets | Aucun subprocess, réseau, transaction, audit, commit, push, pull ou écriture filesystem. |
+| Transports | `ReadService.vcs_status`, CLI `vcs-status` et MCP `mmu_get_vcs_status()` sans entrée client; tool manifesté/hashé. |
+
+**Evidence :** `docs/continuity/artifacts/m11_fb_local_vcs_status_2026-08-27.md`; cible `13 passed`, intégral `561 passed in 67.71s`.
+
+**Limites conservées :** pas de provider Mercurial/SVN, revision, branches/remotes, log, staging, sync, commit/push ou parité VCS complète.

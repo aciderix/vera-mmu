@@ -3191,3 +3191,12 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** Les tests couvrent adresse `mmu://` valide, formes invalides, une lecture Core, CLI réelle et MCP stdio réelle; toutes les réponses normalisent vers VERA persisté. Cible adressage/lecture : `12 passed in 3.09s`; intégral : **`560 passed in 68.01s`**.
 
 **Verdict.** `M11-F-A = PASS`. Le parseur canonique VERA, les écritures, le schéma SQLite et le VCS ne changent pas. Pas d’alias `aret_*`, de lecteur `ARET://`, de migration d’adresses, de provider multi-VCS ou de parité ARET. Artefact : `artifacts/m11_fa_mmu_read_address_bridge_2026-08-27.md`; mémoire : `MEM-DEC-191`.
+
+
+## LOG-0249 — 2026-08-27 — M11-F-B : diagnostic VCS local minimal
+
+**Résultat.** `inspect_vcs` observe uniquement le marqueur `.git` project-local sans lancer Git. Il retourne `GIT/OBSERVED` pour un répertoire régulier, `NONE/NO_VCS` s’il est absent, et refuse les marqueurs symlinkés ou non-répertoires. `ReadService.vcs_status`, CLI `vcs-status` et MCP `mmu_get_vcs_status()` exposent ce résultat sans argument de sélection; le tool est manifesté/hashé.
+
+**Preuves.** Le contrat couvre no-VCS, Git marker régulier, symlink ambigu et absence d’audit. La cible Core/manifeste/CLI/MCP compte `13 passed in 14.56s`; la suite intégrale compte **`561 passed in 67.71s`**.
+
+**Verdict.** `M11-F-B = PASS`. Aucun subprocess/réseau, revision, branche, remote, log, sync, commit/push, provider Mercurial/SVN ou parité VCS n’est livré. Artefact : `artifacts/m11_fb_local_vcs_status_2026-08-27.md`; mémoire : `MEM-DEC-192`.
