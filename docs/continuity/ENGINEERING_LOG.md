@@ -3297,3 +3297,9 @@ L’export project-local confirmé et les façades publiques restent ouverts : c
 **Statut : PASS pour la projection documentaire CLI read-only.**
 
 La commande `vmmu documentation` compile le bundle project-bound de six documents et son hash depuis l’identité, le Profile, les catalogues et la couverture. Les catalogues absents sont explicitement projetés `NOT_CONFIGURED`; aucune écriture de fichier ni d’audit n’est déclenchée. Les tests ciblés ont passé à `3 passed in 0.25s` et la régression complète à `597 passed in 65.16s`.
+
+## LOG-0261 — Documentation générée via MCP
+
+**Statut : PASS pour la projection documentaire MCP read-only.**
+
+`mmu_get_documentation` ne prend aucun argument client et s’appuie sur le Profile lié au workspace du store. Une session MCP stdio réelle a détecté puis permis de corriger l’hypothèse erronée d’un Profile forcément sous le runtime. La suite complète passe à `598 passed in 67.00s`; aucune écriture, chemin client, processus ou réseau n’est ajouté.

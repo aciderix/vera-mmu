@@ -1620,3 +1620,10 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-209` | Documentation / CLI | `vmmu documentation` expose la projection documentaire project-bound en lecture seule. Les catalogues non configurés sont rendus explicitement comme tels, sans fausse information ni mutation. | `OBSERVED` | `__main__.py`, `documentation_generator.py`, tests CLI ; 597 tests Python passants. | `LOG-0260` |
+
+
+## Addendum — M11 Documentation générée via MCP
+
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-210` | Documentation / MCP | `mmu_get_documentation` expose une projection documentaire sans argument client sur une session stdio réelle. La résolution utilise le Profile lié au workspace du store, pas un emplacement runtime présumé. | `OBSERVED` | `mcp_server.py`, test MCP stdio, artefact M11 documentation MCP ; 598 tests Python passants. | `LOG-0261` |
