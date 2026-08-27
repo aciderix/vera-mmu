@@ -156,7 +156,7 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 
 | Groupe d’écarts | Statut | Prochain lot obligatoire |
 |---|---|---|
-| Profile et modèle projet déclaratif riche | `PARTIAL` | M11-A |
+| Profile et modèle projet déclaratif riche | `PASS` | M11-A clos ; preuve `m11_a_project_profile_catalogs_2026-08-27.md` |
 | Bundle, export/import/restore et import projet avec provenance | `MISSING` | M11-B |
 | API MCP, CLI et Doctor complets | `PARTIAL` / `MISSING` | M11-C |
 | Dashboard configurateur et builders | `PARTIAL` / `MISSING` | M11-D |
@@ -166,3 +166,7 @@ L’audit M11 est une gate de vérité : il ne rouvre ni le Core ni M10 et n’a
 | Hôtes agents réels | `NOT_PROVEN` | Campagne distincte, après autorisation et gates requises |
 
 La référence est `artifacts/m11_specification_completeness_audit_2026-08-27.md`, reliée à `MEM-DEC-177` et `LOG-0230`.
+
+### 11.1 M11-A — Project Profile et catalogues déclaratifs : `PASS`
+
+Les sept fichiers initialisés, le profile enrichi, le Front/resume, les taxonomies, les catalogues capabilities/gates/policies/agents, les six modèles de domaine et les quatre hashes de génération sont maintenant produits et validés sous `.vera-mmu`. Les contraintes de chemin, format, schéma, lien gate/capability et agent activé sont fail-closed. La preuve détaillée est `artifacts/m11_a_project_profile_catalogs_2026-08-27.md`; le lot n’inclut pas l’exécution de capability ni un éditeur de profil, qui restent des phases M11 distinctes.

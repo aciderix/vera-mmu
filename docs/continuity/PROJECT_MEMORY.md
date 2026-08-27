@@ -1243,3 +1243,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Décision :** Il est interdit de présenter VERA comme « totalement livré selon la spécification finale », même hors test Windows. Toute progression future doit traiter les lots M11-A à M11-G du `todo.md` sous gates distinctes. L’audit ne déclenche ni agent réel, ni write user-scope, ni migration ARET.
 **Source :** `artifacts/m11_specification_completeness_audit_2026-08-27.md`.
 **Journal :** `LOG-0230`.
+
+### MEM-DEC-178 — M11-A : Project Profile et catalogues déclaratifs clos
+**Type :** `DECISION` et `OBSERVATION`
+**Statut :** `PASS`
+**Énoncé :** Le bootstrap VERA crée maintenant les sept fichiers déclaratifs project-local, le Project Profile normalise description, workspace, storage, Front, resume, taxonomies, work, catalogues et intégrations, et `project_catalogs` charge/valide les catalogues sous runtime. Les templates Software, Game, Research, Data, Hardware et Documentation déclarent des entités distinctes. Les hashes profile/capability/gate/policy sont liés au preview MCP.
+**Validation :** Les régressions couvrent les absences, traversal, symlinks, YAML dupliqué, formats/keys hors contrat, commande libre, gate non liée, catalogue agent invalide et configuration absente. Suite complète : `523 passed, 43 subtests passed`.
+**Limites :** Les catalogues restent déclaratifs. Aucun runner, import, bundle, éditeur, Doctor global, hôte réel ou écriture user-scope n’est ajouté ou inféré.
+**Source :** `artifacts/m11_a_project_profile_catalogs_2026-08-27.md`, commits `e92edf7`, `1d9d8a8`, `88af9aa`, `a0e09cf`, `fb6a1ac`.
+**Journal :** `LOG-0231`.
