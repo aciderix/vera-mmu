@@ -7,7 +7,7 @@ from typing import Mapping
 
 from .coverage_report import compile_coverage_report
 from .identity import canonical_json, load_profile, project_identity
-from .project_catalogs import load_project_catalogs
+from .project_catalogs import ProjectCatalogError, load_project_catalogs
 from .store import MemoryStore, StoreError
 from .workspace import resolve_workspace
 
@@ -29,14 +29,20 @@ def compile_project_documentation(store: MemoryStore, profile_path: str) -> Proj
     profile = load_profile(profile_path)
     if project_identity(profile, resolve_workspace(profile, profile_path)).as_dict() != store.identity.as_dict():
         raise StoreError("Profile lié à une identité différente du store actif.")
-    catalogs = load_project_catalogs(profile_path)
+    try:
+        catalogs = load_project_catalogs(profile_path)
+        catalog_payload = {"capabilities": catalogs.capabilities, "gates": catalogs.gates, "policies": catalogs.policies, "agent_profiles": catalogs.agent_profiles}
+        catalog_status = "CONFIGURED"
+    except ProjectCatalogError as exc:
+        catalog_payload = {"capabilities": {"format": "not-configured", "capabilities": []}, "gates": {"format": "not-configured", "gates": []}, "policies": {"format": "not-configured"}, "agent_profiles": {}}
+        catalog_status = f"NOT_CONFIGURED: {exc}"
     coverage = compile_coverage_report(store).as_dict()
     project = profile["project"]
     docs = {
         "MMU_SETUP.md": _document("MMU_SETUP", {"project": project, "identity": store.identity.as_dict()}),
-        "TOOLS.md": _document("TOOLS", {"capabilities": catalogs.capabilities, "agent_profiles": catalogs.agent_profiles}),
-        "GATES.md": _document("GATES", {"gates": catalogs.gates}),
-        "POLICIES.md": _document("POLICIES", {"policies": catalogs.policies}),
+        "TOOLS.md": _document("TOOLS", {"catalog_status": catalog_status, "capabilities": catalog_payload["capabilities"], "agent_profiles": catalog_payload["agent_profiles"]}),
+        "GATES.md": _document("GATES", {"catalog_status": catalog_status, "gates": catalog_payload["gates"]}),
+        "POLICIES.md": _document("POLICIES", {"catalog_status": catalog_status, "policies": catalog_payload["policies"]}),
         "ARCHITECTURE.md": _document("ARCHITECTURE", {"workspace": profile["workspace"], "storage": profile["storage"], "identity": store.identity.as_dict()}),
         "MAINTENANCE.md": _document("MAINTENANCE", {"coverage": coverage, "limitations": coverage["unsupported_surfaces"]}),
     }

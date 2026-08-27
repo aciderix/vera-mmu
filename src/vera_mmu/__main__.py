@@ -9,6 +9,7 @@ from .adapter_catalog import ADAPTER_CATALOG, adapter_spec, call_adapter, call_a
 from .bundles import BundleService, restore_bundle
 from .coverage_report import compile_coverage_report
 from .doctor import diagnose_project
+from .documentation_generator import compile_project_documentation
 from .identity import ProfileError, load_profile, profile_identity, project_identity
 from .memory_sync import automatic_memory_sync
 from .migrations import MigrationError
@@ -33,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync=sub.add_parser("memory-sync",help="Synchronise seulement la mémoire VERA selon sa policy project-local.");sync.add_argument("profile",type=Path,help="Chemin project.yaml.")
     doctor=sub.add_parser("doctor",help="Diagnostique sans mutation le profile, runtime, SQLite, catalogues et transports VERA.");doctor.add_argument("profile",type=Path,help="Chemin project.yaml.")
     coverage=sub.add_parser("coverage",help="Compile le rapport de couverture VERA dérivé, sans mutation.");coverage.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    documentation=sub.add_parser("documentation",help="Compile la documentation VERA dérivée, sans mutation.");documentation.add_argument("profile",type=Path,help="Chemin project.yaml.")
     vcs_status=sub.add_parser("vcs-status",help="Observe le statut VCS project-local sans lancer de commande ni écrire.");vcs_status.add_argument("profile",type=Path,help="Chemin project.yaml.")
     boot=sub.add_parser("boot",help="Lit l’état de démarrage VERA lié au profile sans armer ni modifier la reprise.");boot.add_argument("profile",type=Path,help="Chemin project.yaml.")
     find=sub.add_parser("find",help="Trouve des références VERA par titre, sans retourner de contenu.");find.add_argument("profile",type=Path,help="Chemin project.yaml.");find.add_argument("--query",required=True);find.add_argument("--resource",action="append",dest="resources")
@@ -91,6 +93,11 @@ def main(argv:Sequence[str]|None=None)->int:
         elif args.command=="coverage":
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"coverage":compile_coverage_report(store).as_dict()}
+        elif args.command=="documentation":
+            profile=load_profile(args.profile)
+            with MemoryStore.open(profile,args.profile) as store:
+                documentation=compile_project_documentation(store,str(args.profile))
+                payload={"ok":True,"documentation":{"project_identity":documentation.project_identity,"documents":documentation.documents,"bundle_hash":documentation.bundle_hash}}
         elif args.command=="doctor":
             report=diagnose_project(args.profile);payload={"ok":report.status=="PASS","doctor":report.as_dict()}
             if report.status!="PASS":
