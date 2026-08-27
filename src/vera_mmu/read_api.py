@@ -24,6 +24,7 @@ READABLE_RESOURCE_TYPES = FINDABLE_RESOURCE_TYPES | frozenset({"front", "handoff
 MAX_FIND_QUERY_CHARACTERS = 256
 MAX_FIND_RESULTS = 100
 MAX_READ_BATCH = 32
+MAX_EXECUTION_HISTORY = 100
 
 
 class ReadApiError(StoreError):
@@ -196,6 +197,31 @@ class ReadService:
         except StoreError as exc:
             raise ReadApiError("Graphe relationnel VERA introuvable ou incohérent.") from exc
         return {"root_address": root.canonical, "direction": direction, "max_depth": max_depth, "max_nodes": max_nodes, "nodes": nodes, "relations": relations}
+
+    def execution_history(self, *, max_items: int = 20) -> dict[str, object]:
+        """List a small deterministic projection of persisted executions without their payloads."""
+        if isinstance(max_items, bool) or not isinstance(max_items, int) or not 1 <= max_items <= MAX_EXECUTION_HISTORY:
+            raise ReadApiError(f"Historique execution invalide : 1 à {MAX_EXECUTION_HISTORY} éléments requis.")
+        rows = self.store.connection.execute(
+            "SELECT id, capability_id, status, started_at, finished_at, artifact_hash "
+            "FROM execution ORDER BY started_at DESC, id DESC LIMIT ?",
+            (max_items,),
+        ).fetchall()
+        return {
+            "max_items": max_items,
+            "executions": [
+                {
+                    "address": make_address(self.store.identity.project_id, "execution", str(row["id"])),
+                    "id": str(row["id"]),
+                    "capability_id": str(row["capability_id"]),
+                    "status": str(row["status"]),
+                    "started_at": None if row["started_at"] is None else str(row["started_at"]),
+                    "finished_at": None if row["finished_at"] is None else str(row["finished_at"]),
+                    "artifact_hash": None if row["artifact_hash"] is None else str(row["artifact_hash"]),
+                }
+                for row in rows
+            ],
+        }
 
     def read(self, address: str) -> dict[str, object]:
         """Read one exact resource after validating its canonical address and project identity."""

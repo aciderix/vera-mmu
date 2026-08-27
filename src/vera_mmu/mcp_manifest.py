@@ -37,6 +37,7 @@ TOOL_NAMES = (
     "mmu_get_handoff",
     "mmu_find",
     "mmu_get_related",
+    "mmu_list_executions",
     "mmu_read",
     "mmu_read_batch",
 )
