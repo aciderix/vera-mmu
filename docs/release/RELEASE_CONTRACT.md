@@ -19,7 +19,7 @@ Une release porte un tag annoté `vMAJEUR.MINEUR.CORRECTIF`, sans préfixe alter
 | Révision source | SHA complet intégré au manifest de chaque archive | À produire par le builder M9 |
 | Notes | Fichier `docs/release/RELEASE_NOTES_TEMPLATE.md` complété à partir de faits attestés | Template seulement |
 
-La préversion préparée est `v0.1.0-rc.1` : les manifestes desktop portent `0.1.0-rc.1` et le paquet Python utilise la forme PEP 440 équivalente `0.1.0rc1`. Le builder normalise uniquement cette forme Python vers l’identité de release `0.1.0-rc.1`, puis refuse toute autre divergence. Aucun tag n’est créé automatiquement par CI.
+La préversion corrigée est `v0.1.0-rc.2`. Le tag lisible utilise cette convention, tandis que les manifestes desktop portent l’identité MSI-compatible `0.1.0-2` et le paquet Python la forme PEP 440 équivalente `0.1.0rc2`. Le builder normalise uniquement cette forme Python vers `0.1.0-2`, puis refuse toute autre divergence. Cette dissociation est nécessaire car le bundle MSI exige un identifiant de préversion numérique ne dépassant pas `65535`. Aucun tag n’est créé automatiquement par CI.
 
 ## 3. Artefacts minimaux et noms canoniques
 
@@ -55,7 +55,7 @@ La gate `REL-06` est satisfaite par `LICENSE`, `NOTICE`, `CONTRIBUTING.md` et `T
 
 ### Exception autorisée : préversion gratuite non signée
 
-Le propriétaire a autorisé une unique voie de préversion publique gratuite : `v0.1.0-rc.1` peut être distribuée **sans signature**, exclusivement comme GitHub Pre-release, après une matrice de candidats verte sur le tag exact. Cette exception ne vaut ni pour une release stable, ni pour un canal d’entreprise, ni pour une diffusion présentée comme prête à un large public.
+Le propriétaire a autorisé une unique voie de préversion publique gratuite : `v0.1.0-rc.2` peut être distribuée **sans signature**, exclusivement comme GitHub Pre-release, après une matrice de candidats verte sur le tag exact. Cette exception ne vaut ni pour une release stable, ni pour un canal d’entreprise, ni pour une diffusion présentée comme prête à un large public.
 
 Les notes et la release doivent porter, de façon visible, les mentions suivantes : « préversion expérimentale », « binaires non signés », « éditeur non vérifié par Windows », « SHA-256 et manifest fournis » et « hôtes agents réels non encore validés ». Le tag, les hashes et les manifests sont obligatoires ; les artefacts CI sont récupérés puis publiés comme fichiers attachés de la release. Toute version suivante doit réévaluer `REL-07` sans hériter silencieusement de cette exception.
 

@@ -1185,3 +1185,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Validation :** tests builder/assembleur puis suite `510 passed, 43 subtests passed`; `pnpm build` réussi ; `cargo check --offline`, puis `cargo check --locked` réussis après mise à jour uniquement de la version package dans `Cargo.lock`.
 **Limites :** Aucun tag, asset de release, signature, installation utilisateur ou hôte agent réel n’est produit par ce gel de version.
 **Journal :** `LOG-0223`.
+
+### MEM-DEC-171 — M9-D : rc.1 refusé par MSI, rc.2 à version binaire numérique
+**Type :** `CORRECTION`
+**Statut :** `PASS` local ; tag rc.2 `PENDING`
+**Observation.** Le run de tag `v0.1.0-rc.1` (`33073234774`) passe Linux mais arrête Windows au bundling MSI : Tauri refuse l’identifiant de préversion `rc.1`, qui n’est pas numérique.
+**Décision.** Ne pas déplacer ni supprimer le tag public rc.1 ; le traiter comme validation non publiable. Préparer `v0.1.0-rc.2` avec manifestes desktop `0.1.0-2` et Python `0.1.0rc2`. Le builder normalise vers `0.1.0-2`; le tag reste lisible et distinct.
+**Validation :** Cargo offline puis locked, build frontend, tests builder/assembleur `6 passed` et suite `510 passed, 43 subtests passed`.
+**Limites :** Windows native doit reconstruire MSI depuis le tag rc.2 avant publication. Aucune release rc.1 n’est créée.
+**Journal :** `LOG-0224`.

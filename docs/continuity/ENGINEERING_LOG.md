@@ -2924,3 +2924,10 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Validation.** Les tests builder/assembleur et la suite complète passent (`510 passed, 43 subtests passed`). Le frontend passe `pnpm build`; Rust passe `cargo check --offline` puis `cargo check --locked`. Le premier check verrouillé avait correctement refusé le lock obsolète, mis à jour hors réseau avant revalidation.
 **Verdict.** `PASS` pour l’identité de préversion. Tag, run déclenché par tag, signature, GitHub Release, installation utilisateur et agents réels restent `NOT_RUN`.
 **Suite.** Publier cette cohérence, puis créer le tag annoté autorisé et n’attacher des artefacts non signés qu’après la matrice de ce tag exact.
+
+## LOG-0224 — 2026-08-27 — M9-D : correction du format de préversion MSI
+**Échec observé.** Le tag public `v0.1.0-rc.1` a déclenché le run `33073234774`. Linux réussit ; Windows passe tests et CLI mais Tauri refuse le bundle MSI avec : « optional pre-release identifier in app version must be numeric-only and cannot be greater than 65535 ». Aucun artefact Windows final ni release n’est créé.
+**Correction minimale.** rc.1 est conservé comme tag historique non publiable. Un nouveau cycle rc.2 aligne npm/Cargo/Tauri sur `0.1.0-2`, Python sur `0.1.0rc2`, et le builder sur cette conversion unique. Le tag futur sera `v0.1.0-rc.2`. La contrainte est du bundle MSI, non du Core, de la CLI, du bridge ou des tests.
+**Validation locale.** `cargo check --offline`, puis `cargo check --locked`, `pnpm build`, six tests builder/assembleur et la suite complète `510 passed, 43 subtests passed` passent.
+**Verdict.** rc.2 est le candidat de préversion corrigé ; tag rc.2 et validation native restent requis. La release non signée reste conditionnelle à ces preuves et ne peut pas être rc.1.
+**Suite.** Commiter/publier le correctif et cette continuité, créer le tag rc.2, puis n’attacher des assets à une GitHub Pre-release que si Linux et Windows réussissent depuis ce tag.
