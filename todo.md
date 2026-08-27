@@ -31,7 +31,8 @@
 - [x] Utiliser les identifiants GitHub fournis uniquement pour la session navigateur de publication rc.4, sans les inscrire dans le dépôt ou ses documents.
 - [ ] Révoquer immédiatement dans GitHub le jeton jetable précédemment exposé dans la session, puis créer un accès distinct seulement si une automatisation future est nécessaire.
 - [ ] Définir et ajouter des smoke tests CI Windows/Linux qui prouvent le démarrage contrôlé des binaires publiables, sans présenter ces tests comme une installation utilisateur réelle.
-- [ ] Lancer localement la CLI Linux extraite et l’application Linux avec contrôle de démarrage, collecte bornée des logs et arrêt propre.
+- [x] Lancer localement la CLI Linux extraite et l’application Linux avec contrôle de démarrage, collecte bornée des logs et arrêt propre.
+- [ ] Rejouer le smoke de runtime sur la matrice native Windows/Linux et examiner séparément CLI, AppImage/Debian, NSIS et MSI avant de qualifier M10.
 - [ ] Auditer les contrats MCP existants, adapters et preuves d’hôtes afin de séparer le travail produit terminé des validations réelles restant à faire.
 - [x] Aligner les manifestes de préversion sur `v0.1.0-rc.1` (forme PEP 440 `0.1.0rc1` pour Python) et valider Python, frontend et Rust verrouillé.
 - [x] Qualifier `v0.1.0-rc.1` comme tag non publiable : MSI Windows refuse un identifiant de préversion textuel ; ne pas déplacer ce tag historique.

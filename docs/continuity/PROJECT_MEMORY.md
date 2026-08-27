@@ -1220,3 +1220,12 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Provenance :** run `33078499592` vert : Linux job `98538971733`, Windows job `98538972155`, chacun `512 passed, 43 subtests passed`, puis bundling et assembly. Les deux artifacts CI sont téléchargés et validés par `sha256sum -c SHA256SUMS` avant la publication. Release : `https://github.com/aciderix/vera-mmu/releases/tag/v0.1.0-rc.4`.
 **Limites :** non signé, sans validation install/hôtes agents réels, macOS, ARM, update automatique ni viewer Pages. Une release stable reste interdite sans signatures et campagne réelle.
 **Journal :** `LOG-0227`.
+
+### MEM-DEC-175 — M10-A : smoke Linux de distribution après reconstruction
+**Type :** `OBSERVATION`
+**Statut :** `PARTIAL_PASS`
+**Décision :** Le candidat Linux courant est reconstruit et soumis à un smoke borné : intégrité manifest/SHA-256, CLI extraite (`--help`, scan `OBSERVED` sans écriture), AppImage sous Xvfb et payload Debian `vera-mmu-desktop` sous Xvfb. Les processus sont arrêtés par groupe et aucun résidu VERA/Xvfb ne subsiste.
+**Validation :** tests helper/assembleur `9 passed`; suite VERA `517 passed, 43 subtests passed`.
+**Corrections de test :** filtrage des vieux bundles par version courante, découverte de l’exécutable desktop réel plutôt que le nom d’affichage, et arrêt `killpg` pour éviter les enfants Xvfb orphelins.
+**Limites :** Windows native doit encore exécuter NSIS/MSI/CLI ; aucune installation utilisateur ni host/agent réel n’est attesté.
+**Journal :** `LOG-0228`.
