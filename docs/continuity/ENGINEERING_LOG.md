@@ -3147,3 +3147,11 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** Le contrat construit un cycle d’entités et une branche, puis contrôle l’ordre BFS, la déduplication, les bornes, les racines invalides/cross-project et l’absence d’audit. Contrat : `1 passed in 0.16s`; cible relations/lecture/CLI/MCP : `27 passed in 17.29s`; régression intégrale : **`550 passed in 68.70s`**.
 
 **Verdict.** `M11-K = PASS`. Il ne livre pas une requête de graphe générale, un filtrage relationnel, un traversal work/evidence, une mutation, une capability ou une gate. Artefact : `artifacts/m11_k_bounded_related_traversal_2026-08-27.md`; mémoire : `MEM-DEC-186`.
+
+## LOG-0244 — 2026-08-27 — M11-L : READ exact de symbole
+
+**Résultat.** Le type Core générique `symbol` est ajouté au READ exact de `ReadService`. Le record provient exclusivement de `SymbolService.get` après validation de l’adresse VERA canonique et de l’identité projet. CLI `read` et MCP `mmu_read` réemploient leur unique paramètre `address`; ni schéma MCP ni manifeste de tool ne sont élargis.
+
+**Preuves.** Le contrat M11-L crée un symbole immutable avec metadata JSON, lit le record exact, vérifie l’absence d’audit, le refus cross-project et missing, et confirme que FIND ne retourne pas les symboles. Il exécute également `vmmu read` et un appel MCP stdio réel de `mmu_read`, dont le schéma reste `{address}`. Contrat : `3 passed in 2.07s`; cible lecture/CLI/MCP/symboles : `33 passed in 19.72s`; régression intégrale : **`553 passed in 67.48s`**.
+
+**Verdict.** `M11-L = PASS`. Aucun FIND/listing, filtre kind/propriétaire, scan/résolution, chemin local, import, mutation, capability, gate, proof ou compatibilité historique n’est livré. Artefact : `artifacts/m11_l_symbol_read_2026-08-27.md`; mémoire : `MEM-DEC-187`.

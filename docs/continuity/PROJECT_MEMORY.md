@@ -1393,3 +1393,21 @@ Cette mémoire sert à reprendre le chantier sans dépendre d’un contexte conv
 **Evidence :** `docs/continuity/artifacts/m11_k_bounded_related_traversal_2026-08-27.md`; contrat `1 passed`, cible `27 passed`, régression intégrale `550 passed in 68.70s`.
 
 **Limites conservées :** pas de filtres relationnels libres, pagination, traversal work/evidence, search/indexation, écriture, capabilities, gates ou policy. Les lectures symbol/profile et historiques/listings restent hors lot.
+
+
+## MEM-DEC-187 — M11-L : lecture exacte générique de symbole
+
+**Date :** 2026-08-27
+**Décision :** inclure `symbol` dans le contrat READ exact déjà project-bound, plutôt que de créer un endpoint de recherche, de scan ou de résolution spécifique au domaine.
+
+| Garantie | Décision effective |
+|---|---|
+| Adresse | `vera://<project>/symbol/<id>` canonique seulement; l’identité du store actif est revalidée. |
+| Source | `ReadService.read` délègue exclusivement à `SymbolService.get` et restitue le record persistant normalisé. |
+| Séparation | `symbol` reste hors FIND : aucune découverte de contenu, description ou indexation n’est ajoutée. |
+| Transports | CLI `read` et MCP `mmu_read` réemploient le contrat générique; le schéma MCP reste exactement `{address}`. |
+| Sécurité | Aucun profile/project id client MCP, filtre, chemin libre, scan, import ou mutation n’est introduit. |
+
+**Evidence :** `docs/continuity/artifacts/m11_l_symbol_read_2026-08-27.md`; contrat Core/CLI/MCP `3 passed`, cible `33 passed`, régression intégrale `553 passed in 67.48s`.
+
+**Limites conservées :** pas de listing/FIND de symboles, filtrage kind/propriétaire, scan/résolution, accès local, proof/gate/capability. La compatibilité `mmu://`, le Dashboard, VCS et la parité ARET restent hors lot.
