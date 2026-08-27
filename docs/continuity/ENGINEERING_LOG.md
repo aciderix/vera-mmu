@@ -3127,3 +3127,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** La fixture M11-J déclare une capability QUERY, son contract NOOP, sa policy ALLOW, exécute le runner NOOP réel puis enregistre une evidence TEST_PROOF réelle. Les deux tests contrôlent les champs persistants, cross-project, absent, non-mutation du journal d’audit et le schéma MCP `address` seul. Contrat : `2 passed in 2.05s`; cible evidence/execution/capability/MCP : `30 passed in 17.85s`; régression complète : **`549 passed in 63.57s`**.
 
 **Verdict.** `M11-J = PASS` pour capability/execution/evidence en lecture exacte. Listing/history de preuves et evidences, assets dans READ, gates/work graph, symboles/profile, traversal `related`, mutations, VCS, Dashboard, parité ARET et hôtes réels restent hors lot. Artefact : `artifacts/m11_j_capability_execution_evidence_reads_2026-08-27.md`; mémoire : `MEM-DEC-185`.
+
+
+### LOG-0242 — Commit local M11-J
+
+| Champ | Valeur |
+|---|---|
+| Commit | `cecbc3c48cc848f00c11e0d17e27b606cca12585` — `feat: read execution and evidence records`. |
+| Contenu | `ExecutionService.get`, extension `ReadService` pour capability/execution/evidence, contrat M11-J et continuité associée. |
+| Validation liée | Contrat M11-J : `2 passed in 2.05s`; cible evidence/execution/capability/MCP : `30 passed in 17.85s`; intégral : `549 passed in 63.57s`; diff et scan de frontière : `PASS`. |
+| Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
+| Statut | `M11-J = PASS` dans le périmètre documenté. |
