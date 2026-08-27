@@ -3105,3 +3105,14 @@ Aucun chemin user-scope réel n’a été lu ni écrit par les validations. L’
 **Preuves.** `tests/test_m11i_specialized_reads.py` crée un Front profilé, un Resume Dossier réel, un handoff, une paire d’entités et une relation déclarée. Il vérifie les références/id/hashes/payload, les adresses d’extrémités, le refus cross-project et absent, l’absence d’audit de lecture, les commandes CLI et une session MCP stdio. Contrat : `3 passed in 2.17s`; cible M11-H/Front/relations/MCP/CLI : `30 passed in 17.45s`; régression complète : **`547 passed in 63.06s`**.
 
 **Verdict.** `M11-I = PASS` pour Front/handoff/relation. Assets, preuves/evidence, capabilities, gates, executions, symboles, profil, traversal `related`, resume brief/status détaillé, recherche de contenu et mutations sont toujours hors lot. Artefact : `artifacts/m11_i_specialized_front_handoff_relation_reads_2026-08-27.md`; mémoire : `MEM-DEC-184`.
+
+
+### LOG-0240 — Commit local M11-I
+
+| Champ | Valeur |
+|---|---|
+| Commit | `b5f25e2dbb68d9a19e5fab0000cdbbf72270ad09` — `feat: add specialized core reads`. |
+| Contenu | Extension `ReadService` Front/handoff/relation, adressage `handoff`, commandes CLI get-front/get-handoff, deux tools MCP fermés, manifeste, contrats et continuité M11-I. |
+| Validation liée | Contrat M11-I : `3 passed in 2.17s`; cible M11-H/Front/relations/MCP/CLI : `30 passed in 17.45s`; intégral : `547 passed in 63.06s`; diff et scan de frontière : `PASS`. |
+| Publication | Commit local créé ; aucune publication distante n’a été demandée ni effectuée. |
+| Statut | `M11-I = PASS` dans le périmètre documenté. |
