@@ -97,7 +97,7 @@ def product_version() -> str:
     tauri = json.loads((ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
     python_version = pyproject.get("project", {}).get("version")
     if isinstance(python_version, str):
-        python_version = re.sub(r"^([0-9]+\.[0-9]+\.[0-9]+)rc([0-9]+)$", r"\1-rc.\2", python_version)
+        python_version = re.sub(r"^([0-9]+\.[0-9]+\.[0-9]+)rc([0-9]+)$", r"\1-\2", python_version)
     versions = {
         "pyproject": python_version,
         "package.json": package.get("version"),
