@@ -261,7 +261,7 @@ La CLI `related` et le MCP `mmu_get_related` délèguent au même contrat Core; 
 | `M11-D-D1` — Builder Dashboard de policy Gate existante | `PASS` dans le périmètre borné | Preview non mutateur, fraîcheur, confirmation, modes fermés et seuil `AT_LEAST` borné; `576 passed`, build React et tests Tauri passants. Ne crée pas de Gate, n’édite pas les exigences, ne produit pas verdict/admission/evidence et ne modifie pas une policy scellée. |
 | `M11-D-D2` — Builder de structure de Gate | `NEXT` | À ouvrir séparément : work-item, evidence principale et exigences exactes avant scellement, avec preview/fraîcheur/confirmation/atomicité et sans policy ni verdict client. |
 
-Le Dashboard global reste `PARTIAL`; l’édition directe du Project Profile demeure `NOT_ELIGIBLE` jusqu’à l’existence d’un protocole durable de rebind profile filesystem + metadata SQLite, rollback et reprise Doctor.
+Le Dashboard global reste `PARTIAL`; l’édition directe du Project Profile demeure `NOT_ELIGIBLE` tant que le protocole M11-D-B2 n’est pas exposé par une UI/bridge dédiée et que les migrations structurelles de workspace ne sont pas couvertes.
 
 ## Addendum de suivi — M11-D-D2 et clôture des builders Gate
 
@@ -279,7 +279,7 @@ La clôture de ce lot ne vaut ni Dashboard global complet, ni modification de Pr
 |---|---|---|
 | `M11-D-B` — Rebind contrôlé du Project Profile | `PASS` dans le périmètre borné | Preview/fraîcheur/confirmation, sauvegarde/journal durable, identité SQLite réalignée dans une transaction auditée, écriture atomique du Profile et reprise explicite signalée par Doctor. `593 passed`, build React et tests Tauri passants. |
 | `M11-D` — Dashboard configurateur | `PASS` dans le périmètre livré | D-A état dérivé, D-B rebind Profile limité, D-C capability, D-D1 policy Gate et D-D2 structure Gate atomique sont couverts par bridge/Tauri/React et preuves distinctes. |
-| Extensions de Profile à identité structurelle | `NOT_STARTED` | Les changements d’identifiant, domaine, workspace, storage ou catalogues requièrent un protocole de migration distinct; ils ne sont ni implicites ni autorisés par M11-D-B. |
+| Extensions de Profile à identité structurelle | `PARTIAL` | Le protocole runtime/storage M11-D-B2 est désormais livré dans un périmètre borné; les changements de workspace.root/additional_roots, les migrations inter-filesystems et l’exposition Dashboard restent ouverts. |
 
 La clôture M11-D ne prouve ni Dashboard global exhaustif, ni exécution hôte réelle, ni admission/verdict depuis le client, ni parité ARET. Ces limites restent ouvertes et explicites.
 

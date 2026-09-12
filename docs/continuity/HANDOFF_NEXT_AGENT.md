@@ -75,15 +75,15 @@ Tout nouvel éditeur doit utiliser des opérations Core canoniques, être projec
 
 Le rebind livré couvre l’identité bornée, le nom, le domaine et la description. L’ancrage Profile accepte désormais exactement un emplacement régulier et non symlinké parmi `.vera-mmu/project.yaml` et `project.yaml` racine; deux profils concurrents sont refusés.
 
-La migration physique de `workspace.root`, `workspace.additional_roots`, `storage.memory_dir`, `storage.sqlite_file`, `storage.artifacts_dir` et des catalogues reste à implémenter. Elle doit inclure le Profile, `capabilities.yaml`, `gates.yaml`, `policies.yaml`, `agent-profiles.yaml`, `playbook.md`, `sync-policy.json`, SQLite, WAL/SHM et les sous-répertoires créés ensuite.
+La migration physique des racines `workspace.root` et `workspace.additional_roots`, ainsi que les migrations inter-filesystems, restent à implémenter. Le sous-lot M11-D-B2 couvre désormais le déplacement borné du runtime project-local, de SQLite/WAL/SHM, des artefacts et des fichiers de catalogues contenus dans ce runtime, avec Profile, journal et reprise explicite.
 
-Contrat minimum : préflight des racines et cibles sans symlink ni chevauchement; preview complet avec inventaire et hashes; journal durable hors runtime; fermeture SQLite et checkpoint WAL; renommages atomiques same-filesystem; réalignement d’identité audité; reprise Doctor qui ne devine jamais; refus de divergences; validation du nouveau store, FK, intégrité, hashes, audit et absence de source résiduelle. Ne jamais commencer par déplacer des fichiers sans ce protocole et des tests d’interruption.
+Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises
 
 Le Doctor doit couvrir identité, Profile, schema, SQLite/WAL, artefacts, HMAC, catalogues, policies, runtime, MCP, hooks, resume et VCS, avec distinction machine/humain. Les contrôles doivent être read-only par défaut. Une réparation doit être un flux séparé, prévisualisé, confirmé, journalisé et reprenable; aucun chargement de Dashboard ne doit réparer implicitement.
 
-La reprise du journal Profile est livrée dans un périmètre contrôlé. Il faut encore raccorder proprement la reprise physique runtime/storage et prouver les interruptions, les divergences, les fichiers manquants, les cibles déjà occupées et les WAL/SHM incohérents.
+La reprise du journal Profile et du runtime/storage est livrée dans un périmètre contrôlé. Il faut encore prouver les interruptions sur les migrations de racines workspace, les divergences complexes et les WAL/SHM incohérents au-delà du chemin same-filesystem couvert par M11-D-B2.
 
 ### 4.4 Documentation, couverture et génération
 

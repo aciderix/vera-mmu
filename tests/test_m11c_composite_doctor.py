@@ -46,6 +46,7 @@ class CompositeDoctorTests(unittest.TestCase):
         "project_identity",
         "profile",
         "profile_rebind",
+        "profile_migration",
         "workspace",
         "catalogs",
         "runtime",
@@ -84,6 +85,29 @@ class CompositeDoctorTests(unittest.TestCase):
             self.assertTrue(payload["ok"])
             self.assertEqual(payload["doctor"]["status"], "PASS")
             self.assertEqual({item["name"] for item in payload["doctor"]["checks"]}, self._required_checks)
+
+    def test_profile_migration_journal_is_reported_without_implicit_repair(self) -> None:
+        from copy import deepcopy
+        from vera_mmu.doctor import diagnose_project
+        from vera_mmu.identity import load_profile
+        from vera_mmu.profile_migration import prepare_profile_migration_journal, preview_profile_physical_migration
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = _initialize(root, project_id="doctor-migration")
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            report = diagnose_project(profile_path)
+            checks = {item.name: item for item in report.checks}
+            self.assertEqual(checks["profile_migration"].status, "INFO")
+            self.assertEqual(len(list(root.glob(".vera-profile-migration-*.json"))), 1)
 
     def test_i001_i005_i011_doctor_fails_loudly_for_tampered_sqlite_and_symlinked_artifacts(self) -> None:
         from vera_mmu.doctor import diagnose_project

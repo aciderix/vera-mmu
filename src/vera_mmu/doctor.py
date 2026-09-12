@@ -8,6 +8,7 @@ import sqlite3
 from typing import Any, Callable, Mapping
 
 from .identity import ProjectIdentity, ProfileError, load_profile, project_identity
+from .profile_migration import ProfileMigrationError, inspect_profile_migration_journal
 from .migrations import MigrationRunner, migration_checksums
 from .project_catalogs import ProjectCatalogError, load_project_catalogs
 from .workspace import Workspace, WorkspaceError, resolve_workspace
@@ -18,6 +19,7 @@ _CHECK_ORDER = (
     "project_identity",
     "profile",
     "profile_rebind",
+    "profile_migration",
     "workspace",
     "catalogs",
     "runtime",
@@ -87,6 +89,7 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
 
     if profile is not None:
         checks["profile_rebind"] = _diagnose_profile_rebind(path)
+        checks["profile_migration"] = _diagnose_profile_migration(path)
         try:
             workspace = resolve_workspace(profile, path)
             checks["workspace"] = _pass("workspace", f"Workspace confiné : {workspace.project_root}")
@@ -112,6 +115,7 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
         _diagnose_runtime(checks, profile, workspace, identity)
     else:
         checks["profile_rebind"] = _diagnose_profile_rebind(path)
+        checks["profile_migration"] = _diagnose_profile_migration(path)
         checks.setdefault("project_identity", _fail("project_identity", "Identité indisponible sans profile et workspace valides.", "Réparer profile et workspace."))
         checks.setdefault("runtime", _fail("runtime", "Runtime indisponible sans workspace valide.", "Réparer le workspace du profile."))
         _database_unavailable(checks, "Runtime indisponible sans profile et workspace valides.")
@@ -137,6 +141,24 @@ def _diagnose_profile_rebind(path: Path) -> DoctorCheck:
     if len(journals) == 1:
         return _fail("profile_rebind", "Rebind de Project Profile interrompu ou non acquitté.", "Exécuter la reprise explicite du rebind puis relancer le Doctor.")
     return _pass("profile_rebind", "Aucun rebind de Project Profile en attente.")
+
+
+def _diagnose_profile_migration(path: Path) -> DoctorCheck:
+    control_dir = path.parent.parent if path.parent.name == ".vera-mmu" else path.parent
+    if control_dir.is_symlink() or not control_dir.is_dir():
+        return _fail("profile_migration", "Répertoire de contrôle de migration ambigu.", "Retirer le symlink puis relancer le Doctor.")
+    journals = sorted(control_dir.glob(".vera-profile-migration-*.json"))
+    if not journals:
+        return _pass("profile_migration", "Aucune migration physique Profile en attente.")
+    if len(journals) != 1:
+        return _fail("profile_migration", "Plusieurs journaux de migration présents : reprise ambiguë.", "Inspecter et reprendre explicitement un seul journal hors Doctor.")
+    try:
+        report = inspect_profile_migration_journal(path)
+    except ProfileMigrationError as exc:
+        return _fail("profile_migration", str(exc), "Corriger ou reprendre explicitement le journal de migration.")
+    if report["status"] == "READY_FOR_EXECUTOR":
+        return _info("profile_migration", "Migration Profile planifiée et prête pour exécution confirmée.")
+    return _fail("profile_migration", f"Migration Profile non stable : {report['status']}.", "Exécuter la reprise physique explicite ou restaurer un état cohérent.")
 
 
 def _diagnose_runtime(
