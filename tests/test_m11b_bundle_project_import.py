@@ -161,6 +161,10 @@ def test_i003_i014_project_document_preview_refuses_symlink_stale_or_unconfirmed
     outside = tmp_path / "outside.md"
     outside.write_text("outside\n", encoding="utf-8")
     (root / "linked.md").symlink_to(outside)
+    outside_dir = tmp_path / "outside-docs"
+    outside_dir.mkdir()
+    (outside_dir / "nested.md").write_text("nested outside\n", encoding="utf-8")
+    (root / "linked-docs").symlink_to(outside_dir, target_is_directory=True)
 
     with _store(profile_path) as store:
         with pytest.raises(ProjectImportError):
@@ -168,6 +172,14 @@ def test_i003_i014_project_document_preview_refuses_symlink_stale_or_unconfirmed
                 store,
                 ("linked.md",),
                 batch_id="unsafe-documents-001",
+                knowledge_type_id="project-document",
+                knowledge_type_label="Imported project document",
+            )
+        with pytest.raises(ProjectImportError):
+            preview_project_document_import(
+                store,
+                ("linked-docs/nested.md",),
+                batch_id="unsafe-documents-001b",
                 knowledge_type_id="project-document",
                 knowledge_type_label="Imported project document",
             )

@@ -107,6 +107,8 @@ La CLI `vmmu` actuelle ne couvre pas encore tout le contrat `init`, `scan`, `con
 
 ### 4.6 Import de projet existant et provenance
 
+**Sous-lot terminé le 2026-09-12 :** le préflight d’import refuse désormais aussi les documents atteints via un répertoire symlinké intermédiaire, pas seulement les fichiers symlinkés. La provenance reste liée au hash exact, au chemin relatif canonique, aux lignes et à l’identité project-local.
+
 Implémenter l’import project-local des README, documentation, ADR, TODO, CI, tests, configuration et historique quand disponible, avec provenance générique, hash, révision, chemin, lignes/sections et statut initial `OBSERVED`. Ne jamais transformer un document importé en `PROVEN` automatiquement. Prévoir revue, supersession, altération et import non fusionnel.
 
 ### 4.7 Capability Engine et Gate Builder complets

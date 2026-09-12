@@ -295,12 +295,26 @@ def _resolve_document(store: MemoryStore, relative: str) -> Path:
             resolved.relative_to(root)
         except (OSError, ValueError) as exc:
             raise ProjectImportError("Document hors des racines workspace ou introuvable.") from exc
-        if candidate.is_symlink() or resolved.is_symlink() or not resolved.is_file():
+        if _path_has_symlink_component(root, candidate) or candidate.is_symlink() or resolved.is_symlink() or not resolved.is_file():
             raise ProjectImportError("Document source non régulier ou symlinké.")
         candidates.append(resolved)
     if len(candidates) != 1:
         raise ProjectImportError("Chemin document ambigu entre les racines de workspace.")
     return candidates[0]
+
+
+def _path_has_symlink_component(root: Path, candidate: Path) -> bool:
+    """Reject a source reached through any symlinked directory, not only a symlinked file."""
+    try:
+        relative = candidate.relative_to(root)
+    except ValueError:
+        return True
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            return True
+    return False
 
 
 def _identifier(value: object, label: str) -> str:
