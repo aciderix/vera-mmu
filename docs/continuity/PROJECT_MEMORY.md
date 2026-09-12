@@ -1655,3 +1655,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-214` | Profile / Migration physique | Le bridge reconnaît une unique ancre Profile régulière et non symlinkée sous `.vera-mmu/project.yaml` ou `project.yaml` à la racine; deux candidats sont refusés fail-closed. Cette fondation prépare les migrations physiques sans en effectuer une. | `OBSERVED` | `desktop_bridge.py`, tests bridge/workspace et artefact M11 ancre Profile ; 600 tests Python passants. | `LOG-0265` |
+
+## Addendum — M11-D-B2 Branchement copie-journal
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-215` | Migration Profile / copie vérifiée | `_copy_tree_verified()` persiste désormais `COPYING` avant chaque copie et `VERIFIED` après vérification SHA-256/taille lorsque le journal est fourni. Une défaillance après copie laisse le journal `EXECUTING` avec progression partielle et supprime la cible partielle ; aucune cible partiellement copiée n’est considérée comme validée. `COPY_VERIFY_SWITCH` reste refusé par l’exécuteur principal. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `589312e`; tests ciblés `10 passed`, régression `622 passed, 49 subtests passed`. | `LOG-0266` |

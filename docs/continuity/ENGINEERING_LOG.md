@@ -3327,3 +3327,10 @@ Une session MCP stdio réelle confirme que `mmu_read` accepte une adresse `mmu:/
 **Statut : PASS.**
 
 Le bridge reconnaît exactement un Profile non symlinké sous `.vera-mmu/project.yaml` ou `project.yaml` racine, et refuse deux candidats concurrents. Le lot n’effectue ni déplacement, ni mutation d’identité et prépare seulement l’ancre requise par une migration physique sûre. Tests bridge/workspace `20 passed in 1.29s`; régression `600 passed in 65.23s`.
+
+## LOG-0266 — M11-D-B2 : branchement de la copie vérifiée au journal
+**Statut : PASS préparatoire dans le périmètre borné.**
+`_copy_tree_verified()` accepte désormais un journal de migration. Pour chaque fichier, il persiste `COPYING` avant `copy2`, vérifie le hash SHA-256 et la taille, puis persiste `VERIFIED`. Lorsque la persistance de `VERIFIED` échoue après la copie, le journal conserve `EXECUTING` et l’événement `COPYING`, tandis que la cible partielle est supprimée ; la reprise est donc requise et aucun succès n’est inféré. L’exécuteur principal refuse toujours `COPY_VERIFY_SWITCH`.
+
+Validation : `tests/test_profile_migration.py` — `10 passed`; suite Python — `622 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS hors alias de compatibilité `ARET_MMU_BARRIER_OFF`; Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `589312e`. Suivi : fermer la machine d’états globale, valider l’inventaire avant bascule, traiter SQLite/WAL/SHM et tester les interruptions avant toute activation de `COPY_VERIFY_SWITCH`.
