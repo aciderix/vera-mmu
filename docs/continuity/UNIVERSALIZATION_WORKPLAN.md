@@ -288,3 +288,5 @@ La clôture M11-D ne prouve ni Dashboard global exhaustif, ni exécution hôte r
 | Sous-lot | Statut | Preuve et limite |
 |---|---|---|
 | `M11-D-B2` — Préflight/preview, journal, reprise et exécution bornée Profile/runtime | `PASS` dans le périmètre borné | `src/vera_mmu/profile_migration.py` persiste un journal `PLANNED`, classe read-only `READY_FOR_EXECUTOR`/`DIVERGED`/`RECOVERY_REQUIRED`, déplace atomiquement un runtime sur le même filesystem avec checkpoint WAL, backup du Profile et rollback de base, et reprend explicitement un journal `EXECUTING` vers `PLANNED` ou `RECOVERED_COMMITTED` après vérifications (`mutation: RECOVERY`). Les racines workspace et migrations inter-filesystems restent hors périmètre. |
+
+| `M11-D-D3` — Doctor projet read-only dans bridge/Tauri/React | `PASS` dans le périmètre borné | La commande `project.doctor` réutilise le Doctor Core, expose le check `profile_migration` et n’ouvre aucune mutation. Build React/TypeScript passant; compilation Tauri non vérifiable dans ce sandbox car `cargo` est absent. |

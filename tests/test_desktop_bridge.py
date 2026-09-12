@@ -83,6 +83,19 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertEqual(applied["result"]["status"], "INITIALIZED")  # type: ignore[index]
             self.assertTrue((root / ".vera-mmu" / "project.yaml").is_file())
 
+    def test_project_doctor_is_read_only_and_reports_profile_migration_check(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            preview = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "doctor-bridge", "projectName": "Doctor Bridge"})
+            applied = self._call(bridge, "project.init.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": True})  # type: ignore[index]
+            self.assertTrue(applied["ok"])
+            response = self._call(bridge, "project.doctor", {})
+            self.assertTrue(response["ok"])
+            checks = response["result"]["checks"]  # type: ignore[index]
+            self.assertIn("profile_migration", {item["name"] for item in checks})
+            self.assertFalse(list(root.glob(".vera-profile-migration-*.json")))
+
     def test_profile_at_project_root_can_open_dashboard_status(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
