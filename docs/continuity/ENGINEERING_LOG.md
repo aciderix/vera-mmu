@@ -3376,3 +3376,10 @@ L’exécuteur journalise `EXECUTING`, passe par `SWITCHING` après checkpoint S
 
 Validation : `tests/test_profile_migration.py` — `18 passed`; suite Python — `630 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `c4cb7bc`. Suivi : intégrer la validation complète des racines workspace et construire la reprise des phases `SWITCHING`/`ROLLED_BACK` avant d’activer l’inter-filesystems.
+
+## LOG-0273 — M11-D-B2 : reprise prouvée EXECUTING/SWITCHING
+**Statut : PASS dans le périmètre borné.**
+La reprise accepte les journaux `EXECUTING` et `SWITCHING`. Elle finalise uniquement si le runtime cible, le Profile cible, SQLite et les sidecars sont cohérents. Elle restaure vers `PLANNED` uniquement lorsque le runtime source et le backup Profile sont prouvés. Les runtimes simultanés, Profiles divergents, SQLite invalides et racines workspace ambiguës sont classés `RECOVERY_REQUIRED`.
+
+Validation : `tests/test_profile_migration.py` — `20 passed`; suite Python — `632 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `e35c13a`. Suivi : intégrer la preuve des racines workspace et construire les scénarios d’interruption inter-filesystems avant toute activation de `COPY_VERIFY_SWITCH`.

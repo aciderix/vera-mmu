@@ -1690,3 +1690,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-221` | Migration Profile / exécution | L’exécuteur same-filesystem journalise `EXECUTING`, passe par `SWITCHING` après checkpoint et préparation SQLite, déplace le runtime/racines autorisées, vérifie l’empreinte SQLite après déplacement et n’écrit `COMMITTED` qu’après preuve. Les erreurs tentent un rollback et marquent `ROLLED_BACK`; `COPY_VERIFY_SWITCH` reste refusé. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, tests migration, commit `c4cb7bc`; tests ciblés `18 passed`, régression `630 passed, 49 subtests passed`. | `LOG-0272` |
+
+## Addendum — M11-D-B2 Reprise prouvée EXECUTING/SWITCHING
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-222` | Migration Profile / reprise | La reprise accepte `EXECUTING` et `SWITCHING`, finalise seulement après preuve du runtime cible, Profile cible, SQLite et sidecars, et restaure vers `PLANNED` seulement après preuve du runtime source et du backup. Runtimes simultanés, Profile divergent, SQLite invalide et racines ambiguës donnent `RECOVERY_REQUIRED`; aucune finalisation implicite n’est effectuée. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, tests de reprise, commit `e35c13a`; tests ciblés `20 passed`, régression `632 passed, 49 subtests passed`. | `LOG-0273` |
