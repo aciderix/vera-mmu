@@ -105,6 +105,8 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot préparatoire terminé le 2026-09-12 dans un périmètre borné :** `validate_profile_migration_inventory()` effectue une validation read-only avant bascule. Elle exige `COPYING → VERIFIED` pour chaque fichier runtime attendu, vérifie les sources, hashes, tailles, cibles, Profile cible, symlinks et fichiers inattendus. Elle retourne `READY_FOR_SWITCH` uniquement lorsque toutes les preuves sont présentes ; toute absence ou copie non vérifiée retourne `RECOVERY_REQUIRED`, et toute divergence de cible retourne `DIVERGED`. Les mouvements de racines workspace restent explicitement non validés et bloquants.
 
+**Sous-lot préparatoire terminé le 2026-09-12 dans un périmètre borné :** `validate_sqlite_migration_target()` valide séparément SQLite, les éventuels fichiers `-wal` et `-shm`, les hashes et tailles des artefacts, `PRAGMA integrity_check` en lecture seule et l’empreinte canonique du schéma `sqlite_master`. Une base corrompue, un schéma divergent, un artefact manquant ou un sidecar symlinké retourne `DIVERGED`. Cette validation n’effectue aucun checkpoint ni bascule ; le traitement opérationnel SQLite/WAL/SHM reste à intégrer dans l’exécuteur.
+
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises

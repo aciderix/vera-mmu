@@ -3348,3 +3348,10 @@ Commit fonctionnel : `1f65aba`. Suivi : brancher cette machine d’états sur la
 
 Validation : `tests/test_profile_migration.py` — `14 passed`; suite Python — `626 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `4a8e314`. Suivi : intégrer la validation des racines workspace, puis traiter SQLite/WAL/SHM et les interruptions avant toute activation de `COPY_VERIFY_SWITCH`.
+
+## LOG-0269 — M11-D-B2 : validation SQLite/WAL/SHM et schéma cible
+**Statut : PASS préparatoire dans le périmètre borné.**
+`validate_sqlite_migration_target()` compare en lecture seule SQLite et les éventuels sidecars `-wal`/`-shm`, vérifie hashes et tailles, exécute `PRAGMA integrity_check`, calcule une empreinte canonique de `sqlite_master` et refuse les symlinks ou artefacts non réguliers. Les états `DIVERGED` couvrent corruption, divergence de schéma et divergence de sidecar. La fonction n’effectue pas de checkpoint, de copie ni de bascule ; l’intégration opérationnelle dans l’exécuteur reste ouverte.
+
+Validation : `tests/test_profile_migration.py` — `16 passed`; suite Python — `628 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `2f89d3c`. Suivi : intégrer checkpoint et validation SQLite/WAL/SHM dans la séquence `SWITCHING`, puis tester les interruptions et les reprises.

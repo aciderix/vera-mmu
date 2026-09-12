@@ -1670,3 +1670,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-217` | Migration Profile / inventaire | `validate_profile_migration_inventory()` exige la séquence `COPYING → VERIFIED` pour chaque fichier runtime attendu, vérifie hashes, tailles, sources, cibles, Profile cible, symlinks et entrées inattendues, puis retourne `READY_FOR_SWITCH` uniquement avec preuve complète. Les absences/non-vérifications donnent `RECOVERY_REQUIRED`; les divergences de cible donnent `DIVERGED`; les mouvements de racines workspace restent bloquants. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `4a8e314`; tests ciblés `14 passed`, régression `626 passed, 49 subtests passed`. | `LOG-0268` |
+
+## Addendum — M11-D-B2 Validation SQLite/WAL/SHM
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-218` | Migration Profile / SQLite | `validate_sqlite_migration_target()` compare SQLite et les sidecars `-wal`/`-shm`, vérifie hashes/tailles, `PRAGMA integrity_check` en lecture seule et l’empreinte canonique de `sqlite_master`. Une base corrompue, un schéma divergent, un artefact divergent ou un sidecar symlinké retourne `DIVERGED`; aucun checkpoint ou bascule n’est effectué par cette fonction. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `2f89d3c`; tests ciblés `16 passed`, régression `628 passed, 49 subtests passed`. | `LOG-0269` |
