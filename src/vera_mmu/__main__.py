@@ -18,7 +18,7 @@ from .read_api import ReadService
 from .runtime import RuntimeLocator
 from .project_operations import ProjectOperationError, compile_generation_preview, scan_project
 from .project_bootstrap import ProjectBootstrapError, apply_project_initialization, preview_project_initialization
-from .profile_migration import inspect_profile_migration_journal
+from .profile_migration import inspect_profile_migration_journal, recover_profile_physical_migration
 from .store import MemoryStore, StoreError
 from .workspace import WorkspaceError, resolve_workspace
 
@@ -37,6 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     migrate=sub.add_parser("migrate",help="Observe ou pilote explicitement une migration Profile.")
     migration_ops=migrate.add_subparsers(dest="migration_command",required=True)
     migration_status=migration_ops.add_parser("status",help="Observe l’état d’une migration Profile sans mutation.");migration_status.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    migration_recover=migration_ops.add_parser("recover",help="Reprend explicitement un journal EXECUTING après confirmation.");migration_recover.add_argument("journal",type=Path,help="Chemin du journal EXECUTING.");migration_recover.add_argument("--confirm",action="store_true")
     coverage=sub.add_parser("coverage",help="Compile le rapport de couverture VERA dérivé, sans mutation.");coverage.add_argument("profile",type=Path,help="Chemin project.yaml.")
     documentation=sub.add_parser("documentation",help="Compile la documentation VERA dérivée, sans mutation.");documentation.add_argument("profile",type=Path,help="Chemin project.yaml.")
     vcs_status=sub.add_parser("vcs-status",help="Observe le statut VCS project-local sans lancer de commande ni écrire.");vcs_status.add_argument("profile",type=Path,help="Chemin project.yaml.")
@@ -107,18 +108,22 @@ def main(argv:Sequence[str]|None=None)->int:
             if report.status!="PASS":
                 print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
         elif args.command=="migrate":
-            if args.migration_command != "status":
-                raise StoreError("Opération de migration inconnue.")
-            profile_path = args.profile.expanduser()
-            control_dir = profile_path.parent.parent if profile_path.parent.name == ".vera-mmu" else profile_path.parent
-            journals = sorted(control_dir.glob(".vera-profile-migration-*.json")) if control_dir.is_dir() and not control_dir.is_symlink() else []
-            if not journals:
-                payload={"ok":True,"migration":{"format":"vera-profile-physical-migration-status/v1","status":"NO_PENDING_MIGRATION","journal_path":None,"mutation":"NONE"}}
+            if args.migration_command == "recover":
+                result=recover_profile_physical_migration(args.journal, confirm=args.confirm)
+                payload={"ok":True,"migration":result}
+            elif args.migration_command == "status":
+                profile_path = args.profile.expanduser()
+                control_dir = profile_path.parent.parent if profile_path.parent.name == ".vera-mmu" else profile_path.parent
+                journals = sorted(control_dir.glob(".vera-profile-migration-*.json")) if control_dir.is_dir() and not control_dir.is_symlink() else []
+                if not journals:
+                    payload={"ok":True,"migration":{"format":"vera-profile-physical-migration-status/v1","status":"NO_PENDING_MIGRATION","journal_path":None,"mutation":"NONE"}}
+                else:
+                    report=inspect_profile_migration_journal(profile_path)
+                    payload={"ok":report["status"] == "READY_FOR_EXECUTOR","migration":report}
+                    if not payload["ok"]:
+                        print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
             else:
-                report=inspect_profile_migration_journal(profile_path)
-                payload={"ok":report["status"] == "READY_FOR_EXECUTOR","migration":report}
-                if not payload["ok"]:
-                    print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
+                raise StoreError("Opération de migration inconnue.")
         elif args.command in {"boot","find","read","read-batch","related","list-executions","list-evidence","get-front","get-handoff"}:
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:

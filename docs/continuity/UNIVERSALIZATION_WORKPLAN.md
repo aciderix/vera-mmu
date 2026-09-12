@@ -291,3 +291,4 @@ La clôture M11-D ne prouve ni Dashboard global exhaustif, ni exécution hôte r
 
 | `M11-D-D3` — Doctor projet read-only dans bridge/Tauri/React | `PASS` dans le périmètre borné | La commande `project.doctor` réutilise le Doctor Core, expose le check `profile_migration` et n’ouvre aucune mutation. Build React/TypeScript passant; compilation Tauri non vérifiable dans ce sandbox car `cargo` est absent. |
 | `M11-E-C1` — CLI `migrate status` read-only | `PASS` | `vmmu migrate status <project.yaml>` expose l’état du journal sans exécuter de migration; les états non stables renvoient un code d’erreur explicite. |
+| `M11-E-C2` — CLI `migrate recover` confirmée | `PASS` dans le périmètre borné | `vmmu migrate recover <journal> --confirm` délègue la reprise d’un journal `EXECUTING` au Core; sans confirmation ou en cas de divergence, l’opération est refusée. |

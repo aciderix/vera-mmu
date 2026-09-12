@@ -134,6 +134,36 @@ class CompositeDoctorTests(unittest.TestCase):
             self.assertEqual(payload["migration"]["status"], "READY_FOR_EXECUTOR")  # type: ignore[index]
             self.assertTrue((root / ".vera-mmu" / "project.yaml").is_file())
 
+    def test_cli_migrate_recover_requires_confirmation_and_recovers_executing_journal(self) -> None:
+        from copy import deepcopy
+        from vera_mmu.identity import load_profile
+        from vera_mmu.profile_migration import prepare_profile_migration_journal, preview_profile_physical_migration
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = _initialize(root, project_id="cli-recovery")
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            result = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(result["journal_path"]))
+            backup = root / ".vera-profile-migration-backup"
+            backup.write_text(profile_path.read_text(encoding="utf-8"), encoding="utf-8")
+            record = json.loads(journal.read_text(encoding="utf-8"))
+            record.update({"state": "EXECUTING", "backup_path": str(backup)})
+            journal.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            refused_code, refused = _cli(["migrate", "recover", str(journal)])
+            self.assertEqual(refused_code, 2)
+            self.assertFalse(refused["ok"])
+            recovered_code, recovered = _cli(["migrate", "recover", str(journal), "--confirm"])
+            self.assertEqual(recovered_code, 0)
+            self.assertEqual(recovered["migration"]["status"], "ROLLED_BACK_TO_PLANNED")  # type: ignore[index]
+
     def test_i001_i005_i011_doctor_fails_loudly_for_tampered_sqlite_and_symlinked_artifacts(self) -> None:
         from vera_mmu.doctor import diagnose_project
 
