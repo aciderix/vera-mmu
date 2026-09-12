@@ -662,6 +662,97 @@ def _checkpoint_sqlite(path: Path) -> None:
             connection.close()
 
 
+def _sqlite_artifact_manifest(path: Path) -> list[dict[str, object]]:
+    artifacts: list[dict[str, object]] = []
+    for candidate in (path, Path(f"{path}-wal"), Path(f"{path}-shm")):
+        if candidate.is_symlink():
+            artifacts.append({"path": str(candidate), "exists": True, "symlink": True})
+        elif candidate.exists():
+            if not candidate.is_file():
+                artifacts.append({"path": str(candidate), "exists": True, "regular": False})
+            else:
+                data = candidate.read_bytes()
+                artifacts.append({
+                    "path": str(candidate),
+                    "exists": True,
+                    "regular": True,
+                    "size": len(data),
+                    "sha256": sha256(data).hexdigest(),
+                })
+        else:
+            artifacts.append({"path": str(candidate), "exists": False})
+    return artifacts
+
+
+def _sqlite_readonly_fingerprint(path: Path) -> tuple[str, list[tuple[str, str, str, str]]]:
+    connection: sqlite3.Connection | None = None
+    try:
+        connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=5.0)
+        integrity = connection.execute("PRAGMA integrity_check").fetchone()
+        if integrity is None or integrity[0] != "ok":
+            raise ProfileMigrationError("Intégrité SQLite cible non confirmée.")
+        schema = connection.execute(
+            "SELECT type, name, tbl_name, COALESCE(sql, '') FROM sqlite_master "
+            "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name, tbl_name, sql"
+        ).fetchall()
+        schema_rows = [tuple(str(value) for value in row) for row in schema]
+        schema_hash = sha256(canonical_json(schema_rows).encode("utf-8")).hexdigest()
+        return schema_hash, schema_rows
+    except sqlite3.Error as exc:
+        raise ProfileMigrationError("Lecture ou intégrité SQLite impossible.") from exc
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def validate_sqlite_migration_target(source_path: str | Path, target_path: str | Path) -> dict[str, object]:
+    """Validate SQLite, WAL/SHM artifacts and target schema without mutating them."""
+    source = Path(source_path).expanduser()
+    target = Path(target_path).expanduser()
+    for label, path in (("source", source), ("target", target)):
+        if path.is_symlink() or not path.is_file():
+            raise ProfileMigrationError(f"SQLite {label} absente, non régulière ou symlinkée.")
+    source_artifacts = _sqlite_artifact_manifest(source)
+    target_artifacts = _sqlite_artifact_manifest(target)
+    issues: list[dict[str, str]] = []
+    for artifact in (*source_artifacts, *target_artifacts):
+        if artifact.get("symlink") or artifact.get("regular") is False:
+            issues.append({"code": "SQLITE_ARTIFACT_AMBIGUOUS", "path": str(artifact["path"])})
+    source_hash = sha256(source.read_bytes()).hexdigest()
+    target_hash = sha256(target.read_bytes()).hexdigest()
+    if source.stat().st_size != target.stat().st_size or source_hash != target_hash:
+        issues.append({"code": "SQLITE_DIVERGED", "path": str(target)})
+    try:
+        source_schema_hash, source_schema = _sqlite_readonly_fingerprint(source)
+        target_schema_hash, target_schema = _sqlite_readonly_fingerprint(target)
+    except ProfileMigrationError as exc:
+        issues.append({"code": "SQLITE_INTEGRITY_ERROR", "path": str(target), "detail": str(exc)})
+        source_schema_hash = target_schema_hash = ""
+        source_schema = target_schema = []
+    if source_schema_hash != target_schema_hash or source_schema != target_schema:
+        issues.append({"code": "SQLITE_SCHEMA_DIVERGED", "path": str(target)})
+    for source_artifact, target_artifact in zip(source_artifacts[1:], target_artifacts[1:]):
+        if source_artifact.get("exists") != target_artifact.get("exists"):
+            issues.append({"code": "SQLITE_ARTIFACT_DIVERGED", "path": str(target_artifact["path"])})
+        elif source_artifact.get("exists") and (
+            source_artifact.get("sha256") != target_artifact.get("sha256")
+            or source_artifact.get("size") != target_artifact.get("size")
+        ):
+            issues.append({"code": "SQLITE_ARTIFACT_DIVERGED", "path": str(target_artifact["path"])})
+    return {
+        "format": "vera-profile-sqlite-validation/v1",
+        "status": "READY_FOR_SWITCH" if not issues else "DIVERGED",
+        "source": str(source),
+        "target": str(target),
+        "source_schema_sha256": source_schema_hash,
+        "target_schema_sha256": target_schema_hash,
+        "source_artifacts": source_artifacts,
+        "target_artifacts": target_artifacts,
+        "issues": issues,
+        "mutation": "NONE",
+    }
+
+
 def execute_profile_physical_migration(
     profile_path: str | Path,
     new_profile: Mapping[str, Any],

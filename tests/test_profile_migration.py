@@ -11,7 +11,7 @@ import yaml
 
 import vera_mmu.profile_migration as profile_migration
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state, validate_profile_migration_inventory
+from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state, validate_profile_migration_inventory, validate_sqlite_migration_target
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -284,6 +284,50 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             codes = {issue["code"] for issue in report["issues"]}
             self.assertIn("TARGET_MISSING", codes)
             self.assertIn("UNEXPECTED_TARGET", codes)
+
+    def test_sqlite_validation_checks_integrity_schema_and_artifacts(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.sqlite"
+            target = root / "target.sqlite"
+            with sqlite3.connect(source) as connection:
+                connection.execute("CREATE TABLE marker(value TEXT)")
+                connection.execute("INSERT INTO marker VALUES ('ok')")
+            target.write_bytes(source.read_bytes())
+
+            report = validate_sqlite_migration_target(source, target)
+
+            self.assertEqual(report["status"], "READY_FOR_SWITCH")
+            self.assertEqual(report["issues"], [])
+            self.assertEqual(report["source_schema_sha256"], report["target_schema_sha256"])
+            self.assertEqual(report["mutation"], "NONE")
+
+            with sqlite3.connect(target) as connection:
+                connection.execute("ALTER TABLE marker ADD COLUMN extra TEXT")
+            diverged = validate_sqlite_migration_target(source, target)
+            codes = {issue["code"] for issue in diverged["issues"]}
+            self.assertEqual(diverged["status"], "DIVERGED")
+            self.assertIn("SQLITE_DIVERGED", codes)
+            self.assertIn("SQLITE_SCHEMA_DIVERGED", codes)
+
+    def test_sqlite_validation_rejects_corrupt_target_and_symlinked_sidecar(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.sqlite"
+            target = root / "target.sqlite"
+            with sqlite3.connect(source) as connection:
+                connection.execute("CREATE TABLE marker(value TEXT)")
+                connection.commit()
+            target.write_bytes(source.read_bytes())
+            target.write_bytes(b"not-a-sqlite-database")
+            target_wal = Path(f"{target}-wal")
+            target_wal.symlink_to(source)
+
+            report = validate_sqlite_migration_target(source, target)
+
+            self.assertEqual(report["status"], "DIVERGED")
+            self.assertTrue(any(issue["code"] == "SQLITE_ARTIFACT_AMBIGUOUS" for issue in report["issues"]))
+            self.assertTrue(any(issue["code"] == "SQLITE_INTEGRITY_ERROR" for issue in report["issues"]))
 
     def test_journal_inspection_refuses_source_divergence_and_target_collision(self) -> None:
         with TemporaryDirectory() as directory:
