@@ -287,4 +287,4 @@ La clôture M11-D ne prouve ni Dashboard global exhaustif, ni exécution hôte r
 
 | Sous-lot | Statut | Preuve et limite |
 |---|---|---|
-| `M11-D-B2` — Préflight/preview read-only de migration Profile/runtime | `PASS` dans le périmètre borné | `src/vera_mmu/profile_migration.py` valide les profils source/cible, chemins confinés, symlinks, collisions workspace/runtime, inventaire et hashes avant/après, sans mutation (`mutation: NONE`). Tests dédiés et régression bootstrap passants. Aucun déplacement physique, journal durable, rollback ou reprise n’est encore implémenté. |
+| `M11-D-B2` — Préflight/preview et journal préparatoire de migration Profile/runtime | `PASS` dans le périmètre borné | `src/vera_mmu/profile_migration.py` valide les profils source/cible, chemins confinés, symlinks, collisions workspace/runtime, inventaire et hashes avant/après, puis persiste atomiquement un journal `PLANNED` hors runtime après confirmation (`mutation: JOURNAL_ONLY`). Aucun déplacement physique, rollback ou reprise n’est encore implémenté. |

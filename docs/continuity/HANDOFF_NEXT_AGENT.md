@@ -71,7 +71,7 @@ Tout nouvel éditeur doit utiliser des opérations Core canoniques, être projec
 
 ### 4.2 Migrations structurelles et physiques du Profile
 
-**Sous-lot terminé le 2026-09-12 :** primitive Core `profile_migration.py` de préflight/preview read-only. Elle valide les profils source/cible, les chemins relatifs confinés, les symlinks, les collisions workspace/runtime, inventorie les fichiers persistants et calcule leurs hashes ainsi que les identités avant/après. Le contrat retourne `mutation: NONE` et n’implémente encore aucun déplacement, journal durable, rollback ou reprise physique.
+**Sous-lot terminé le 2026-09-12 :** primitive Core `profile_migration.py` de préflight/preview read-only et préparation atomique d’un journal durable hors runtime. Elle valide les profils source/cible, les chemins relatifs confinés, les symlinks, les collisions workspace/runtime, inventorie les fichiers persistants, calcule leurs hashes et identités avant/après, puis peut persister un plan `PLANNED` après confirmation explicite. Le contrat ne déplace encore aucun fichier et n’implémente pas encore rollback ou reprise physique.
 
 Le rebind livré couvre l’identité bornée, le nom, le domaine et la description. L’ancrage Profile accepte désormais exactement un emplacement régulier et non symlinké parmi `.vera-mmu/project.yaml` et `project.yaml` racine; deux profils concurrents sont refusés.
 

@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, preview_profile_physical_migration
+from vera_mmu.profile_migration import ProfileMigrationError, prepare_profile_migration_journal, preview_profile_physical_migration
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -61,6 +61,29 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             alias.symlink_to(root / ".vera-mmu" / "artifacts", target_is_directory=True)
             with self.assertRaises(ProfileMigrationError):
                 preview_profile_physical_migration(profile_path, profile)
+
+    def test_journal_preparation_is_confirmed_atomic_and_refuses_stale_preview(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            with self.assertRaises(ProfileMigrationError):
+                prepare_profile_migration_journal(profile_path, candidate, preview, confirm=False)
+            result = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(result["journal_path"]))
+            self.assertEqual(result["status"], "PLANNED")
+            self.assertEqual(result["mutation"], "JOURNAL_ONLY")
+            self.assertTrue(journal.is_file())
+            self.assertTrue(profile_path.is_file())
+            with self.assertRaises(ProfileMigrationError):
+                prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
 
 
 if __name__ == "__main__":

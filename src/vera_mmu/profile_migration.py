@@ -7,8 +7,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
+import json
+import os
 from pathlib import Path, PureWindowsPath
+from tempfile import NamedTemporaryFile
 from typing import Any, Mapping
+
+import yaml
 
 from .identity import canonical_json, load_profile, project_identity, validate_profile
 from .runtime import RuntimeLocator
@@ -199,3 +204,65 @@ def preview_profile_physical_migration(profile_path: str | Path, new_profile: Ma
         inventory=tuple(inventory),
         preview_hash=preview_hash,
     )
+
+
+def _write_json_atomic(path: Path, payload: Mapping[str, object]) -> None:
+    temporary: Path | None = None
+    try:
+        with NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n", dir=path.parent, prefix=".vera-profile-migration-", suffix=".tmp", delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    except OSError as exc:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        raise ProfileMigrationError("Journal durable de migration impossible à écrire.") from exc
+
+
+def prepare_profile_migration_journal(
+    profile_path: str | Path,
+    new_profile: Mapping[str, Any],
+    preview: ProfileMigrationPreview,
+    *,
+    confirm: bool,
+) -> dict[str, object]:
+    """Persist a fresh migration plan outside runtime; never moves project data."""
+    if confirm is not True:
+        raise ProfileMigrationError("Préparation du journal refusée sans confirmation explicite.")
+    path = _profile_file(profile_path)
+    if not isinstance(preview, ProfileMigrationPreview) or preview.profile_path != str(path):
+        raise ProfileMigrationError("Preview de migration invalide ou étrangère.")
+    current = preview_profile_physical_migration(path, new_profile)
+    if current != preview:
+        raise ProfileMigrationError("Preview de migration périmé ou altéré.")
+    journals = sorted(path.parent.glob(".vera-profile-migration-*.json"))
+    if journals:
+        raise ProfileMigrationError("Journal de migration déjà présent : reprise Doctor requise.")
+    normalized = validate_profile(new_profile)
+    target_content = yaml.safe_dump(normalized, allow_unicode=True, default_flow_style=False, sort_keys=False)
+    journal_path = path.parent / f".vera-profile-migration-{preview.preview_hash}.json"
+    payload: dict[str, object] = {
+        "format": "vera-profile-physical-migration-journal/v1",
+        "state": "PLANNED",
+        "profile_path": str(path),
+        "preview_hash": preview.preview_hash,
+        "old_profile_hash": preview.old_profile_hash,
+        "new_profile_hash": preview.new_profile_hash,
+        "old_identity": preview.old_identity,
+        "new_identity": preview.new_identity,
+        "old_runtime": preview.old_runtime,
+        "new_runtime": preview.new_runtime,
+        "target_profile_content": target_content,
+        "inventory": [item.as_dict() for item in preview.inventory],
+    }
+    _write_json_atomic(journal_path, payload)
+    return {
+        "format": "vera-profile-physical-migration-journal/v1",
+        "status": "PLANNED",
+        "journal_path": str(journal_path),
+        "preview_hash": preview.preview_hash,
+        "mutation": "JOURNAL_ONLY",
+    }
