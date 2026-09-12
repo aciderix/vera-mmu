@@ -1675,3 +1675,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-218` | Migration Profile / SQLite | `validate_sqlite_migration_target()` compare SQLite et les sidecars `-wal`/`-shm`, vérifie hashes/tailles, `PRAGMA integrity_check` en lecture seule et l’empreinte canonique de `sqlite_master`. Une base corrompue, un schéma divergent, un artefact divergent ou un sidecar symlinké retourne `DIVERGED`; aucun checkpoint ou bascule n’est effectué par cette fonction. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `2f89d3c`; tests ciblés `16 passed`, régression `628 passed, 49 subtests passed`. | `LOG-0269` |
+
+## Addendum — M11-D-B2 Barrière SQLite de l’inventaire
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-219` | Migration Profile / preuve SQLite | `validate_profile_migration_inventory()` appelle désormais `validate_sqlite_migration_target()` pour les entrées `kind=sqlite`. Une corruption SQLite, une divergence de schéma ou un artefact ambigu empêche `READY_FOR_SWITCH`; le checkpoint WAL et la copie opérationnelle restent distincts et non intégrés. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `252fbcb`; tests ciblés `16 passed`, régression `628 passed, 49 subtests passed`. | `LOG-0270` |

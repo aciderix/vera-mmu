@@ -3355,3 +3355,10 @@ Commit fonctionnel : `4a8e314`. Suivi : intégrer la validation des racines work
 
 Validation : `tests/test_profile_migration.py` — `16 passed`; suite Python — `628 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `2f89d3c`. Suivi : intégrer checkpoint et validation SQLite/WAL/SHM dans la séquence `SWITCHING`, puis tester les interruptions et les reprises.
+
+## LOG-0270 — M11-D-B2 : barrière SQLite dans la validation d’inventaire
+**Statut : PASS préparatoire dans le périmètre borné.**
+La validation d’inventaire appelle `validate_sqlite_migration_target()` pour les entrées `kind=sqlite`. Une corruption de la cible, une divergence de schéma ou un sidecar ambigu est maintenant remonté dans le rapport d’inventaire et empêche `READY_FOR_SWITCH`. Le checkpoint WAL et la copie opérationnelle ne sont pas encore intégrés à l’exécuteur.
+
+Validation : `tests/test_profile_migration.py` — `16 passed`; suite Python — `628 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `252fbcb`. Suivi : intégrer le checkpoint WAL et la séquence de copie SQLite/WAL/SHM avant `SWITCHING`.
