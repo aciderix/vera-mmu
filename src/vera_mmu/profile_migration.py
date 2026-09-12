@@ -759,6 +759,68 @@ def validate_sqlite_migration_target(source_path: str | Path, target_path: str |
     }
 
 
+def prepare_sqlite_migration_artifacts(
+    source_path: str | Path,
+    target_path: str | Path,
+    *,
+    journal_path: str | Path | None = None,
+) -> dict[str, object]:
+    """Checkpoint, copy and verify SQLite plus WAL/SHM artifacts before switching."""
+    source = Path(source_path).expanduser()
+    target = Path(target_path).expanduser()
+    if source.is_symlink() or not source.is_file() or target.exists() or target.is_symlink():
+        raise ProfileMigrationError("Source ou cible SQLite ambiguë.")
+    _checkpoint_sqlite(source)
+    source_artifacts = _sqlite_artifact_manifest(source)
+    present_sources = [Path(str(item["path"])) for item in source_artifacts if item.get("exists")]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    created: list[Path] = []
+    journal_record: dict[str, object] | None = None
+    if journal_path is not None:
+        journal = Path(journal_path).expanduser()
+        try:
+            journal_record = json.loads(journal.read_text(encoding="utf-8"))
+            new_runtime = Path(str(journal_record["new_runtime"]))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError) as exc:
+            raise ProfileMigrationError("Journal SQLite absent ou non canonique.") from exc
+    try:
+        for source_artifact in present_sources:
+            suffix = source_artifact.name[len(source.name):]
+            destination = target.with_name(target.name + suffix)
+            relative = str(destination.relative_to(new_runtime)) if journal_record is not None else None
+            if relative is not None:
+                record_copy_progress(journal_path, relative, "COPYING")
+            temporary = destination.with_name(f".{destination.name}.vera-copy-tmp")
+            if temporary.exists() or destination.exists():
+                raise ProfileMigrationError(f"Cible SQLite déjà occupée : {destination}.")
+            shutil.copy2(source_artifact, temporary)
+            source_data = source_artifact.read_bytes()
+            target_data = temporary.read_bytes()
+            if len(source_data) != len(target_data) or sha256(source_data).hexdigest() != sha256(target_data).hexdigest():
+                raise ProfileMigrationError(f"Vérification de copie SQLite échouée : {source_artifact}.")
+            os.replace(temporary, destination)
+            created.append(destination)
+            if relative is not None:
+                record_copy_progress(journal_path, relative, "VERIFIED")
+        report = validate_sqlite_migration_target(source, target)
+        if report["status"] != "READY_FOR_SWITCH":
+            raise ProfileMigrationError("Validation SQLite cible refusée avant bascule.")
+        return {
+            "format": "vera-profile-sqlite-preparation/v1",
+            "status": "READY_FOR_SWITCH",
+            "source": str(source),
+            "target": str(target),
+            "artifacts": report["target_artifacts"],
+            "mutation": "SQLITE_ARTIFACT_COPY",
+        }
+    except Exception:
+        for path in reversed(created):
+            path.unlink(missing_ok=True)
+        for path in target.parent.glob(f".{target.name}*.vera-copy-tmp"):
+            path.unlink(missing_ok=True)
+        raise
+
+
 def execute_profile_physical_migration(
     profile_path: str | Path,
     new_profile: Mapping[str, Any],

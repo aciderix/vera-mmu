@@ -11,7 +11,7 @@ import yaml
 
 import vera_mmu.profile_migration as profile_migration
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state, validate_profile_migration_inventory, validate_sqlite_migration_target
+from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, prepare_sqlite_migration_artifacts, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state, validate_profile_migration_inventory, validate_sqlite_migration_target
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -334,6 +334,57 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertEqual(report["status"], "DIVERGED")
             self.assertTrue(any(issue["code"] == "SQLITE_ARTIFACT_AMBIGUOUS" for issue in report["issues"]))
             self.assertTrue(any(issue["code"] == "SQLITE_INTEGRITY_ERROR" for issue in report["issues"]))
+
+    def test_sqlite_preparation_checkpoints_copies_and_journals_database(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepared = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(prepared["journal_path"]))
+            source = Path(preview.old_runtime) / "memory.sqlite"
+            target = Path(preview.new_runtime) / "memory.sqlite"
+
+            result = prepare_sqlite_migration_artifacts(source, target, journal_path=journal)
+
+            self.assertEqual(result["status"], "READY_FOR_SWITCH")
+            self.assertTrue(target.is_file())
+            progress = json.loads(journal.read_text(encoding="utf-8"))["copy_progress"]
+            self.assertIn({"path": "memory.sqlite", "state": "COPYING"}, progress)
+            self.assertIn({"path": "memory.sqlite", "state": "VERIFIED"}, progress)
+
+    def test_sqlite_preparation_removes_partial_target_after_interruption(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepared = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(prepared["journal_path"]))
+            source = Path(preview.old_runtime) / "memory.sqlite"
+            target = Path(preview.new_runtime) / "memory.sqlite"
+
+            with patch.object(profile_migration.shutil, "copy2", side_effect=OSError("copy interrupted")):
+                with self.assertRaises(OSError):
+                    prepare_sqlite_migration_artifacts(source, target, journal_path=journal)
+
+            self.assertFalse(target.exists())
+            self.assertFalse(list(target.parent.glob(".memory.sqlite*.vera-copy-tmp")))
+            record = json.loads(journal.read_text(encoding="utf-8"))
+            self.assertEqual(record["copy_progress"], [{"path": "memory.sqlite", "state": "COPYING"}])
 
     def test_journal_inspection_refuses_source_divergence_and_target_collision(self) -> None:
         with TemporaryDirectory() as directory:
