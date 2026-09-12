@@ -10,7 +10,7 @@
 
 **Branche :** `main`
 
-**Dernier état publié et vérifié :** `68fa91504a9b153bb57ac6b2417fd7d4cc3e4788`
+**Dernier état publié et vérifié :** `5dee059` — handoff mis à jour le 2026-09-12
 
 **Worktree au moment du handoff :** propre.
 
@@ -26,11 +26,26 @@ Toute écriture sensible suit le cycle obligatoire : **preview → vérification
 
 ## 2. État livré et publié
 
-Le commit distant `68fa915` et tous ses ancêtres contiennent les lots réalisés avant ce handoff. Le distant a été vérifié par `git fetch`, `git ls-remote` et l’API GitHub : `HEAD` local et `origin/main` sont identiques à `68fa915`. Le dernier push a été un fast-forward normal; aucune force-push n’a été effectuée.
+Le commit distant `5dee059` et tous ses ancêtres contiennent les lots réalisés avant et pendant cette reprise. Le distant a été vérifié après un push fast-forward normal vers `origin/main`; aucune force-push n’a été effectuée.
 
-La dernière régression Python complète observée après les derniers changements validés est **`601 passed in 65.51s`**. Des validations ciblées complémentaires ont également passé, notamment le trajet MCP `mmu://` avec **`9 passed in 10.81s`**, le bridge/workspace avec **`21 passed in 1.30s`**, le build React et les deux tests Tauri natifs.
+La dernière régression Python complète observée après les derniers changements validés est **`607 passed, 49 subtests passed`**. Des validations ciblées complémentaires ont également passé, notamment les parcours readiness/Claude cloud et les tests de durcissement lifecycle.
 
 Les dépôts ARET de référence étaient propres et non modifiés lors du dernier contrôle.
+
+### 3.1 Ajouts terminés depuis ce handoff
+
+Le commit `5dee059` a terminé et vérifié le sous-lot de **fiabilité lifecycle et intégration Claude cloud** :
+
+- budget du Resume Dossier plafonné à **14 000 octets** dans le bootstrap, le Profile et le compilateur générique ;
+- heartbeat `mcp_ready`, kill-switch runtime et alias `ARET_MMU_BARRIER_OFF` ;
+- attente de readiness MCP cloud bornée par `MCP_STARTUP_TIMEOUT_S` (30 s par défaut, maximum 120 s) ;
+- armement `HARD` uniquement après readiness, repli `SOFT` avec signalement `MCP_STARTUP_TIMEOUT` sans deadlock ;
+- propagation de `MCP_TOOL_TIMEOUT=3600000` dans le plan MCP Claude cloud ;
+- transport Claude local/cloud porté à 18 500 octets ;
+- dé-collapse MCP, durcissement HMAC du payload d’évidence et branchement cohérent des adapters ;
+- tests de régression et suite complète : **607 tests passés, 49 sous-tests passés**.
+
+Ce sous-lot est **clos**. Les sections 4.1 à 4.10 ci-dessous restent ouvertes sauf lorsqu’une annotation locale indique explicitement qu’un sous-lot précis est terminé.
 
 ## 3. Capacités déjà livrées
 
@@ -76,6 +91,8 @@ La documentation ne doit jamais présenter une surface `PARTIAL`, `MISSING` ou `
 
 ### 4.5 API MCP et CLI complètes
 
+**Sous-lot terminé le 2026-09-12 :** readiness MCP Claude cloud bornée, timeout de démarrage configurable, armement `HARD` conditionné par le marqueur `mcp_ready`, repli `SOFT` anti-deadlock et timeout d’appel cloud `MCP_TOOL_TIMEOUT=3600000`. Cela ne clôt pas la complétude générale de l’API MCP ni de la CLI décrite ci-dessous.
+
 Compléter les surfaces prévues par la spécification : boot/resume, restore, Front, FIND/READ, append knowledge, work CRUD, bundles, export/import, Doctor, serve et configuration. Chaque handler MCP doit rester une façade du Core et appliquer des enveloppes strictes, nonce/session si nécessaire, champs exacts et absence d’entrées client dangereuses.
 
 La CLI `vmmu` actuelle ne couvre pas encore tout le contrat `init`, `scan`, `configure`, `validate`, `generate`, `install`, `serve`, `doctor`, `migrate`, `export`, `import`, `dashboard`, `upgrade`. Ajouter les commandes par petits lots test-first, avec sorties déterministes et refus explicites.
@@ -93,6 +110,8 @@ Les builders actuels couvrent des déclarations bornées et les Gates existantes
 Formaliser et exposer le format universel de bundle : manifest hashé, inventaire, identité project-bound, intégrité, import non fusionnel, mismatch refusé, restauration, rollback et tests d’altération. Les opérations doivent couvrir les transports et les erreurs partielles. Un bundle ou artefact présent dans SQLite ne devient pas automatiquement une preuve.
 
 ### 4.9 Active Front, playbook et resume
+
+**Sous-lot terminé le 2026-09-12 :** plafond de Resume Dossier à 14 000 octets, transport Claude à 18 500 octets, heartbeat/readiness MCP et repli `SOFT` anti-deadlock. Le Front, le playbook et les surfaces configurables restent à compléter comme décrit ci-dessous.
 
 Rendre publics et configurables le Front actif, handoff, playbook project-specific, resume template et rituel générique, tout en conservant Resume Guard, expiration d’acquittement, compact, reprise et statuts épistémiques. Composer doctrine Core et contexte projet sans fusionner les règles ARET dans le Core.
 
