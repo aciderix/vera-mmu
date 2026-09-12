@@ -182,8 +182,14 @@ def _device_for_target(path: Path) -> int:
     return current.stat().st_dev
 
 
-def _copy_tree_verified(source: Path, target: Path, *, progress: Callable[[str, str], None] | None = None) -> None:
-    """Copy a regular tree and verify every copied file before it can be switched."""
+def _copy_tree_verified(
+    source: Path,
+    target: Path,
+    *,
+    progress: Callable[[str, str], None] | None = None,
+    journal_path: str | Path | None = None,
+) -> None:
+    """Copy and verify a regular tree, optionally persisting each file transition."""
     if source.is_symlink() or not source.is_dir() or target.exists():
         raise ProfileMigrationError("Source ou cible de copie inter-filesystems ambiguë.")
     target.mkdir(parents=True)
@@ -199,15 +205,20 @@ def _copy_tree_verified(source: Path, target: Path, *, progress: Callable[[str, 
             if not item.is_file():
                 raise ProfileMigrationError(f"Entrée non régulière dans la copie : {item}.")
             destination.parent.mkdir(parents=True, exist_ok=True)
+            relative_path = str(relative)
+            if journal_path is not None:
+                record_copy_progress(journal_path, relative_path, "COPYING")
             if progress is not None:
-                progress(str(relative), "COPYING")
+                progress(relative_path, "COPYING")
             shutil.copy2(item, destination)
             source_hash = sha256(item.read_bytes()).hexdigest()
             target_hash = sha256(destination.read_bytes()).hexdigest()
             if source_hash != target_hash or item.stat().st_size != destination.stat().st_size:
                 raise ProfileMigrationError(f"Vérification de copie échouée : {item}.")
+            if journal_path is not None:
+                record_copy_progress(journal_path, relative_path, "VERIFIED")
             if progress is not None:
-                progress(str(relative), "VERIFIED")
+                progress(relative_path, "VERIFIED")
     except Exception:
         shutil.rmtree(target, ignore_errors=True)
         raise
@@ -323,6 +334,8 @@ def record_copy_progress(journal_path: str | Path, relative_path: str, state: st
         raise ProfileMigrationError("Transition de progression de copie invalide.")
     progress.append({"path": relative_path, "state": state})
     record["copy_progress"] = progress
+    if state == "COPYING":
+        record["state"] = "EXECUTING"
     _write_json_atomic(journal, record)
     return {"format": "vera-profile-copy-progress/v1", "path": relative_path, "state": state, "mutation": "JOURNAL_APPEND"}
 
