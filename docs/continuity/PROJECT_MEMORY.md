@@ -1695,3 +1695,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-222` | Migration Profile / reprise | La reprise accepte `EXECUTING` et `SWITCHING`, finalise seulement après preuve du runtime cible, Profile cible, SQLite et sidecars, et restaure vers `PLANNED` seulement après preuve du runtime source et du backup. Runtimes simultanés, Profile divergent, SQLite invalide et racines ambiguës donnent `RECOVERY_REQUIRED`; aucune finalisation implicite n’est effectuée. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, tests de reprise, commit `e35c13a`; tests ciblés `20 passed`, régression `632 passed, 49 subtests passed`. | `LOG-0273` |
+
+## Addendum — M11-D-B2 Inventaire des racines workspace
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-223` | Migration Profile / workspace | Le preview et le journal persistent `workspace_inventory` avec source, cible, type, taille et hash pour chaque fichier des racines workspace déplacées. La validation contrôle les sources/cibles, symlinks et entrées inattendues ; les absences donnent `RECOVERY_REQUIRED` et les divergences/ambiguïtés donnent `DIVERGED`. La copie workspace inter-filesystems reste non activée. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, tests migration, commit `acb59b3`; tests ciblés `20 passed`, régression `632 passed, 49 subtests passed`. | `LOG-0274` |

@@ -3383,3 +3383,10 @@ La reprise accepte les journaux `EXECUTING` et `SWITCHING`. Elle finalise unique
 
 Validation : `tests/test_profile_migration.py` — `20 passed`; suite Python — `632 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `e35c13a`. Suivi : intégrer la preuve des racines workspace et construire les scénarios d’interruption inter-filesystems avant toute activation de `COPY_VERIFY_SWITCH`.
+
+## LOG-0274 — M11-D-B2 : inventaire des racines workspace
+**Statut : PASS préparatoire dans le périmètre borné.**
+Le preview et le journal persistent `workspace_inventory` avec source, cible, type, taille et hash pour chaque fichier des racines workspace déplacées. La validation read-only contrôle sources/cibles, symlinks et entrées inattendues, classe les absences `RECOVERY_REQUIRED` et les divergences/ambiguïtés `DIVERGED`. La copie inter-filesystems et la progression workspace dédiée restent ouvertes.
+
+Validation : `tests/test_profile_migration.py` — `20 passed`; suite Python — `632 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `acb59b3`. Suivi : brancher la copie workspace journalisée et sa reprise avant toute activation de `COPY_VERIFY_SWITCH`.

@@ -115,6 +115,8 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot de reprise terminé le 2026-09-13 dans un périmètre borné :** la reprise accepte `EXECUTING` et `SWITCHING`, finalise uniquement lorsque le runtime cible, le Profile cible, SQLite et les sidecars sont prouvés, et restaure vers `PLANNED` uniquement lorsque le runtime source et le backup sont cohérents. Sources et cibles simultanément présentes, Profile divergent, SQLite invalide ou racines workspace ambiguës sont désormais classés `RECOVERY_REQUIRED` et ne sont jamais finalisés automatiquement.
 
+**Sous-lot workspace terminé le 2026-09-13 dans un périmètre borné :** le preview et le journal persistent désormais `workspace_inventory` avec source, cible, type, taille et hash de chaque fichier des racines déplacées. La validation contrôle les sources et cibles, les symlinks et les entrées inattendues, avec `RECOVERY_REQUIRED` pour une absence et `DIVERGED` pour une divergence ou une ambiguïté. La copie workspace inter-filesystems et sa progression dédiée restent à brancher.
+
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises
