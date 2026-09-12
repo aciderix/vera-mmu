@@ -11,7 +11,7 @@ import yaml
 
 import vera_mmu.profile_migration as profile_migration
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, record_copy_progress, recover_profile_physical_migration
+from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -129,7 +129,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
                     _copy_tree_verified(source, target, journal_path=journal)
 
             record = json.loads(journal.read_text(encoding="utf-8"))
-            self.assertEqual(record["state"], "EXECUTING")
+            self.assertEqual(record["state"], "COPYING")
             self.assertEqual(record["copy_progress"], [{"path": "file.txt", "state": "COPYING"}])
             self.assertFalse(target.exists())
 
@@ -184,6 +184,50 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
                 record_copy_progress(journal, "nested/file.txt", "VERIFIED")
             with self.assertRaises(ProfileMigrationError):
                 prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+
+    def test_global_migration_state_transitions_are_allowlisted(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepared = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(prepared["journal_path"]))
+
+            self.assertEqual(transition_profile_migration_state(journal, "COPYING")["state"], "COPYING")
+            self.assertEqual(transition_profile_migration_state(journal, "VERIFIED")["state"], "VERIFIED")
+            self.assertEqual(transition_profile_migration_state(journal, "SWITCHING")["state"], "SWITCHING")
+            self.assertEqual(transition_profile_migration_state(journal, "COMMITTED")["state"], "COMMITTED")
+            with self.assertRaises(ProfileMigrationError):
+                transition_profile_migration_state(journal, "PLANNED")
+
+    def test_global_migration_state_refuses_unknown_and_skipped_states(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepared = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(prepared["journal_path"]))
+
+            with self.assertRaises(ProfileMigrationError):
+                transition_profile_migration_state(journal, "COMMITTED")
+            with self.assertRaises(ProfileMigrationError):
+                transition_profile_migration_state(journal, "SWITCHING")
+            with self.assertRaises(ProfileMigrationError):
+                transition_profile_migration_state(journal, "UNKNOWN")
 
     def test_journal_inspection_refuses_source_divergence_and_target_collision(self) -> None:
         with TemporaryDirectory() as directory:
