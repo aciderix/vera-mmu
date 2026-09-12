@@ -423,8 +423,10 @@ def execute_profile_physical_migration(
     old_profile = load_profile(path)
     old_workspace = resolve_workspace(old_profile, path)
     new_normalized = validate_profile(new_profile)
-    if new_normalized["workspace"] != old_profile["workspace"]:
-        raise ProfileMigrationError("Cette étape ne déplace pas encore les racines workspace.")
+    root_moves = [
+        (Path(item["source"]), Path(item["target"]))
+        for item in preview.workspace_moves
+    ]
     report = inspect_profile_migration_journal(path)
     if report["status"] != "READY_FOR_EXECUTOR":
         raise ProfileMigrationError("Journal non exécutable : divergence ou collision détectée.")
@@ -438,6 +440,16 @@ def execute_profile_physical_migration(
         raise ProfileMigrationError("Le runtime doit changer de chemin sur le même filesystem.")
     if new_runtime.exists():
         raise ProfileMigrationError("La cible runtime est déjà occupée.")
+    project_anchor = old_workspace.project_root
+    for source, target in root_moves:
+        if source == project_anchor or path.parent in source.parents or old_runtime in source.parents:
+            raise ProfileMigrationError("Déplacement de racine refusé : la source englobe le Profile ou le runtime.")
+        if source == target or source in target.parents or target in source.parents:
+            raise ProfileMigrationError("Déplacement de racine chevauchant ou nul.")
+        if source.stat().st_dev != target.parent.stat().st_dev:
+            raise ProfileMigrationError("Les racines workspace doivent rester sur le même filesystem.")
+        if target.exists():
+            raise ProfileMigrationError("La cible d’une racine workspace est déjà occupée.")
     journal_path = Path(str(report["journal_path"]))
     backup_path = _journal_dir(path) / f".vera-profile-migration-{preview.preview_hash}.profile-backup"
     journal = json.loads(journal_path.read_text(encoding="utf-8"))
@@ -448,6 +460,7 @@ def execute_profile_physical_migration(
     backup_path.write_text(old_content, encoding="utf-8")
     os.chmod(backup_path, 0o600)
     moved = False
+    moved_roots: list[tuple[Path, Path]] = []
     try:
         _checkpoint_sqlite(Path(preview.old_runtime) / str(old_profile["storage"]["sqlite_file"]))
         new_runtime.parent.mkdir(parents=True, exist_ok=True)
@@ -455,6 +468,10 @@ def execute_profile_physical_migration(
         _write_text_atomic(path, target_content, ".vera-profile-migration-")
         os.replace(old_runtime, new_runtime)
         moved = True
+        for source, target in root_moves:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(source, target)
+            moved_roots.append((source, target))
         journal["state"] = "COMMITTED"
         _write_json_atomic(journal_path, journal)
         backup_path.unlink(missing_ok=True)
@@ -464,6 +481,9 @@ def execute_profile_physical_migration(
         try:
             if moved and new_runtime.exists() and not old_runtime.exists():
                 os.replace(new_runtime, old_runtime)
+            for source, target in reversed(moved_roots):
+                if target.exists() and not source.exists():
+                    os.replace(target, source)
             if backup_path.exists():
                 _write_text_atomic(path, backup_path.read_text(encoding="utf-8"), ".vera-profile-rollback-")
             journal["state"] = "PLANNED"
@@ -488,7 +508,7 @@ def recover_profile_physical_migration(journal_path: str | Path, *, confirm: boo
     if not isinstance(record, dict) or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") != "EXECUTING":
         raise ProfileMigrationError("Seul un journal EXECUTING peut être repris par cette opération.")
     required = {"profile_path", "old_runtime", "new_runtime", "backup_path", "old_profile_hash", "new_profile_hash", "preview_hash"}
-    if not required.issubset(record) or any(not isinstance(record[key], str) for key in required):
+    if not required.issubset(record) or any(not isinstance(record[key], str) for key in required) or "workspace_moves" not in record:
         raise ProfileMigrationError("Journal EXECUTING incomplet.")
     old_runtime = Path(record["old_runtime"])
     new_runtime = Path(record["new_runtime"])
@@ -500,6 +520,13 @@ def recover_profile_physical_migration(journal_path: str | Path, *, confirm: boo
     backup = Path(record["backup_path"])
     if backup.is_symlink() or not backup.is_file():
         raise ProfileMigrationError("Sauvegarde Profile absente ou ambiguë.")
+    workspace_moves = record["workspace_moves"]
+    if not isinstance(workspace_moves, list) or any(
+        not isinstance(item, dict) or set(item) != {"source", "target", "kind"}
+        for item in workspace_moves
+    ):
+        raise ProfileMigrationError("Mouvements workspace absents ou non canoniques.")
+    root_moves = [(Path(item["source"]), Path(item["target"])) for item in workspace_moves]
     if old_runtime.exists() and new_runtime.exists():
         raise ProfileMigrationError("Sources et cibles présentes simultanément : reprise ambiguë.")
     if not old_runtime.exists() and not new_runtime.exists():
@@ -507,6 +534,13 @@ def recover_profile_physical_migration(journal_path: str | Path, *, confirm: boo
     if old_runtime.exists():
         if not old_profile.is_file():
             raise ProfileMigrationError("Profile source absent pendant la reprise.")
+        for source, target in root_moves:
+            if target.exists() and not source.exists():
+                os.replace(target, source)
+            elif source.exists() and not target.exists():
+                continue
+            else:
+                raise ProfileMigrationError("État de racine workspace ambigu pendant le rollback.")
         current_hash = sha256(old_profile.read_bytes()).hexdigest()
         if current_hash == record["new_profile_hash"]:
             _write_text_atomic(old_profile, backup.read_text(encoding="utf-8"), ".vera-profile-recovery-")
@@ -519,6 +553,9 @@ def recover_profile_physical_migration(journal_path: str | Path, *, confirm: boo
         return {"format": "vera-profile-physical-migration-recovery/v1", "status": "ROLLED_BACK_TO_PLANNED", "preview_hash": record["preview_hash"], "mutation": "RECOVERY"}
     if not new_profile.is_file() or sha256(new_profile.read_bytes()).hexdigest() != record["new_profile_hash"]:
         raise ProfileMigrationError("Profile cible absent ou divergent pendant la reprise.")
+    for source, target in root_moves:
+        if not target.exists() or source.exists():
+            raise ProfileMigrationError("État de racine workspace incomplet pendant la finalisation.")
     backup.unlink(missing_ok=True)
     journal.unlink()
     return {"format": "vera-profile-physical-migration-recovery/v1", "status": "RECOVERED_COMMITTED", "preview_hash": record["preview_hash"], "mutation": "RECOVERY"}

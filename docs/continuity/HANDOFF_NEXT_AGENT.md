@@ -81,7 +81,7 @@ Le rebind livré couvre l’identité bornée, le nom, le domaine et la descript
 
 La migration physique des racines `workspace.root` et `workspace.additional_roots`, ainsi que les migrations inter-filesystems, restent à implémenter. Le sous-lot M11-D-B2 couvre désormais le déplacement borné du runtime project-local, de SQLite/WAL/SHM, des artefacts et des fichiers de catalogues contenus dans ce runtime, avec Profile, journal et reprise explicite.
 
-**Sous-lot préparatoire terminé le 2026-09-12 :** le preview et le journal de migration portent désormais explicitement `workspace_moves` (source, cible, type de racine), avec refus des racines source/cible absentes, symlinkées ou non-régulières et refus d’un changement du nombre de racines. Cette tranche ne déplace encore aucune racine ; l’exécution et la reprise de ces mouvements restent ouvertes.
+**Sous-lot terminé le 2026-09-12 dans un périmètre borné :** le preview et le journal portent explicitement `workspace_moves`; l’exécuteur déplace et rollbacke les racines isolées sur le même filesystem, avec Profile/runtime protégés contre l’inclusion. La reprise vérifie l’état de chaque source/cible avant rollback ou finalisation. Les racines englobant le projet/Profile/runtime et les migrations inter-filesystems restent refusées.
 
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 

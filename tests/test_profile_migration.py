@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import sqlite3
 import unittest
+import yaml
 
 from vera_mmu.identity import load_profile
 from vera_mmu.profile_migration import ProfileMigrationError, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, recover_profile_physical_migration
@@ -136,6 +137,38 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertTrue((root / ".vera-mmu-next" / "memory.sqlite").is_file())
             migrated_profile = Path(str(result["profile_path"]))
             self.assertEqual(load_profile(migrated_profile)["storage"]["memory_dir"], ".vera-mmu-next")
+
+    def test_execute_moves_an_isolated_additional_workspace_root(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            (root / "src").mkdir()
+            (root / "docs").mkdir()
+            (root / "docs" / "note.md").write_text("note", encoding="utf-8")
+            current = load_profile(profile_path)
+            current["workspace"]["root"] = "src"
+            current["workspace"]["additional_roots"] = ["docs"]
+            profile_path.write_text(yaml.safe_dump(current, sort_keys=False), encoding="utf-8")
+            candidate = load_profile(profile_path)
+            candidate["workspace"]["root"] = "src-next"
+            candidate["workspace"]["additional_roots"] = ["docs-next"]
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            sqlite_path = root / ".vera-mmu" / "memory.sqlite"
+            sqlite_path.unlink()
+            with sqlite3.connect(sqlite_path) as connection:
+                connection.execute("CREATE TABLE marker(value TEXT)")
+                connection.execute("INSERT INTO marker VALUES ('root-move')")
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            result = execute_profile_physical_migration(profile_path, candidate, preview, confirm=True)
+            self.assertEqual(result["status"], "COMMITTED")
+            self.assertTrue((root / "src-next").is_dir())
+            self.assertFalse((root / "docs").exists())
+            self.assertEqual((root / "docs-next" / "note.md").read_text(encoding="utf-8"), "note")
 
     def test_recovery_rolls_back_interruption_before_move(self) -> None:
         with TemporaryDirectory() as directory:
