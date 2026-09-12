@@ -10,6 +10,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path, PureWindowsPath
+import sqlite3
 from tempfile import NamedTemporaryFile
 from typing import Any, Mapping
 
@@ -78,6 +79,14 @@ def _profile_file(path: str | Path) -> Path:
     if source.is_symlink() or not source.is_file() or source.parent.is_symlink():
         raise ProfileMigrationError("Project Profile ou son répertoire ambigu.")
     return source.resolve(strict=True)
+
+
+def _journal_dir(profile_path: Path) -> Path:
+    """Keep migration control files outside the runtime being moved."""
+    directory = profile_path.parent.parent if profile_path.parent.name == ".vera-mmu" else profile_path.parent
+    if directory.is_symlink() or not directory.is_dir():
+        raise ProfileMigrationError("Répertoire de journal de migration ambigu.")
+    return directory
 
 
 def _relative(value: Any, label: str, *, allow_dot: bool = False) -> Path:
@@ -238,12 +247,13 @@ def prepare_profile_migration_journal(
     current = preview_profile_physical_migration(path, new_profile)
     if current != preview:
         raise ProfileMigrationError("Preview de migration périmé ou altéré.")
-    journals = sorted(path.parent.glob(".vera-profile-migration-*.json"))
+    journal_dir = _journal_dir(path)
+    journals = sorted(journal_dir.glob(".vera-profile-migration-*.json"))
     if journals:
         raise ProfileMigrationError("Journal de migration déjà présent : reprise Doctor requise.")
     normalized = validate_profile(new_profile)
     target_content = yaml.safe_dump(normalized, allow_unicode=True, default_flow_style=False, sort_keys=False)
-    journal_path = path.parent / f".vera-profile-migration-{preview.preview_hash}.json"
+    journal_path = journal_dir / f".vera-profile-migration-{preview.preview_hash}.json"
     payload: dict[str, object] = {
         "format": "vera-profile-physical-migration-journal/v1",
         "state": "PLANNED",
@@ -271,7 +281,8 @@ def prepare_profile_migration_journal(
 def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, object]:
     """Read one migration journal and classify divergence without repairing anything."""
     path = _profile_file(profile_path)
-    journals = sorted(path.parent.glob(".vera-profile-migration-*.json"))
+    journal_dir = _journal_dir(path)
+    journals = sorted(journal_dir.glob(".vera-profile-migration-*.json"))
     if len(journals) != 1:
         raise ProfileMigrationError("Reprise impossible sans journal de migration unique.")
     journal_path = journals[0]
@@ -285,7 +296,7 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
         "format", "state", "profile_path", "preview_hash", "old_profile_hash", "new_profile_hash",
         "old_identity", "new_identity", "old_runtime", "new_runtime", "target_profile_content", "inventory",
     }
-    if not isinstance(record, dict) or set(record) != required or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") != "PLANNED":
+    if not isinstance(record, dict) or set(record) != required and set(record) != required | {"backup_path"} or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") not in {"PLANNED", "EXECUTING"}:
         raise ProfileMigrationError("Journal de migration non canonique ou état non reprenable.")
     if record.get("profile_path") != str(path) or journal_path.stem != f".vera-profile-migration-{record.get('preview_hash')}":
         raise ProfileMigrationError("Journal de migration étranger au Profile.")
@@ -295,7 +306,7 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
     inventory = record.get("inventory")
     if not isinstance(inventory, list) or any(not isinstance(item, dict) or set(item) != {"source", "target", "kind", "exists", "size", "sha256"} for item in inventory):
         raise ProfileMigrationError("Inventaire de journal invalide.")
-    status = "READY_FOR_EXECUTOR"
+    status = "RECOVERY_REQUIRED" if record["state"] == "EXECUTING" else "READY_FOR_EXECUTOR"
     issues: list[dict[str, str]] = []
     for item in inventory:
         source = Path(item["source"]) if isinstance(item["source"], str) else None
@@ -325,3 +336,111 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
         "issues": issues,
         "mutation": "NONE",
     }
+
+
+def _write_text_atomic(path: Path, content: str, prefix: str) -> None:
+    temporary: Path | None = None
+    try:
+        with NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n", dir=path.parent, prefix=prefix, suffix=".tmp", delete=False) as handle:
+            temporary = Path(handle.name)
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    except OSError as exc:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        raise ProfileMigrationError("Écriture atomique du Profile impossible.") from exc
+
+
+def _checkpoint_sqlite(path: Path) -> None:
+    if not path.exists():
+        return
+    if path.is_symlink() or not path.is_file():
+        raise ProfileMigrationError("SQLite source non régulière ou symlinkée.")
+    connection: sqlite3.Connection | None = None
+    try:
+        connection = sqlite3.connect(path, isolation_level=None, timeout=5.0)
+        mode = connection.execute("PRAGMA journal_mode=WAL").fetchone()
+        if mode is None or str(mode[0]).lower() != "wal":
+            raise ProfileMigrationError("Mode WAL SQLite non confirmé.")
+        result = connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+        if result is None or len(result) < 3 or int(result[1]) != 0:
+            raise ProfileMigrationError("Checkpoint WAL SQLite non confirmé.")
+        integrity = connection.execute("PRAGMA integrity_check").fetchone()
+        if integrity is None or integrity[0] != "ok":
+            raise ProfileMigrationError("Intégrité SQLite non confirmée avant migration.")
+    except sqlite3.Error as exc:
+        raise ProfileMigrationError("Checkpoint ou intégrité SQLite impossible.") from exc
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def execute_profile_physical_migration(
+    profile_path: str | Path,
+    new_profile: Mapping[str, Any],
+    preview: ProfileMigrationPreview,
+    *,
+    confirm: bool,
+) -> dict[str, object]:
+    """Execute only a fresh, same-filesystem runtime move with rollback on failure."""
+    if confirm is not True:
+        raise ProfileMigrationError("Migration physique refusée sans confirmation explicite.")
+    path = _profile_file(profile_path)
+    current = preview_profile_physical_migration(path, new_profile)
+    if current != preview:
+        raise ProfileMigrationError("Preview de migration périmé ou altéré.")
+    old_profile = load_profile(path)
+    old_workspace = resolve_workspace(old_profile, path)
+    new_normalized = validate_profile(new_profile)
+    if new_normalized["workspace"] != old_profile["workspace"]:
+        raise ProfileMigrationError("Cette étape ne déplace pas encore les racines workspace.")
+    report = inspect_profile_migration_journal(path)
+    if report["status"] != "READY_FOR_EXECUTOR":
+        raise ProfileMigrationError("Journal non exécutable : divergence ou collision détectée.")
+    old_runtime = Path(preview.old_runtime)
+    new_runtime = Path(preview.new_runtime)
+    try:
+        new_profile_path = new_runtime / path.relative_to(old_runtime)
+    except ValueError as exc:
+        raise ProfileMigrationError("Le Profile doit rester dans le runtime migré pour cette étape.") from exc
+    if old_runtime == new_runtime or old_runtime.stat().st_dev != new_runtime.parent.stat().st_dev:
+        raise ProfileMigrationError("Le runtime doit changer de chemin sur le même filesystem.")
+    if new_runtime.exists():
+        raise ProfileMigrationError("La cible runtime est déjà occupée.")
+    journal_path = Path(str(report["journal_path"]))
+    backup_path = _journal_dir(path) / f".vera-profile-migration-{preview.preview_hash}.profile-backup"
+    journal = json.loads(journal_path.read_text(encoding="utf-8"))
+    journal["state"] = "EXECUTING"
+    journal["backup_path"] = str(backup_path)
+    _write_json_atomic(journal_path, journal)
+    old_content = path.read_text(encoding="utf-8")
+    backup_path.write_text(old_content, encoding="utf-8")
+    os.chmod(backup_path, 0o600)
+    moved = False
+    try:
+        _checkpoint_sqlite(Path(preview.old_runtime) / str(old_profile["storage"]["sqlite_file"]))
+        new_runtime.parent.mkdir(parents=True, exist_ok=True)
+        target_content = yaml.safe_dump(new_normalized, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        _write_text_atomic(path, target_content, ".vera-profile-migration-")
+        os.replace(old_runtime, new_runtime)
+        moved = True
+        journal["state"] = "COMMITTED"
+        _write_json_atomic(journal_path, journal)
+        backup_path.unlink(missing_ok=True)
+        journal_path.unlink(missing_ok=True)
+        return {"format": "vera-profile-physical-migration/v1", "status": "COMMITTED", "preview_hash": preview.preview_hash, "profile_path": str(new_profile_path), "mutation": "RUNTIME_AND_PROFILE"}
+    except Exception:
+        try:
+            if moved and new_runtime.exists() and not old_runtime.exists():
+                os.replace(new_runtime, old_runtime)
+            if backup_path.exists():
+                _write_text_atomic(path, backup_path.read_text(encoding="utf-8"), ".vera-profile-rollback-")
+            journal["state"] = "PLANNED"
+            _write_json_atomic(journal_path, journal)
+            backup_path.unlink(missing_ok=True)
+        except Exception as rollback_error:
+            raise ProfileMigrationError("Migration interrompue et rollback incomplet : journal conservé.") from rollback_error
+        raise

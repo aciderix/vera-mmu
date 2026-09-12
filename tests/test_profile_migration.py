@@ -3,10 +3,11 @@ from __future__ import annotations
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import sqlite3
 import unittest
 
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration
+from vera_mmu.profile_migration import ProfileMigrationError, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -105,6 +106,32 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             report = inspect_profile_migration_journal(profile_path)
             self.assertEqual(report["status"], "DIVERGED")
             self.assertTrue(any(issue["code"] == "SOURCE_DIVERGED" for issue in report["issues"]))
+
+    def test_execute_moves_only_runtime_and_profile_after_wal_checkpoint(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            sqlite_path = root / ".vera-mmu" / "memory.sqlite"
+            sqlite_path.unlink()
+            with sqlite3.connect(sqlite_path) as connection:
+                connection.execute("CREATE TABLE marker(value TEXT)")
+                connection.execute("INSERT INTO marker VALUES ('ok')")
+                connection.commit()
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            result = execute_profile_physical_migration(profile_path, candidate, preview, confirm=True)
+            self.assertEqual(result["status"], "COMMITTED")
+            self.assertFalse((root / ".vera-mmu").exists())
+            self.assertTrue((root / ".vera-mmu-next" / "memory.sqlite").is_file())
+            migrated_profile = Path(str(result["profile_path"]))
+            self.assertEqual(load_profile(migrated_profile)["storage"]["memory_dir"], ".vera-mmu-next")
 
 
 if __name__ == "__main__":
