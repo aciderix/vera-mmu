@@ -1680,3 +1680,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-219` | Migration Profile / preuve SQLite | `validate_profile_migration_inventory()` appelle désormais `validate_sqlite_migration_target()` pour les entrées `kind=sqlite`. Une corruption SQLite, une divergence de schéma ou un artefact ambigu empêche `READY_FOR_SWITCH`; le checkpoint WAL et la copie opérationnelle restent distincts et non intégrés. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `252fbcb`; tests ciblés `16 passed`, régression `628 passed, 49 subtests passed`. | `LOG-0270` |
+
+## Addendum — M11-D-B2 Préparation opérationnelle SQLite/WAL/SHM
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-220` | Migration Profile / copie SQLite | `prepare_sqlite_migration_artifacts()` effectue le checkpoint WAL, copie SQLite et les sidecars présents via fichiers temporaires, vérifie hash/taille, journalise `COPYING/VERIFIED`, valide la cible et supprime les cibles partielles en cas d’interruption. Le branchement global `SWITCHING`, les racines workspace et la reprise complète restent non activés. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `8f62826`; tests ciblés `18 passed`, régression `630 passed, 49 subtests passed`. | `LOG-0271` |

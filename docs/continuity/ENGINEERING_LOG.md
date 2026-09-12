@@ -3362,3 +3362,10 @@ La validation d’inventaire appelle `validate_sqlite_migration_target()` pour l
 
 Validation : `tests/test_profile_migration.py` — `16 passed`; suite Python — `628 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `252fbcb`. Suivi : intégrer le checkpoint WAL et la séquence de copie SQLite/WAL/SHM avant `SWITCHING`.
+
+## LOG-0271 — M11-D-B2 : préparation opérationnelle SQLite/WAL/SHM
+**Statut : PASS préparatoire dans le périmètre borné.**
+`prepare_sqlite_migration_artifacts()` effectue le checkpoint WAL, copie SQLite et les sidecars présents vers des fichiers temporaires, vérifie hash et taille, remplace atomiquement les cibles, journalise `COPYING/VERIFIED`, appelle la validation SQLite cible et supprime les cibles partielles en cas d’interruption. Le branchement dans la machine d’états globale `SWITCHING`, les racines workspace et la reprise complète restent ouverts.
+
+Validation : `tests/test_profile_migration.py` — `18 passed`; suite Python — `630 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `8f62826`. Suivi : intégrer cette préparation dans l’exécuteur inter-filesystems et prouver les interruptions autour de `SWITCHING`.
