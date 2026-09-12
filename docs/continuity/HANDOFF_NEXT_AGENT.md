@@ -87,6 +87,8 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot préparatoire terminé le 2026-09-12 :** une primitive interne `_copy_tree_verified` copie uniquement des arbres réguliers, vérifie le hash et la taille de chaque fichier après `copy2`, refuse les symlinks et supprime toute cible partielle en cas d’erreur. Elle n’est pas encore branchée sur l’exécuteur inter-filesystems.
 
+**Sous-lot préparatoire terminé le 2026-09-12 :** la primitive accepte désormais une callback de progression strictement interne et émet `COPYING` avant chaque fichier puis `VERIFIED` après hash/taille confirmés. Aucun état de copie n’est encore promu dans le journal Profile ni utilisé pour basculer une migration.
+
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises

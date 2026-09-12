@@ -56,8 +56,10 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             source.mkdir()
             (source / "nested").mkdir()
             (source / "nested" / "file.txt").write_text("verified", encoding="utf-8")
-            _copy_tree_verified(source, target)
+            progress: list[tuple[str, str]] = []
+            _copy_tree_verified(source, target, progress=lambda relative, state: progress.append((relative, state)))
             self.assertEqual((target / "nested" / "file.txt").read_text(encoding="utf-8"), "verified")
+            self.assertEqual(progress, [("nested/file.txt", "COPYING"), ("nested/file.txt", "VERIFIED")])
             (source / "unsafe").symlink_to(source / "nested", target_is_directory=True)
             with self.assertRaises(ProfileMigrationError):
                 _copy_tree_verified(source, root / "rejected")

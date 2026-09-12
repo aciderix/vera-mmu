@@ -13,7 +13,7 @@ from pathlib import Path, PureWindowsPath
 import shutil
 import sqlite3
 from tempfile import NamedTemporaryFile
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import yaml
 
@@ -182,7 +182,7 @@ def _device_for_target(path: Path) -> int:
     return current.stat().st_dev
 
 
-def _copy_tree_verified(source: Path, target: Path) -> None:
+def _copy_tree_verified(source: Path, target: Path, *, progress: Callable[[str, str], None] | None = None) -> None:
     """Copy a regular tree and verify every copied file before it can be switched."""
     if source.is_symlink() or not source.is_dir() or target.exists():
         raise ProfileMigrationError("Source ou cible de copie inter-filesystems ambiguë.")
@@ -199,11 +199,15 @@ def _copy_tree_verified(source: Path, target: Path) -> None:
             if not item.is_file():
                 raise ProfileMigrationError(f"Entrée non régulière dans la copie : {item}.")
             destination.parent.mkdir(parents=True, exist_ok=True)
+            if progress is not None:
+                progress(str(relative), "COPYING")
             shutil.copy2(item, destination)
             source_hash = sha256(item.read_bytes()).hexdigest()
             target_hash = sha256(destination.read_bytes()).hexdigest()
             if source_hash != target_hash or item.stat().st_size != destination.stat().st_size:
                 raise ProfileMigrationError(f"Vérification de copie échouée : {item}.")
+            if progress is not None:
+                progress(str(relative), "VERIFIED")
     except Exception:
         shutil.rmtree(target, ignore_errors=True)
         raise
