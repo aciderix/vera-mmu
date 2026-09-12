@@ -43,7 +43,7 @@ _MIGRATION_TRANSITIONS: dict[str, frozenset[str]] = {
     "COPYING": frozenset({"VERIFIED", "COPYING", "DIVERGED", "RECOVERY_REQUIRED"}),
     "VERIFIED": frozenset({"SWITCHING", "DIVERGED", "RECOVERY_REQUIRED"}),
     "SWITCHING": frozenset({"COMMITTED", "ROLLED_BACK", "DIVERGED", "RECOVERY_REQUIRED"}),
-    "EXECUTING": frozenset({"PLANNED", "COMMITTED", "DIVERGED", "RECOVERY_REQUIRED"}),
+    "EXECUTING": frozenset({"PLANNED", "SWITCHING", "COMMITTED", "ROLLED_BACK", "DIVERGED", "RECOVERY_REQUIRED"}),
     "DIVERGED": frozenset({"RECOVERY_REQUIRED", "ROLLED_BACK"}),
     "RECOVERY_REQUIRED": frozenset({"PLANNED", "ROLLED_BACK", "COMMITTED"}),
     "COMMITTED": frozenset(),
@@ -870,18 +870,22 @@ def execute_profile_physical_migration(
     journal_path = Path(str(report["journal_path"]))
     backup_path = _journal_dir(path) / f".vera-profile-migration-{preview.preview_hash}.profile-backup"
     journal = json.loads(journal_path.read_text(encoding="utf-8"))
-    journal["state"] = "EXECUTING"
     journal["backup_path"] = str(backup_path)
     _write_json_atomic(journal_path, journal)
+    transition_profile_migration_state(journal_path, "EXECUTING")
     old_content = path.read_text(encoding="utf-8")
     backup_path.write_text(old_content, encoding="utf-8")
     os.chmod(backup_path, 0o600)
     moved = False
     moved_roots: list[tuple[Path, Path]] = []
     try:
-        _checkpoint_sqlite(Path(preview.old_runtime) / str(old_profile["storage"]["sqlite_file"]))
+        sqlite_source = Path(preview.old_runtime) / str(old_profile["storage"]["sqlite_file"])
+        _checkpoint_sqlite(sqlite_source)
+        sqlite_schema_hash, _ = _sqlite_readonly_fingerprint(sqlite_source)
+        sqlite_artifacts = _sqlite_artifact_manifest(sqlite_source)
         new_runtime.parent.mkdir(parents=True, exist_ok=True)
         target_content = yaml.safe_dump(new_normalized, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        transition_profile_migration_state(journal_path, "SWITCHING")
         _write_text_atomic(path, target_content, ".vera-profile-migration-")
         os.replace(old_runtime, new_runtime)
         moved = True
@@ -889,8 +893,12 @@ def execute_profile_physical_migration(
             target.parent.mkdir(parents=True, exist_ok=True)
             os.replace(source, target)
             moved_roots.append((source, target))
-        journal["state"] = "COMMITTED"
-        _write_json_atomic(journal_path, journal)
+        sqlite_target = new_runtime / str(new_normalized["storage"]["sqlite_file"])
+        target_schema_hash, _ = _sqlite_readonly_fingerprint(sqlite_target)
+        target_artifacts = _sqlite_artifact_manifest(sqlite_target)
+        if sqlite_schema_hash != target_schema_hash or [item.get("exists") for item in sqlite_artifacts] != [item.get("exists") for item in target_artifacts]:
+            raise ProfileMigrationError("Validation SQLite cible échouée avant commit.")
+        transition_profile_migration_state(journal_path, "COMMITTED")
         backup_path.unlink(missing_ok=True)
         journal_path.unlink(missing_ok=True)
         return {"format": "vera-profile-physical-migration/v1", "status": "COMMITTED", "preview_hash": preview.preview_hash, "profile_path": str(new_profile_path), "mutation": "RUNTIME_AND_PROFILE"}
@@ -903,8 +911,7 @@ def execute_profile_physical_migration(
                     os.replace(target, source)
             if backup_path.exists():
                 _write_text_atomic(path, backup_path.read_text(encoding="utf-8"), ".vera-profile-rollback-")
-            journal["state"] = "PLANNED"
-            _write_json_atomic(journal_path, journal)
+            transition_profile_migration_state(journal_path, "ROLLED_BACK")
             backup_path.unlink(missing_ok=True)
         except Exception as rollback_error:
             raise ProfileMigrationError("Migration interrompue et rollback incomplet : journal conservé.") from rollback_error
@@ -922,8 +929,8 @@ def recover_profile_physical_migration(journal_path: str | Path, *, confirm: boo
         record = json.loads(journal.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ProfileMigrationError("Journal de reprise illisible.") from exc
-    if not isinstance(record, dict) or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") != "EXECUTING":
-        raise ProfileMigrationError("Seul un journal EXECUTING peut être repris par cette opération.")
+    if not isinstance(record, dict) or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") not in {"EXECUTING", "SWITCHING"}:
+        raise ProfileMigrationError("Seul un journal EXECUTING ou SWITCHING peut être repris par cette opération.")
     required = {"profile_path", "old_runtime", "new_runtime", "backup_path", "old_profile_hash", "new_profile_hash", "preview_hash"}
     if not required.issubset(record) or any(not isinstance(record[key], str) for key in required) or "workspace_moves" not in record:
         raise ProfileMigrationError("Journal EXECUTING incomplet.")
