@@ -520,6 +520,108 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
     }
 
 
+def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, object]:
+    """Validate every expected copied file before a migration switch."""
+    journal = Path(journal_path).expanduser()
+    if journal.is_symlink() or not journal.is_file():
+        raise ProfileMigrationError("Journal de validation absent ou ambigu.")
+    try:
+        record = json.loads(journal.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ProfileMigrationError("Journal de validation illisible.") from exc
+    required = {
+        "format", "state", "old_runtime", "new_runtime", "inventory", "copy_progress",
+    }
+    if not isinstance(record, dict) or not required.issubset(record) or record.get("format") != "vera-profile-physical-migration-journal/v1":
+        raise ProfileMigrationError("Journal de validation non canonique.")
+    if record["state"] not in {"COPYING", "VERIFIED", "SWITCHING"}:
+        raise ProfileMigrationError("Journal non positionné sur une phase de validation.")
+    inventory = record["inventory"]
+    progress = record["copy_progress"]
+    if not isinstance(inventory, list) or not isinstance(progress, list):
+        raise ProfileMigrationError("Inventaire ou progression non canoniques.")
+    expected: dict[str, dict[str, object]] = {}
+    new_runtime = Path(str(record["new_runtime"]))
+    old_runtime = Path(str(record["old_runtime"]))
+    try:
+        profile_relative = Path(str(record["profile_path"])).relative_to(old_runtime)
+    except (KeyError, ValueError) as exc:
+        raise ProfileMigrationError("Profile hors du runtime source journalisé.") from exc
+    issues: list[dict[str, str]] = []
+    workspace_moves = record.get("workspace_moves")
+    if not isinstance(workspace_moves, list):
+        raise ProfileMigrationError("Mouvements workspace non canoniques.")
+    if workspace_moves:
+        issues.append({"code": "WORKSPACE_NOT_VALIDATED", "path": "workspace_moves"})
+    for item in inventory:
+        if not isinstance(item, dict) or set(item) != {"source", "target", "kind", "exists", "size", "sha256"}:
+            raise ProfileMigrationError("Entrée d’inventaire non canonique.")
+        if not item["exists"] or item["target"] == item["source"]:
+            continue
+        target = Path(str(item["target"]))
+        try:
+            relative = target.relative_to(new_runtime)
+        except ValueError as exc:
+            raise ProfileMigrationError("Cible d’inventaire hors du runtime cible.") from exc
+        expected[str(relative)] = item
+    progress_states: dict[str, list[str]] = {}
+    for item in progress:
+        if not isinstance(item, dict) or set(item) != {"path", "state"} or not isinstance(item["path"], str) or item["state"] not in {"COPYING", "VERIFIED"}:
+            raise ProfileMigrationError("Progression de copie non canonique.")
+        progress_states.setdefault(item["path"], []).append(item["state"])
+    for relative, item in expected.items():
+        states = progress_states.get(relative, [])
+        source = Path(str(item["source"]))
+        if item["exists"]:
+            if source.is_symlink() or not source.is_file():
+                issues.append({"code": "SOURCE_MISSING", "path": str(source)})
+            elif source.stat().st_size != item["size"] or sha256(source.read_bytes()).hexdigest() != item["sha256"]:
+                issues.append({"code": "SOURCE_DIVERGED", "path": str(source)})
+        target = new_runtime / relative
+        if states != ["COPYING", "VERIFIED"]:
+            issues.append({"code": "COPY_NOT_VERIFIED", "path": relative})
+            continue
+        if target.is_symlink():
+            issues.append({"code": "TARGET_SYMLINK", "path": str(target)})
+        elif not target.is_file():
+            issues.append({"code": "TARGET_MISSING", "path": str(target)})
+        elif relative != str(profile_relative):
+            digest = sha256(target.read_bytes()).hexdigest()
+            if digest != item["sha256"] or target.stat().st_size != item["size"]:
+                issues.append({"code": "TARGET_DIVERGED", "path": str(target)})
+    target_profile = new_runtime / profile_relative
+    if target_profile.is_symlink():
+        issues.append({"code": "TARGET_PROFILE_SYMLINK", "path": str(target_profile)})
+    elif not target_profile.is_file():
+        issues.append({"code": "TARGET_PROFILE_MISSING", "path": str(target_profile)})
+    elif target_profile.read_text(encoding="utf-8") != record.get("target_profile_content"):
+        issues.append({"code": "TARGET_PROFILE_DIVERGED", "path": str(target_profile)})
+    actual_files: set[str] = set()
+    if new_runtime.exists():
+        if new_runtime.is_symlink() or not new_runtime.is_dir():
+            issues.append({"code": "TARGET_RUNTIME_AMBIGUOUS", "path": str(new_runtime)})
+        else:
+            for target in sorted(new_runtime.rglob("*"), key=str):
+                if target.is_symlink():
+                    issues.append({"code": "TARGET_SYMLINK", "path": str(target)})
+                elif target.is_file():
+                    actual_files.add(str(target.relative_to(new_runtime)))
+    for relative in sorted(actual_files - set(expected)):
+        issues.append({"code": "UNEXPECTED_TARGET", "path": relative})
+    status = "READY_FOR_SWITCH" if not issues and record["state"] == "VERIFIED" else "RECOVERY_REQUIRED"
+    if any(issue["code"] in {"TARGET_SYMLINK", "TARGET_DIVERGED", "UNEXPECTED_TARGET", "TARGET_RUNTIME_AMBIGUOUS"} for issue in issues):
+        status = "DIVERGED"
+    return {
+        "format": "vera-profile-migration-inventory-validation/v1",
+        "status": status,
+        "journal_path": str(journal),
+        "expected_files": len(expected),
+        "verified_files": sum(1 for states in progress_states.values() if states == ["COPYING", "VERIFIED"]),
+        "issues": issues,
+        "mutation": "NONE",
+    }
+
+
 def _write_text_atomic(path: Path, content: str, prefix: str) -> None:
     temporary: Path | None = None
     try:

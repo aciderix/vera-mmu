@@ -11,7 +11,7 @@ import yaml
 
 import vera_mmu.profile_migration as profile_migration
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state
+from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state, validate_profile_migration_inventory
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -228,6 +228,62 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
                 transition_profile_migration_state(journal, "SWITCHING")
             with self.assertRaises(ProfileMigrationError):
                 transition_profile_migration_state(journal, "UNKNOWN")
+
+    def test_inventory_validation_requires_every_expected_file_verified(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepared = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(prepared["journal_path"]))
+            _copy_tree_verified(Path(preview.old_runtime), Path(preview.new_runtime), journal_path=journal)
+            journal_record = json.loads(journal.read_text(encoding="utf-8"))
+            (Path(preview.new_runtime) / "project.yaml").write_text(journal_record["target_profile_content"], encoding="utf-8")
+            transition_profile_migration_state(journal, "VERIFIED")
+
+            report = validate_profile_migration_inventory(journal)
+
+            self.assertEqual(report["status"], "READY_FOR_SWITCH")
+            self.assertEqual(report["expected_files"], report["verified_files"])
+            self.assertEqual(report["issues"], [])
+            self.assertEqual(report["mutation"], "NONE")
+
+    def test_inventory_validation_rejects_missing_and_unexpected_targets(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepared = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(prepared["journal_path"]))
+            target = Path(preview.new_runtime)
+            _copy_tree_verified(Path(preview.old_runtime), target, journal_path=journal)
+            journal_record = json.loads(journal.read_text(encoding="utf-8"))
+            (target / "project.yaml").write_text(journal_record["target_profile_content"], encoding="utf-8")
+            (target / "unexpected.bin").write_bytes(b"unexpected")
+            target_file = target / "artifacts" / "proof.bin"
+            target_file.unlink()
+            transition_profile_migration_state(journal, "VERIFIED")
+
+            report = validate_profile_migration_inventory(journal)
+
+            self.assertEqual(report["status"], "DIVERGED")
+            codes = {issue["code"] for issue in report["issues"]}
+            self.assertIn("TARGET_MISSING", codes)
+            self.assertIn("UNEXPECTED_TARGET", codes)
 
     def test_journal_inspection_refuses_source_divergence_and_target_collision(self) -> None:
         with TemporaryDirectory() as directory:
