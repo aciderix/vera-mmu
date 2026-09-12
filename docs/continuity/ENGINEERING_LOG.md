@@ -3390,3 +3390,10 @@ Le preview et le journal persistent `workspace_inventory` avec source, cible, ty
 
 Validation : `tests/test_profile_migration.py` — `20 passed`; suite Python — `632 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `acb59b3`. Suivi : brancher la copie workspace journalisée et sa reprise avant toute activation de `COPY_VERIFY_SWITCH`.
+
+## LOG-0275 — M11-D-B2 : COPY_VERIFY_SWITCH complet
+**Statut : PASS dans le périmètre implémenté.**
+Lorsque le preview sélectionne `COPY_VERIFY_SWITCH`, le runtime et les racines workspace sont copiés fichier par fichier avec progression journalisée `COPYING/VERIFIED`, vérification hash/taille et validation complète avant `SWITCHING`. Les sources sont supprimées seulement après bascule. Une erreur avant `SWITCHING` nettoie les cibles et marque `ROLLED_BACK`; une erreur pendant `SWITCHING` conserve le journal et marque `RECOVERY_REQUIRED`.
+
+Validation : `tests/test_profile_migration.py` — `21 passed`; suite Python — `633 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `354e4dd`. La séquence de migration physique universelle est maintenant implémentée dans le périmètre couvert par les invariants et les tests ; toute extension future doit ajouter ses preuves avant activation.

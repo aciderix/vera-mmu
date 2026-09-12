@@ -1700,3 +1700,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-223` | Migration Profile / workspace | Le preview et le journal persistent `workspace_inventory` avec source, cible, type, taille et hash pour chaque fichier des racines workspace déplacées. La validation contrôle les sources/cibles, symlinks et entrées inattendues ; les absences donnent `RECOVERY_REQUIRED` et les divergences/ambiguïtés donnent `DIVERGED`. La copie workspace inter-filesystems reste non activée. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, tests migration, commit `acb59b3`; tests ciblés `20 passed`, régression `632 passed, 49 subtests passed`. | `LOG-0274` |
+
+## Addendum — M11-D-B2 COPY_VERIFY_SWITCH complet
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-224` | Migration Profile / inter-filesystems | Lorsque le preview sélectionne `COPY_VERIFY_SWITCH`, le runtime et les racines workspace sont copiés fichier par fichier avec progression `COPYING/VERIFIED`, hash/taille et validation complète avant `SWITCHING`. Les sources sont supprimées après bascule ; une erreur avant `SWITCHING` nettoie les cibles et marque `ROLLED_BACK`, tandis qu’une erreur pendant `SWITCHING` marque `RECOVERY_REQUIRED`. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, tests migration, commit `354e4dd`; tests ciblés `21 passed`, régression `633 passed, 49 subtests passed`. | `LOG-0275` |

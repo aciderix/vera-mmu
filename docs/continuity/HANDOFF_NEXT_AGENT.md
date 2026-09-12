@@ -117,6 +117,8 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot workspace terminé le 2026-09-13 dans un périmètre borné :** le preview et le journal persistent désormais `workspace_inventory` avec source, cible, type, taille et hash de chaque fichier des racines déplacées. La validation contrôle les sources et cibles, les symlinks et les entrées inattendues, avec `RECOVERY_REQUIRED` pour une absence et `DIVERGED` pour une divergence ou une ambiguïté. La copie workspace inter-filesystems et sa progression dédiée restent à brancher.
 
+**Sous-lot finalisé le 2026-09-13 dans le périmètre de migration physique :** `COPY_VERIFY_SWITCH` est maintenant exécuté de bout en bout lorsque la stratégie filesystem l’exige. Le runtime et les racines workspace sont copiés fichier par fichier avec progression journalisée, vérifiés par hash/taille, validés ensemble, puis les sources sont supprimées seulement après `SWITCHING`. Toute erreur avant `SWITCHING` nettoie les cibles et marque `ROLLED_BACK`; toute erreur pendant `SWITCHING` reste `RECOVERY_REQUIRED`. La stratégie n’est pas activée par défaut : elle est sélectionnée uniquement lorsque le preview détecte plusieurs filesystems.
+
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises
