@@ -82,6 +82,7 @@ class ProfileMigrationPreview:
     new_runtime: str
     inventory: tuple[MigrationInventoryEntry, ...]
     workspace_moves: tuple[dict[str, str], ...]
+    workspace_inventory: tuple[MigrationInventoryEntry, ...]
     migration_strategy: str
     preview_hash: str
 
@@ -98,6 +99,7 @@ class ProfileMigrationPreview:
             "new_runtime": self.new_runtime,
             "inventory": [item.as_dict() for item in self.inventory],
             "workspace_moves": [dict(item) for item in self.workspace_moves],
+            "workspace_inventory": [item.as_dict() for item in self.workspace_inventory],
             "migration_strategy": self.migration_strategy,
             "preview_hash": self.preview_hash,
             "mutation": "NONE",
@@ -197,6 +199,21 @@ def _workspace_moves(old_workspace: Any, new_root: Path, new_additional: list[Pa
     return tuple(moves)
 
 
+def _workspace_inventory(workspace_moves: tuple[dict[str, str], ...]) -> list[MigrationInventoryEntry]:
+    entries: list[MigrationInventoryEntry] = []
+    for move in workspace_moves:
+        source_root = Path(move["source"])
+        target_root = Path(move["target"])
+        for source in sorted(source_root.rglob("*"), key=str):
+            if source.is_symlink():
+                raise ProfileMigrationError(f"Racine workspace contient un symlink ambigu : {source}.")
+            if source.is_file():
+                entries.append(_file_entry(source, target_root / source.relative_to(source_root), "workspace-file"))
+            elif not source.is_dir():
+                raise ProfileMigrationError(f"Racine workspace contient une entrée non régulière : {source}.")
+    return entries
+
+
 def _device_for_target(path: Path) -> int:
     current = path
     while not current.exists():
@@ -274,6 +291,7 @@ def preview_profile_physical_migration(profile_path: str | Path, new_profile: Ma
     if new_runtime == new_root or any(new_runtime == root for root in additional):
         raise ProfileMigrationError("storage.memory_dir ne doit pas être une racine workspace.")
     workspace_moves = _workspace_moves(old_workspace, new_root, additional)
+    workspace_inventory = _workspace_inventory(workspace_moves)
     devices = [old_locator.runtime_dir.stat().st_dev, _device_for_target(new_runtime)]
     devices.extend(source.stat().st_dev for source, target in ((Path(item["source"]), Path(item["target"])) for item in workspace_moves))
     devices.extend(_device_for_target(Path(item["target"])) for item in workspace_moves)
@@ -303,6 +321,7 @@ def preview_profile_physical_migration(profile_path: str | Path, new_profile: Ma
         "new_runtime": str(new_runtime),
         "inventory": [entry.as_dict() for entry in inventory],
         "workspace_moves": [dict(item) for item in workspace_moves],
+        "workspace_inventory": [entry.as_dict() for entry in workspace_inventory],
         "migration_strategy": migration_strategy,
     }
     preview_hash = sha256(canonical_json(payload).encode("utf-8")).hexdigest()
@@ -316,6 +335,7 @@ def preview_profile_physical_migration(profile_path: str | Path, new_profile: Ma
         new_runtime=str(new_runtime),
         inventory=tuple(inventory),
         workspace_moves=workspace_moves,
+        workspace_inventory=tuple(workspace_inventory),
         migration_strategy=migration_strategy,
         preview_hash=preview_hash,
     )
@@ -430,6 +450,7 @@ def prepare_profile_migration_journal(
         "target_profile_content": target_content,
         "inventory": [item.as_dict() for item in preview.inventory],
         "workspace_moves": [dict(item) for item in preview.workspace_moves],
+        "workspace_inventory": [item.as_dict() for item in preview.workspace_inventory],
         "migration_strategy": preview.migration_strategy,
         "copy_progress": [],
     }
@@ -459,7 +480,7 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
         raise ProfileMigrationError("Journal de migration illisible.") from exc
     required = {
         "format", "state", "profile_path", "preview_hash", "old_profile_hash", "new_profile_hash",
-        "old_identity", "new_identity", "old_runtime", "new_runtime", "target_profile_content", "inventory", "workspace_moves", "migration_strategy", "copy_progress",
+        "old_identity", "new_identity", "old_runtime", "new_runtime", "target_profile_content", "inventory", "workspace_moves", "workspace_inventory", "migration_strategy", "copy_progress",
     }
     if not isinstance(record, dict) or set(record) != required and set(record) != required | {"backup_path"} or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") not in {"PLANNED", "COPYING", "EXECUTING"}:
         raise ProfileMigrationError("Journal de migration non canonique ou état non reprenable.")
@@ -551,8 +572,9 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
     workspace_moves = record.get("workspace_moves")
     if not isinstance(workspace_moves, list):
         raise ProfileMigrationError("Mouvements workspace non canoniques.")
-    if workspace_moves:
-        issues.append({"code": "WORKSPACE_NOT_VALIDATED", "path": "workspace_moves"})
+    workspace_inventory = record.get("workspace_inventory")
+    if not isinstance(workspace_inventory, list):
+        raise ProfileMigrationError("Inventaire workspace non canonique.")
     for item in inventory:
         if not isinstance(item, dict) or set(item) != {"source", "target", "kind", "exists", "size", "sha256"}:
             raise ProfileMigrationError("Entrée d’inventaire non canonique.")
@@ -601,7 +623,36 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
     elif not target_profile.is_file():
         issues.append({"code": "TARGET_PROFILE_MISSING", "path": str(target_profile)})
     elif target_profile.read_text(encoding="utf-8") != record.get("target_profile_content"):
-        issues.append({"code": "TARGET_PROFILE_DIVERGED", "path": str(target_profile)})
+            issues.append({"code": "TARGET_PROFILE_DIVERGED", "path": str(target_profile)})
+    workspace_expected: set[str] = set()
+    for item in workspace_inventory:
+        if not isinstance(item, dict) or set(item) != {"source", "target", "kind", "exists", "size", "sha256"}:
+            raise ProfileMigrationError("Entrée d’inventaire workspace non canonique.")
+        if not item["exists"]:
+            continue
+        source = Path(str(item["source"]))
+        target = Path(str(item["target"]))
+        workspace_expected.add(str(target))
+        if source.is_symlink() or not source.is_file():
+            issues.append({"code": "WORKSPACE_SOURCE_MISSING", "path": str(source)})
+        elif source.stat().st_size != item["size"] or sha256(source.read_bytes()).hexdigest() != item["sha256"]:
+            issues.append({"code": "WORKSPACE_SOURCE_DIVERGED", "path": str(source)})
+        if target.is_symlink():
+            issues.append({"code": "WORKSPACE_TARGET_SYMLINK", "path": str(target)})
+        elif not target.is_file():
+            issues.append({"code": "WORKSPACE_TARGET_MISSING", "path": str(target)})
+        elif target.stat().st_size != item["size"] or sha256(target.read_bytes()).hexdigest() != item["sha256"]:
+            issues.append({"code": "WORKSPACE_TARGET_DIVERGED", "path": str(target)})
+    for move in workspace_moves:
+        target_root = Path(str(move["target"]))
+        if target_root.is_symlink() or (target_root.exists() and not target_root.is_dir()):
+            issues.append({"code": "WORKSPACE_TARGET_AMBIGUOUS", "path": str(target_root)})
+        elif target_root.is_dir():
+            for target in sorted(target_root.rglob("*"), key=str):
+                if target.is_symlink():
+                    issues.append({"code": "WORKSPACE_TARGET_SYMLINK", "path": str(target)})
+                elif target.is_file() and str(target) not in workspace_expected:
+                    issues.append({"code": "WORKSPACE_UNEXPECTED_TARGET", "path": str(target)})
     actual_files: set[str] = set()
     if new_runtime.exists():
         if new_runtime.is_symlink() or not new_runtime.is_dir():
@@ -615,7 +666,7 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
     for relative in sorted(actual_files - set(expected)):
         issues.append({"code": "UNEXPECTED_TARGET", "path": relative})
     status = "READY_FOR_SWITCH" if not issues and record["state"] == "VERIFIED" else "RECOVERY_REQUIRED"
-    if any(issue["code"] in {"TARGET_SYMLINK", "TARGET_DIVERGED", "UNEXPECTED_TARGET", "TARGET_RUNTIME_AMBIGUOUS"} for issue in issues):
+    if any(issue["code"] in {"TARGET_SYMLINK", "TARGET_DIVERGED", "UNEXPECTED_TARGET", "TARGET_RUNTIME_AMBIGUOUS", "WORKSPACE_TARGET_SYMLINK", "WORKSPACE_TARGET_DIVERGED", "WORKSPACE_UNEXPECTED_TARGET", "WORKSPACE_TARGET_AMBIGUOUS"} for issue in issues):
         status = "DIVERGED"
     return {
         "format": "vera-profile-migration-inventory-validation/v1",
