@@ -3369,3 +3369,10 @@ Commit fonctionnel : `252fbcb`. Suivi : intégrer le checkpoint WAL et la séque
 
 Validation : `tests/test_profile_migration.py` — `18 passed`; suite Python — `630 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `8f62826`. Suivi : intégrer cette préparation dans l’exécuteur inter-filesystems et prouver les interruptions autour de `SWITCHING`.
+
+## LOG-0272 — M11-D-B2 : exécuteur same-filesystem sous preuve SQLite
+**Statut : PASS dans le périmètre borné.**
+L’exécuteur journalise `EXECUTING`, passe par `SWITCHING` après checkpoint SQLite, déplace le runtime et les racines autorisées, vérifie l’empreinte SQLite après déplacement, puis journalise `COMMITTED` uniquement après cette preuve. Une erreur tente le rollback et marque le journal `ROLLED_BACK`. La stratégie `COPY_VERIFY_SWITCH` reste refusée.
+
+Validation : `tests/test_profile_migration.py` — `18 passed`; suite Python — `630 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `c4cb7bc`. Suivi : intégrer la validation complète des racines workspace et construire la reprise des phases `SWITCHING`/`ROLLED_BACK` avant d’activer l’inter-filesystems.

@@ -1685,3 +1685,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-220` | Migration Profile / copie SQLite | `prepare_sqlite_migration_artifacts()` effectue le checkpoint WAL, copie SQLite et les sidecars présents via fichiers temporaires, vérifie hash/taille, journalise `COPYING/VERIFIED`, valide la cible et supprime les cibles partielles en cas d’interruption. Le branchement global `SWITCHING`, les racines workspace et la reprise complète restent non activés. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `8f62826`; tests ciblés `18 passed`, régression `630 passed, 49 subtests passed`. | `LOG-0271` |
+
+## Addendum — M11-D-B2 Exécuteur same-filesystem borné
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-221` | Migration Profile / exécution | L’exécuteur same-filesystem journalise `EXECUTING`, passe par `SWITCHING` après checkpoint et préparation SQLite, déplace le runtime/racines autorisées, vérifie l’empreinte SQLite après déplacement et n’écrit `COMMITTED` qu’après preuve. Les erreurs tentent un rollback et marquent `ROLLED_BACK`; `COPY_VERIFY_SWITCH` reste refusé. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, tests migration, commit `c4cb7bc`; tests ciblés `18 passed`, régression `630 passed, 49 subtests passed`. | `LOG-0272` |
