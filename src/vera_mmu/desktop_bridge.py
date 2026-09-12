@@ -23,6 +23,7 @@ from .identity import load_profile
 from .read_api import ReadService
 from .memory_sync import automatic_memory_sync
 from .profile_rebind import ProjectProfileRebindPreview, apply_project_profile_rebind, apply_project_profile_rebind_recovery, preview_project_profile_rebind, preview_project_profile_rebind_recovery
+from .profile_migration import inspect_profile_migration_journal
 from .project_bootstrap import (
     ProjectBootstrapError,
     ProjectInitializationPreview,
@@ -65,6 +66,7 @@ class DesktopBridge:
             "project.status": self._project_status,
             "project.documentation": self._project_documentation,
             "project.doctor": self._project_doctor,
+            "migration.status": self._migration_status,
             "profile.rebind.preview": self._profile_rebind_preview,
             "profile.rebind.apply": self._profile_rebind_apply,
             "profile.rebind.recovery.preview": self._profile_rebind_recovery_preview,
@@ -153,6 +155,16 @@ class DesktopBridge:
     def _project_doctor(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, set())
         return diagnose_project(self._profile_path()).as_dict()
+
+    def _migration_status(self, value: dict[str, Any]) -> dict[str, object]:
+        """Observe the unique pending migration; never repairs or executes it."""
+        _exact_input(value, set())
+        profile_path = self._profile_path()
+        control_dir = profile_path.parent.parent if profile_path.parent.name == ".vera-mmu" else profile_path.parent
+        journals = sorted(control_dir.glob(".vera-profile-migration-*.json")) if control_dir.is_dir() and not control_dir.is_symlink() else []
+        if not journals:
+            return {"format": "vera-profile-physical-migration-status/v1", "status": "NO_PENDING_MIGRATION", "journal_path": None, "mutation": "NONE"}
+        return inspect_profile_migration_journal(profile_path)
 
     def _profile_rebind_preview(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, {"projectId", "projectName", "projectDomain", "projectDescription"})

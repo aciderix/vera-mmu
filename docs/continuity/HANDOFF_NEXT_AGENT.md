@@ -67,6 +67,8 @@ Le statut global de la spécification demeure **`NOT_DONE`**. Les livraisons ci-
 
 **Sous-lot terminé le 2026-09-12 :** le bridge Desktop expose `project.doctor` en lecture seule, relayé par Tauri et la console React sous « Doctor projet ». La commande réutilise le Doctor Core, inclut le check `profile_migration` et ne possède aucun chemin d’application/réparation.
 
+**Sous-lot terminé le 2026-09-12 :** le Dashboard expose aussi `migration.status`/« Statut migration » en lecture seule. Le Core retourne explicitement `NO_PENDING_MIGRATION` lorsqu’aucun journal n’existe, ou la classification bornée du journal (`READY_FOR_EXECUTOR`, `RECOVERY_REQUIRED`, `DIVERGED`) sans exécuter ni réparer. Bridge et React restent project-bound et sans accès direct au store.
+
 Construire l’éditeur complet du modèle de projet : taxonomie, entities, relation types, relations, work graph, capabilities, gates, policies, playbook, Front, resume, agents, intégrations, previews, validate/generate/install/Doctor. Le Dashboard actuel est un assistant sécurisé pour les surfaces livrées, pas encore l’IDE de configuration complet.
 
 Tout nouvel éditeur doit utiliser des opérations Core canoniques, être project-bound et rester sans privilège implicite. Ajouter des tests UI/bridge/Tauri réels, notamment les champs fermés, l’identité de session, la fraîcheur et l’absence de chemins directs vers SQLite.
