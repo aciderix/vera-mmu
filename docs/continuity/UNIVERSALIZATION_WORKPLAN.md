@@ -282,3 +282,9 @@ La clôture de ce lot ne vaut ni Dashboard global complet, ni modification de Pr
 | Extensions de Profile à identité structurelle | `NOT_STARTED` | Les changements d’identifiant, domaine, workspace, storage ou catalogues requièrent un protocole de migration distinct; ils ne sont ni implicites ni autorisés par M11-D-B. |
 
 La clôture M11-D ne prouve ni Dashboard global exhaustif, ni exécution hôte réelle, ni admission/verdict depuis le client, ni parité ARET. Ces limites restent ouvertes et explicites.
+
+## Addendum de suivi — preview migration physique Profile
+
+| Sous-lot | Statut | Preuve et limite |
+|---|---|---|
+| `M11-D-B2` — Préflight/preview read-only de migration Profile/runtime | `PASS` dans le périmètre borné | `src/vera_mmu/profile_migration.py` valide les profils source/cible, chemins confinés, symlinks, collisions workspace/runtime, inventaire et hashes avant/après, sans mutation (`mutation: NONE`). Tests dédiés et régression bootstrap passants. Aucun déplacement physique, journal durable, rollback ou reprise n’est encore implémenté. |

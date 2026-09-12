@@ -1,0 +1,201 @@
+"""Read-only planning for physical Project Profile/runtime migrations.
+
+This module intentionally performs no filesystem mutation.  It establishes the
+preflight/preview contract required before a future atomic migration executor.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from hashlib import sha256
+from pathlib import Path, PureWindowsPath
+from typing import Any, Mapping
+
+from .identity import canonical_json, load_profile, project_identity, validate_profile
+from .runtime import RuntimeLocator
+from .workspace import WorkspaceError, resolve_workspace
+
+
+class ProfileMigrationError(ValueError):
+    """Raised when a physical migration preview cannot be safely constructed."""
+
+
+@dataclass(frozen=True)
+class MigrationInventoryEntry:
+    source: str
+    target: str
+    kind: str
+    exists: bool
+    size: int
+    sha256: str | None
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "source": self.source,
+            "target": self.target,
+            "kind": self.kind,
+            "exists": self.exists,
+            "size": self.size,
+            "sha256": self.sha256,
+        }
+
+
+@dataclass(frozen=True)
+class ProfileMigrationPreview:
+    profile_path: str
+    old_profile_hash: str
+    new_profile_hash: str
+    old_identity: dict[str, str]
+    new_identity: dict[str, str]
+    old_runtime: str
+    new_runtime: str
+    inventory: tuple[MigrationInventoryEntry, ...]
+    preview_hash: str
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "format": "vera-profile-physical-migration/v1",
+            "status": "PREVIEW",
+            "profile_path": self.profile_path,
+            "old_profile_hash": self.old_profile_hash,
+            "new_profile_hash": self.new_profile_hash,
+            "old_identity": self.old_identity,
+            "new_identity": self.new_identity,
+            "old_runtime": self.old_runtime,
+            "new_runtime": self.new_runtime,
+            "inventory": [item.as_dict() for item in self.inventory],
+            "preview_hash": self.preview_hash,
+            "mutation": "NONE",
+        }
+
+
+def _profile_file(path: str | Path) -> Path:
+    source = Path(path).expanduser()
+    if source.is_symlink() or not source.is_file() or source.parent.is_symlink():
+        raise ProfileMigrationError("Project Profile ou son répertoire ambigu.")
+    return source.resolve(strict=True)
+
+
+def _relative(value: Any, label: str, *, allow_dot: bool = False) -> Path:
+    if not isinstance(value, str) or not value.strip():
+        raise ProfileMigrationError(f"{label} doit être un chemin relatif non vide.")
+    path = Path(value.strip())
+    if path.is_absolute() or PureWindowsPath(value).drive or ".." in path.parts or "\\" in value or "\x00" in value:
+        raise ProfileMigrationError(f"{label} doit rester relatif, sans traversal ni séparateur non portable.")
+    if not allow_dot and path == Path("."):
+        raise ProfileMigrationError(f"{label} doit désigner un sous-répertoire ou fichier relatif.")
+    return path
+
+
+def _candidate(anchor: Path, value: Any, label: str, *, allow_dot: bool = False) -> Path:
+    relative = _relative(value, label, allow_dot=allow_dot)
+    candidate = (anchor / relative).resolve(strict=False)
+    try:
+        candidate.relative_to(anchor)
+    except ValueError as exc:
+        raise ProfileMigrationError(f"{label} sort de la racine du projet.") from exc
+    current = anchor
+    for part in candidate.relative_to(anchor).parts:
+        current = current / part
+        if current.is_symlink():
+            raise ProfileMigrationError(f"{label} traverse un symlink ambigu : {current}.")
+    return candidate
+
+
+def _assert_non_overlapping(paths: Mapping[str, Path], anchor: Path) -> None:
+    items = sorted(paths.items(), key=lambda item: len(item[1].parts))
+    for index, (name, path) in enumerate(items):
+        try:
+            path.relative_to(anchor)
+        except ValueError as exc:
+            raise ProfileMigrationError(f"{name} sort de l’ancre du projet.") from exc
+        for other_name, other in items[index + 1 :]:
+            if path == other or path in other.parents or other in path.parents:
+                raise ProfileMigrationError(f"Chevauchement interdit entre {name} et {other_name}.")
+
+
+def _file_entry(source: Path, target: Path, kind: str) -> MigrationInventoryEntry:
+    if source.is_symlink():
+        raise ProfileMigrationError(f"Source symlinkée refusée : {source}.")
+    if not source.exists():
+        return MigrationInventoryEntry(str(source), str(target), kind, False, 0, None)
+    if not source.is_file():
+        raise ProfileMigrationError(f"Source persistante non régulière : {source}.")
+    data = source.read_bytes()
+    return MigrationInventoryEntry(str(source), str(target), kind, True, len(data), sha256(data).hexdigest())
+
+
+def _runtime_entries(old_runtime: Path, new_runtime: Path) -> list[MigrationInventoryEntry]:
+    if not old_runtime.exists():
+        return []
+    if old_runtime.is_symlink() or not old_runtime.is_dir():
+        raise ProfileMigrationError("Runtime source absent, symlinké ou non-régulier.")
+    entries: list[MigrationInventoryEntry] = []
+    for source in sorted(old_runtime.rglob("*"), key=str):
+        if source.is_symlink():
+            raise ProfileMigrationError(f"Runtime contient un symlink ambigu : {source}.")
+        if source.is_file():
+            entries.append(_file_entry(source, new_runtime / source.relative_to(old_runtime), "runtime-file"))
+    return entries
+
+
+def preview_profile_physical_migration(profile_path: str | Path, new_profile: Mapping[str, Any]) -> ProfileMigrationPreview:
+    """Build a complete, non-mutating physical migration preview."""
+    path = _profile_file(profile_path)
+    old_profile = load_profile(path)
+    try:
+        old_workspace = resolve_workspace(old_profile, path)
+        old_locator = RuntimeLocator.from_workspace(old_profile, old_workspace)
+    except (WorkspaceError, ValueError) as exc:
+        raise ProfileMigrationError("Profile source impossible à résoudre pour migration.") from exc
+    normalized = validate_profile(new_profile)
+    anchor = old_workspace.project_root
+    workspace = normalized["workspace"]
+    storage = normalized["storage"]
+    new_root = _candidate(anchor, workspace["root"], "workspace.root", allow_dot=True)
+    additional = [_candidate(anchor, value, f"workspace.additional_roots[{index}]") for index, value in enumerate(workspace["additional_roots"])]
+    new_runtime = _candidate(anchor, storage["memory_dir"], "storage.memory_dir")
+    new_sqlite = _candidate(new_runtime, storage["sqlite_file"], "storage.sqlite_file")
+    new_artifacts = _candidate(new_runtime, storage["artifacts_dir"], "storage.artifacts_dir")
+    roots = {"workspace.root": new_root, **{f"workspace.additional_roots[{i}]": value for i, value in enumerate(additional)}}
+    _assert_non_overlapping(roots, anchor)
+    if new_runtime == anchor or new_sqlite == new_runtime or new_artifacts == new_runtime:
+        raise ProfileMigrationError("Les chemins de migration doivent désigner des enfants distincts.")
+    if new_runtime == new_root or any(new_runtime == root for root in additional):
+        raise ProfileMigrationError("storage.memory_dir ne doit pas être une racine workspace.")
+    for label, target in (("storage.memory_dir", new_runtime), ("storage.sqlite_file", new_sqlite), ("storage.artifacts_dir", new_artifacts)):
+        if target.exists() and target.is_symlink():
+            raise ProfileMigrationError(f"Cible {label} symlinkée.")
+    old_content = path.read_bytes()
+    new_content = (canonical_json(normalized) + "\n").encode("utf-8")
+    old_identity = project_identity(old_profile, old_workspace).as_dict()
+    new_identity = project_identity(normalized, None).as_dict()
+    inventory = [_file_entry(path, path, "profile")]
+    inventory.extend(_runtime_entries(old_locator.runtime_dir, new_runtime))
+    for source, target, kind in (
+        (old_locator.sqlite_path, new_sqlite, "sqlite"),
+        (old_locator.artifacts_dir, new_artifacts, "artifacts-root"),
+    ):
+        if source.exists() and source.is_file():
+            inventory.append(_file_entry(source, target, kind))
+    payload = {
+        "profile_path": str(path),
+        "old_profile_hash": sha256(old_content).hexdigest(),
+        "new_profile_hash": sha256(new_content).hexdigest(),
+        "old_identity": old_identity,
+        "new_identity": new_identity,
+        "old_runtime": str(old_locator.runtime_dir),
+        "new_runtime": str(new_runtime),
+        "inventory": [entry.as_dict() for entry in inventory],
+    }
+    preview_hash = sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+    return ProfileMigrationPreview(
+        profile_path=str(path),
+        old_profile_hash=payload["old_profile_hash"],
+        new_profile_hash=payload["new_profile_hash"],
+        old_identity=old_identity,
+        new_identity=new_identity,
+        old_runtime=str(old_locator.runtime_dir),
+        new_runtime=str(new_runtime),
+        inventory=tuple(inventory),
+        preview_hash=preview_hash,
+    )
