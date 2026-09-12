@@ -1665,3 +1665,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-216` | Migration Profile / états globaux | Le Core expose `transition_profile_migration_state()` avec une allowlist atomique des transitions de migration. Les sauts directs `PLANNED → SWITCHING/COMMITTED`, les états inconnus et les transitions après `COMMITTED` sont refusés. Les états `COPYING`, `VERIFIED`, `SWITCHING`, `DIVERGED`, `RECOVERY_REQUIRED` et `ROLLED_BACK` sont déclarés ; `EXECUTING` reste compatible avec la reprise same-filesystem. La bascule inter-filesystems et la reprise complète restent non activées. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `1f65aba`; tests ciblés `12 passed`, régression `624 passed, 49 subtests passed`. | `LOG-0267` |
+
+## Addendum — M11-D-B2 Validation canonique avant bascule
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-217` | Migration Profile / inventaire | `validate_profile_migration_inventory()` exige la séquence `COPYING → VERIFIED` pour chaque fichier runtime attendu, vérifie hashes, tailles, sources, cibles, Profile cible, symlinks et entrées inattendues, puis retourne `READY_FOR_SWITCH` uniquement avec preuve complète. Les absences/non-vérifications donnent `RECOVERY_REQUIRED`; les divergences de cible donnent `DIVERGED`; les mouvements de racines workspace restent bloquants. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `4a8e314`; tests ciblés `14 passed`, régression `626 passed, 49 subtests passed`. | `LOG-0268` |

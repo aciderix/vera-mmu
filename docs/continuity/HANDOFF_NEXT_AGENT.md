@@ -103,6 +103,8 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot préparatoire terminé le 2026-09-12 dans un périmètre borné :** le Core expose `transition_profile_migration_state()` avec une allowlist de transitions atomiques. Les sauts directs vers `COMMITTED` ou `SWITCHING` depuis `PLANNED`, les états inconnus et les transitions après `COMMITTED` sont refusés. Les états de copie journalisés utilisent `COPYING`; la compatibilité de reprise `EXECUTING` est conservée pour le chemin same-filesystem existant. La validation complète reste ouverte avant toute bascule inter-filesystems.
 
+**Sous-lot préparatoire terminé le 2026-09-12 dans un périmètre borné :** `validate_profile_migration_inventory()` effectue une validation read-only avant bascule. Elle exige `COPYING → VERIFIED` pour chaque fichier runtime attendu, vérifie les sources, hashes, tailles, cibles, Profile cible, symlinks et fichiers inattendus. Elle retourne `READY_FOR_SWITCH` uniquement lorsque toutes les preuves sont présentes ; toute absence ou copie non vérifiée retourne `RECOVERY_REQUIRED`, et toute divergence de cible retourne `DIVERGED`. Les mouvements de racines workspace restent explicitement non validés et bloquants.
+
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises

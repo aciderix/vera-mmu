@@ -3341,3 +3341,10 @@ Le Core expose `transition_profile_migration_state()` et applique une allowlist 
 
 Validation : `tests/test_profile_migration.py` — `12 passed`; suite Python — `624 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `1f65aba`. Suivi : brancher cette machine d’états sur la validation complète de copie/inventaire, puis traiter SQLite/WAL/SHM et les interruptions avant toute activation de `COPY_VERIFY_SWITCH`.
+
+## LOG-0268 — M11-D-B2 : validation canonique de l’inventaire avant bascule
+**Statut : PASS préparatoire dans le périmètre borné.**
+`validate_profile_migration_inventory()` effectue une validation read-only du runtime cible. Elle exige `COPYING → VERIFIED` par fichier attendu, vérifie les hashes et tailles source/cible, les symlinks, les fichiers inattendus et le contenu du Profile cible. Elle renvoie `READY_FOR_SWITCH` seulement lorsque toutes les preuves sont présentes, `RECOVERY_REQUIRED` pour les absences ou progressions incomplètes et `DIVERGED` pour les divergences de cible. Les mouvements de racines workspace restent explicitement bloquants faute de validation dédiée.
+
+Validation : `tests/test_profile_migration.py` — `14 passed`; suite Python — `626 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `4a8e314`. Suivi : intégrer la validation des racines workspace, puis traiter SQLite/WAL/SHM et les interruptions avant toute activation de `COPY_VERIFY_SWITCH`.
