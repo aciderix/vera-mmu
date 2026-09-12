@@ -20,7 +20,11 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
         preview = preview_project_initialization(root, template="software", project_id="migration-app", project_name="Migration App")
         apply_project_initialization(root, preview, confirm=True)
         runtime = root / ".vera-mmu"
-        (runtime / "memory.sqlite").write_bytes(b"sqlite-placeholder")
+        sqlite_path = runtime / "memory.sqlite"
+        sqlite_path.unlink(missing_ok=True)
+        with sqlite3.connect(sqlite_path) as connection:
+            connection.execute("CREATE TABLE fixture(value TEXT)")
+            connection.execute("INSERT INTO fixture VALUES ('ok')")
         (runtime / "artifacts").mkdir(exist_ok=True)
         (runtime / "artifacts" / "proof.bin").write_bytes(b"proof")
         return runtime / "project.yaml"
@@ -276,6 +280,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             (target / "unexpected.bin").write_bytes(b"unexpected")
             target_file = target / "artifacts" / "proof.bin"
             target_file.unlink()
+            (target / "memory.sqlite").write_bytes(b"corrupt-sqlite")
             transition_profile_migration_state(journal, "VERIFIED")
 
             report = validate_profile_migration_inventory(journal)
@@ -284,6 +289,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             codes = {issue["code"] for issue in report["issues"]}
             self.assertIn("TARGET_MISSING", codes)
             self.assertIn("UNEXPECTED_TARGET", codes)
+            self.assertIn("SQLITE_INTEGRITY_ERROR", codes)
 
     def test_sqlite_validation_checks_integrity_schema_and_artifacts(self) -> None:
         with TemporaryDirectory() as directory:

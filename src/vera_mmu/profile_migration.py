@@ -589,6 +589,12 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
             digest = sha256(target.read_bytes()).hexdigest()
             if digest != item["sha256"] or target.stat().st_size != item["size"]:
                 issues.append({"code": "TARGET_DIVERGED", "path": str(target)})
+        if item["kind"] == "sqlite" and source.is_file() and target.is_file():
+            sqlite_report = validate_sqlite_migration_target(source, target)
+            issues.extend(
+                {"code": issue["code"], "path": issue["path"]}
+                for issue in sqlite_report["issues"]
+            )
     target_profile = new_runtime / profile_relative
     if target_profile.is_symlink():
         issues.append({"code": "TARGET_PROFILE_SYMLINK", "path": str(target_profile)})
