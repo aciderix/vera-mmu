@@ -444,3 +444,53 @@ def execute_profile_physical_migration(
         except Exception as rollback_error:
             raise ProfileMigrationError("Migration interrompue et rollback incomplet : journal conservé.") from rollback_error
         raise
+
+
+def recover_profile_physical_migration(journal_path: str | Path, *, confirm: bool) -> dict[str, object]:
+    """Recover one interrupted physical migration; ambiguous states are refused."""
+    if confirm is not True:
+        raise ProfileMigrationError("Reprise physique refusée sans confirmation explicite.")
+    journal = Path(journal_path).expanduser()
+    if journal.is_symlink() or not journal.is_file() or journal.name != journal.name.strip():
+        raise ProfileMigrationError("Journal de reprise ambigu.")
+    try:
+        record = json.loads(journal.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ProfileMigrationError("Journal de reprise illisible.") from exc
+    if not isinstance(record, dict) or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") != "EXECUTING":
+        raise ProfileMigrationError("Seul un journal EXECUTING peut être repris par cette opération.")
+    required = {"profile_path", "old_runtime", "new_runtime", "backup_path", "old_profile_hash", "new_profile_hash", "preview_hash"}
+    if not required.issubset(record) or any(not isinstance(record[key], str) for key in required):
+        raise ProfileMigrationError("Journal EXECUTING incomplet.")
+    old_runtime = Path(record["old_runtime"])
+    new_runtime = Path(record["new_runtime"])
+    old_profile = Path(record["profile_path"])
+    try:
+        new_profile = new_runtime / old_profile.relative_to(old_runtime)
+    except ValueError as exc:
+        raise ProfileMigrationError("Profile hors des runtimes journalisés.") from exc
+    backup = Path(record["backup_path"])
+    if backup.is_symlink() or not backup.is_file():
+        raise ProfileMigrationError("Sauvegarde Profile absente ou ambiguë.")
+    if old_runtime.exists() and new_runtime.exists():
+        raise ProfileMigrationError("Sources et cibles présentes simultanément : reprise ambiguë.")
+    if not old_runtime.exists() and not new_runtime.exists():
+        raise ProfileMigrationError("Source et cible absentes : reprise impossible sans décision externe.")
+    if old_runtime.exists():
+        if not old_profile.is_file():
+            raise ProfileMigrationError("Profile source absent pendant la reprise.")
+        current_hash = sha256(old_profile.read_bytes()).hexdigest()
+        if current_hash == record["new_profile_hash"]:
+            _write_text_atomic(old_profile, backup.read_text(encoding="utf-8"), ".vera-profile-recovery-")
+        elif current_hash != record["old_profile_hash"]:
+            raise ProfileMigrationError("Profile source divergent pendant la reprise.")
+        record["state"] = "PLANNED"
+        record.pop("backup_path", None)
+        _write_json_atomic(journal, record)
+        backup.unlink(missing_ok=True)
+        return {"format": "vera-profile-physical-migration-recovery/v1", "status": "ROLLED_BACK_TO_PLANNED", "preview_hash": record["preview_hash"], "mutation": "RECOVERY"}
+    if not new_profile.is_file() or sha256(new_profile.read_bytes()).hexdigest() != record["new_profile_hash"]:
+        raise ProfileMigrationError("Profile cible absent ou divergent pendant la reprise.")
+    backup.unlink(missing_ok=True)
+    journal.unlink()
+    return {"format": "vera-profile-physical-migration-recovery/v1", "status": "RECOVERED_COMMITTED", "preview_hash": record["preview_hash"], "mutation": "RECOVERY"}

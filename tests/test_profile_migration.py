@@ -7,7 +7,7 @@ import sqlite3
 import unittest
 
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration
+from vera_mmu.profile_migration import ProfileMigrationError, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, recover_profile_physical_migration
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -132,6 +132,32 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertTrue((root / ".vera-mmu-next" / "memory.sqlite").is_file())
             migrated_profile = Path(str(result["profile_path"]))
             self.assertEqual(load_profile(migrated_profile)["storage"]["memory_dir"], ".vera-mmu-next")
+
+    def test_recovery_rolls_back_interruption_before_move(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            result = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(result["journal_path"]))
+            backup = root / ".vera-profile-migration-backup"
+            backup.write_text(profile_path.read_text(encoding="utf-8"), encoding="utf-8")
+            import json
+            record = json.loads(journal.read_text(encoding="utf-8"))
+            record["state"] = "EXECUTING"
+            record["backup_path"] = str(backup)
+            journal.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            recovered = recover_profile_physical_migration(journal, confirm=True)
+            self.assertEqual(recovered["status"], "ROLLED_BACK_TO_PLANNED")
+            self.assertTrue(journal.is_file())
+            self.assertFalse(backup.exists())
 
 
 if __name__ == "__main__":
