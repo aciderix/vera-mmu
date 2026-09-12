@@ -10,6 +10,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path, PureWindowsPath
+import shutil
 import sqlite3
 from tempfile import NamedTemporaryFile
 from typing import Any, Mapping
@@ -179,6 +180,33 @@ def _device_for_target(path: Path) -> int:
             raise ProfileMigrationError(f"Filesystem cible introuvable : {path}.")
         current = parent
     return current.stat().st_dev
+
+
+def _copy_tree_verified(source: Path, target: Path) -> None:
+    """Copy a regular tree and verify every copied file before it can be switched."""
+    if source.is_symlink() or not source.is_dir() or target.exists():
+        raise ProfileMigrationError("Source ou cible de copie inter-filesystems ambiguë.")
+    target.mkdir(parents=True)
+    try:
+        for item in sorted(source.rglob("*"), key=str):
+            relative = item.relative_to(source)
+            destination = target / relative
+            if item.is_symlink():
+                raise ProfileMigrationError(f"Symlink refusé dans la copie : {item}.")
+            if item.is_dir():
+                destination.mkdir()
+                continue
+            if not item.is_file():
+                raise ProfileMigrationError(f"Entrée non régulière dans la copie : {item}.")
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, destination)
+            source_hash = sha256(item.read_bytes()).hexdigest()
+            target_hash = sha256(destination.read_bytes()).hexdigest()
+            if source_hash != target_hash or item.stat().st_size != destination.stat().st_size:
+                raise ProfileMigrationError(f"Vérification de copie échouée : {item}.")
+    except Exception:
+        shutil.rmtree(target, ignore_errors=True)
+        raise
 
 
 def preview_profile_physical_migration(profile_path: str | Path, new_profile: Mapping[str, Any]) -> ProfileMigrationPreview:

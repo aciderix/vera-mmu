@@ -85,6 +85,8 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot terminé le 2026-09-12 :** le preview classe désormais la stratégie physique en `RENAME_ATOMIC` ou `COPY_VERIFY_SWITCH` selon les devices source/cible et persiste ce choix dans le journal. Toute stratégie `COPY_VERIFY_SWITCH` est encore refusée par l’exécuteur jusqu’à livraison du protocole copie, hash, vérification, bascule et reprise.
 
+**Sous-lot préparatoire terminé le 2026-09-12 :** une primitive interne `_copy_tree_verified` copie uniquement des arbres réguliers, vérifie le hash et la taille de chaque fichier après `copy2`, refuse les symlinks et supprime toute cible partielle en cas d’erreur. Elle n’est pas encore branchée sur l’exécuteur inter-filesystems.
+
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises

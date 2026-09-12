@@ -9,7 +9,7 @@ import unittest
 import yaml
 
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, recover_profile_physical_migration
+from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, recover_profile_physical_migration
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -47,6 +47,21 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertTrue(any(item.kind == "runtime-file" and item.sha256 for item in first.inventory))
             self.assertTrue(profile_path.is_file())
             self.assertFalse((root / ".vera-mmu-next").exists())
+
+    def test_copy_tree_verified_hashes_files_and_removes_partial_target(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            target = root / "target"
+            source.mkdir()
+            (source / "nested").mkdir()
+            (source / "nested" / "file.txt").write_text("verified", encoding="utf-8")
+            _copy_tree_verified(source, target)
+            self.assertEqual((target / "nested" / "file.txt").read_text(encoding="utf-8"), "verified")
+            (source / "unsafe").symlink_to(source / "nested", target_is_directory=True)
+            with self.assertRaises(ProfileMigrationError):
+                _copy_tree_verified(source, root / "rejected")
+            self.assertFalse((root / "rejected").exists())
 
     def test_preview_rejects_symlinked_source_and_overlapping_targets(self) -> None:
         with TemporaryDirectory() as directory:
