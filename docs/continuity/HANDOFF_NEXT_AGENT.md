@@ -2,15 +2,15 @@
 
 **Document destiné au prochain agent de travail.**
 
-**Date du handoff :** 2026-08-28
+**Date du handoff :** 2026-09-12
 
 **Dépôt actif :** `https://github.com/aciderix/vera-mmu`
 
-**Répertoire local de référence :** `/home/ubuntu/vera_mmu_workspace/vera-mmu`
+**Répertoire local de référence :** `/home/ubuntu/aret-mmu/vera-mmu`
 
 **Branche :** `main`
 
-**Dernier état publié et vérifié :** `5dee059` — handoff mis à jour le 2026-09-12
+**Dernier état publié et vérifié :** `7649714` — `feat: persist migration copy progress`
 
 **Worktree au moment du handoff :** propre.
 
@@ -26,15 +26,15 @@ Toute écriture sensible suit le cycle obligatoire : **preview → vérification
 
 ## 2. État livré et publié
 
-Le commit distant `5dee059` et tous ses ancêtres contiennent les lots réalisés avant et pendant cette reprise. Le distant a été vérifié après un push fast-forward normal vers `origin/main`; aucune force-push n’a été effectuée.
+Le commit distant `7649714` et tous ses ancêtres contiennent les lots réalisés avant et pendant cette reprise. Le distant est synchronisé avec `origin/main`; aucune force-push n’a été effectuée.
 
-La dernière régression Python complète observée après les derniers changements validés est **`607 passed, 49 subtests passed`**. Des validations ciblées complémentaires ont également passé, notamment les parcours readiness/Claude cloud et les tests de durcissement lifecycle.
+La dernière régression Python complète observée après les derniers changements validés est **`620 passed, 49 subtests passed`**. Le test ciblé `tests/test_profile_migration.py` passe à **`8 passed`**. Les validations Desktop TypeScript et Vite passent ; la compilation et les tests Tauri restent `UNKNOWN` dans l’environnement sans `cargo`.
 
 Les dépôts ARET de référence étaient propres et non modifiés lors du dernier contrôle.
 
 ### 3.1 Ajouts terminés depuis ce handoff
 
-Le commit `5dee059` a terminé et vérifié le sous-lot de **fiabilité lifecycle et intégration Claude cloud** :
+Les commits précédents, jusqu’au sous-lot de fiabilité lifecycle et d’intégration Claude cloud, ont livré et vérifié :
 
 - budget du Resume Dossier plafonné à **14 000 octets** dans le bootstrap, le Profile et le compilateur générique ;
 - heartbeat `mcp_ready`, kill-switch runtime et alias `ARET_MMU_BARRIER_OFF` ;
@@ -43,7 +43,15 @@ Le commit `5dee059` a terminé et vérifié le sous-lot de **fiabilité lifecycl
 - propagation de `MCP_TOOL_TIMEOUT=3600000` dans le plan MCP Claude cloud ;
 - transport Claude local/cloud porté à 18 500 octets ;
 - dé-collapse MCP, durcissement HMAC du payload d’évidence et branchement cohérent des adapters ;
-- tests de régression et suite complète : **607 tests passés, 49 sous-tests passés**.
+- tests de régression et suite complète avant le sous-lot migration : **607 tests passés, 49 sous-tests passés**.
+
+Le commit `7649714` a ensuite livré le sous-lot préparatoire de **persistance de progression de copie** :
+
+- journal durable enrichi par `copy_progress` ;
+- `record_copy_progress()` avec append atomique ;
+- transitions strictes `COPYING → VERIFIED` ;
+- refus des doublons, transitions inversées et journaux non canoniques ;
+- test ciblé de migration et régression complète validés.
 
 Ce sous-lot est **clos**. Les sections 4.1 à 4.10 ci-dessous restent ouvertes sauf lorsqu’une annotation locale indique explicitement qu’un sous-lot précis est terminé.
 
@@ -87,7 +95,7 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot préparatoire terminé le 2026-09-12 :** une primitive interne `_copy_tree_verified` copie uniquement des arbres réguliers, vérifie le hash et la taille de chaque fichier après `copy2`, refuse les symlinks et supprime toute cible partielle en cas d’erreur. Elle n’est pas encore branchée sur l’exécuteur inter-filesystems.
 
-**Sous-lot préparatoire terminé le 2026-09-12 :** la primitive accepte désormais une callback de progression strictement interne et émet `COPYING` avant chaque fichier puis `VERIFIED` après hash/taille confirmés. Aucun état de copie n’est encore promu dans le journal Profile ni utilisé pour basculer une migration.
+**Sous-lot préparatoire terminé le 2026-09-12 :** la primitive accepte une callback de progression strictement interne et émet `COPYING` avant chaque fichier puis `VERIFIED` après hash/taille confirmés. Avant `7649714`, ces événements n’étaient pas persistés dans le journal.
 
 **Sous-lot préparatoire terminé le 2026-09-12 :** les journaux contiennent maintenant `copy_progress` et `record_copy_progress()` effectue un append atomique avec transitions strictes `COPYING → VERIFIED`. Les doublons, transitions inversées et journaux non canoniques sont refusés. La copie inter-filesystems n’est toujours pas activée.
 
@@ -147,9 +155,17 @@ Il faudra distinguer clairement observation VCS, opérations locales, opération
 
 Le nouvel agent doit reprendre par une baseline réelle : `git status`, `git log`, `git fetch origin main`, comparaison merge-base, inventaire des tests, vérification des dépôts ARET non modifiés et lecture des registres de continuité.
 
-Ensuite, terminer les sous-lots de modèle/Dashboard et la migration physique Profile/runtime par contrats test-first. Puis compléter API MCP/CLI, import existant, bundles/export/import/restore, Front/playbook/resume, documentation générée et coverage MCP. Les compatibilités legacy doivent être ajoutées uniquement lorsqu’un comportement d’entrée/sortie et une stratégie de migration sont démontrés.
+L’enchaînement immédiat obligatoire est le suivant :
 
-Après chaque sous-lot : tests ciblés, build React, tests Tauri, régression Python complète, `git diff --check`, scan de frontière Core, artefact probatoire, mémoire et journal append-only, puis commits fonctionnel et documentaire séparés. Aucun push ne doit avoir lieu avant le contrôle de divergence et la décision explicite de publication.
+1. **Étape A — Relier la copie au journal.** Brancher `_copy_tree_verified()` sur `record_copy_progress()` ou un équivalent contrôlé. Pour chaque fichier, persister `COPYING` avant la copie, puis `VERIFIED` uniquement après hash et taille confirmés. Si la copie réussit mais que `VERIFIED` ne peut pas être persisté, classer l’opération `RECOVERY_REQUIRED`.
+2. **Étape B — Fermer la machine d’états globale.** Ajouter et valider strictement `PLANNED`, `COPYING`, `VERIFIED`, `SWITCHING`, `COMMITTED`, ainsi que `DIVERGED`, `RECOVERY_REQUIRED` et `ROLLED_BACK`. Aucune transition ne doit être fournie librement par le client.
+3. **Étape C — Valider l’inventaire avant bascule.** Vérifier l’exhaustivité des fichiers, les hashes, les tailles, l’absence d’entrées inattendues et de symlinks, le hash du Profile cible et l’absence de divergence source. Un seul fichier manquant, divergent ou non journalisé bloque la bascule.
+4. **Étape D — Traiter SQLite séparément.** Effectuer checkpoint WAL, contrôle des connexions, copie explicite de SQLite/WAL/SHM selon le contrat, hashes, ouverture cible, `PRAGMA integrity_check`, vérification du schéma et des migrations.
+5. **Étape E — Définir la bascule sans fausse atomicité.** Persister `SWITCHING`, distinguer les opérations réellement atomiques de celles qui ne le sont pas et classer toute bascule non prouvable `RECOVERY_REQUIRED`, jamais `COMMITTED`.
+6. **Étape F — Prouver la reprise.** Tester les interruptions avant copie, après `COPYING`, après `VERIFIED`, pendant `SWITCHING`, après mise à jour du Profile, après déplacement partiel de racine, ainsi que les divergences source/cible, les symlinks, les cibles occupées, les WAL/SHM incohérents et les journaux corrompus.
+7. **Étape G — N’activer `COPY_VERIFY_SWITCH` qu’après preuve.** Tant que les étapes A à F ne sont pas passées, conserver le refus fail-closed actuel.
+
+Après chaque étape, exécuter les tests ciblés, la suite Python complète, le build TypeScript/Vite, les tests Tauri si `cargo` est disponible, `git diff --check` et le scan de frontière Core. Enregistrer séparément les validations non exécutées ou `UNKNOWN`, puis mettre à jour workplan, mémoire et journal avant les commits fonctionnel et documentaire séparés. Aucun push ne doit avoir lieu avant le contrôle de divergence et la décision explicite de publication. Les compatibilités legacy doivent être ajoutées uniquement lorsqu’un comportement d’entrée/sortie et une stratégie de migration sont démontrés.
 
 ## 6. Second contrôle de conformité obligatoire
 
