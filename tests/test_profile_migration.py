@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import sqlite3
@@ -39,6 +40,8 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(first.as_dict()["mutation"], "NONE")
             self.assertEqual(first.as_dict()["status"], "PREVIEW")
+            self.assertEqual(len(first.workspace_moves), 1)
+            self.assertEqual(first.workspace_moves[0]["kind"], "workspace-root[0]")
             self.assertTrue(any(item.kind == "runtime-file" and item.sha256 for item in first.inventory))
             self.assertTrue(profile_path.is_file())
             self.assertFalse((root / ".vera-mmu-next").exists())
@@ -86,6 +89,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             inspected = inspect_profile_migration_journal(profile_path)
             self.assertEqual(inspected["status"], "READY_FOR_EXECUTOR")
             self.assertEqual(inspected["mutation"], "NONE")
+            self.assertIn("workspace_moves", json.loads(journal.read_text(encoding="utf-8")))
             with self.assertRaises(ProfileMigrationError):
                 prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
 

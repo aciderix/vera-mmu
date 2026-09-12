@@ -55,6 +55,7 @@ class ProfileMigrationPreview:
     old_runtime: str
     new_runtime: str
     inventory: tuple[MigrationInventoryEntry, ...]
+    workspace_moves: tuple[dict[str, str], ...]
     preview_hash: str
 
     def as_dict(self) -> dict[str, object]:
@@ -69,6 +70,7 @@ class ProfileMigrationPreview:
             "old_runtime": self.old_runtime,
             "new_runtime": self.new_runtime,
             "inventory": [item.as_dict() for item in self.inventory],
+            "workspace_moves": [dict(item) for item in self.workspace_moves],
             "preview_hash": self.preview_hash,
             "mutation": "NONE",
         }
@@ -152,6 +154,21 @@ def _runtime_entries(old_runtime: Path, new_runtime: Path) -> list[MigrationInve
     return entries
 
 
+def _workspace_moves(old_workspace: Any, new_root: Path, new_additional: list[Path]) -> tuple[dict[str, str], ...]:
+    targets = [new_root, *new_additional]
+    if len(old_workspace.roots) != len(targets):
+        raise ProfileMigrationError("Le nombre de racines workspace doit rester stable pour cette migration.")
+    moves: list[dict[str, str]] = []
+    for index, (source, target) in enumerate(zip(old_workspace.roots, targets)):
+        if source.is_symlink() or not source.is_dir():
+            raise ProfileMigrationError(f"Racine workspace source absente, symlinkée ou non-régulière : {source}.")
+        if target.exists() and (target.is_symlink() or not target.is_dir()):
+            raise ProfileMigrationError(f"Racine workspace cible ambiguë : {target}.")
+        if source != target:
+            moves.append({"source": str(source), "target": str(target), "kind": f"workspace-root[{index}]"})
+    return tuple(moves)
+
+
 def preview_profile_physical_migration(profile_path: str | Path, new_profile: Mapping[str, Any]) -> ProfileMigrationPreview:
     """Build a complete, non-mutating physical migration preview."""
     path = _profile_file(profile_path)
@@ -176,6 +193,7 @@ def preview_profile_physical_migration(profile_path: str | Path, new_profile: Ma
         raise ProfileMigrationError("Les chemins de migration doivent désigner des enfants distincts.")
     if new_runtime == new_root or any(new_runtime == root for root in additional):
         raise ProfileMigrationError("storage.memory_dir ne doit pas être une racine workspace.")
+    workspace_moves = _workspace_moves(old_workspace, new_root, additional)
     for label, target in (("storage.memory_dir", new_runtime), ("storage.sqlite_file", new_sqlite), ("storage.artifacts_dir", new_artifacts)):
         if target.exists() and target.is_symlink():
             raise ProfileMigrationError(f"Cible {label} symlinkée.")
@@ -200,6 +218,7 @@ def preview_profile_physical_migration(profile_path: str | Path, new_profile: Ma
         "old_runtime": str(old_locator.runtime_dir),
         "new_runtime": str(new_runtime),
         "inventory": [entry.as_dict() for entry in inventory],
+        "workspace_moves": [dict(item) for item in workspace_moves],
     }
     preview_hash = sha256(canonical_json(payload).encode("utf-8")).hexdigest()
     return ProfileMigrationPreview(
@@ -211,6 +230,7 @@ def preview_profile_physical_migration(profile_path: str | Path, new_profile: Ma
         old_runtime=str(old_locator.runtime_dir),
         new_runtime=str(new_runtime),
         inventory=tuple(inventory),
+        workspace_moves=workspace_moves,
         preview_hash=preview_hash,
     )
 
@@ -267,6 +287,7 @@ def prepare_profile_migration_journal(
         "new_runtime": preview.new_runtime,
         "target_profile_content": target_content,
         "inventory": [item.as_dict() for item in preview.inventory],
+        "workspace_moves": [dict(item) for item in preview.workspace_moves],
     }
     _write_json_atomic(journal_path, payload)
     return {
@@ -294,7 +315,7 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
         raise ProfileMigrationError("Journal de migration illisible.") from exc
     required = {
         "format", "state", "profile_path", "preview_hash", "old_profile_hash", "new_profile_hash",
-        "old_identity", "new_identity", "old_runtime", "new_runtime", "target_profile_content", "inventory",
+        "old_identity", "new_identity", "old_runtime", "new_runtime", "target_profile_content", "inventory", "workspace_moves",
     }
     if not isinstance(record, dict) or set(record) != required and set(record) != required | {"backup_path"} or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") not in {"PLANNED", "EXECUTING"}:
         raise ProfileMigrationError("Journal de migration non canonique ou état non reprenable.")
@@ -306,6 +327,13 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
     inventory = record.get("inventory")
     if not isinstance(inventory, list) or any(not isinstance(item, dict) or set(item) != {"source", "target", "kind", "exists", "size", "sha256"} for item in inventory):
         raise ProfileMigrationError("Inventaire de journal invalide.")
+    workspace_moves = record.get("workspace_moves")
+    if not isinstance(workspace_moves, list) or any(
+        not isinstance(item, dict) or set(item) != {"source", "target", "kind"}
+        or any(not isinstance(item[key], str) or not item[key] for key in ("source", "target", "kind"))
+        for item in workspace_moves
+    ):
+        raise ProfileMigrationError("Mouvements de racines workspace invalides.")
     status = "RECOVERY_REQUIRED" if record["state"] == "EXECUTING" else "READY_FOR_EXECUTOR"
     issues: list[dict[str, str]] = []
     for item in inventory:
