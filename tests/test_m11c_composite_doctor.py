@@ -109,6 +109,31 @@ class CompositeDoctorTests(unittest.TestCase):
             self.assertEqual(checks["profile_migration"].status, "INFO")
             self.assertEqual(len(list(root.glob(".vera-profile-migration-*.json"))), 1)
 
+    def test_cli_migrate_status_is_read_only_and_deterministic(self) -> None:
+        from copy import deepcopy
+        from vera_mmu.identity import load_profile
+        from vera_mmu.profile_migration import prepare_profile_migration_journal, preview_profile_physical_migration
+
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = _initialize(root, project_id="cli-migration")
+            code, payload = _cli(["migrate", "status", str(profile_path)])
+            self.assertEqual(code, 0)
+            self.assertEqual(payload["migration"]["status"], "NO_PENDING_MIGRATION")  # type: ignore[index]
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            code, payload = _cli(["migrate", "status", str(profile_path)])
+            self.assertEqual(code, 0)
+            self.assertEqual(payload["migration"]["status"], "READY_FOR_EXECUTOR")  # type: ignore[index]
+            self.assertTrue((root / ".vera-mmu" / "project.yaml").is_file())
+
     def test_i001_i005_i011_doctor_fails_loudly_for_tampered_sqlite_and_symlinked_artifacts(self) -> None:
         from vera_mmu.doctor import diagnose_project
 

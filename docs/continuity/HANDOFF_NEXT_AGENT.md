@@ -97,6 +97,8 @@ La documentation ne doit jamais présenter une surface `PARTIAL`, `MISSING` ou `
 
 **Sous-lot terminé le 2026-09-12 :** readiness MCP Claude cloud bornée, timeout de démarrage configurable, armement `HARD` conditionné par le marqueur `mcp_ready`, repli `SOFT` anti-deadlock et timeout d’appel cloud `MCP_TOOL_TIMEOUT=3600000`. Cela ne clôt pas la complétude générale de l’API MCP ni de la CLI décrite ci-dessous.
 
+**Sous-lot terminé le 2026-09-12 :** la CLI expose `vmmu migrate status <project.yaml>` en lecture seule. Elle retourne un état déterministe (`NO_PENDING_MIGRATION`, `READY_FOR_EXECUTOR` ou état non stable), n’exécute aucune migration et renvoie un code d’erreur pour les états divergents/non récupérables.
+
 Compléter les surfaces prévues par la spécification : boot/resume, restore, Front, FIND/READ, append knowledge, work CRUD, bundles, export/import, Doctor, serve et configuration. Chaque handler MCP doit rester une façade du Core et appliquer des enveloppes strictes, nonce/session si nécessaire, champs exacts et absence d’entrées client dangereuses.
 
 La CLI `vmmu` actuelle ne couvre pas encore tout le contrat `init`, `scan`, `configure`, `validate`, `generate`, `install`, `serve`, `doctor`, `migrate`, `export`, `import`, `dashboard`, `upgrade`. Ajouter les commandes par petits lots test-first, avec sorties déterministes et refus explicites.
