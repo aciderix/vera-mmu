@@ -3397,3 +3397,7 @@ Lorsque le preview sélectionne `COPY_VERIFY_SWITCH`, le runtime et les racines 
 
 Validation : `tests/test_profile_migration.py` — `21 passed`; suite Python — `633 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan frontière Core PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `354e4dd`. La séquence de migration physique universelle est maintenant implémentée dans le périmètre couvert par les invariants et les tests ; toute extension future doit ajouter ses preuves avant activation.
+
+## LOG-0276 — Intégration de la spécification finale Universal Dev-MMU
+**Statut : PASS documentaire.**
+Le document fourni `UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md` est intégré dans `docs/UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md` et référencé par le handoff et le workplan. SHA-256 : `d8e5d01b673e243e0104a30fb62328bc2a7fc650373ab91b1a103652a1737d75`. Cette intégration versionne la référence ; elle ne transforme pas la Definition of Done globale en statut livré.

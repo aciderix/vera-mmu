@@ -8,6 +8,8 @@
 
 **Répertoire local de référence :** `/home/ubuntu/aret-mmu/vera-mmu`
 
+**Spécification finale versionnée :** [`docs/UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md`](../UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md), intégrée depuis le document fourni le 2026-09-13 ; SHA-256 `d8e5d01b673e243e0104a30fb62328bc2a7fc650373ab91b1a103652a1737d75`.
+
 **Branche :** `main`
 
 **Dernier état publié et vérifié :** `7649714` — `feat: persist migration copy progress`

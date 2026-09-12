@@ -1705,3 +1705,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-224` | Migration Profile / inter-filesystems | Lorsque le preview sélectionne `COPY_VERIFY_SWITCH`, le runtime et les racines workspace sont copiés fichier par fichier avec progression `COPYING/VERIFIED`, hash/taille et validation complète avant `SWITCHING`. Les sources sont supprimées après bascule ; une erreur avant `SWITCHING` nettoie les cibles et marque `ROLLED_BACK`, tandis qu’une erreur pendant `SWITCHING` marque `RECOVERY_REQUIRED`. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, tests migration, commit `354e4dd`; tests ciblés `21 passed`, régression `633 passed, 49 subtests passed`. | `LOG-0275` |
+
+## Addendum — Intégration de la spécification finale Universal Dev-MMU
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DOC-001` | Documentation / gouvernance | La spécification fournie `UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md` est versionnée dans `docs/` comme référence canonique d’architecture, de périmètre et de Definition of Done. SHA-256 : `d8e5d01b673e243e0104a30fb62328bc2a7fc650373ab91b1a103652a1737d75`. | `OBSERVED` | Document fourni le 2026-09-13, chemin `docs/UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md`. | `LOG-0276` |
