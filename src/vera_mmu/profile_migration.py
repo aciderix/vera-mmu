@@ -42,7 +42,7 @@ _MIGRATION_TRANSITIONS: dict[str, frozenset[str]] = {
     "PLANNED": frozenset({"COPYING", "EXECUTING", "RECOVERY_REQUIRED"}),
     "COPYING": frozenset({"VERIFIED", "COPYING", "DIVERGED", "RECOVERY_REQUIRED"}),
     "VERIFIED": frozenset({"SWITCHING", "DIVERGED", "RECOVERY_REQUIRED"}),
-    "SWITCHING": frozenset({"COMMITTED", "ROLLED_BACK", "DIVERGED", "RECOVERY_REQUIRED"}),
+    "SWITCHING": frozenset({"PLANNED", "COMMITTED", "ROLLED_BACK", "DIVERGED", "RECOVERY_REQUIRED"}),
     "EXECUTING": frozenset({"PLANNED", "SWITCHING", "COMMITTED", "ROLLED_BACK", "DIVERGED", "RECOVERY_REQUIRED"}),
     "DIVERGED": frozenset({"RECOVERY_REQUIRED", "ROLLED_BACK"}),
     "RECOVERY_REQUIRED": frozenset({"PLANNED", "ROLLED_BACK", "COMMITTED"}),
@@ -952,11 +952,14 @@ def recover_profile_physical_migration(journal_path: str | Path, *, confirm: boo
         raise ProfileMigrationError("Mouvements workspace absents ou non canoniques.")
     root_moves = [(Path(item["source"]), Path(item["target"])) for item in workspace_moves]
     if old_runtime.exists() and new_runtime.exists():
+        transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
         raise ProfileMigrationError("Sources et cibles présentes simultanément : reprise ambiguë.")
     if not old_runtime.exists() and not new_runtime.exists():
+        transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
         raise ProfileMigrationError("Source et cible absentes : reprise impossible sans décision externe.")
     if old_runtime.exists():
         if not old_profile.is_file():
+            transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
             raise ProfileMigrationError("Profile source absent pendant la reprise.")
         for source, target in root_moves:
             if target.exists() and not source.exists():
@@ -964,22 +967,42 @@ def recover_profile_physical_migration(journal_path: str | Path, *, confirm: boo
             elif source.exists() and not target.exists():
                 continue
             else:
+                transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
                 raise ProfileMigrationError("État de racine workspace ambigu pendant le rollback.")
         current_hash = sha256(old_profile.read_bytes()).hexdigest()
         if current_hash == record["new_profile_hash"]:
             _write_text_atomic(old_profile, backup.read_text(encoding="utf-8"), ".vera-profile-recovery-")
         elif current_hash != record["old_profile_hash"]:
+            transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
             raise ProfileMigrationError("Profile source divergent pendant la reprise.")
-        record["state"] = "PLANNED"
+        transition_profile_migration_state(journal, "PLANNED")
+        record = json.loads(journal.read_text(encoding="utf-8"))
         record.pop("backup_path", None)
         _write_json_atomic(journal, record)
         backup.unlink(missing_ok=True)
         return {"format": "vera-profile-physical-migration-recovery/v1", "status": "ROLLED_BACK_TO_PLANNED", "preview_hash": record["preview_hash"], "mutation": "RECOVERY"}
-    if not new_profile.is_file() or sha256(new_profile.read_bytes()).hexdigest() != record["new_profile_hash"]:
+    if not new_profile.is_file() or new_profile.read_text(encoding="utf-8") != record.get("target_profile_content"):
+        transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
         raise ProfileMigrationError("Profile cible absent ou divergent pendant la reprise.")
     for source, target in root_moves:
         if not target.exists() or source.exists():
+            transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
             raise ProfileMigrationError("État de racine workspace incomplet pendant la finalisation.")
+    sqlite_entries = [item for item in record.get("inventory", []) if isinstance(item, dict) and item.get("kind") == "sqlite"]
+    for item in sqlite_entries:
+        target = Path(str(item["target"]))
+        if target.is_symlink() or not target.is_file():
+            transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
+            raise ProfileMigrationError("SQLite cible absente ou ambiguë pendant la finalisation.")
+        try:
+            _sqlite_readonly_fingerprint(target)
+        except ProfileMigrationError as exc:
+            transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
+            raise ProfileMigrationError("SQLite cible non intègre pendant la finalisation.") from exc
+        for sidecar in (Path(f"{target}-wal"), Path(f"{target}-shm")):
+            if sidecar.is_symlink() or (sidecar.exists() and not sidecar.is_file()):
+                transition_profile_migration_state(journal, "RECOVERY_REQUIRED")
+                raise ProfileMigrationError("Sidecar SQLite cible ambigu pendant la finalisation.")
     backup.unlink(missing_ok=True)
     journal.unlink()
     return {"format": "vera-profile-physical-migration-recovery/v1", "status": "RECOVERED_COMMITTED", "preview_hash": record["preview_hash"], "mutation": "RECOVERY"}

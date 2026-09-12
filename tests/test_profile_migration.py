@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import sqlite3
@@ -487,6 +488,64 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertEqual(recovered["status"], "ROLLED_BACK_TO_PLANNED")
             self.assertTrue(journal.is_file())
             self.assertFalse(backup.exists())
+
+    def test_recovery_finalizes_only_when_target_runtime_and_sqlite_are_proven(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            result = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(result["journal_path"]))
+            backup = root / ".vera-profile-migration-backup"
+            backup.write_text(profile_path.read_text(encoding="utf-8"), encoding="utf-8")
+            record = json.loads(journal.read_text(encoding="utf-8"))
+            record["state"] = "SWITCHING"
+            record["backup_path"] = str(backup)
+            journal.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            os.replace(root / ".vera-mmu", root / ".vera-mmu-next")
+            new_profile = root / ".vera-mmu-next" / "project.yaml"
+            new_profile.write_text(record["target_profile_content"], encoding="utf-8")
+
+            recovered = recover_profile_physical_migration(journal, confirm=True)
+
+            self.assertEqual(recovered["status"], "RECOVERED_COMMITTED")
+            self.assertFalse(journal.exists())
+            self.assertFalse(backup.exists())
+            self.assertTrue(new_profile.is_file())
+
+    def test_recovery_marks_both_runtimes_present_as_recovery_required(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            preview = preview_profile_physical_migration(profile_path, candidate)
+            result = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+            journal = Path(str(result["journal_path"]))
+            backup = root / ".vera-profile-migration-backup"
+            backup.write_text(profile_path.read_text(encoding="utf-8"), encoding="utf-8")
+            record = json.loads(journal.read_text(encoding="utf-8"))
+            record["state"] = "SWITCHING"
+            record["backup_path"] = str(backup)
+            journal.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            (root / ".vera-mmu-next").mkdir()
+
+            with self.assertRaises(ProfileMigrationError):
+                recover_profile_physical_migration(journal, confirm=True)
+
+            self.assertEqual(json.loads(journal.read_text(encoding="utf-8"))["state"], "RECOVERY_REQUIRED")
 
 
 if __name__ == "__main__":
