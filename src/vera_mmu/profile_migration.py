@@ -266,3 +266,62 @@ def prepare_profile_migration_journal(
         "preview_hash": preview.preview_hash,
         "mutation": "JOURNAL_ONLY",
     }
+
+
+def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, object]:
+    """Read one migration journal and classify divergence without repairing anything."""
+    path = _profile_file(profile_path)
+    journals = sorted(path.parent.glob(".vera-profile-migration-*.json"))
+    if len(journals) != 1:
+        raise ProfileMigrationError("Reprise impossible sans journal de migration unique.")
+    journal_path = journals[0]
+    if journal_path.is_symlink() or not journal_path.is_file():
+        raise ProfileMigrationError("Journal de migration ambigu.")
+    try:
+        record = json.loads(journal_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ProfileMigrationError("Journal de migration illisible.") from exc
+    required = {
+        "format", "state", "profile_path", "preview_hash", "old_profile_hash", "new_profile_hash",
+        "old_identity", "new_identity", "old_runtime", "new_runtime", "target_profile_content", "inventory",
+    }
+    if not isinstance(record, dict) or set(record) != required or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") != "PLANNED":
+        raise ProfileMigrationError("Journal de migration non canonique ou état non reprenable.")
+    if record.get("profile_path") != str(path) or journal_path.stem != f".vera-profile-migration-{record.get('preview_hash')}":
+        raise ProfileMigrationError("Journal de migration étranger au Profile.")
+    hashes = (record.get("preview_hash"), record.get("old_profile_hash"), record.get("new_profile_hash"))
+    if any(not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value) for value in hashes):
+        raise ProfileMigrationError("Hash de journal invalide.")
+    inventory = record.get("inventory")
+    if not isinstance(inventory, list) or any(not isinstance(item, dict) or set(item) != {"source", "target", "kind", "exists", "size", "sha256"} for item in inventory):
+        raise ProfileMigrationError("Inventaire de journal invalide.")
+    status = "READY_FOR_EXECUTOR"
+    issues: list[dict[str, str]] = []
+    for item in inventory:
+        source = Path(item["source"]) if isinstance(item["source"], str) else None
+        target = Path(item["target"]) if isinstance(item["target"], str) else None
+        if source is None or target is None or not isinstance(item["exists"], bool) or not isinstance(item["size"], int) or item["size"] < 0:
+            raise ProfileMigrationError("Entrée d’inventaire non canonique.")
+        if source.is_symlink():
+            issues.append({"code": "SOURCE_SYMLINK", "path": str(source)})
+        elif item["exists"]:
+            if not source.is_file():
+                issues.append({"code": "SOURCE_MISSING", "path": str(source)})
+            else:
+                digest = sha256(source.read_bytes()).hexdigest()
+                if digest != item["sha256"] or source.stat().st_size != item["size"]:
+                    issues.append({"code": "SOURCE_DIVERGED", "path": str(source)})
+        elif source.exists():
+            issues.append({"code": "UNEXPECTED_SOURCE", "path": str(source)})
+        if target != source and target.exists():
+            issues.append({"code": "TARGET_OCCUPIED", "path": str(target)})
+    if issues:
+        status = "DIVERGED"
+    return {
+        "format": "vera-profile-physical-migration-recovery/v1",
+        "status": status,
+        "journal_path": str(journal_path),
+        "preview_hash": record["preview_hash"],
+        "issues": issues,
+        "mutation": "NONE",
+    }
