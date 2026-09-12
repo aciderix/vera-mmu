@@ -89,6 +89,8 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot préparatoire terminé le 2026-09-12 :** la primitive accepte désormais une callback de progression strictement interne et émet `COPYING` avant chaque fichier puis `VERIFIED` après hash/taille confirmés. Aucun état de copie n’est encore promu dans le journal Profile ni utilisé pour basculer une migration.
 
+**Sous-lot préparatoire terminé le 2026-09-12 :** les journaux contiennent maintenant `copy_progress` et `record_copy_progress()` effectue un append atomique avec transitions strictes `COPYING → VERIFIED`. Les doublons, transitions inversées et journaux non canoniques sont refusés. La copie inter-filesystems n’est toujours pas activée.
+
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises

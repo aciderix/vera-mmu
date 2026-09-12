@@ -9,7 +9,7 @@ import unittest
 import yaml
 
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, recover_profile_physical_migration
+from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, record_copy_progress, recover_profile_physical_migration
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -110,6 +110,10 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertEqual(inspected["mutation"], "NONE")
             self.assertIn("workspace_moves", json.loads(journal.read_text(encoding="utf-8")))
             self.assertEqual(json.loads(journal.read_text(encoding="utf-8"))["migration_strategy"], "RENAME_ATOMIC")
+            self.assertEqual(record_copy_progress(journal, "nested/file.txt", "COPYING")["state"], "COPYING")
+            self.assertEqual(record_copy_progress(journal, "nested/file.txt", "VERIFIED")["state"], "VERIFIED")
+            with self.assertRaises(ProfileMigrationError):
+                record_copy_progress(journal, "nested/file.txt", "VERIFIED")
             with self.assertRaises(ProfileMigrationError):
                 prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
 

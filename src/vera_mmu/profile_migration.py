@@ -301,6 +301,32 @@ def _write_json_atomic(path: Path, payload: Mapping[str, object]) -> None:
         raise ProfileMigrationError("Journal durable de migration impossible à écrire.") from exc
 
 
+def record_copy_progress(journal_path: str | Path, relative_path: str, state: str) -> dict[str, object]:
+    """Append one verified copy transition to a migration journal atomically."""
+    journal = Path(journal_path).expanduser()
+    if journal.is_symlink() or not journal.is_file():
+        raise ProfileMigrationError("Journal de progression absent ou ambigu.")
+    _relative(relative_path, "copy_progress.path")
+    if state not in {"COPYING", "VERIFIED"}:
+        raise ProfileMigrationError("État de progression de copie invalide.")
+    try:
+        record = json.loads(journal.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ProfileMigrationError("Journal de progression illisible.") from exc
+    if not isinstance(record, dict) or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") not in {"PLANNED", "EXECUTING"}:
+        raise ProfileMigrationError("Journal de progression non exécutable.")
+    progress = record.get("copy_progress")
+    if not isinstance(progress, list) or any(not isinstance(item, dict) or set(item) != {"path", "state"} for item in progress):
+        raise ProfileMigrationError("Progression de copie non canonique.")
+    last = next((item["state"] for item in reversed(progress) if item["path"] == relative_path), None)
+    if (state == "COPYING" and last is not None) or (state == "VERIFIED" and last != "COPYING"):
+        raise ProfileMigrationError("Transition de progression de copie invalide.")
+    progress.append({"path": relative_path, "state": state})
+    record["copy_progress"] = progress
+    _write_json_atomic(journal, record)
+    return {"format": "vera-profile-copy-progress/v1", "path": relative_path, "state": state, "mutation": "JOURNAL_APPEND"}
+
+
 def prepare_profile_migration_journal(
     profile_path: str | Path,
     new_profile: Mapping[str, Any],
@@ -339,6 +365,7 @@ def prepare_profile_migration_journal(
         "inventory": [item.as_dict() for item in preview.inventory],
         "workspace_moves": [dict(item) for item in preview.workspace_moves],
         "migration_strategy": preview.migration_strategy,
+        "copy_progress": [],
     }
     _write_json_atomic(journal_path, payload)
     return {
@@ -366,7 +393,7 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
         raise ProfileMigrationError("Journal de migration illisible.") from exc
     required = {
         "format", "state", "profile_path", "preview_hash", "old_profile_hash", "new_profile_hash",
-        "old_identity", "new_identity", "old_runtime", "new_runtime", "target_profile_content", "inventory", "workspace_moves", "migration_strategy",
+        "old_identity", "new_identity", "old_runtime", "new_runtime", "target_profile_content", "inventory", "workspace_moves", "migration_strategy", "copy_progress",
     }
     if not isinstance(record, dict) or set(record) != required and set(record) != required | {"backup_path"} or record.get("format") != "vera-profile-physical-migration-journal/v1" or record.get("state") not in {"PLANNED", "EXECUTING"}:
         raise ProfileMigrationError("Journal de migration non canonique ou état non reprenable.")
@@ -387,6 +414,14 @@ def inspect_profile_migration_journal(profile_path: str | Path) -> dict[str, obj
         raise ProfileMigrationError("Mouvements de racines workspace invalides.")
     if record.get("migration_strategy") not in {"RENAME_ATOMIC", "COPY_VERIFY_SWITCH"}:
         raise ProfileMigrationError("Stratégie de migration filesystem invalide.")
+    copy_progress = record.get("copy_progress")
+    if not isinstance(copy_progress, list) or any(
+        not isinstance(item, dict) or set(item) != {"path", "state"}
+        or not isinstance(item["path"], str) or not item["path"]
+        or item["state"] not in {"COPYING", "VERIFIED"}
+        for item in copy_progress
+    ):
+        raise ProfileMigrationError("Progression de copie invalide.")
     status = "RECOVERY_REQUIRED" if record["state"] == "EXECUTING" else "READY_FOR_EXECUTOR"
     issues: list[dict[str, str]] = []
     for item in inventory:
