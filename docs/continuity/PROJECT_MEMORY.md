@@ -1660,3 +1660,8 @@ La modification d’une simple description modifie `profile_hash`, donc `project
 | ID | Catégorie | Énoncé | Statut | Provenance | Journal |
 |---|---|---|---|---|---|
 | `MEM-DEC-215` | Migration Profile / copie vérifiée | `_copy_tree_verified()` persiste désormais `COPYING` avant chaque copie et `VERIFIED` après vérification SHA-256/taille lorsque le journal est fourni. Une défaillance après copie laisse le journal `EXECUTING` avec progression partielle et supprime la cible partielle ; aucune cible partiellement copiée n’est considérée comme validée. `COPY_VERIFY_SWITCH` reste refusé par l’exécuteur principal. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `589312e`; tests ciblés `10 passed`, régression `622 passed, 49 subtests passed`. | `LOG-0266` |
+
+## Addendum — M11-D-B2 Machine d’états du journal
+| ID | Catégorie | Énoncé | Statut | Provenance | Journal |
+|---|---|---|---|---|---|
+| `MEM-DEC-216` | Migration Profile / états globaux | Le Core expose `transition_profile_migration_state()` avec une allowlist atomique des transitions de migration. Les sauts directs `PLANNED → SWITCHING/COMMITTED`, les états inconnus et les transitions après `COMMITTED` sont refusés. Les états `COPYING`, `VERIFIED`, `SWITCHING`, `DIVERGED`, `RECOVERY_REQUIRED` et `ROLLED_BACK` sont déclarés ; `EXECUTING` reste compatible avec la reprise same-filesystem. La bascule inter-filesystems et la reprise complète restent non activées. | `OBSERVED` | `src/vera_mmu/profile_migration.py`, `tests/test_profile_migration.py`, commit `1f65aba`; tests ciblés `12 passed`, régression `624 passed, 49 subtests passed`. | `LOG-0267` |

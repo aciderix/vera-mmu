@@ -3334,3 +3334,10 @@ Le bridge reconnaît exactement un Profile non symlinké sous `.vera-mmu/project
 
 Validation : `tests/test_profile_migration.py` — `10 passed`; suite Python — `622 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; scan de frontière Core PASS hors alias de compatibilité `ARET_MMU_BARRIER_OFF`; Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
 Commit fonctionnel : `589312e`. Suivi : fermer la machine d’états globale, valider l’inventaire avant bascule, traiter SQLite/WAL/SHM et tester les interruptions avant toute activation de `COPY_VERIFY_SWITCH`.
+
+## LOG-0267 — M11-D-B2 : machine d’états globale du journal
+**Statut : PASS préparatoire dans le périmètre borné.**
+Le Core expose `transition_profile_migration_state()` et applique une allowlist atomique des transitions. Les sauts `PLANNED → SWITCHING/COMMITTED`, les états inconnus et toute transition après `COMMITTED` sont refusés. Les états déclarés couvrent `PLANNED`, `COPYING`, `VERIFIED`, `SWITCHING`, `COMMITTED`, `DIVERGED`, `RECOVERY_REQUIRED` et `ROLLED_BACK`; `EXECUTING` reste une compatibilité contrôlée du chemin same-filesystem. La validation complète de l’inventaire, la bascule inter-filesystems et la reprise correspondante restent ouvertes.
+
+Validation : `tests/test_profile_migration.py` — `12 passed`; suite Python — `624 passed, 49 subtests passed`; `compileall` PASS; `git diff --check` PASS; build TypeScript/Vite PASS; tests Tauri/Cargo `UNKNOWN` car `cargo` est indisponible.
+Commit fonctionnel : `1f65aba`. Suivi : brancher cette machine d’états sur la validation complète de copie/inventaire, puis traiter SQLite/WAL/SHM et les interruptions avant toute activation de `COPY_VERIFY_SWITCH`.

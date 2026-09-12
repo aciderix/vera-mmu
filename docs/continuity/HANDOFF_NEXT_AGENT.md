@@ -101,6 +101,8 @@ La migration physique des racines `workspace.root` et `workspace.additional_root
 
 **Sous-lot préparatoire terminé le 2026-09-12 dans un périmètre borné :** `_copy_tree_verified()` accepte désormais le journal et persiste `COPYING` avant chaque copie puis `VERIFIED` après la vérification hash/taille. Un échec de persistance après copie laisse le journal `EXECUTING` avec la progression partielle et supprime la cible partielle ; il est donc classé pour reprise, jamais comme succès. L’exécuteur principal refuse toujours `COPY_VERIFY_SWITCH`.
 
+**Sous-lot préparatoire terminé le 2026-09-12 dans un périmètre borné :** le Core expose `transition_profile_migration_state()` avec une allowlist de transitions atomiques. Les sauts directs vers `COMMITTED` ou `SWITCHING` depuis `PLANNED`, les états inconnus et les transitions après `COMMITTED` sont refusés. Les états de copie journalisés utilisent `COPYING`; la compatibilité de reprise `EXECUTING` est conservée pour le chemin same-filesystem existant. La validation complète reste ouverte avant toute bascule inter-filesystems.
+
 Contrat restant : compléter les préflights de racines workspace, le réalignement d’identité SQLite audité lors des migrations structurelles, la validation post-migration complète du nouveau store (FK, audit, absence de source résiduelle) et les tests d’interruption sur tous les sous-répertoires. Ne jamais étendre le périmètre physique sans ce protocole.
 
 ### 4.3 Doctor composite et reprises
