@@ -74,6 +74,8 @@ class ClaudeCodeCloudRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 store, manifest, instructions, integration, hooks, review, local_lifecycle, local, cloud, confirm=True
             )
             self.assertEqual(result.status, "STAGED")
+            from vera_mmu.session_lifecycle import touch_mcp_ready
+            touch_mcp_ready(store.locator.runtime_dir)
         return profile
 
     def _hook(self, profile: Path, event: str, payload: dict[str, object]) -> dict[str, object]:
@@ -385,7 +387,7 @@ class ClaudeCodeCloudRuntimeTests(unittest.IsolatedAsyncioTestCase):
             session_id = "cloud-mcp-session"
             started = self._hook(profile, "SessionStart", {"session_id": session_id, "cwd": str(project), "source": "startup"})
             self.assertIn("Resume Dossier", started["hookSpecificOutput"]["additionalContext"])
-            denied = self._hook(profile, "PreToolUse", {"session_id": session_id, "cwd": str(project), "tool_name": "Read", "tool_input": {}})
+            denied = self._hook(profile, "PreToolUse", {"session_id": session_id, "cwd": str(project), "tool_name": "Bash", "tool_input": {}})
             self.assertEqual(denied["hookSpecificOutput"]["permissionDecision"], "deny")
             async with self._session(profile) as session:
                 tools = await session.list_tools()
@@ -408,8 +410,24 @@ class ClaudeCodeCloudRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("permissionDecision", allowed["hookSpecificOutput"])
             compacted = self._hook(profile, "PostCompact", {"session_id": session_id, "cwd": str(project)})
             self.assertIn("Resume Dossier", compacted["hookSpecificOutput"]["additionalContext"])
-            rearmed = self._hook(profile, "PreToolUse", {"session_id": session_id, "cwd": str(project), "tool_name": "Read", "tool_input": {}})
+            rearmed = self._hook(profile, "PreToolUse", {"session_id": session_id, "cwd": str(project), "tool_name": "Bash", "tool_input": {}})
             self.assertEqual(rearmed["hookSpecificOutput"]["permissionDecision"], "deny")
+
+    async def test_session_start_uses_soft_guard_when_mcp_startup_times_out(self) -> None:
+        with TemporaryDirectory() as directory:
+            project = Path(directory)
+            profile = self._prepare(project)
+            from vera_mmu.identity import load_profile
+            from vera_mmu.store import MemoryStore
+            with MemoryStore.open(load_profile(profile), profile) as store:
+                marker = store.locator.runtime_dir / "mcp_ready"
+                marker.unlink(missing_ok=True)
+            with patch.dict(os.environ, {"VERA_MCP_STARTUP_TIMEOUT_S": "0"}):
+                started = self._hook(profile, "SessionStart", {"session_id": "cloud-timeout", "cwd": str(project), "source": "startup"})
+            context = started["hookSpecificOutput"]["additionalContext"]
+            self.assertIn("MCP_STARTUP_TIMEOUT", context)
+            allowed_with_notice = self._hook(profile, "PreToolUse", {"session_id": "cloud-timeout", "cwd": str(project), "tool_name": "Bash", "tool_input": {}})
+            self.assertNotEqual(allowed_with_notice["hookSpecificOutput"].get("permissionDecision"), "deny")
 
 
 if __name__ == "__main__":

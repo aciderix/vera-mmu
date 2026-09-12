@@ -28,7 +28,7 @@ from .mcp_integration import MCPIntegration, MCPIntegrationError, compile_mcp_in
 from .mcp_manifest import MCPManifest, MCPManifestError, compile_mcp_manifest, verify_mcp_manifest
 from .mcp_server import DenyRuntimeAdapter, create_server
 from .profile_resume import compile_profile_resume_dossier, profile_resume_sections
-from .session_lifecycle import GuardDecision, ResumeDossierService, ResumeGuardService, ResumeSectionRequirement
+from .session_lifecycle import GuardDecision, ResumeDossierService, ResumeGuardService, ResumeSectionRequirement, wait_for_mcp_ready
 from .store import MemoryStore, StoreError
 
 
@@ -44,6 +44,8 @@ CLOUD_RUNTIME_FORMAT = "vera-claude-code-cloud-runtime/v1"
 CLOUD_HOST_CONFIG_FORMAT = "vera-claude-code-cloud-host-config/v1"
 CLOUD_USER_TRUST_FORMAT = "vera-claude-code-cloud-user-trust/v1"
 CLOUD_CONFIG_ENTRYPOINT = "vmmu-claude-code-cloud-config"
+CLOUD_MCP_TOOL_TIMEOUT_MS = "3600000"
+CLOUD_HOOK_CONTEXT_MAX_BYTES = 18_500
 _CLOUD_USER_SCOPE_TARGET = "$HOME/.claude/settings.json"
 _ENABLED_MCPJSON_SERVERS_KEY = "enabledMcpjsonServers"
 _DISABLED_MCPJSON_SERVERS_KEY = "disabledMcpjsonServers"
@@ -244,6 +246,7 @@ def compile_claude_code_cloud_plan(
                     "VERA_MCP_BUILD_HASH": manifest.mcp_build_hash,
                     "VERA_MCP_INSTRUCTIONS_HASH": instructions.instructions_hash,
                     "VERA_PROJECT_ID": store.identity.project_id,
+                    "MCP_TOOL_TIMEOUT": CLOUD_MCP_TOOL_TIMEOUT_MS,
                 },
                 "id": server_id,
             },
@@ -537,8 +540,11 @@ def handle_claude_code_cloud_hook(
         source = payload.get("source")
         reason = "RESUME" if source == "resume" else "SESSION_OPEN" if source == "startup" else "CONTEXT_RESTORED"
         dossier = _compile_cloud_dossier(store)
-        guard.arm(session_id, CLAUDE_CODE_CLOUD_ADAPTER_ID, reason, dossier, mode="HARD")
-        return _context(event, "Resume Dossier VERA cloud — lire et acquitter via mmu_acknowledge_resume :\n" + dossier.json_text)
+        ready = wait_for_mcp_ready(store.locator.runtime_dir)
+        mode = "HARD" if ready else "SOFT"
+        guard.arm(session_id, CLAUDE_CODE_CLOUD_ADAPTER_ID, reason, dossier, mode=mode)
+        readiness = "MCP cloud prêt : garde HARD armée." if ready else "MCP_STARTUP_TIMEOUT : MCP cloud non confirmé dans le délai ; garde SOFT armée pour éviter un deadlock."
+        return _context(event, readiness + "\nResume Dossier VERA cloud — lire et acquitter via mmu_acknowledge_resume :\n" + dossier.json_text)
     if _read_cloud_session(store) != {"project_id": store.identity.project_id, "session_id": session_id}:
         raise ClaudeCodeCloudError("Session Claude cloud non liée au runtime courant.")
     if event == "PreToolUse":
@@ -547,14 +553,14 @@ def handle_claude_code_cloud_hook(
             raise ClaudeCodeCloudError("PreToolUse Claude cloud sans nom de tool.")
         if tool_name == _acknowledgement_tool_name(store):
             return _empty(event)
-        outcome = guard.precheck(session_id, CLAUDE_CODE_CLOUD_ADAPTER_ID)
+        outcome = guard.precheck(session_id, CLAUDE_CODE_CLOUD_ADAPTER_ID, tool_name)
         if outcome.decision == GuardDecision.DENY:
             return _deny(event, outcome.reason)
         if outcome.decision == GuardDecision.ALLOW_WITH_NOTICE:
             return _context(event, outcome.reason)
         return _empty(event)
     if event == "PostToolUse":
-        outcome = guard.precheck(session_id, CLAUDE_CODE_CLOUD_ADAPTER_ID)
+        outcome = guard.precheck(session_id, CLAUDE_CODE_CLOUD_ADAPTER_ID, str(payload.get("tool_name", "")))
         return _context(event, outcome.reason) if outcome.decision != GuardDecision.ALLOW else _empty(event)
     if event == "PreCompact":
         dossier = _compile_cloud_dossier(store)
@@ -1021,7 +1027,7 @@ def _acknowledgement_tool_name(store: MemoryStore) -> str:
 
 
 def _context(event: str, text: str) -> dict[str, object]:
-    return {"hookSpecificOutput": {"additionalContext": text[:12_000], "hookEventName": event}}
+    return {"hookSpecificOutput": {"additionalContext": text[:CLOUD_HOOK_CONTEXT_MAX_BYTES], "hookEventName": event}}
 
 
 def _empty(event: str) -> dict[str, object]:

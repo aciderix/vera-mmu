@@ -13,6 +13,9 @@ from collections.abc import Callable, Mapping
 from dataclasses import asdict
 import json
 from pathlib import Path
+import re
+import threading
+import time
 from typing import Any, Protocol
 from uuid import uuid4
 
@@ -34,7 +37,7 @@ from .mcp_instructions import MCPInstructions, compile_mcp_instructions
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
 from .project_import import apply_project_document_import, preview_project_document_import
 from .read_api import ReadService
-from .session_lifecycle import ResumeGuardService
+from .session_lifecycle import ResumeGuardService, touch_mcp_ready
 from .store import MemoryStore, StoreError
 from .validators import ValidatorService
 
@@ -56,7 +59,22 @@ L’historique d’evidence est une projection compacte, project-bound et borné
 Les pointeurs Front et handoff sont résolus uniquement depuis l’état persistant du store actif.
 Le rapport de couverture est une projection statique sans chemin, runtime, hôte ou donnée client.
 Le Doctor ne prend aucun chemin, runtime ou hôte contrôlé par le client. Toute erreur métier
-reste structurée et n’est jamais transformée en succès."""
+ reste structurée et n’est jamais transformée en succès."""
+_DECOLLAPSE_MARK = re.compile(r'</parameter>\s*<parameter name="([A-Za-z0-9_-]+)">')
+
+
+def _decollapse_mapping(value: Mapping[str, object]) -> dict[str, object]:
+    """Repair known client parameter collapse before the normal closed validation."""
+    result = dict(value)
+    for key, raw in value.items():
+        if not isinstance(raw, str) or not _DECOLLAPSE_MARK.search(raw):
+            continue
+        parts = _DECOLLAPSE_MARK.split(raw)
+        result[key] = parts[0].split("</invoke>", 1)[0].split("</parameter>", 1)[0]
+        for index in range(1, len(parts) - 1, 2):
+            result[parts[index]] = parts[index + 1].split("</invoke>", 1)[0].split("</parameter>", 1)[0]
+        break
+    return result
 
 
 class MCPRuntimeAdapter(Protocol):
@@ -133,6 +151,22 @@ def _mutating_call(operation: str, store: MemoryStore, fn: Callable[[], Mapping[
     if payload["ok"] is True:
         payload["memory_sync"] = dict(store.last_sync_status)
     return payload
+
+
+def _start_liveness_heartbeat(store: MemoryStore) -> None:
+    """Keep the runtime marker fresh while this MCP server process is alive."""
+    runtime_dir = store.locator.runtime_dir
+    touch_mcp_ready(runtime_dir)
+
+    def beat() -> None:
+        while True:
+            time.sleep(20.0)
+            try:
+                touch_mcp_ready(runtime_dir)
+            except OSError:
+                return
+
+    threading.Thread(target=beat, name="vera-mcp-liveness", daemon=True).start()
 
 
 def _catalog(store: MemoryStore, allowed_capability_ids: frozenset[str] | None = None) -> dict[str, object]:
@@ -234,6 +268,7 @@ def create_server(
         raise ValueError("Actor MCP invalide.")
     if not isinstance(asset_validator_id, str) or not asset_validator_id or "/" in asset_validator_id:
         raise ValueError("Validator MCP invalide.")
+    _start_liveness_heartbeat(store)
     if runtime_adapter is not None and adapter_registry is not None:
         raise ValueError("Adapter direct et registry MCP sont mutuellement exclusifs.")
     if adapter_registry is not None and manifest is None:
@@ -442,13 +477,16 @@ def create_server(
         def acknowledge() -> Mapping[str, object]:
             if lifecycle_adapter is None:
                 raise StoreError("Aucun adapter lifecycle attesté n’est configuré pour ce serveur MCP.")
-            if not isinstance(sections, dict) or any(not isinstance(key, str) or not isinstance(value, str) for key, value in sections.items()):
+            if not isinstance(sections, dict):
+                raise StoreError("Sections de reprise MCP invalides.")
+            normalized_sections = _decollapse_mapping(sections)
+            if any(not isinstance(key, str) or not isinstance(value, str) for key, value in normalized_sections.items()):
                 raise StoreError("Sections de reprise MCP invalides.")
             session_identity = lifecycle_adapter.session_identity()
             if not isinstance(session_identity, str) or not session_identity:
                 raise StoreError("Adapter lifecycle : identité de session hôte indisponible.")
             if not ResumeGuardService(store).acknowledge_current(
-                session_identity, lifecycle_adapter.adapter_id, sections
+                session_identity, lifecycle_adapter.adapter_id, normalized_sections
             ):
                 raise StoreError("Acquittement de reprise refusé par l’état lifecycle persistant.")
             return {"acknowledged": True}

@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
+import time
 from typing import Any, Mapping, Sequence
 
 from .identity import canonical_json
@@ -23,7 +24,12 @@ _SECTION_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 _ADAPTER_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,127}$")
 _ARM_REASONS = frozenset({"SESSION_OPEN", "RESUME", "CONTEXT_PREPARE", "CONTEXT_RESTORED"})
 _MODES = frozenset({"HARD", "SOFT"})
-_MAX_RESUME_DOSSIER_BYTES = 24_000
+RESUME_DOSSIER_MAX_BYTES = 14_000
+MCP_LIVENESS_MAX_AGE_S = 90.0
+MCP_STARTUP_TIMEOUT_S = 30.0
+MCP_STARTUP_POLL_S = 0.1
+_TRUTHY = frozenset({"1", "true", "yes", "on"})
+_READONLY_TOOLS = frozenset({"Read", "Grep", "Glob", "LS", "NotebookRead", "TodoRead", "BashOutput", "ToolSearch"})
 
 
 class LifecycleError(StoreError):
@@ -88,6 +94,78 @@ class GuardOutcome:
     reason: str
 
 
+def mcp_ready_marker(runtime_dir: Path) -> Path:
+    """Return the runtime-local marker used to prove that MCP acknowledgement is reachable."""
+    return runtime_dir / "mcp_ready"
+
+
+def touch_mcp_ready(runtime_dir: Path) -> None:
+    """Refresh the MCP liveness marker atomically; failures are deliberately surfaced."""
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    marker = mcp_ready_marker(runtime_dir)
+    temporary = marker.with_suffix(".tmp")
+    temporary.write_text(f"{time.time():.6f}\n", encoding="utf-8")
+    os.replace(temporary, marker)
+
+
+def mcp_channel_alive(runtime_dir: Path, *, now: float | None = None) -> bool:
+    try:
+        age = (time.time() if now is None else now) - mcp_ready_marker(runtime_dir).stat().st_mtime
+    except OSError:
+        return False
+    return age <= MCP_LIVENESS_MAX_AGE_S
+
+
+def mcp_channel_stale(runtime_dir: Path, *, now: float | None = None) -> bool:
+    """Return true only when a previously advertised MCP channel has gone stale."""
+    marker = mcp_ready_marker(runtime_dir)
+    try:
+        marker.stat()
+    except OSError:
+        return False
+    return not mcp_channel_alive(runtime_dir, now=now)
+
+
+def wait_for_mcp_ready(runtime_dir: Path, *, timeout_s: float | None = None, poll_s: float = MCP_STARTUP_POLL_S) -> bool:
+    """Wait briefly for the MCP cold-start marker without ever creating a deadlock."""
+    if timeout_s is None:
+        raw = os.environ.get("VERA_MCP_STARTUP_TIMEOUT_S", os.environ.get("MCP_STARTUP_TIMEOUT_S", ""))
+        try:
+            timeout_s = MCP_STARTUP_TIMEOUT_S if not raw else float(raw)
+        except ValueError:
+            timeout_s = MCP_STARTUP_TIMEOUT_S
+    if not isinstance(timeout_s, (int, float)) or timeout_s < 0 or timeout_s > 120:
+        timeout_s = MCP_STARTUP_TIMEOUT_S
+    if not isinstance(poll_s, (int, float)) or poll_s <= 0:
+        poll_s = MCP_STARTUP_POLL_S
+    deadline = time.monotonic() + float(timeout_s)
+    while True:
+        if mcp_channel_alive(runtime_dir):
+            return True
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+        time.sleep(min(float(poll_s), remaining))
+
+
+def barrier_disabled(runtime_dir: Path) -> bool:
+    """Emergency escape hatch available during a running session, not only at startup."""
+    if any(os.environ.get(name, "").strip().lower() in _TRUTHY for name in ("VERA_MMU_BARRIER_OFF", "ARET_MMU_BARRIER_OFF")):
+        return True
+    sentinel = runtime_dir / "BARRIER_OFF"
+    try:
+        return sentinel.exists() and not sentinel.is_symlink()
+    except OSError:
+        return False
+
+
+def tool_allowed_during_guard(tool_name: str | None) -> bool:
+    """Permit diagnosis/schema discovery while keeping arbitrary actions blocked."""
+    if not isinstance(tool_name, str):
+        return False
+    return tool_name in _READONLY_TOOLS or tool_name.endswith("_acknowledge_resume") or "__mmu_acknowledge_resume" in tool_name
+
+
 class ResumeDossierService:
     """Compile a bounded ritual payload from already-authorized project information."""
 
@@ -115,7 +193,7 @@ class ResumeDossierService:
             }
         }
         json_text = canonical_json(payload) + "\n"
-        if len(json_text.encode("utf-8")) > _MAX_RESUME_DOSSIER_BYTES:
+        if len(json_text.encode("utf-8")) > RESUME_DOSSIER_MAX_BYTES:
             raise LifecycleError("Resume Dossier excède la borne de contexte configurée.")
         return ResumeDossier(
             project_id=self.store.identity.project_id,
@@ -268,7 +346,7 @@ class ResumeGuardService:
             return False
         return self.acknowledge(session_identity, adapter_id, state.resume_contract_hash, sections)
 
-    def precheck(self, session_identity: str, adapter_id: str) -> GuardOutcome:
+    def precheck(self, session_identity: str, adapter_id: str, tool_name: str | None = None) -> GuardOutcome:
         if not _is_session_identity(session_identity):
             return GuardOutcome(GuardDecision.DENY, "resume guard: session identity missing")
         if not _ADAPTER_ID_RE.fullmatch(adapter_id):
@@ -277,14 +355,23 @@ class ResumeGuardService:
             state = self._read_existing(self.state_path(session_identity, adapter_id), session_identity, adapter_id)
         except LifecycleError:
             return GuardOutcome(GuardDecision.DENY, "resume guard: state integrity failure")
+        if barrier_disabled(self.store.locator.runtime_dir):
+            return GuardOutcome(GuardDecision.ALLOW_WITH_NOTICE, "resume guard: emergency barrier override active")
         if state is None or state.status == "ACKNOWLEDGED":
             return GuardOutcome(GuardDecision.ALLOW, "resume guard: no active acknowledgement required")
+        if tool_allowed_during_guard(tool_name):
+            return GuardOutcome(GuardDecision.ALLOW_WITH_NOTICE, "resume guard: diagnostic/schema tool allowed before acknowledgement")
         if state.status == "DEGRADED":
             return GuardOutcome(
                 GuardDecision.ALLOW_WITH_NOTICE,
                 "resume guard: degraded dossier remains unacknowledged; continue only after repair",
             )
         if state.status == "ARMED":
+            if mcp_channel_stale(self.store.locator.runtime_dir):
+                return GuardOutcome(
+                    GuardDecision.ALLOW_WITH_NOTICE,
+                    "resume guard: MCP acknowledgement channel is not live; barrier downgraded to avoid deadlock",
+                )
             return GuardOutcome(
                 GuardDecision.DENY,
                 "resume guard: acknowledgement for the armed resume contract is required before an action",

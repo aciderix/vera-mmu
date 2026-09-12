@@ -108,6 +108,7 @@ class ClaudeCodeCloudPlanTests(unittest.TestCase):
                 self.assertEqual(payload["trust"], {"mode": "PREVIEW_ONLY", "target": "$HOME/.claude/settings.json"})
                 self.assertEqual(payload["secrets"], {"mode": "EXTERNAL_ONLY", "requirements": []})
                 self.assertEqual(payload["mcpServer"]["command"], "vmmu-claude-code-cloud-mcp")
+                self.assertEqual(payload["mcpServer"]["env"]["MCP_TOOL_TIMEOUT"], "3600000")
                 self.assertNotIn("ARET", first.json_text)
                 self.assertNotIn("pip", first.json_text.lower())
                 self.assertNotIn("curl", first.json_text.lower())

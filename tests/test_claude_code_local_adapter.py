@@ -136,7 +136,7 @@ class ClaudeCodeLocalAdapterTests(unittest.TestCase):
                     snapshots[-1],
                     plan,
                     "PreToolUse",
-                    {"session_id": "local-session-a", "cwd": str(project), "tool_name": "Read", "tool_input": {}},
+                    {"session_id": "local-session-a", "cwd": str(project), "tool_name": "Bash", "tool_input": {}},
                 )
                 self.assertEqual(denied["hookSpecificOutput"]["permissionDecision"], "deny")
                 ack_tool = f"mcp__vera-mmu-{store.identity.project_id}__mmu_acknowledge_resume"
@@ -171,7 +171,7 @@ class ClaudeCodeLocalAdapterTests(unittest.TestCase):
                 )
                 self.assertIn("prépare", prepared["hookSpecificOutput"]["additionalContext"])
                 denied_after_prepare = handle_claude_code_local_hook(
-                    store, snapshots[-1], plan, "PreToolUse", {"session_id": "local-session-a", "cwd": str(project), "tool_name": "Read", "tool_input": {}}
+                    store, snapshots[-1], plan, "PreToolUse", {"session_id": "local-session-a", "cwd": str(project), "tool_name": "Bash", "tool_input": {}}
                 )
                 self.assertEqual(denied_after_prepare["hookSpecificOutput"]["permissionDecision"], "deny")
                 restored = handle_claude_code_local_hook(

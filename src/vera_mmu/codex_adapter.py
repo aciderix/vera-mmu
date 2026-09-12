@@ -291,14 +291,14 @@ def handle_codex_hook(
             raise CodexAdapterError("PreToolUse Codex sans nom de tool.")
         if tool_name in _acknowledgement_tool_names(store):
             return {}
-        outcome = guard.precheck(session_id, CODEX_ADAPTER_ID)
+        outcome = guard.precheck(session_id, CODEX_ADAPTER_ID, tool_name)
         if outcome.decision == GuardDecision.DENY:
             return {"decision": "block", "systemMessage": outcome.reason}
         if outcome.decision == GuardDecision.ALLOW_WITH_NOTICE:
             return {"systemMessage": outcome.reason}
         return {}
     if event == "PostToolUse":
-        outcome = guard.precheck(session_id, CODEX_ADAPTER_ID)
+        outcome = guard.precheck(session_id, CODEX_ADAPTER_ID, str(payload.get("tool_name", "")))
         return {"systemMessage": outcome.reason} if outcome.decision != GuardDecision.ALLOW else {}
     if event == "PreCompact":
         dossier = _compile_codex_dossier(store)

@@ -87,9 +87,9 @@ def handle_antigravity_hook(store:MemoryStore,lifecycle:LifecycleAdapterPlan,pla
         tool=payload.get("tool_name")
         if not isinstance(tool,str):raise AntigravityAdapterError("PreToolUse Antigravity sans tool.")
         if tool in _ack_tools(store):return {}
-        result=guard.precheck(invocation,ANTIGRAVITY_ADAPTER_ID);return {"decision":"deny","reason":result.reason} if result.decision==GuardDecision.DENY else ({"notice":result.reason} if result.decision==GuardDecision.ALLOW_WITH_NOTICE else {})
+        result=guard.precheck(invocation,ANTIGRAVITY_ADAPTER_ID,tool);return {"decision":"deny","reason":result.reason} if result.decision==GuardDecision.DENY else ({"notice":result.reason} if result.decision==GuardDecision.ALLOW_WITH_NOTICE else {})
     if event=="PostToolUse":
-        result=guard.precheck(invocation,ANTIGRAVITY_ADAPTER_ID);return {"notice":result.reason} if result.decision!=GuardDecision.ALLOW else {}
+        result=guard.precheck(invocation,ANTIGRAVITY_ADAPTER_ID,str(payload.get("tool_name", "")));return {"notice":result.reason} if result.decision!=GuardDecision.ALLOW else {}
     _release_session(store,invocation);return {"status":"SESSION_ENDED"}
 def antigravity_stage_main(argv:Sequence[str]|None=None)->int:
     p=argparse.ArgumentParser(description="Staging runtime Antigravity VERA-MMU");p.add_argument("--profile",type=Path,required=True);p.add_argument("--confirm",action="store_true");a=p.parse_args(argv)

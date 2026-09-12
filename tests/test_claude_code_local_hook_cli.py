@@ -95,7 +95,7 @@ class ClaudeCodeLocalHookCLITests(unittest.TestCase):
             code, started = self._invoke(profile, "SessionStart", {"session_id": "cli-session", "cwd": str(project), "source": "startup"})
             self.assertEqual(code, 0)
             self.assertIn("Resume Dossier", started["hookSpecificOutput"]["additionalContext"])
-            code, denied = self._invoke(profile, "PreToolUse", {"session_id": "cli-session", "cwd": str(project), "tool_name": "Read", "tool_input": {}})
+            code, denied = self._invoke(profile, "PreToolUse", {"session_id": "cli-session", "cwd": str(project), "tool_name": "Bash", "tool_input": {}})
             self.assertEqual(code, 0)
             self.assertEqual(denied["hookSpecificOutput"]["permissionDecision"], "deny")
 

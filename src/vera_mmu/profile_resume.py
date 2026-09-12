@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Mapping
 
 from .identity import ProfileError, load_profile
-from .session_lifecycle import LifecycleError, ResumeDossier, ResumeDossierService, ResumeSectionRequirement
+from .session_lifecycle import LifecycleError, RESUME_DOSSIER_MAX_BYTES, ResumeDossier, ResumeDossierService, ResumeSectionRequirement
 from .store import MemoryStore, StoreError
 
 
@@ -30,9 +30,10 @@ def profile_resume_requirements(store: MemoryStore) -> tuple[ResumeSectionRequir
     if not isinstance(resume, Mapping) or not isinstance(storage, Mapping):
         raise ProfileResumeError("Project Profile incomplet pour la reprise.")
     sections = resume.get("sections")
-    maximum_total = storage.get("max_resume_bytes", 12_500)
+    maximum_total = storage.get("max_resume_bytes", RESUME_DOSSIER_MAX_BYTES)
     if not isinstance(sections, list) or not isinstance(maximum_total, int) or isinstance(maximum_total, bool):
         raise ProfileResumeError("Contrat de reprise du Project Profile invalide.")
+    maximum_total = min(maximum_total, RESUME_DOSSIER_MAX_BYTES)
     required = [section for section in sections if isinstance(section, Mapping) and section.get("required") is True]
     if not required:
         raise ProfileResumeError("Le Project Profile doit exiger au moins une section de reprise.")
@@ -53,7 +54,7 @@ def compile_profile_resume_dossier(store: MemoryStore, sections: Mapping[str, st
     except LifecycleError as exc:
         raise ProfileResumeError("Resume Dossier incompatible avec le Project Profile.") from exc
     try:
-        budget = int(_profile(store)["storage"].get("max_resume_bytes", 12_500))
+        budget = min(int(_profile(store)["storage"].get("max_resume_bytes", RESUME_DOSSIER_MAX_BYTES)), RESUME_DOSSIER_MAX_BYTES)
     except (KeyError, AttributeError, TypeError, ValueError) as exc:
         raise ProfileResumeError("Budget de reprise du Project Profile illisible.") from exc
     if len(dossier.json_text.encode("utf-8")) > budget:

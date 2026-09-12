@@ -127,10 +127,10 @@ def handle_gemini_hook(store: MemoryStore, lifecycle: LifecycleAdapterPlan, plan
         tool = payload.get("tool_name")
         if not isinstance(tool, str): raise GeminiAdapterError("BeforeTool Gemini sans nom de tool.")
         if tool in _ack_tools(store): return {}
-        outcome = guard.precheck(session, GEMINI_ADAPTER_ID)
+        outcome = guard.precheck(session, GEMINI_ADAPTER_ID, tool)
         return {"decision": "deny", "reason": outcome.reason} if outcome.decision == GuardDecision.DENY else ({"systemMessage": outcome.reason} if outcome.decision == GuardDecision.ALLOW_WITH_NOTICE else {})
     if event == "AfterTool":
-        outcome = guard.precheck(session, GEMINI_ADAPTER_ID); return {"systemMessage": outcome.reason} if outcome.decision != GuardDecision.ALLOW else {}
+        outcome = guard.precheck(session, GEMINI_ADAPTER_ID, str(payload.get("tool_name", ""))); return {"systemMessage": outcome.reason} if outcome.decision != GuardDecision.ALLOW else {}
     if event == "PreCompress": return {"systemMessage": "VERA enregistre que PreCompress Gemini est advisory : il ne peut pas réarmer la garde sans événement post-compaction."}
     _release_session(store, session); return {}
 

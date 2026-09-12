@@ -201,7 +201,7 @@ def handle_claude_code_local_hook(
             raise ClaudeCodeLocalError("PreToolUse Claude sans nom de tool.")
         if tool_name == _acknowledgement_tool_name(store):
             return _empty(event)
-        outcome = guard.precheck(session_id, CLAUDE_CODE_LOCAL_ADAPTER_ID)
+        outcome = guard.precheck(session_id, CLAUDE_CODE_LOCAL_ADAPTER_ID, tool_name)
         if outcome.decision == GuardDecision.DENY:
             return _deny(event, outcome.reason)
         if outcome.decision == GuardDecision.ALLOW_WITH_NOTICE:
@@ -370,7 +370,7 @@ def _compile_resume_dossier(store: MemoryStore):
 
 
 def _context(event: str, text: str) -> dict[str, object]:
-    bounded = text[:12_000]
+    bounded = text[:18_500]
     return {"hookSpecificOutput": {"additionalContext": bounded, "hookEventName": event}}
 
 

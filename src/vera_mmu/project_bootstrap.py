@@ -85,7 +85,7 @@ storage:
   sqlite_file: "memory.sqlite"
   artifacts_dir: "artifacts"
   max_context_bytes: 18500
-  max_resume_bytes: 12500
+  max_resume_bytes: 14000
 identity:
   include_vcs_revision: true
   include_profile_hash: true

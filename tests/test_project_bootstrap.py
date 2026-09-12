@@ -35,7 +35,7 @@ class ProjectBootstrapTests(unittest.TestCase):
             applied_root=Path(directory)/"applied";applied_root.mkdir();preview=preview_project_initialization(applied_root,template="software",project_id="my-app",project_name="My App")
             from vera_mmu.project_bootstrap import apply_project_initialization
             apply_project_initialization(applied_root,preview,confirm=True);profile=load_profile(applied_root/".vera-mmu"/"project.yaml")
-            self.assertEqual(profile["capabilities"]["catalog"],".vera-mmu/capabilities.yaml");self.assertEqual(profile["gates"]["catalog"],".vera-mmu/gates.yaml");self.assertEqual(profile["policies"]["file"],".vera-mmu/policies.yaml");self.assertEqual(profile["integrations"]["enabled"],[])
+            self.assertEqual(profile["capabilities"]["catalog"],".vera-mmu/capabilities.yaml");self.assertEqual(profile["gates"]["catalog"],".vera-mmu/gates.yaml");self.assertEqual(profile["policies"]["file"],".vera-mmu/policies.yaml");self.assertEqual(profile["integrations"]["enabled"],[]);self.assertEqual(profile["storage"]["max_resume_bytes"],14000)
             self.assertEqual(profile["resume"]["template"],"engineering");self.assertIn("RULE",profile["knowledge"]["types"]);self.assertIn("active_goal",profile["front"]["fields"]);self.assertTrue(profile["project"]["description"])
     def test_i007_i011_profile_catalog_paths_and_taxonomy_are_project_bound(self)->None:
         from vera_mmu.identity import ProfileError,validate_profile
