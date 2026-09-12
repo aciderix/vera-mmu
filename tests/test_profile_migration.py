@@ -431,6 +431,28 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             migrated_profile = Path(str(result["profile_path"]))
             self.assertEqual(load_profile(migrated_profile)["storage"]["memory_dir"], ".vera-mmu-next")
 
+    def test_execute_copy_verify_switch_copies_runtime_before_commit(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile_path = self._project(root)
+            profile = load_profile(profile_path)
+            candidate = deepcopy(profile)
+            candidate["storage"]["memory_dir"] = ".vera-mmu-next"
+            candidate["capabilities"]["catalog"] = ".vera-mmu-next/capabilities.yaml"
+            candidate["gates"]["catalog"] = ".vera-mmu-next/gates.yaml"
+            candidate["policies"]["file"] = ".vera-mmu-next/policies.yaml"
+            candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
+            with patch.object(profile_migration, "_device_for_target", return_value=999999):
+                preview = preview_profile_physical_migration(profile_path, candidate)
+                self.assertEqual(preview.migration_strategy, "COPY_VERIFY_SWITCH")
+                prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+                result = execute_profile_physical_migration(profile_path, candidate, preview, confirm=True)
+
+            self.assertEqual(result["status"], "COMMITTED")
+            self.assertEqual(result["mutation"], "COPY_VERIFY_SWITCH")
+            self.assertFalse((root / ".vera-mmu").exists())
+            self.assertTrue((root / ".vera-mmu-next" / "memory.sqlite").is_file())
+
     def test_execute_moves_an_isolated_additional_workspace_root(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
@@ -455,12 +477,14 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             with sqlite3.connect(sqlite_path) as connection:
                 connection.execute("CREATE TABLE marker(value TEXT)")
                 connection.execute("INSERT INTO marker VALUES ('root-move')")
-            preview = preview_profile_physical_migration(profile_path, candidate)
-            prepared = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
-            journal_record = json.loads(Path(str(prepared["journal_path"])).read_text(encoding="utf-8"))
-            self.assertEqual(len(journal_record["workspace_inventory"]), 1)
-            self.assertEqual(journal_record["workspace_inventory"][0]["kind"], "workspace-file")
-            result = execute_profile_physical_migration(profile_path, candidate, preview, confirm=True)
+            with patch.object(profile_migration, "_device_for_target", return_value=999999):
+                preview = preview_profile_physical_migration(profile_path, candidate)
+                prepared = prepare_profile_migration_journal(profile_path, candidate, preview, confirm=True)
+                journal_record = json.loads(Path(str(prepared["journal_path"])).read_text(encoding="utf-8"))
+                self.assertEqual(preview.migration_strategy, "COPY_VERIFY_SWITCH")
+                self.assertEqual(len(journal_record["workspace_inventory"]), 1)
+                self.assertEqual(journal_record["workspace_inventory"][0]["kind"], "workspace-file")
+                result = execute_profile_physical_migration(profile_path, candidate, preview, confirm=True)
             self.assertEqual(result["status"], "COMMITTED")
             self.assertTrue((root / "src-next").is_dir())
             self.assertFalse((root / "docs").exists())

@@ -230,6 +230,7 @@ def _copy_tree_verified(
     *,
     progress: Callable[[str, str], None] | None = None,
     journal_path: str | Path | None = None,
+    progress_prefix: str = "",
 ) -> None:
     """Copy and verify a regular tree, optionally persisting each file transition."""
     if source.is_symlink() or not source.is_dir() or target.exists():
@@ -248,8 +249,9 @@ def _copy_tree_verified(
                 raise ProfileMigrationError(f"Entrée non régulière dans la copie : {item}.")
             destination.parent.mkdir(parents=True, exist_ok=True)
             relative_path = str(relative)
+            journal_relative_path = str(Path(progress_prefix) / relative) if progress_prefix else relative_path
             if journal_path is not None:
-                record_copy_progress(journal_path, relative_path, "COPYING")
+                record_copy_progress(journal_path, journal_relative_path, "COPYING")
             if progress is not None:
                 progress(relative_path, "COPYING")
             shutil.copy2(item, destination)
@@ -258,7 +260,7 @@ def _copy_tree_verified(
             if source_hash != target_hash or item.stat().st_size != destination.stat().st_size:
                 raise ProfileMigrationError(f"Vérification de copie échouée : {item}.")
             if journal_path is not None:
-                record_copy_progress(journal_path, relative_path, "VERIFIED")
+                record_copy_progress(journal_path, journal_relative_path, "VERIFIED")
             if progress is not None:
                 progress(relative_path, "VERIFIED")
     except Exception:
@@ -633,6 +635,16 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
         source = Path(str(item["source"]))
         target = Path(str(item["target"]))
         workspace_expected.add(str(target))
+        workspace_progress = None
+        for index, move in enumerate(workspace_moves):
+            try:
+                relative = target.relative_to(Path(str(move["target"])))
+            except ValueError:
+                continue
+            workspace_progress = progress_states.get(str(Path("workspace") / str(index) / relative), [])
+            break
+        if workspace_progress != ["COPYING", "VERIFIED"]:
+            issues.append({"code": "WORKSPACE_COPY_NOT_VERIFIED", "path": str(target)})
         if source.is_symlink() or not source.is_file():
             issues.append({"code": "WORKSPACE_SOURCE_MISSING", "path": str(source)})
         elif source.stat().st_size != item["size"] or sha256(source.read_bytes()).hexdigest() != item["sha256"]:
@@ -872,6 +884,94 @@ def prepare_sqlite_migration_artifacts(
         raise
 
 
+def prepare_workspace_migration_roots(
+    workspace_moves: list[dict[str, str]] | tuple[dict[str, str], ...],
+    *,
+    journal_path: str | Path,
+) -> dict[str, object]:
+    """Copy isolated workspace roots with per-file journal progress."""
+    if not isinstance(workspace_moves, (list, tuple)):
+        raise ProfileMigrationError("Mouvements workspace non canoniques.")
+    created: list[Path] = []
+    try:
+        for index, move in enumerate(workspace_moves):
+            if not isinstance(move, dict) or set(move) != {"source", "target", "kind"}:
+                raise ProfileMigrationError("Mouvement workspace non canonique.")
+            source = Path(move["source"])
+            target = Path(move["target"])
+            _copy_tree_verified(source, target, journal_path=journal_path, progress_prefix=f"workspace/{index}")
+            created.append(target)
+        return {
+            "format": "vera-profile-workspace-preparation/v1",
+            "status": "READY_FOR_SWITCH",
+            "roots": len(workspace_moves),
+            "mutation": "WORKSPACE_COPY",
+        }
+    except Exception:
+        for target in reversed(created):
+            shutil.rmtree(target, ignore_errors=True)
+        raise
+
+
+def _execute_copy_verify_switch(
+    path: Path,
+    new_profile: Mapping[str, Any],
+    preview: ProfileMigrationPreview,
+    report: Mapping[str, object],
+) -> dict[str, object]:
+    journal_path = Path(str(report["journal_path"]))
+    journal = json.loads(journal_path.read_text(encoding="utf-8"))
+    old_runtime = Path(preview.old_runtime)
+    new_runtime = Path(preview.new_runtime)
+    old_profile = load_profile(path)
+    backup_path = _journal_dir(path) / f".vera-profile-migration-{preview.preview_hash}.profile-backup"
+    backup_path.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+    os.chmod(backup_path, 0o600)
+    target_profile = new_runtime / path.relative_to(old_runtime)
+    try:
+        transition_profile_migration_state(journal_path, "COPYING")
+        _copy_tree_verified(old_runtime, new_runtime, journal_path=journal_path)
+        prepare_workspace_migration_roots(preview.workspace_moves, journal_path=journal_path)
+        target_profile.parent.mkdir(parents=True, exist_ok=True)
+        _write_text_atomic(
+            target_profile,
+            yaml.safe_dump(validate_profile(new_profile), allow_unicode=True, default_flow_style=False, sort_keys=False),
+            ".vera-profile-copy-",
+        )
+        transition_profile_migration_state(journal_path, "VERIFIED")
+        validation = validate_profile_migration_inventory(journal_path)
+        if validation["status"] != "READY_FOR_SWITCH":
+            raise ProfileMigrationError("Validation complète refusée avant bascule inter-filesystems.")
+        transition_profile_migration_state(journal_path, "SWITCHING")
+        for move in preview.workspace_moves:
+            source = Path(move["source"])
+            if source.exists():
+                shutil.rmtree(source)
+        if old_runtime.exists():
+            shutil.rmtree(old_runtime)
+        transition_profile_migration_state(journal_path, "COMMITTED")
+        backup_path.unlink(missing_ok=True)
+        journal_path.unlink(missing_ok=True)
+        return {
+            "format": "vera-profile-physical-migration/v1",
+            "status": "COMMITTED",
+            "preview_hash": preview.preview_hash,
+            "profile_path": str(target_profile),
+            "mutation": "COPY_VERIFY_SWITCH",
+        }
+    except Exception as exc:
+        current = json.loads(journal_path.read_text(encoding="utf-8"))
+        if current.get("state") == "SWITCHING":
+            transition_profile_migration_state(journal_path, "RECOVERY_REQUIRED")
+            raise ProfileMigrationError("Interruption pendant SWITCHING : reprise externe requise.") from exc
+        shutil.rmtree(new_runtime, ignore_errors=True)
+        for move in preview.workspace_moves:
+            shutil.rmtree(Path(move["target"]), ignore_errors=True)
+        transition_profile_migration_state(journal_path, "ROLLED_BACK")
+        backup_path.unlink(missing_ok=True)
+        raise
+
+
 def execute_profile_physical_migration(
     profile_path: str | Path,
     new_profile: Mapping[str, Any],
@@ -886,8 +986,13 @@ def execute_profile_physical_migration(
     current = preview_profile_physical_migration(path, new_profile)
     if current != preview:
         raise ProfileMigrationError("Preview de migration périmé ou altéré.")
+    if preview.migration_strategy == "COPY_VERIFY_SWITCH":
+        report = inspect_profile_migration_journal(path)
+        if report["status"] != "READY_FOR_EXECUTOR":
+            raise ProfileMigrationError("Journal non exécutable : divergence ou collision détectée.")
+        return _execute_copy_verify_switch(path, new_profile, preview, report)
     if preview.migration_strategy != "RENAME_ATOMIC":
-        raise ProfileMigrationError("Migration inter-filesystems refusée : COPY_VERIFY_SWITCH n’est pas encore exécutable.")
+        raise ProfileMigrationError("Stratégie de migration physique inconnue ou refusée.")
     old_profile = load_profile(path)
     old_workspace = resolve_workspace(old_profile, path)
     new_normalized = validate_profile(new_profile)
