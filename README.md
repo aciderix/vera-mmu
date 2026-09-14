@@ -36,7 +36,7 @@ VERA est testé sur des fixtures **software, data, research, documentation, game
 | Mémoire Git | Commit/push optionnels de `.vera-mmu/` sur la branche courante | Pull implicite, merge automatique de SQLite ou staging des fichiers métier |
 | Viewer web | Dashboard statique séparé, lecture/import-export de rapports | Installation MCP, accès au disque, shell ou bridge local depuis GitHub Pages |
 
-La suite actuelle compte **699 tests et 55 sous-tests**, dont le parcours de sortie complet — `scan`, `init`, `validate`, `generate`, `doctor` — rejoué sur les six domaines, et une chaîne épistémique complète menée jusqu’à une promotion `PROVEN` signée. Ce décompte est relevé sur Linux x64 ; le dernier passage Windows x64 attesté correspond à la campagne M8/M9 et porte sur une suite antérieure. Les résultats et limites détaillés figurent dans les [records de conformance M8](docs/continuity/artifacts/m8_multi_domain_conformance_2026-08-27.md) et de [candidats M9](docs/continuity/artifacts/m9_release_candidate_pipeline_2026-08-27.md).
+La suite actuelle compte **749 tests et 55 sous-tests**, dont le parcours de sortie complet — `scan`, `init`, `validate`, `generate`, `doctor` — rejoué sur les six domaines, et une chaîne épistémique complète menée jusqu’à une promotion `PROVEN` signée. Ce décompte est relevé sur Linux x64 ; le dernier passage Windows x64 attesté correspond à la campagne M8/M9 et porte sur une suite antérieure. Les résultats et limites détaillés figurent dans les [records de conformance M8](docs/continuity/artifacts/m8_multi_domain_conformance_2026-08-27.md) et de [candidats M9](docs/continuity/artifacts/m9_release_candidate_pipeline_2026-08-27.md).
 
 ## Installation depuis le source
 

@@ -3465,3 +3465,19 @@ LOG-0280 a décrit `DECOUPLING_MATRIX.md` comme comptant « 75 lignes, 0 `DONE` 
 Le registre suit **16 couplages** (`C01`–`C16`), pas 75 : le comptage précédent additionnait les lignes mères et environ 59 sous-lignes des tables d’avancement observé, où un même couplage reparaît à chaque lot (`C03` y figure 20 fois, `C16` 19 fois). Et il a bien été tenu au-delà de M1 : 33 sections d’avancement couvrent M1, M2.1 à M2.14, M3.S1 et M4.1 à M4-C. Seul son en-tête est resté daté de M0.2/M1.
 
 Le constat de fond est inchangé et reste le seul point qui compte : **aucune ligne mère n’est `DONE`**, 14 sont `SPLIT` et 2 `IN_PROGRESS`. Le registre enregistre donc scrupuleusement ce qui a été observé sans jamais conclure une parité, ce que sa propre règle interdit sans test de parité exécuté. Aucune affirmation de parité ARET ne peut s’appuyer sur lui en l’état.
+
+## LOG-0284 — Finalisation du MCP face à la spécification
+**Statut : PASS dans le périmètre implémenté.**
+Quatre chapitres de la spécification touchant le MCP étaient partiellement livrés ; ils sont clos ici.
+
+**§20 et §26 — playbook et instructions.** Le playbook était écrit à l’initialisation et lu par personne : `mcp_instructions.py` déclarait explicitement ne pas le charger. Le module `playbook.py` porte désormais les huit lois universelles du Core et charge, borne, hashe le playbook du projet. Les instructions composent exactement les cinq sections exigées — doctrine, playbook cité verbatim, règles de capabilities, résumé des policies, protocole de reprise — et sont liées au Profile Hash. Éditer une règle du projet change le hash des instructions, ce qu’un test épingle.
+
+**§25 — compilateur.** Le pipeline de seize étapes est explicite, ordonné et enregistré étape par étape. La validation statique est bloquante : elle refuse un build dont les instructions sont liées à un autre manifeste ou à un autre profil, dont la configuration hôte ne cite ni l’un ni l’autre, dont les instructions omettent une capability déclarée, ou dont une sortie porte une clé `command`, `argv`, `shell`, `interpreter`, `cwd` ou `executable`. Chaque entrée déclarative atteint le hash du package.
+
+**§28 — contrat de commandes.** Couverture portée de `8/13` à `13/13`, avec l’alias `mmu`. `validate` contrôle les fichiers déclaratifs **et leurs relations** : gate référençant une capability non déclarée, intégration activée sans agent profile, contrat de reprise sans section requise.
+
+**§54 — réparabilité.** `install_repair.py` répare ce qui est honnêtement réparable : les fichiers déclaratifs dérivables du profile. Une mémoire SQLite absente n’est jamais recréée — la remplacer par une base vide masquerait précisément ce que le Doctor doit signaler.
+
+Validation : suite Python — `749 passed, 55 subtests passed` ; parcours complet du contrat §28 rejoué sur un projet neuf, onze étapes nominales vertes et refus attendu sur bundle inexistant ; cycle casse → Doctor `FAIL` → réparation → Doctor `PASS` vérifié.
+
+**Hors périmètre de ce lot :** le Dashboard configurateur visuel des §29 à §34. L’application desktop reste un assistant d’installation ; l’IDE de configuration complet décrit par la spécification n’est pas livré et ne doit pas être revendiqué.

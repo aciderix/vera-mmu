@@ -72,3 +72,12 @@
 - [ ] Rejouer la suite complète sur la matrice native Windows x64 ; le décompte actuel de 686 tests n’est attesté que sur Linux x64.
 - [x] Certifier le front Tauri au-delà de la compilation : `tauri build --bundles deb` PASS, paquet contenant application et sidecar, démarrage natif sous affichage virtuel, et sidecar empaqueté prouvé en stdio avec refus de nonce et de confirmation.
 - [ ] Observer sur une machine réelle le dialogue WebView ↔ Rust ↔ sidecar déclenché par la sélection humaine d’un dossier : le parent Rust ne démarre le sidecar qu’à cette action, non simulable en conteneur.
+
+## Finalisation du MCP — 2026-09-14
+
+- [x] §20/§26 — Rendre le playbook projet effectif : chargé, borné, hashé et cité verbatim dans les instructions générées, qui composent désormais les cinq sections exigées et sont liées au Profile Hash.
+- [x] §25 — Exécuter le compilateur MCP comme un pipeline ordonné de seize étapes, avec validation statique bloquante et package reproductible dont le hash dépend de chaque entrée déclarative.
+- [x] §28 — Compléter le contrat de commandes : `validate`, `configure`, `serve`, `import`, `upgrade`, `dashboard`, plus l'alias `mmu`. Contrat à `13/13`.
+- [x] §45 — Ajouter la ligne `playbook` au Doctor, désormais porteuse puisque la génération cite le playbook.
+- [x] §54 — Livrer la réparation guidée de l'installation : preview, confirmation, écriture atomique, bornée aux fichiers dérivables du profile.
+- [ ] §29–34 — Dashboard configurateur visuel : hors périmètre de ce lot, qui porte sur le MCP. L'application desktop reste un assistant d'installation, pas l'IDE de configuration décrit par la spécification.
