@@ -220,6 +220,7 @@ Ne jamais pousser `ARET-MMU` ou `Automatic-reverse-engineering-toolkit`. Ne jama
 | `docs/continuity/PROJECT_MEMORY.md` | Décisions append-only |
 | `docs/continuity/ENGINEERING_LOG.md` | Journal append-only |
 | `docs/continuity/UNIVERSALIZATION_WORKPLAN.md` | Plan vivant et statuts |
+| `docs/continuity/REMAINING_WORK.md` | Travail restant, vérifié contre le code, avec critères de sortie |
 | `docs/continuity/artifacts/m11_specification_completeness_audit_2026-08-27.md` | Audit exhaustif M11 initial |
 | `docs/continuity/artifacts/m11_profile_physical_migration_design_2026-08-27.md` | Contrat de conception migration physique |
 | `docs/INVARIANTS.md` | Invariants de sécurité et de confiance |
