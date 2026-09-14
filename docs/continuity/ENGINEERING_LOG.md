@@ -3441,3 +3441,19 @@ Un comportement a été épinglé par test plutôt que contourné : restaurer un
 `resume_status` ne retourne jamais la clé d’état de session dérivée de l’identité hôte : lire un statut n’est pas une raison de l’exposer.
 
 Validation : suite Python — `699 passed, 55 subtests passed`; `git diff --check` PASS; scan frontière Core PASS.
+
+## LOG-0282 — Tauri natif : build, paquet et sidecar prouvés
+**Statut : PASS partiel, borne explicitement déclarée.**
+Les audits précédents classaient le front Tauri « non démontré » parce que `cargo` était indisponible dans leur environnement. Il l’était ici, et la chaîne a été menée jusqu’au bout.
+
+Prouvé par exécution :
+- `cargo check --locked` PASS après installation des bibliothèques système GTK/WebKit ;
+- `pnpm build` (tsc --noEmit puis Vite) PASS ;
+- `tauri build --bundles deb` PASS en profil release, `Finished 1 bundle` ;
+- le paquet `VERA-MMU_0.1.0-4_amd64.deb` (34 Mo) contient l’application et le sidecar `vmmu-desktop-bridge` ;
+- l’application extraite du paquet démarre sous affichage virtuel et reste vivante, avec pour seule sortie un avertissement EGL d’accélération matérielle propre au conteneur ;
+- le sidecar extrait du paquet répond en stdio : `project.scan` retourne un rapport `OBSERVED` hashé, `project.init.preview` retourne les 7 fichiers et son `preview_hash`, un nonce invalide est refusé `NONCE_INVALID` et une application sans confirmation est refusée `CONFIRMATION_REQUIRED`.
+
+Une précondition d’ordre de build, jusqu’ici non documentée, a été identifiée : le sidecar Python doit être construit avant `cargo`, faute de quoi le build échoue sur `resource path binaries/vmmu-desktop-bridge-… doesn't exist`. Ce n’est ni un défaut de code ni une dette, mais un ordre à écrire pour que chaque nouvel arrivant ne le redécouvre pas.
+
+**Ce qui reste non prouvé :** le dialogue WebView ↔ Rust ↔ sidecar déclenché par la sélection humaine d’un dossier dans le dialogue natif. Le parent Rust ne démarre le sidecar qu’à cette action, qui ne peut pas être simulée honnêtement ici. Le statut correct est donc : **build natif, paquet et sidecar prouvés ; parcours utilisateur interactif toujours à observer sur une machine réelle.**

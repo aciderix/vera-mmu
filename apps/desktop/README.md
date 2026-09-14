@@ -17,6 +17,17 @@ pnpm tauri dev
 
 Le builder refuse un target différent du système hôte. Les sidecars Windows et Linux sont donc produits dans leur runner natif respectif et portent le suffixe target requis par Tauri.
 
+**L’ordre ci-dessus est obligatoire.** Tauri déclare le sidecar comme ressource externe : lancer `cargo` ou `tauri build` avant d’avoir construit le binaire échoue sur `resource path binaries/vmmu-desktop-bridge-<target> doesn't exist`. Le message ne désigne pas un défaut du code Rust, seulement une étape manquante.
+
+Sous Linux, la compilation exige en outre les bibliothèques de développement GTK et WebKit, absentes d’une image minimale. Sur base Debian/Ubuntu :
+
+```bash
+sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev \
+  libayatana-appindicator3-dev librsvg2-dev libsoup-3.0-dev pkg-config
+```
+
+Leur absence se manifeste par `The system library gdk-3.0 required by crate gdk-sys was not found`, bien avant que le code du projet ne soit compilé.
+
 ## Artefacts de vérification
 
 La matrice GitHub Actions `.github/workflows/desktop-packaging.yml` produit, sans créer de release, les artefacts suivants :
