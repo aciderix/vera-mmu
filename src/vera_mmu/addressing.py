@@ -24,6 +24,7 @@ CORE_RESOURCE_TYPES = frozenset(
         "handoff",
         "knowledge",
         "profile",
+        "proof",
         "relation",
         "symbol",
         "work-item",

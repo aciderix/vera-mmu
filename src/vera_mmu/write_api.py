@@ -11,15 +11,24 @@ text; the Core decides whether the write is admissible.
 from __future__ import annotations
 
 from dataclasses import asdict
+import os
 from typing import Any, Mapping
 
 from .addressing import make_address
 from .front import FrontRevision, FrontService
+from .gates import GateService
 from .handoff import Handoff, HandoffService
 from .identity import DECLARATION_ID_RE, ProfileError, load_profile
 from .knowledge import Knowledge, KnowledgeService
 from .profile_resume import compile_profile_resume_dossier
+from .proof_policies import ProofPolicyService
+from .proofs import KnowledgeProof, ProofService
 from .store import MemoryStore, StoreError
+from .work_items import WorkItem, WorkItemService
+from .work_lifecycle import WorkLifecycleEvent, WorkLifecycleService
+
+
+PROOF_HMAC_SECRET_VARIABLE = "VERA_MMU_PROOF_HMAC_SECRET"
 
 
 class WriteApiError(StoreError):
@@ -141,6 +150,100 @@ class WriteService:
         handoff = HandoffService(self.store).prepare(identifier, dossier, actor=actor, confirm=confirm)
         return self._handoff_record(handoff)
 
+    # --- work graph ------------------------------------------------------
+
+    def create_work_item(
+        self,
+        identifier: str,
+        *,
+        item_type: str,
+        title: str,
+        description: str = "",
+        priority: int | None = None,
+        parent_id: str | None = None,
+        assignee: str | None = None,
+        metadata: Mapping[str, Any] | None = None,
+        actor: str = "vera",
+    ) -> dict[str, object]:
+        """Create one work item in the initial lifecycle state declared by the Core."""
+        item = WorkItemService(self.store).create(
+            identifier, item_type, title, description=description, priority=priority,
+            parent_id=parent_id, assignee=assignee, metadata=metadata, actor=actor,
+        )
+        return self._work_item_record(item)
+
+    def transition_work_item(
+        self, identifier: str, *, work_item_id: str, event: str, reason: str, actor: str = "vera",
+    ) -> dict[str, object]:
+        """Apply one lifecycle event from the closed Core catalog.
+
+        A client names an event, never a target state: the Core derives the state and refuses a
+        transition its start/completion policies do not allow (invariant I007).
+        """
+        transition = WorkLifecycleService(self.store).transition(identifier, work_item_id, event, reason, actor=actor)
+        return self._lifecycle_record(transition)
+
+    def add_work_dependency(self, dependent_id: str, prerequisite_id: str, *, actor: str = "vera") -> dict[str, object]:
+        """Declare one prerequisite edge; the Core refuses self-edges and cycles."""
+        GateService(self.store).add_dependency(dependent_id, prerequisite_id, actor=actor)
+        return {"dependent_id": dependent_id, "prerequisite_id": prerequisite_id, "status": "DECLARED"}
+
+    def declare_gate(
+        self,
+        identifier: str,
+        *,
+        work_item_id: str,
+        evidence_id: str,
+        requirement_evidence_ids: tuple[str, ...] | list[str] | None = None,
+        actor: str = "vera",
+    ) -> dict[str, object]:
+        """Declare one admission gate binding a work item to the evidence it requires."""
+        service = GateService(self.store)
+        requirements = tuple(requirement_evidence_ids or ())
+        if requirements:
+            service.declare_with_requirements(identifier, work_item_id, evidence_id, requirements, actor=actor)
+        else:
+            service.declare(identifier, work_item_id, evidence_id, actor=actor)
+        return {
+            "gate_id": identifier,
+            "work_item_id": work_item_id,
+            "evidence_id": evidence_id,
+            "requirement_evidence_ids": list(requirements),
+            "status": "DECLARED",
+        }
+
+    # --- proof -----------------------------------------------------------
+
+    def declare_proof_policy(self, algorithm: str, *, hmac_required: bool, actor: str = "vera") -> dict[str, object]:
+        """Declare the project's proof policy once; promotion is refused without it."""
+        policy = ProofPolicyService(self.store).declare(algorithm, hmac_required=hmac_required, actor=actor)
+        return asdict(policy)
+
+    def promote_knowledge(
+        self, identifier: str, *, knowledge_id: str, evidence_id: str, admission_id: str, actor: str = "vera",
+    ) -> dict[str, object]:
+        """Promote one knowledge record to `PROVEN` against an admitted `PASS` evidence.
+
+        This is invariant I004 at its narrowest point. The caller names existing records only:
+        it supplies no verdict, no admission decision and no signature. When the declared policy
+        requires HMAC the secret is read from the environment, never from the caller, and its
+        absence is a loud refusal rather than an unsigned promotion (I014). The secret is kept
+        out of the project runtime because memory sync commits that directory to Git.
+        """
+        policy = ProofPolicyService(self.store).get()
+        secret: bytes | None = None
+        if policy.hmac_required:
+            raw = os.environ.get(PROOF_HMAC_SECRET_VARIABLE, "")
+            if not raw:
+                raise WriteApiError(
+                    f"La policy de preuve exige HMAC : définir {PROOF_HMAC_SECRET_VARIABLE} hors du dépôt avant promotion.",
+                )
+            secret = raw.encode("utf-8")
+        proof = ProofService(self.store, hmac_secret=secret).promote(
+            identifier, knowledge_id, evidence_id, admission_id, actor=actor,
+        )
+        return self._proof_record(proof)
+
     # --- records ---------------------------------------------------------
 
     def _knowledge_record(self, record: Knowledge) -> dict[str, object]:
@@ -151,6 +254,19 @@ class WriteService:
     def _front_record(self, revision: FrontRevision) -> dict[str, object]:
         payload = asdict(revision)
         payload["address"] = make_address(self.store.identity.project_id, "front", revision.id)
+        return payload
+
+    def _work_item_record(self, item: WorkItem) -> dict[str, object]:
+        payload = asdict(item)
+        payload["address"] = make_address(self.store.identity.project_id, "work-item", item.id)
+        return payload
+
+    def _lifecycle_record(self, transition: WorkLifecycleEvent) -> dict[str, object]:
+        return asdict(transition)
+
+    def _proof_record(self, proof: KnowledgeProof) -> dict[str, object]:
+        payload = asdict(proof)
+        payload["address"] = make_address(self.store.identity.project_id, "proof", proof.id)
         return payload
 
     def _handoff_record(self, handoff: Handoff) -> dict[str, object]:

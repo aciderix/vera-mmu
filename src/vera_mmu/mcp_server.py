@@ -406,6 +406,78 @@ def create_server(
         """
         return _mutating_call("prepare_handoff", store, lambda: WriteService(store).prepare_handoff(identifier, sections, actor=actor, confirm=confirm))
 
+    @server.tool(name="mmu_get_work_graph", structured_output=True)
+    async def mmu_get_work_graph() -> dict[str, object]:
+        """Projette le work graph borné : items, états, dépendances et gates déclarées."""
+        return _call("get_work_graph", lambda: ReadService(store).work_graph())
+
+    @server.tool(name="mmu_get_proofs", structured_output=True)
+    async def mmu_get_proofs(max_items: int = 20) -> dict[str, object]:
+        """Liste les promotions persistées ; la signature HMAC n’est jamais retournée."""
+        return _call("get_proofs", lambda: ReadService(store).list_proofs(max_items=max_items))
+
+    @server.tool(name="mmu_create_work_item", structured_output=True)
+    async def mmu_create_work_item(
+        identifier: str, item_type: str, title: str, description: str = "", priority: int | None = None,
+        parent_id: str | None = None, assignee: str | None = None, actor: str = "vera-mcp",
+    ) -> dict[str, object]:
+        """Crée un work item dans l’état initial déclaré par le Core."""
+        return _mutating_call(
+            "create_work_item",
+            store,
+            lambda: WriteService(store).create_work_item(
+                identifier, item_type=item_type, title=title, description=description,
+                priority=priority, parent_id=parent_id, assignee=assignee, actor=actor,
+            ),
+        )
+
+    @server.tool(name="mmu_update_work_item", structured_output=True)
+    async def mmu_update_work_item(identifier: str, work_item_id: str, event: str, reason: str, actor: str = "vera-mcp") -> dict[str, object]:
+        """Applique un événement de cycle de vie ; l’état cible est dérivé par le Core."""
+        return _mutating_call(
+            "update_work_item",
+            store,
+            lambda: WriteService(store).transition_work_item(identifier, work_item_id=work_item_id, event=event, reason=reason, actor=actor),
+        )
+
+    @server.tool(name="mmu_add_work_dependency", structured_output=True)
+    async def mmu_add_work_dependency(dependent_id: str, prerequisite_id: str, actor: str = "vera-mcp") -> dict[str, object]:
+        """Déclare un prérequis entre deux work items ; cycle et auto-dépendance refusés."""
+        return _mutating_call("add_work_dependency", store, lambda: WriteService(store).add_work_dependency(dependent_id, prerequisite_id, actor=actor))
+
+    @server.tool(name="mmu_create_gate", structured_output=True)
+    async def mmu_create_gate(
+        identifier: str, work_item_id: str, evidence_id: str, requirement_evidence_ids: list[str] | None = None, actor: str = "vera-mcp",
+    ) -> dict[str, object]:
+        """Déclare une gate d’admission liant un work item aux evidences qu’il exige."""
+        return _mutating_call(
+            "create_gate",
+            store,
+            lambda: WriteService(store).declare_gate(
+                identifier, work_item_id=work_item_id, evidence_id=evidence_id,
+                requirement_evidence_ids=tuple(requirement_evidence_ids or ()), actor=actor,
+            ),
+        )
+
+    @server.tool(name="mmu_declare_proof_policy", structured_output=True)
+    async def mmu_declare_proof_policy(algorithm: str = "HMAC_SHA256", hmac_required: bool = False, actor: str = "vera-mcp") -> dict[str, object]:
+        """Déclare la policy de preuve du projet ; toute promotion l’exige au préalable."""
+        return _mutating_call("declare_proof_policy", store, lambda: WriteService(store).declare_proof_policy(algorithm, hmac_required=hmac_required, actor=actor))
+
+    @server.tool(name="mmu_record_proof", structured_output=True)
+    async def mmu_record_proof(identifier: str, knowledge_id: str, evidence_id: str, admission_id: str, actor: str = "vera-mcp") -> dict[str, object]:
+        """Promeut une connaissance en `PROVEN` contre une evidence `PASS` déjà admise.
+
+        Aucun verdict, décision d’admission, secret ou signature ne peut être fourni ici.
+        """
+        return _mutating_call(
+            "record_proof",
+            store,
+            lambda: WriteService(store).promote_knowledge(
+                identifier, knowledge_id=knowledge_id, evidence_id=evidence_id, admission_id=admission_id, actor=actor,
+            ),
+        )
+
     @server.tool(name="mmu_get_capability_catalog", structured_output=True)
     async def mmu_get_capability_catalog() -> dict[str, object]:
         """Liste les capabilities ALLOW déclarées avec leurs contrats immuables."""

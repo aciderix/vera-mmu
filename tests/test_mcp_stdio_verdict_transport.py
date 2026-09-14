@@ -52,6 +52,14 @@ class MCPStdioVerdictTransportTests(unittest.IsolatedAsyncioTestCase):
         "mmu_replace_front",
         "mmu_update_front",
         "mmu_prepare_handoff",
+        "mmu_get_work_graph",
+        "mmu_get_proofs",
+        "mmu_create_work_item",
+        "mmu_update_work_item",
+        "mmu_add_work_dependency",
+        "mmu_create_gate",
+        "mmu_declare_proof_policy",
+        "mmu_record_proof",
     }
     _forbidden_client_fields = {
         "verdict",

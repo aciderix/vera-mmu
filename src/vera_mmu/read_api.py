@@ -18,14 +18,16 @@ from .store import MemoryStore, StoreError
 from .symbols import SymbolService
 from .vcs import inspect_vcs
 from .work_items import WorkItemService
+from .work_lifecycle import STATE_BY_EVENT as WORK_ITEM_STATE_BY_EVENT
 
 
 FINDABLE_RESOURCE_TYPES = frozenset({"knowledge", "entity", "work-item"})
-READABLE_RESOURCE_TYPES = FINDABLE_RESOURCE_TYPES | frozenset({"front", "handoff", "relation", "capability", "execution", "evidence", "symbol"})
+READABLE_RESOURCE_TYPES = FINDABLE_RESOURCE_TYPES | frozenset({"front", "handoff", "relation", "capability", "execution", "evidence", "symbol", "proof"})
 MAX_FIND_QUERY_CHARACTERS = 256
 MAX_FIND_RESULTS = 100
 MAX_READ_BATCH = 32
 MAX_EXECUTION_HISTORY = 100
+MAX_WORK_GRAPH_ITEMS = 500
 
 
 class ReadApiError(StoreError):
@@ -48,6 +50,76 @@ class ReadService:
     def vcs_status(self) -> dict[str, str]:
         """Return minimal local VCS observation without paths, commands or mutations."""
         return inspect_vcs(self.store).as_dict()
+
+    def work_graph(self) -> dict[str, object]:
+        """Return the bounded work graph: items, their lifecycle state and declared edges.
+
+        This is a projection, not a FIND: it returns structure and status, never descriptions
+        or knowledge content. The traversal is capped so a large project cannot flood a client.
+        """
+        items = [
+            {
+                "id": str(row["id"]),
+                "address": make_address(self.store.identity.project_id, "work-item", str(row["id"])),
+                "type": str(row["type"]),
+                "title": str(row["title"]),
+                "status": WORK_ITEM_STATE_BY_EVENT.get(str(row["last_event"]), str(row["status"])),
+                "priority": row["priority"],
+                "parent_id": None if row["parent_id"] is None else str(row["parent_id"]),
+            }
+            for row in self.store.connection.execute(
+                # The lifecycle state is derived from the append-only event log, not from the
+                # creation status column, which keeps its initial value for the item's life.
+                "SELECT item.id, item.type, item.title, item.status, item.priority, item.parent_id, "
+                "(SELECT event FROM work_lifecycle_event AS lifecycle WHERE lifecycle.work_item_id = item.id "
+                " ORDER BY lifecycle.sequence DESC LIMIT 1) AS last_event "
+                "FROM work_item AS item ORDER BY item.id LIMIT ?",
+                (MAX_WORK_GRAPH_ITEMS,),
+            ).fetchall()
+        ]
+        dependencies = [
+            {"dependent_id": str(row["dependent_id"]), "prerequisite_id": str(row["prerequisite_id"])}
+            for row in self.store.connection.execute(
+                "SELECT dependent_id, prerequisite_id FROM work_dependency ORDER BY dependent_id, prerequisite_id LIMIT ?",
+                (MAX_WORK_GRAPH_ITEMS,),
+            ).fetchall()
+        ]
+        gates = [
+            {"gate_id": str(row["id"]), "work_item_id": str(row["work_item_id"]), "evidence_id": str(row["evidence_id"])}
+            for row in self.store.connection.execute(
+                "SELECT id, work_item_id, evidence_id FROM admission_gate ORDER BY id LIMIT ?",
+                (MAX_WORK_GRAPH_ITEMS,),
+            ).fetchall()
+        ]
+        return {
+            "format": "vera-work-graph/v1",
+            "project_identity": self.store.identity.as_dict(),
+            "items": items,
+            "dependencies": dependencies,
+            "gates": gates,
+        }
+
+    def list_proofs(self, *, max_items: int = 20) -> dict[str, object]:
+        """List persisted promotions compactly; the signature itself is never returned."""
+        if not isinstance(max_items, int) or isinstance(max_items, bool) or not 1 <= max_items <= MAX_EXECUTION_HISTORY:
+            raise ReadApiError(f"max_items doit être un entier entre 1 et {MAX_EXECUTION_HISTORY}.")
+        proofs = [
+            {
+                "id": str(row["id"]),
+                "address": make_address(self.store.identity.project_id, "proof", str(row["id"])),
+                "knowledge_id": str(row["knowledge_id"]),
+                "evidence_id": str(row["evidence_id"]),
+                "admission_id": str(row["admission_id"]),
+                "status": str(row["status"]),
+                "created_at": str(row["created_at"]),
+            }
+            for row in self.store.connection.execute(
+                "SELECT id, knowledge_id, evidence_id, admission_id, status, created_at "
+                "FROM knowledge_proof ORDER BY created_at DESC, id DESC LIMIT ?",
+                (max_items,),
+            ).fetchall()
+        ]
+        return {"format": "vera-proof-history/v1", "proofs": proofs}
 
     def boot(self) -> dict[str, object]:
         """Return project-bound startup state without arming, acknowledging or mutating resume."""
@@ -283,6 +355,8 @@ class ReadService:
                 record = asdict(EvidenceService(self.store).get(parsed.identifier))
             elif parsed.resource_type == "symbol":
                 record = asdict(SymbolService(self.store).get(parsed.identifier))
+            elif parsed.resource_type == "proof":
+                record = self._proof(parsed.identifier)
             else:
                 raise ReadApiError("Type de ressource READ non exposé dans le contrat fermé M11-J.")
         except ReadApiError:
@@ -290,6 +364,32 @@ class ReadService:
         except StoreError as exc:
             raise ReadApiError("Ressource VERA exacte introuvable ou incohérente.") from exc
         return {"address": parsed.canonical, "resource_type": parsed.resource_type, "record": record}
+
+    def _proof(self, identifier: str) -> dict[str, object]:
+        """Read one promotion record without ever returning its HMAC digest.
+
+        The digest is derived from the project secret. Reporting whether a proof is signed is
+        enough to audit the policy; returning the digest itself would hand a verifier an
+        offline oracle against that secret.
+        """
+        row = self.store.connection.execute(
+            "SELECT id, knowledge_id, evidence_id, admission_id, status, hmac_required, hmac_digest, created_at, created_by "
+            "FROM knowledge_proof WHERE id = ?",
+            (identifier,),
+        ).fetchone()
+        if row is None:
+            raise ReadApiError("Preuve VERA exacte introuvable.")
+        return {
+            "id": str(row["id"]),
+            "knowledge_id": str(row["knowledge_id"]),
+            "evidence_id": str(row["evidence_id"]),
+            "admission_id": str(row["admission_id"]),
+            "status": str(row["status"]),
+            "hmac_required": bool(row["hmac_required"]),
+            "signed": row["hmac_digest"] is not None,
+            "created_at": str(row["created_at"]),
+            "created_by": str(row["created_by"]),
+        }
 
     def read_batch(self, addresses: Iterable[str]) -> list[dict[str, object]]:
         """Read a small explicit batch, preserving caller order and exact-address semantics."""

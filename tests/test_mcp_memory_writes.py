@@ -155,5 +155,47 @@ class MCPMemoryWriteTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(boot["result"]["latest_handoff"]["id"], "handoff-1")
 
 
+    async def test_work_graph_and_promotion_guards_through_mcp(self) -> None:
+        with TemporaryDirectory() as directory:
+            profile = _initialize(Path(directory))
+            async with self._session(profile) as session:
+                created = self._payload(await session.call_tool("mmu_create_work_item", {
+                    "identifier": "wi-mcp", "item_type": "EPIC", "title": "Chantier MCP",
+                }))
+                self.assertTrue(created["ok"])
+                self.assertEqual(created["result"]["status"], "PLANNED")
+
+                started = self._payload(await session.call_tool("mmu_update_work_item", {
+                    "identifier": "ev-mcp", "work_item_id": "wi-mcp", "event": "START", "reason": "demarrage",
+                }))
+                self.assertTrue(started["ok"])
+
+                graph = self._payload(await session.call_tool("mmu_get_work_graph", {}))
+                self.assertTrue(graph["ok"])
+                self.assertEqual(graph["result"]["items"][0]["status"], "ACTIVE")
+
+                # I007: the lifecycle catalog is closed, so an invented event is refused.
+                invented = self._payload(await session.call_tool("mmu_update_work_item", {
+                    "identifier": "ev-bad", "work_item_id": "wi-mcp", "event": "TELEPORT", "reason": "x",
+                }))
+                self.assertFalse(invented["ok"])
+
+                # I004: promotion is refused before any policy is declared...
+                unpoliced = self._payload(await session.call_tool("mmu_record_proof", {
+                    "identifier": "p-1", "knowledge_id": "k", "evidence_id": "e", "admission_id": "a",
+                }))
+                self.assertFalse(unpoliced["ok"])
+
+                declared = self._payload(await session.call_tool("mmu_declare_proof_policy", {"algorithm": "HMAC_SHA256"}))
+                self.assertTrue(declared["ok"])
+
+                # ...and still refused without an admitted PASS evidence.
+                unproven = self._payload(await session.call_tool("mmu_record_proof", {
+                    "identifier": "p-2", "knowledge_id": "k", "evidence_id": "e", "admission_id": "a",
+                }))
+                self.assertFalse(unproven["ok"])
+                self.assertEqual(self._payload(await session.call_tool("mmu_get_proofs", {}))["result"]["proofs"], [])
+
+
 if __name__ == "__main__":
     unittest.main()
