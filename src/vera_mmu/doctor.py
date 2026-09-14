@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 import sqlite3
 from typing import Any, Callable, Mapping
@@ -11,6 +12,7 @@ from .identity import ProjectIdentity, ProfileError, load_profile, project_ident
 from .profile_migration import ProfileMigrationError, inspect_profile_migration_journal
 from .migrations import MigrationRunner, migration_checksums
 from .project_catalogs import ProjectCatalogError, load_project_catalogs
+from .write_api import PROOF_HMAC_SECRET_VARIABLE
 from .workspace import Workspace, WorkspaceError, resolve_workspace
 
 
@@ -21,16 +23,28 @@ _CHECK_ORDER = (
     "profile_rebind",
     "profile_migration",
     "workspace",
-    "catalogs",
+    "capability_catalog",
+    "gates",
+    "policies",
     "runtime",
     "sqlite_integrity",
     "migration_ledger",
     "wal",
     "artifact_store",
+    "hmac",
     "resume",
     "mcp_transport",
+    "hooks",
     "vcs",
 )
+# The rows the specification requires the report to carry (§45). Extra rows are welcome;
+# a missing one means the report no longer answers what the specification asks of it.
+SPECIFIED_CHECKS = frozenset({
+    "project_identity", "profile", "migration_ledger", "sqlite_integrity", "wal", "artifact_store",
+    "hmac", "capability_catalog", "gates", "policies", "runtime", "mcp_transport", "hooks", "resume", "vcs",
+})
+_CATALOG_FILES = {"capability_catalog": "capabilities.yaml", "gates": "gates.yaml", "policies": "policies.yaml"}
+_CATALOG_KEYWORDS = {"capability_catalog": "capabilit", "gates": "gate", "policies": "policie"}
 
 
 @dataclass(frozen=True)
@@ -95,16 +109,7 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
             checks["workspace"] = _pass("workspace", f"Workspace confiné : {workspace.project_root}")
         except (WorkspaceError, OSError, ValueError) as exc:
             checks["workspace"] = _fail("workspace", str(exc), "Corriger la racine et les chemins workspace du profile.")
-        try:
-            catalogs = load_project_catalogs(path)
-            checks["catalogs"] = _pass(
-                "catalogs",
-                "Catalogues déclaratifs valides : "
-                f"capabilities={catalogs.capability_catalog_hash[:12]}, "
-                f"gates={catalogs.gate_catalog_hash[:12]}, policies={catalogs.policy_hash[:12]}.",
-            )
-        except (ProjectCatalogError, OSError, ValueError) as exc:
-            checks["catalogs"] = _fail("catalogs", str(exc), "Corriger les catalogues déclarés par le Project Profile.")
+        _diagnose_catalogs(checks, path)
 
     if profile is not None and workspace is not None:
         try:
@@ -122,8 +127,11 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
         checks["artifact_store"] = _fail("artifact_store", "Répertoire d’artefacts indisponible sans runtime valide.", "Réparer le runtime du profile.")
         checks["resume"] = _fail("resume", "Configuration de reprise indisponible sans profile valide.", "Réparer la section resume du profile.")
         checks["vcs"] = _info("vcs", "VCS non observé sans workspace valide.")
+        _diagnose_catalogs(checks, path)
 
     _diagnose_mcp_transport(checks)
+    checks.setdefault("hmac", _info("hmac", "Policy de preuve non lisible sans mémoire VERA valide."))
+    checks["hooks"] = _diagnose_hooks(profile, workspace)
     ordered = tuple(checks[name] for name in _CHECK_ORDER)
     status = "FAIL" if any(check.status == "FAIL" for check in ordered) else "PASS"
     return DoctorReport(
@@ -187,6 +195,7 @@ def _diagnose_runtime(
         checks["runtime"] = _pass("runtime", f"Runtime project-local valide : {runtime}")
         database = runtime / sqlite_name
         _diagnose_database(checks, database, identity)
+        _diagnose_hmac(checks, database)
         _diagnose_artifact_store(checks, runtime / artifacts_name)
     checks["resume"] = _diagnose_resume(profile)
     checks["vcs"] = _diagnose_vcs(workspace)
@@ -300,6 +309,106 @@ def _diagnose_vcs(workspace: Workspace) -> DoctorCheck:
     if marker.exists() and marker.is_dir():
         return _pass("vcs", "Marqueur Git project-local observé.")
     return _info("vcs", "Aucun VCS local observé : configuration no-Git valide.")
+
+
+def _diagnose_catalogs(checks: dict[str, DoctorCheck], path: Path) -> None:
+    """Report one row per declarative catalog so a failure names the file that repairs it."""
+    try:
+        catalogs = load_project_catalogs(path)
+    except (ProjectCatalogError, OSError, ValueError) as exc:
+        # The catalogs load as one unit, so attribute the failure to the file the error names
+        # and mark the others unevaluated rather than reporting three failures for one broken
+        # file, which would hide which element actually needs repair.
+        message = str(exc)
+        blamed = [name for name, keyword in _CATALOG_KEYWORDS.items() if keyword in message.lower()]
+        for name, filename in _CATALOG_FILES.items():
+            if not blamed or name in blamed:
+                checks[name] = _fail(name, message, f"Corriger `.vera-mmu/{filename}` déclaré par le Project Profile.")
+            else:
+                checks[name] = _info(name, f"Non évalué : le chargement des catalogues s’est arrêté sur {', '.join(sorted(blamed))}.")
+        return
+    declared = len(catalogs.capabilities["capabilities"])
+    required = sum(1 for gate in catalogs.gates["gates"] if gate.get("required") is True)
+    checks["capability_catalog"] = _pass("capability_catalog", f"{declared} capability(ies) déclarée(s), hash={catalogs.capability_catalog_hash[:12]}.")
+    checks["gates"] = _pass("gates", f"{len(catalogs.gates['gates'])} gate(s) dont {required} requise(s), hash={catalogs.gate_catalog_hash[:12]}.")
+    checks["policies"] = _pass("policies", f"Catalogue de policies valide, hash={catalogs.policy_hash[:12]}.")
+
+
+def _diagnose_hmac(checks: dict[str, DoctorCheck], database: Path) -> None:
+    """Report the proof policy and whether the secret it requires is actually reachable.
+
+    The secret lives in the environment, never in the project runtime, because memory sync
+    commits that directory to Git. Only its presence is reported, never its value.
+    """
+    try:
+        connection = sqlite3.connect(f"file:{database.as_posix()}?mode=ro", uri=True)
+        try:
+            row = connection.execute("SELECT algorithm, hmac_required FROM proof_policy WHERE singleton=1").fetchone()
+        finally:
+            connection.close()
+    except sqlite3.DatabaseError as exc:
+        checks["hmac"] = _fail("hmac", f"Policy de preuve illisible : {exc}", "Réparer la mémoire VERA puis relancer le Doctor.")
+        return
+    if row is None:
+        checks["hmac"] = _info("hmac", "Aucune policy de preuve déclarée : aucune promotion n’est possible pour l’instant.")
+        return
+    algorithm = str(row[0])
+    if not bool(row[1]):
+        checks["hmac"] = _pass("hmac", f"Policy de preuve `{algorithm}` déclarée sans signature requise.")
+        return
+    if os.environ.get(PROOF_HMAC_SECRET_VARIABLE, "").strip():
+        checks["hmac"] = _pass("hmac", f"Policy `{algorithm}` exige HMAC ; le secret est présent dans l’environnement.")
+        return
+    checks["hmac"] = _fail(
+        "hmac",
+        f"Policy `{algorithm}` exige HMAC mais aucun secret n’est disponible : toute promotion serait refusée.",
+        f"Définir {PROOF_HMAC_SECRET_VARIABLE} hors du dépôt, jamais sous `.vera-mmu/` que la synchronisation mémoire commit.",
+    )
+
+
+def _diagnose_hooks(profile: Mapping[str, Any] | None, workspace: Workspace | None) -> DoctorCheck:
+    """Check that every integration the profile enables is actually installed project-local."""
+    if profile is None or workspace is None:
+        return _info("hooks", "Intégrations non observables sans profile et workspace valides.")
+    enabled = profile.get("integrations", {}).get("enabled", [])
+    if not enabled:
+        return _info("hooks", "Aucune intégration déclarée : aucun hook project-local attendu.")
+    missing = [str(name) for name in enabled if not _integration_installed(workspace.project_root, str(name))]
+    if missing:
+        return _fail(
+            "hooks",
+            f"Intégration(s) déclarée(s) mais non installée(s) : {', '.join(sorted(missing))}.",
+            "Lancer `vmmu install <profile> --adapter <nom> --apply-project --confirm` après relecture de la preview.",
+        )
+    return _pass("hooks", f"{len(enabled)} intégration(s) déclarée(s) et installée(s) project-local.")
+
+
+def _integration_installed(project_root: Path, adapter: str) -> bool:
+    """Observe a project-local integration marker without following symlinks."""
+    for marker in (Path(".mcp.json"), Path(".claude"), Path(".codex"), Path(".gemini"), Path(".antigravity")):
+        candidate = project_root / marker
+        if candidate.exists() and not candidate.is_symlink():
+            return True
+    del adapter
+    return False
+
+
+def render_doctor_report(report: DoctorReport) -> str:
+    """Render the machine report as the aligned human rows the specification shows (§45).
+
+    Remediation is printed only for rows that are not `PASS`, so a healthy project stays
+    readable and a broken one puts the repair next to the failure.
+    """
+    identity = report.project_identity or {}
+    width = max((len(check.name) for check in report.checks), default=0) + 2
+    lines = [f"VERA Doctor — {identity.get('project_id', 'projet inconnu')} — {report.status}", ""]
+    for check in report.checks:
+        label = check.name.upper().replace("_", " ")
+        lines.append(f"{label} {'.' * max(2, width + 18 - len(label))} {check.status}")
+        lines.append(f"    {check.detail}")
+        if check.status != "PASS":
+            lines.append(f"    → {check.remediation}")
+    return "\n".join(lines) + "\n"
 
 
 def _pass(name: str, detail: str) -> DoctorCheck:

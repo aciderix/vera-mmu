@@ -8,7 +8,7 @@ from typing import Sequence
 from .adapter_catalog import ADAPTER_CATALOG, adapter_spec, call_adapter, call_adapter_json
 from .bundles import BundleService, restore_bundle
 from .coverage_report import compile_coverage_report
-from .doctor import diagnose_project
+from .doctor import diagnose_project, render_doctor_report
 from .documentation_generator import compile_project_documentation
 from .identity import ProfileError, load_profile, profile_identity, project_identity
 from .memory_sync import automatic_memory_sync
@@ -34,7 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
     install=sub.add_parser("install",help="Prévisualise ou applique la configuration project-local d’un adapter.");install.add_argument("profile",type=Path,help="Chemin project.yaml.");install.add_argument("--adapter",required=True);install.add_argument("--apply-project",action="store_true");install.add_argument("--confirm",action="store_true")
     bootstrap=sub.add_parser("init-project",help="Prévisualise ou initialise les fichiers VERA dans un projet choisi.");bootstrap.add_argument("root",type=Path,help="Racine locale du projet.");bootstrap.add_argument("--template",required=True);bootstrap.add_argument("--project-id",required=True);bootstrap.add_argument("--project-name",required=True);bootstrap.add_argument("--apply",action="store_true");bootstrap.add_argument("--confirm",action="store_true")
     sync=sub.add_parser("memory-sync",help="Synchronise seulement la mémoire VERA selon sa policy project-local.");sync.add_argument("profile",type=Path,help="Chemin project.yaml.")
-    doctor=sub.add_parser("doctor",help="Diagnostique sans mutation le profile, runtime, SQLite, catalogues et transports VERA.");doctor.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    doctor=sub.add_parser("doctor",help="Diagnostique sans mutation le profile, runtime, SQLite, catalogues et transports VERA.");doctor.add_argument("profile",type=Path,help="Chemin project.yaml.");doctor.add_argument("--human",action="store_true",help="Rend le rapport en lignes lisibles au lieu du JSON.")
     migrate=sub.add_parser("migrate",help="Observe ou pilote explicitement une migration Profile.")
     migration_ops=migrate.add_subparsers(dest="migration_command",required=True)
     migration_status=migration_ops.add_parser("status",help="Observe l’état d’une migration Profile sans mutation.");migration_status.add_argument("profile",type=Path,help="Chemin project.yaml.")
@@ -130,7 +130,10 @@ def main(argv:Sequence[str]|None=None)->int:
                 documentation=compile_project_documentation(store,str(args.profile))
                 payload={"ok":True,"documentation":{"project_identity":documentation.project_identity,"documents":documentation.documents,"bundle_hash":documentation.bundle_hash}}
         elif args.command=="doctor":
-            report=diagnose_project(args.profile);payload={"ok":report.status=="PASS","doctor":report.as_dict()}
+            report=diagnose_project(args.profile)
+            if args.human:
+                print(render_doctor_report(report),end="");return 0 if report.status=="PASS" else 2
+            payload={"ok":report.status=="PASS","doctor":report.as_dict()}
             if report.status!="PASS":
                 print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
         elif args.command=="migrate":
