@@ -28,6 +28,7 @@ from .project_catalogs import ProjectCatalogError, load_project_catalogs
 from .proof_policies import ProofPolicyService
 from .proofs import KnowledgeProof, ProofService
 from .store import MemoryStore, StoreError
+from .validators import ValidatorService
 from .work_items import WorkItem, WorkItemService
 from .work_lifecycle import WorkLifecycleEvent, WorkLifecycleService
 
@@ -172,6 +173,7 @@ class WriteService:
         capabilities = CapabilityService(self.store)
         contracts = CapabilityContractService(self.store)
         policies = CapabilityPolicyService(self.store)
+        validators = ValidatorService(self.store)
         registered: list[str] = []
         for declaration in catalogs.capabilities["capabilities"]:
             identifier = str(declaration["id"])
@@ -191,7 +193,34 @@ class WriteService:
                 decision = "CONFIRM" if bool(declaration["confirmation_required"]) else "ALLOW"
                 policies.declare(identifier, decision, f"Déclarée {declaration['policy']} par le Project Profile.", actor=actor)
             registered.append(identifier)
+        self._register_declared_validators(validators, catalogs.capabilities["capabilities"], actor=actor)
         return sorted(registered)
+
+    def _register_declared_validators(self, validators: ValidatorService, declarations: list[Any], *, actor: str) -> None:
+        """Register one validator per declared kind, which is all the store admits.
+
+        The runner takes only `validator_id` and `evidence_id`; the domain fields a project must
+        evidence live on the validator as its required keys, declared by each capability's
+        `inputs`. Without this a declared capability passes generation and fails at execution.
+
+        `validator.kind` is UNIQUE, so a store holds at most one validator per kind. When
+        several capabilities share `EVIDENCE_FIELDS` their required keys are unioned, which
+        means evidence must then carry every declared field; a project needing narrower rules
+        should declare fewer field-validated capabilities.
+        """
+        by_kind: dict[str, set[str]] = {}
+        for declaration in declarations:
+            kind = str(declaration["validator"])
+            fields = by_kind.setdefault(kind, set())
+            if kind == "EVIDENCE_FIELDS":
+                fields.update(str(name) for name in declaration["inputs"])
+        for kind, fields in sorted(by_kind.items()):
+            if self.store.connection.execute("SELECT 1 FROM validator WHERE kind = ?", (kind,)).fetchone() is not None:
+                continue
+            validators.register(
+                f"vera-{kind.lower().replace('_', '-')}", kind,
+                required_keys=tuple(sorted(fields)) if kind == "EVIDENCE_FIELDS" else None, actor=actor,
+            )
 
     # --- work graph ------------------------------------------------------
 

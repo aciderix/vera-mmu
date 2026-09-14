@@ -18,33 +18,27 @@ _TEMPLATE_ENTITY_TYPES={
     "hardware":("BOARD","COMPONENT","FIRMWARE","MEASUREMENT","DEVICE"),
     "documentation":("SOURCE","DOCUMENT","CLAIM","CITATION","REVISION"),
 }
-def _capability(identifier:str,name:str,description:str,kind:str,runner:str,validator:str,policy:str,fields:tuple[str,...],gate_id:str,gate_name:str)->dict[str,object]:
-    return {"id":identifier,"name":name,"description":description,"kind":kind,"runner":runner,"validator":validator,"policy":policy,"fields":fields,"gate_id":gate_id,"gate_name":gate_name}
+def _capability(identifier:str,name:str,description:str,kind:str,runner:str,validator:str,fields:tuple[str,...],gate_id:str,gate_name:str)->dict[str,object]:
+    return {"id":identifier,"name":name,"description":description,"kind":kind,"runner":runner,"validator":validator,"fields":fields,"gate_id":gate_id,"gate_name":gate_name}
+def _domain(prefix:str,collector:str,collector_name:str,collector_description:str,fields:tuple[str,...],collector_gate:str,collector_gate_name:str,integrity:str,integrity_name:str,integrity_description:str,integrity_gate:str,integrity_gate_name:str)->tuple[dict[str,object],...]:
+    """Build one domain's three declarations: an observation, its field check and an integrity check.
+
+    The collector runs `NOOP` and carries the domain fields, because an evidence must attach to
+    an execution. The two checks run the validator profiles, whose parameter schema is fixed by
+    the Core; their domain fields travel as `inputs`, which become the validator's required keys.
+    """
+    return (
+        _capability(collector,collector_name,collector_description,"COLLECTOR","NOOP","EVIDENCE_FIELDS",fields,collector_gate,collector_gate_name),
+        _capability(f"{prefix}-fields-check",f"Contrôle des champs — {collector_name.lower()}",f"Vérifie que l’evidence enregistrée porte les champs déclarés du domaine.","CHECK","EVIDENCE_FIELDS","EVIDENCE_FIELDS",fields,f"{collector_gate}_FIELDS","Champs de mesure complets"),
+        _capability(integrity,integrity_name,integrity_description,"CHECK","EVIDENCE_HASH","EVIDENCE_HASH",(),integrity_gate,integrity_gate_name),
+    )
 _TEMPLATE_CAPABILITIES={
-    "software":(
-        _capability("test-suite-report","Rapport de suite de tests","Enregistre le résultat déclaré d’une suite de tests du projet.","CHECK","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("suite","passed","failed"),"TESTS_PASS","Suite de tests au vert"),
-        _capability("build-artifact-integrity","Intégrité d’artefact de build","Vérifie qu’un artefact de build correspond exactement au hash attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"BUILD_INTEGRITY","Intégrité du build vérifiée"),
-    ),
-    "data":(
-        _capability("dataset-profile","Profil de jeu de données","Enregistre les mesures structurelles déclarées d’un jeu de données.","COLLECTOR","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("dataset","rows","columns"),"DATASET_PROFILED","Jeu de données profilé"),
-        _capability("model-evaluation","Évaluation de modèle","Enregistre une métrique d’évaluation mesurée sur un split déclaré.","CHECK","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("model","metric","split"),"MODEL_EVALUATED","Modèle évalué"),
-    ),
-    "research":(
-        _capability("experiment-record","Enregistrement d’expérience","Enregistre l’hypothèse, la méthode et le résultat observé d’une expérience.","COLLECTOR","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("hypothesis","method","outcome"),"EXPERIMENT_RECORDED","Expérience enregistrée"),
-        _capability("result-reproduction","Reproduction de résultat","Vérifie qu’un résultat publié correspond exactement à l’artefact attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"RESULT_REPRODUCED","Résultat reproduit"),
-    ),
-    "documentation":(
-        _capability("citation-check","Contrôle de citation","Vérifie qu’une affirmation documentaire cite une source déclarée.","CHECK","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("document","claim","citation"),"CITATIONS_RESOLVED","Citations résolues"),
-        _capability("revision-integrity","Intégrité de révision","Vérifie qu’une révision de document correspond au hash attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"REVISION_INTEGRITY","Intégrité de révision vérifiée"),
-    ),
-    "game":(
-        _capability("playtest-session","Session de playtest","Enregistre le déroulé observé d’une session de test de jeu.","COLLECTOR","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("scene","outcome","duration_seconds"),"PLAYTEST_RECORDED","Playtest enregistré"),
-        _capability("asset-integrity","Intégrité d’asset","Vérifie qu’un asset de jeu correspond exactement au hash attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"ASSET_INTEGRITY","Intégrité des assets vérifiée"),
-    ),
-    "hardware":(
-        _capability("measurement-record","Relevé de mesure","Enregistre une mesure instrumentée avec sa grandeur et son unité.","COLLECTOR","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("instrument","quantity","unit"),"MEASUREMENT_RECORDED","Mesure enregistrée"),
-        _capability("firmware-image-integrity","Intégrité d’image firmware","Vérifie qu’une image firmware correspond exactement au hash attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"FIRMWARE_INTEGRITY","Intégrité du firmware vérifiée"),
-    ),
+    "software":_domain("software","test-suite-report","Rapport de suite de tests","Enregistre le résultat déclaré d’une suite de tests du projet.",("suite","passed","failed"),"TESTS_RECORDED","Suite de tests enregistrée","build-artifact-integrity","Intégrité d’artefact de build","Vérifie qu’un artefact de build correspond exactement au hash attendu.","BUILD_INTEGRITY","Intégrité du build vérifiée"),
+    "data":_domain("data","dataset-profile","Profil de jeu de données","Enregistre les mesures structurelles déclarées d’un jeu de données.",("dataset","rows","columns"),"DATASET_PROFILED","Jeu de données profilé","model-evaluation-integrity","Intégrité d’évaluation de modèle","Vérifie qu’un rapport d’évaluation correspond exactement au hash attendu.","MODEL_EVALUATED","Évaluation de modèle vérifiée"),
+    "research":_domain("research","experiment-record","Enregistrement d’expérience","Enregistre l’hypothèse, la méthode et le résultat observé d’une expérience.",("hypothesis","method","outcome"),"EXPERIMENT_RECORDED","Expérience enregistrée","result-reproduction","Reproduction de résultat","Vérifie qu’un résultat publié correspond exactement à l’artefact attendu.","RESULT_REPRODUCED","Résultat reproduit"),
+    "documentation":_domain("documentation","citation-record","Relevé de citation","Enregistre l’affirmation documentaire et la source qu’elle cite.",("document","claim","citation"),"CITATIONS_RECORDED","Citations relevées","revision-integrity","Intégrité de révision","Vérifie qu’une révision de document correspond au hash attendu.","REVISION_INTEGRITY","Intégrité de révision vérifiée"),
+    "game":_domain("game","playtest-session","Session de playtest","Enregistre le déroulé observé d’une session de test de jeu.",("scene","outcome","duration_seconds"),"PLAYTEST_RECORDED","Playtest enregistré","asset-integrity","Intégrité d’asset","Vérifie qu’un asset de jeu correspond exactement au hash attendu.","ASSET_INTEGRITY","Intégrité des assets vérifiée"),
+    "hardware":_domain("hardware","measurement-record","Relevé de mesure","Enregistre une mesure instrumentée avec sa grandeur et son unité.",("instrument","quantity","unit"),"MEASUREMENT_RECORDED","Mesure enregistrée","firmware-image-integrity","Intégrité d’image firmware","Vérifie qu’une image firmware correspond exactement au hash attendu.","FIRMWARE_INTEGRITY","Intégrité du firmware vérifiée"),
 }
 class ProjectBootstrapError(StoreError):pass
 @dataclass(frozen=True)
@@ -173,13 +167,16 @@ def _capabilities(template:str)->str:
             "      type: object",
             "      properties:",
         ))
-        lines.extend(f"        {name}: {{type: string}}" for name in fields)
+        # A NOOP collector carries the domain fields; the validator runners take exactly the
+        # closed schema the Core fixes for them, their domain fields travelling as `inputs`.
+        schema_fields = fields if item["runner"] == "NOOP" else ("validator_id", "evidence_id")
+        lines.extend(f"        {name}: {{type: string}}" for name in schema_fields)
         lines.extend((
-            f"      required: [{', '.join(fields)}]",
+            f"      required: [{', '.join(schema_fields)}]",
             "      additionalProperties: false",
-            "    yields_proof: true",
-            f"    policy: {item['policy']}",
-            f"    inputs: [{', '.join(fields)}]",
+            "    yields_proof: false",
+            "    policy: READ_ONLY",
+            f"    inputs: [{', '.join(fields)}]" if fields else "    inputs: []",
             "    outputs: [verdict]",
             f"    validator: {item['validator']}",
             "    artifacts: []",
