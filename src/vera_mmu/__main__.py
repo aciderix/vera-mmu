@@ -12,6 +12,7 @@ from .doctor import diagnose_project, render_doctor_report
 from .documentation_generator import compile_project_documentation
 from .identity import ProfileError, load_profile, profile_identity, project_identity
 import shutil
+from .install_repair import apply_install_repair, preview_install_repair
 from .mcp_compiler import compile_mcp_package
 from .mcp_manifest import TOOL_NAMES
 from .mcp_server import main as mcp_server_main
@@ -47,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     bootstrap=sub.add_parser("init-project",help="Prévisualise ou initialise les fichiers VERA dans un projet choisi.");bootstrap.add_argument("root",type=Path,help="Racine locale du projet.");bootstrap.add_argument("--template",required=True);bootstrap.add_argument("--project-id",required=True);bootstrap.add_argument("--project-name",required=True);bootstrap.add_argument("--apply",action="store_true");bootstrap.add_argument("--confirm",action="store_true")
     sync=sub.add_parser("memory-sync",help="Synchronise seulement la mémoire VERA selon sa policy project-local.");sync.add_argument("profile",type=Path,help="Chemin project.yaml.")
     doctor=sub.add_parser("doctor",help="Diagnostique sans mutation le profile, runtime, SQLite, catalogues et transports VERA.");doctor.add_argument("profile",type=Path,help="Chemin project.yaml.");doctor.add_argument("--human",action="store_true",help="Rend le rapport en lignes lisibles au lieu du JSON.")
+    repair=sub.add_parser("repair",help="Prévisualise ou applique la réparation des fichiers déclaratifs manquants.");repair.add_argument("profile",type=Path,help="Chemin project.yaml.");repair.add_argument("--apply",action="store_true");repair.add_argument("--confirm",action="store_true")
     migrate=sub.add_parser("migrate",help="Observe ou pilote explicitement une migration Profile.")
     migration_ops=migrate.add_subparsers(dest="migration_command",required=True)
     migration_status=migration_ops.add_parser("status",help="Observe l’état d’une migration Profile sans mutation.");migration_status.add_argument("profile",type=Path,help="Chemin project.yaml.")
@@ -220,6 +222,14 @@ def main(argv:Sequence[str]|None=None)->int:
                     result=apply_project_document_import(store,preview,confirm=args.confirm)
                     payload={"ok":True,"project_import":_project_result_payload(result)}
                 else:payload={"ok":True,"preview":_project_preview_payload(preview)}
+        elif args.command=="repair":
+            preview=preview_install_repair(args.profile)
+            if args.apply:
+                payload={"ok":True,"repair":apply_install_repair(args.profile,preview,confirm=args.confirm).as_dict()}
+            else:
+                payload={"ok":preview.status!="NOT_REPAIRABLE","repair":preview.as_dict()}
+                if preview.status=="NOT_REPAIRABLE":
+                    print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
         elif args.command=="validate":
             payload={"ok":True,"validation":validate_project(args.profile).as_dict()}
         elif args.command=="configure":

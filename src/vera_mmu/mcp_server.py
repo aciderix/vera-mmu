@@ -34,6 +34,7 @@ from .mcp_adapters import RuntimeAdapterRegistry
 from .lifecycle_adapters import LifecycleAdapterPlan, LifecycleAdapterRegistry
 from .memory_sync import automatic_memory_sync
 from .mcp_instructions import MCPInstructions, compile_mcp_instructions
+from .install_repair import apply_install_repair, preview_install_repair
 from .mcp_compiler import compile_mcp_package
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
 from .project_import import apply_project_document_import, preview_project_document_import
@@ -458,6 +459,22 @@ def create_server(
     async def mmu_attach_proof(gate_id: str, evidence_id: str, actor: str = "vera-mcp") -> dict[str, object]:
         """Rattache une evidence existante à une gate déclarée comme exigence supplémentaire."""
         return _mutating_call("attach_proof", store, lambda: WriteService(store).attach_proof(gate_id, evidence_id=evidence_id, actor=actor))
+
+    @server.tool(name="mmu_repair", structured_output=True)
+    async def mmu_repair(confirm: bool = False, apply: bool = False) -> dict[str, object]:
+        """Prévisualise, ou applique après confirmation, la réparation des fichiers déclaratifs.
+
+        Seuls les fichiers dérivables du profile sont restaurés ; un fichier présent n’est jamais
+        écrasé et une mémoire absente n’est jamais recréée.
+        """
+        def repair() -> Mapping[str, object]:
+            profile_path = store.workspace.profile_path
+            preview = preview_install_repair(profile_path)
+            if not apply:
+                return preview.as_dict()
+            return apply_install_repair(profile_path, preview, confirm=confirm).as_dict()
+
+        return _mutating_call("repair", store, repair)
 
     @server.tool(name="mmu_compile", structured_output=True)
     async def mmu_compile(adapter: str = "generic-mcp", with_outputs: bool = False) -> dict[str, object]:

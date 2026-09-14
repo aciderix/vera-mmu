@@ -64,6 +64,7 @@ TOOL_NAMES = (
     "mmu_restore",
     "mmu_attach_proof",
     "mmu_compile",
+    "mmu_repair",
 )
 _ADAPTER_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,127}")
 

@@ -122,6 +122,7 @@ class MCPManifestTests(unittest.TestCase):
                     "mmu_restore",
                     "mmu_attach_proof",
                     "mmu_compile",
+                    "mmu_repair",
                 ))
 
     def test_i012_changes_to_declared_capability_change_build_hash(self) -> None:

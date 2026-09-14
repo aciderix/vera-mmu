@@ -68,6 +68,7 @@ class MCPStdioVerdictTransportTests(unittest.IsolatedAsyncioTestCase):
         "mmu_restore",
         "mmu_attach_proof",
         "mmu_compile",
+        "mmu_repair",
     }
     _forbidden_client_fields = {
         "verdict",
