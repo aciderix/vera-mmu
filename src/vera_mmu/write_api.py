@@ -15,12 +15,16 @@ import os
 from typing import Any, Mapping
 
 from .addressing import make_address
+from .capabilities import CapabilityService
+from .capability_contracts import CapabilityContractService
+from .capability_policies import CapabilityPolicyService
 from .front import FrontRevision, FrontService
 from .gates import GateService
 from .handoff import Handoff, HandoffService
 from .identity import DECLARATION_ID_RE, ProfileError, load_profile
 from .knowledge import Knowledge, KnowledgeService
 from .profile_resume import compile_profile_resume_dossier
+from .project_catalogs import ProjectCatalogError, load_project_catalogs
 from .proof_policies import ProofPolicyService
 from .proofs import KnowledgeProof, ProofService
 from .store import MemoryStore, StoreError
@@ -149,6 +153,45 @@ class WriteService:
         dossier = compile_profile_resume_dossier(self.store, sections)
         handoff = HandoffService(self.store).prepare(identifier, dossier, actor=actor, confirm=confirm)
         return self._handoff_record(handoff)
+
+    # --- declared capability catalog -------------------------------------
+
+    def sync_profile_capabilities(self, *, actor: str = "vera") -> list[str]:
+        """Materialize the profile-declared capability catalog into the store, idempotently.
+
+        The catalog file was validated and hashed but never written to SQLite, so a freshly
+        initialized project had no `ALLOW` capability and generation refused it. Each declared
+        capability becomes exactly one capability, one contract and one policy decision:
+        `CONFIRM` when the declaration requires confirmation, `ALLOW` otherwise. Nothing outside
+        the declared catalog is ever registered, so the runtime stays closed (I007, I015).
+        """
+        try:
+            catalogs = load_project_catalogs(self.store.workspace.profile_path)
+        except ProjectCatalogError as exc:
+            raise WriteApiError("Catalogues du Project Profile invalides ou absents.") from exc
+        capabilities = CapabilityService(self.store)
+        contracts = CapabilityContractService(self.store)
+        policies = CapabilityPolicyService(self.store)
+        registered: list[str] = []
+        for declaration in catalogs.capabilities["capabilities"]:
+            identifier = str(declaration["id"])
+            schema = dict(declaration["parameter_schema"])
+            if self.store.connection.execute("SELECT 1 FROM capability WHERE id = ?", (identifier,)).fetchone() is None:
+                capabilities.create(
+                    identifier, str(declaration["name"]), str(declaration["kind"]), str(declaration["version"]),
+                    description=str(declaration["description"]), parameter_schema=schema, actor=actor,
+                )
+            if self.store.connection.execute("SELECT 1 FROM capability_contract WHERE capability_id = ?", (identifier,)).fetchone() is None:
+                contracts.declare(
+                    identifier, str(declaration["runner"]), str(declaration["network_policy"]),
+                    int(declaration["timeout_seconds"]), parameter_schema=schema,
+                    yields_proof=bool(declaration["yields_proof"]), actor=actor,
+                )
+            if self.store.connection.execute("SELECT 1 FROM capability_policy WHERE capability_id = ?", (identifier,)).fetchone() is None:
+                decision = "CONFIRM" if bool(declaration["confirmation_required"]) else "ALLOW"
+                policies.declare(identifier, decision, f"Déclarée {declaration['policy']} par le Project Profile.", actor=actor)
+            registered.append(identifier)
+        return sorted(registered)
 
     # --- work graph ------------------------------------------------------
 

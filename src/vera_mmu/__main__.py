@@ -51,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     evidence=sub.add_parser("list-evidence",help="Liste un historique d’evidences VERA compact et borné.");evidence.add_argument("profile",type=Path,help="Chemin project.yaml.");evidence.add_argument("--max-items",type=int,default=20)
     get_front=sub.add_parser("get-front",help="Lit le Front courant du projet sans accepter d’identifiant client.");get_front.add_argument("profile",type=Path,help="Chemin project.yaml.")
     get_handoff=sub.add_parser("get-handoff",help="Lit le dernier handoff vérifié du projet sans accepter d’identifiant client.");get_handoff.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    sync_caps=sub.add_parser("sync-capabilities",help="Matérialise le catalogue de capabilities déclaré par le Project Profile.");sync_caps.add_argument("profile",type=Path,help="Chemin project.yaml.");sync_caps.add_argument("--actor",default="vera-cli")
     sync_types=sub.add_parser("sync-knowledge-types",help="Enregistre exactement les types knowledge déclarés par le Project Profile.");sync_types.add_argument("profile",type=Path,help="Chemin project.yaml.");sync_types.add_argument("--actor",default="vera-cli")
     append_knowledge=sub.add_parser("append-knowledge",help="Ajoute exactement une connaissance ; PROVEN reste refusé à l’append.");append_knowledge.add_argument("profile",type=Path,help="Chemin project.yaml.");append_knowledge.add_argument("--id",required=True,dest="identifier");append_knowledge.add_argument("--type-id",required=True);append_knowledge.add_argument("--status",required=True);append_knowledge.add_argument("--title",required=True);append_knowledge.add_argument("--content",required=True);append_knowledge.add_argument("--actor",default="vera-cli")
     replace_front=sub.add_parser("replace-front",help="Enregistre un snapshot Front complet après confirmation explicite.");replace_front.add_argument("profile",type=Path,help="Chemin project.yaml.");replace_front.add_argument("--id",required=True,dest="identifier");replace_front.add_argument("--field",action="append",required=True,dest="fields",help="Champ Front déclaré, au format cle=valeur.");replace_front.add_argument("--actor",default="vera-cli");replace_front.add_argument("--confirm",action="store_true")
@@ -164,11 +165,12 @@ def main(argv:Sequence[str]|None=None)->int:
                 elif args.command=="work-graph":payload={"ok":True,"work_graph":reader.work_graph()}
                 elif args.command=="list-proofs":payload={"ok":True,"proofs":reader.list_proofs(max_items=args.max_items)}
                 else:payload={"ok":True,"handoff":reader.latest_handoff()}
-        elif args.command in {"sync-knowledge-types","append-knowledge","replace-front","update-front","prepare-handoff","create-work-item","transition-work-item","add-work-dependency","declare-gate","declare-proof-policy","promote-knowledge"}:
+        elif args.command in {"sync-knowledge-types","sync-capabilities","append-knowledge","replace-front","update-front","prepare-handoff","create-work-item","transition-work-item","add-work-dependency","declare-gate","declare-proof-policy","promote-knowledge"}:
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:
                 writer=WriteService(store)
-                if args.command=="sync-knowledge-types":payload={"ok":True,"knowledge_types":writer.sync_profile_knowledge_types(actor=args.actor)}
+                if args.command=="sync-capabilities":payload={"ok":True,"capabilities":writer.sync_profile_capabilities(actor=args.actor)}
+                elif args.command=="sync-knowledge-types":payload={"ok":True,"knowledge_types":writer.sync_profile_knowledge_types(actor=args.actor)}
                 elif args.command=="append-knowledge":payload={"ok":True,"knowledge":writer.append_knowledge(args.identifier,type_id=args.type_id,status=args.status,title=args.title,content=args.content,actor=args.actor)}
                 elif args.command=="replace-front":payload={"ok":True,"front":writer.replace_front(args.identifier,_pairs(args.fields,"Champ Front"),actor=args.actor,confirm=args.confirm)}
                 elif args.command=="update-front":payload={"ok":True,"front":writer.update_front(args.identifier,_pairs(args.fields,"Champ Front"),actor=args.actor,confirm=args.confirm)}

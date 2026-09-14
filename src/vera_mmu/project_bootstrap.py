@@ -18,6 +18,34 @@ _TEMPLATE_ENTITY_TYPES={
     "hardware":("BOARD","COMPONENT","FIRMWARE","MEASUREMENT","DEVICE"),
     "documentation":("SOURCE","DOCUMENT","CLAIM","CITATION","REVISION"),
 }
+def _capability(identifier:str,name:str,description:str,kind:str,runner:str,validator:str,policy:str,fields:tuple[str,...],gate_id:str,gate_name:str)->dict[str,object]:
+    return {"id":identifier,"name":name,"description":description,"kind":kind,"runner":runner,"validator":validator,"policy":policy,"fields":fields,"gate_id":gate_id,"gate_name":gate_name}
+_TEMPLATE_CAPABILITIES={
+    "software":(
+        _capability("test-suite-report","Rapport de suite de tests","Enregistre le résultat déclaré d’une suite de tests du projet.","CHECK","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("suite","passed","failed"),"TESTS_PASS","Suite de tests au vert"),
+        _capability("build-artifact-integrity","Intégrité d’artefact de build","Vérifie qu’un artefact de build correspond exactement au hash attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"BUILD_INTEGRITY","Intégrité du build vérifiée"),
+    ),
+    "data":(
+        _capability("dataset-profile","Profil de jeu de données","Enregistre les mesures structurelles déclarées d’un jeu de données.","COLLECTOR","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("dataset","rows","columns"),"DATASET_PROFILED","Jeu de données profilé"),
+        _capability("model-evaluation","Évaluation de modèle","Enregistre une métrique d’évaluation mesurée sur un split déclaré.","CHECK","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("model","metric","split"),"MODEL_EVALUATED","Modèle évalué"),
+    ),
+    "research":(
+        _capability("experiment-record","Enregistrement d’expérience","Enregistre l’hypothèse, la méthode et le résultat observé d’une expérience.","COLLECTOR","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("hypothesis","method","outcome"),"EXPERIMENT_RECORDED","Expérience enregistrée"),
+        _capability("result-reproduction","Reproduction de résultat","Vérifie qu’un résultat publié correspond exactement à l’artefact attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"RESULT_REPRODUCED","Résultat reproduit"),
+    ),
+    "documentation":(
+        _capability("citation-check","Contrôle de citation","Vérifie qu’une affirmation documentaire cite une source déclarée.","CHECK","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("document","claim","citation"),"CITATIONS_RESOLVED","Citations résolues"),
+        _capability("revision-integrity","Intégrité de révision","Vérifie qu’une révision de document correspond au hash attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"REVISION_INTEGRITY","Intégrité de révision vérifiée"),
+    ),
+    "game":(
+        _capability("playtest-session","Session de playtest","Enregistre le déroulé observé d’une session de test de jeu.","COLLECTOR","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("scene","outcome","duration_seconds"),"PLAYTEST_RECORDED","Playtest enregistré"),
+        _capability("asset-integrity","Intégrité d’asset","Vérifie qu’un asset de jeu correspond exactement au hash attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"ASSET_INTEGRITY","Intégrité des assets vérifiée"),
+    ),
+    "hardware":(
+        _capability("measurement-record","Relevé de mesure","Enregistre une mesure instrumentée avec sa grandeur et son unité.","COLLECTOR","EVIDENCE_FIELDS","EVIDENCE_FIELDS","READ_ONLY",("instrument","quantity","unit"),"MEASUREMENT_RECORDED","Mesure enregistrée"),
+        _capability("firmware-image-integrity","Intégrité d’image firmware","Vérifie qu’une image firmware correspond exactement au hash attendu.","CHECK","EVIDENCE_HASH","EVIDENCE_HASH","READ_ONLY",("validator_id","evidence_id"),"FIRMWARE_INTEGRITY","Intégrité du firmware vérifiée"),
+    ),
+}
 class ProjectBootstrapError(StoreError):pass
 @dataclass(frozen=True)
 class InitializationFile:
@@ -38,8 +66,8 @@ def preview_project_initialization(root:str|Path,*,template:str,project_id:str,p
     if not isinstance(project_name,str) or not project_name.strip() or len(project_name)>160:raise ProjectBootstrapError("project_name invalide.")
     files=(
         _file(".vera-mmu/agent-profiles.yaml",builtin_agent_profiles_json()),
-        _file(".vera-mmu/capabilities.yaml",_capabilities()),
-        _file(".vera-mmu/gates.yaml",_gates()),
+        _file(".vera-mmu/capabilities.yaml",_capabilities(template)),
+        _file(".vera-mmu/gates.yaml",_gates(template)),
         _file(".vera-mmu/playbook.md",_playbook(project_name)),
         _file(".vera-mmu/policies.yaml",_policies()),
         _file(".vera-mmu/project.yaml",_profile(template,project_id,project_name)),
@@ -122,10 +150,55 @@ integrations:
   agent_profiles: ".vera-mmu/agent-profiles.yaml"
   enabled: []
 '''
-def _capabilities()->str:
-    return "format: vera-capability-catalog/v1\ncapabilities: []\n"
-def _gates()->str:
-    return "format: vera-gate-catalog/v1\ngates: []\n"
+def _capabilities(template:str)->str:
+    """Emit the declared capability catalog for one domain.
+
+    A capability here is a contract for what the project must be able to prove, not a claim
+    that VERA runs a domain tool: the runner profiles stay inside the closed Core set and the
+    network policy stays `DENY_NETWORK`. A project is expected to edit this file.
+    """
+    lines=["format: vera-capability-catalog/v1","capabilities:"]
+    for item in _TEMPLATE_CAPABILITIES[template]:
+        fields=item["fields"]
+        lines.extend((
+            f"  - id: \"{item['id']}\"",
+            f"    name: \"{item['name']}\"",
+            f"    description: \"{item['description']}\"",
+            f"    kind: {item['kind']}",
+            "    version: \"1.0.0\"",
+            f"    runner: {item['runner']}",
+            "    network_policy: DENY_NETWORK",
+            "    timeout_seconds: 120",
+            "    parameter_schema:",
+            "      type: object",
+            "      properties:",
+        ))
+        lines.extend(f"        {name}: {{type: string}}" for name in fields)
+        lines.extend((
+            f"      required: [{', '.join(fields)}]",
+            "      additionalProperties: false",
+            "    yields_proof: true",
+            f"    policy: {item['policy']}",
+            f"    inputs: [{', '.join(fields)}]",
+            "    outputs: [verdict]",
+            f"    validator: {item['validator']}",
+            "    artifacts: []",
+            "    confirmation_required: false",
+        ))
+    return "\n".join(lines)+"\n"
+def _gates(template:str)->str:
+    """Emit one required gate per declared capability, expecting an explicit `PASS`."""
+    lines=["format: vera-gate-catalog/v1","gates:"]
+    for item in _TEMPLATE_CAPABILITIES[template]:
+        lines.extend((
+            f"  - id: {item['gate_id']}",
+            f"    name: \"{item['gate_name']}\"",
+            f"    capability_id: \"{item['id']}\"",
+            "    required: true",
+            "    expected:",
+            "      verdict: PASS",
+        ))
+    return "\n".join(lines)+"\n"
 def _policies()->str:
     return """format: vera-policy-catalog/v1
 filesystem:

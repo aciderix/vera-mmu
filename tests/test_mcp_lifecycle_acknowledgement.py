@@ -40,6 +40,7 @@ class MCPLifecycleAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
         "mmu_list_evidence",
         "mmu_read",
         "mmu_read_batch",
+        "mmu_sync_capabilities",
         "mmu_sync_knowledge_types",
         "mmu_append_knowledge",
         "mmu_replace_front",

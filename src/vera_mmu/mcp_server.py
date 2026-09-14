@@ -367,6 +367,11 @@ def create_server(
         """Lit un batch explicitement borné d’adresses VERA exactes dans l’ordre fourni."""
         return _call("read_batch", lambda: {"records": ReadService(store).read_batch(addresses)})
 
+    @server.tool(name="mmu_sync_capabilities", structured_output=True)
+    async def mmu_sync_capabilities(actor: str = "vera-mcp") -> dict[str, object]:
+        """Matérialise le catalogue de capabilities déclaré par le Project Profile."""
+        return _mutating_call("sync_capabilities", store, lambda: {"capabilities": WriteService(store).sync_profile_capabilities(actor=actor)})
+
     @server.tool(name="mmu_sync_knowledge_types", structured_output=True)
     async def mmu_sync_knowledge_types(actor: str = "vera-mcp") -> dict[str, object]:
         """Enregistre exactement les types knowledge déclarés par le Project Profile."""
