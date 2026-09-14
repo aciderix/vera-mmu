@@ -57,6 +57,12 @@ TOOL_NAMES = (
     "mmu_create_gate",
     "mmu_declare_proof_policy",
     "mmu_record_proof",
+    "mmu_get_resume_brief",
+    "mmu_get_resume_status",
+    "mmu_export",
+    "mmu_import_bundle",
+    "mmu_restore",
+    "mmu_attach_proof",
 )
 _ADAPTER_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,127}")
 

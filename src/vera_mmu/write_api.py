@@ -15,6 +15,7 @@ import os
 from typing import Any, Mapping
 
 from .addressing import make_address
+from .bundles import project_bundle_path, restore_bundle
 from .capabilities import CapabilityService
 from .capability_contracts import CapabilityContractService
 from .capability_policies import CapabilityPolicyService
@@ -315,6 +316,30 @@ class WriteService:
             identifier, knowledge_id, evidence_id, admission_id, actor=actor,
         )
         return self._proof_record(proof)
+
+    def attach_proof(self, gate_id: str, *, evidence_id: str, actor: str = "vera") -> dict[str, object]:
+        """Attach one existing evidence to a declared gate as an additional requirement.
+
+        The caller names records only: it supplies no verdict and no admission. The Core refuses
+        an unknown gate or evidence, so attaching never creates the material it points at.
+        """
+        GateService(self.store).add_requirement(gate_id, evidence_id, actor=actor)
+        return {"gate_id": gate_id, "evidence_id": evidence_id, "status": "ATTACHED"}
+
+    # --- bundles ---------------------------------------------------------
+
+    def restore_bundle_by_id(self, bundle_id: str, *, confirm: bool = False) -> dict[str, object]:
+        """Restore one of this project's own bundles after explicit confirmation.
+
+        The bundle is named, never pathed. The Core verifies the manifest chain and the project
+        identity, and refuses to merge into a non-empty divergent memory: a restore either finds
+        its own untouched snapshot, installs into an empty runtime, or is refused (I010, I011).
+        """
+        source = project_bundle_path(self.store, bundle_id)
+        result = restore_bundle(source, self.store.workspace.profile_path, confirm=confirm)
+        payload = asdict(result)
+        payload.pop("path", None)
+        return payload
 
     # --- records ---------------------------------------------------------
 

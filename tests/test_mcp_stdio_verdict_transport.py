@@ -61,6 +61,12 @@ class MCPStdioVerdictTransportTests(unittest.IsolatedAsyncioTestCase):
         "mmu_create_gate",
         "mmu_declare_proof_policy",
         "mmu_record_proof",
+        "mmu_get_resume_brief",
+        "mmu_get_resume_status",
+        "mmu_export",
+        "mmu_import_bundle",
+        "mmu_restore",
+        "mmu_attach_proof",
     }
     _forbidden_client_fields = {
         "verdict",

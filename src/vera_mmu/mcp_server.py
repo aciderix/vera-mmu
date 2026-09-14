@@ -411,6 +411,53 @@ def create_server(
         """
         return _mutating_call("prepare_handoff", store, lambda: WriteService(store).prepare_handoff(identifier, sections, actor=actor, confirm=confirm))
 
+    @server.tool(name="mmu_get_resume_brief", structured_output=True)
+    async def mmu_get_resume_brief() -> dict[str, object]:
+        """Indique ce qu’une reprise doit contenir, sans armer ni acquitter quoi que ce soit."""
+        return _call("get_resume_brief", lambda: ReadService(store).resume_brief())
+
+    @server.tool(name="mmu_get_resume_status", structured_output=True)
+    async def mmu_get_resume_status() -> dict[str, object]:
+        """Indique si un contrat de reprise est armé pour la session hôte courante.
+
+        L’identité de session provient de l’adapter attesté ; elle n’est jamais une entrée MCP.
+        """
+        def status() -> Mapping[str, object]:
+            if lifecycle_adapter is None:
+                raise StoreError("Aucun adapter lifecycle attesté n’est configuré pour ce serveur MCP.")
+            session_identity = lifecycle_adapter.session_identity()
+            if not isinstance(session_identity, str) or not session_identity:
+                raise StoreError("Adapter lifecycle : identité de session hôte indisponible.")
+            return ReadService(store).resume_status(session_identity, lifecycle_adapter.adapter_id)
+
+        return _call("get_resume_status", status)
+
+    @server.tool(name="mmu_export", structured_output=True)
+    async def mmu_export() -> dict[str, object]:
+        """Projette l’état vérifiable du projet — identité, hashes, compteurs — sans archive."""
+        return _call("export", lambda: ReadService(store).export_projection())
+
+    @server.tool(name="mmu_import_bundle", structured_output=True)
+    async def mmu_import_bundle(bundle_id: str) -> dict[str, object]:
+        """Vérifie un bundle project-local et décrit ce qu’une restauration ferait, sans écrire.
+
+        Le bundle est nommé, jamais désigné par un chemin.
+        """
+        return _call("import_bundle", lambda: ReadService(store).preview_bundle_import(bundle_id))
+
+    @server.tool(name="mmu_restore", structured_output=True)
+    async def mmu_restore(bundle_id: str, confirm: bool = False) -> dict[str, object]:
+        """Restaure un bundle project-local vérifié après confirmation explicite.
+
+        Une cible non vide et divergente est un refus : aucune fusion de mémoire n’est possible.
+        """
+        return _mutating_call("restore", store, lambda: WriteService(store).restore_bundle_by_id(bundle_id, confirm=confirm))
+
+    @server.tool(name="mmu_attach_proof", structured_output=True)
+    async def mmu_attach_proof(gate_id: str, evidence_id: str, actor: str = "vera-mcp") -> dict[str, object]:
+        """Rattache une evidence existante à une gate déclarée comme exigence supplémentaire."""
+        return _mutating_call("attach_proof", store, lambda: WriteService(store).attach_proof(gate_id, evidence_id=evidence_id, actor=actor))
+
     @server.tool(name="mmu_get_work_graph", structured_output=True)
     async def mmu_get_work_graph() -> dict[str, object]:
         """Projette le work graph borné : items, états, dépendances et gates déclarées."""

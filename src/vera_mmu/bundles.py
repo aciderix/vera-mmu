@@ -150,6 +150,28 @@ class BundleService:
             shutil.rmtree(snapshot_directory, ignore_errors=True)
 
 
+def project_bundle_path(store: MemoryStore, bundle_id: str) -> Path:
+    """Resolve one bundle by identifier inside this project's own bundles directory.
+
+    A bundle is named, never pathed. The identifier passes the canonical bundle rule first, so
+    no separator or traversal segment can reach the filesystem, and the result is required to
+    stay under the project runtime.
+    """
+    identifier = _bundle_id(bundle_id)
+    directory = store.locator.runtime_dir / "bundles"
+    if directory.is_symlink():
+        raise BundleError("Répertoire de bundles symlinké refusé.")
+    candidate = directory / f"{identifier}.zip"
+    if candidate.is_symlink() or not candidate.is_file():
+        raise BundleError("Bundle project-local introuvable pour cet identifiant.")
+    return candidate
+
+
+def inspect_bundle(bundle_path: str | Path) -> dict[str, Any]:
+    """Read and validate one bundle's manifest without materializing anything."""
+    return dict(_read_bundle(bundle_path).manifest)
+
+
 def restore_bundle(bundle_path: str | Path, profile_path: str | Path, *, confirm: bool) -> BundleRestoreResult:
     """Restore one verified bundle only into an empty runtime with the exact same identity."""
     profile_source = _regular_file(Path(profile_path), "profil cible")

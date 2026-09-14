@@ -2,18 +2,24 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from hashlib import sha256
 import json
 from typing import Iterable
 
 from .addressing import AddressError, make_address, parse_compat_address
+from .bundles import BundleError, inspect_bundle, project_bundle_path
 from .capabilities import CapabilityService
 from .entities import EntityService
 from .evidence import EvidenceService
 from .executions import ExecutionService
 from .front import FrontRevision, FrontService
+from .identity import ProfileError, canonical_json, load_profile
 from .handoff import Handoff, HandoffService
 from .knowledge import KnowledgeService
+from .profile_resume import ProfileResumeError, profile_resume_requirements
+from .project_catalogs import ProjectCatalogError, load_project_catalogs
 from .relations import RelationService
+from .session_lifecycle import LifecycleError, ResumeGuardService
 from .store import MemoryStore, StoreError
 from .symbols import SymbolService
 from .vcs import inspect_vcs
@@ -28,6 +34,7 @@ MAX_FIND_RESULTS = 100
 MAX_READ_BATCH = 32
 MAX_EXECUTION_HISTORY = 100
 MAX_WORK_GRAPH_ITEMS = 500
+_EXPORT_COUNTED_TABLES = ("knowledge", "entity", "relation", "work_item", "capability", "execution", "evidence", "knowledge_proof")
 
 
 class ReadApiError(StoreError):
@@ -50,6 +57,128 @@ class ReadService:
     def vcs_status(self) -> dict[str, str]:
         """Return minimal local VCS observation without paths, commands or mutations."""
         return inspect_vcs(self.store).as_dict()
+
+    def resume_brief(self) -> dict[str, object]:
+        """State what a resume must contain, before anything is armed or acknowledged.
+
+        The brief is derived from the Project Profile, never from a client: it names the exact
+        sections the resume contract requires, their byte bounds, and the pointers an agent
+        needs to rebuild context. Reading it never arms a guard and never acknowledges one.
+        """
+        try:
+            requirements = profile_resume_requirements(self.store)
+            budget = int(load_profile(self.store.workspace.profile_path)["storage"].get("max_resume_bytes", 0))
+        except (ProfileResumeError, ProfileError, KeyError, TypeError, ValueError) as exc:
+            raise ReadApiError("Contrat de reprise du Project Profile illisible.") from exc
+        front = FrontService(self.store).current()
+        handoff = HandoffService(self.store).latest()
+        return {
+            "format": "vera-resume-brief/v1",
+            "project_identity": self.store.identity.as_dict(),
+            "max_resume_bytes": budget,
+            "required_sections": [
+                {"id": item.identifier, "minimum_characters": item.minimum_characters, "maximum_characters": item.maximum_characters}
+                for item in requirements
+            ],
+            "current_front": None if front is None else {
+                "address": front_address(self.store.identity.project_id, front.id),
+                "id": front.id,
+                "fields_hash": front.fields_hash,
+            },
+            "latest_handoff": None if handoff is None else {
+                "address": make_address(self.store.identity.project_id, "handoff", handoff.id),
+                "id": handoff.id,
+                "resume_contract_hash": handoff.resume_contract_hash,
+            },
+        }
+
+    def resume_status(self, session_identity: str, adapter_id: str) -> dict[str, object]:
+        """Report whether a resume contract is armed for this host session.
+
+        The session identity is supplied by the attested adapter, never by a client, and the
+        derived session state key is deliberately not returned: it identifies the host session
+        and reading a status is not a reason to expose it.
+        """
+        service = ResumeGuardService(self.store)
+        try:
+            state = service.read_state(session_identity, adapter_id)
+        except LifecycleError as exc:
+            raise ReadApiError("État de reprise illisible ou étranger au projet.") from exc
+        if state is None:
+            return {
+                "format": "vera-resume-status/v1",
+                "project_identity": self.store.identity.as_dict(),
+                "status": "NOT_ARMED",
+                "reason": None,
+                "mode": None,
+                "resume_contract_hash": None,
+                "armed_at": None,
+                "acknowledged_at": None,
+            }
+        return {
+            "format": "vera-resume-status/v1",
+            "project_identity": self.store.identity.as_dict(),
+            "status": state.status,
+            "reason": state.reason,
+            "mode": state.mode,
+            "resume_contract_hash": state.resume_contract_hash,
+            "armed_at": state.armed_at,
+            "acknowledged_at": state.acknowledged_at,
+        }
+
+    def export_projection(self) -> dict[str, object]:
+        """Describe the project's verifiable state without producing an archive.
+
+        `export_bundle` writes a full `.zip`; this is the light counterpart: identity, schema
+        and catalog hashes plus resource counts, enough to compare two projects or check a
+        bundle's provenance without unpacking one. It is derived and writes nothing.
+        """
+        try:
+            catalogs = load_project_catalogs(self.store.workspace.profile_path)
+        except (ProjectCatalogError, OSError, ValueError) as exc:
+            raise ReadApiError("Catalogues du Project Profile illisibles pour l’export.") from exc
+        counts = {
+            table: int(self.store.connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+            for table in _EXPORT_COUNTED_TABLES
+        }
+        migrations = canonical_json({str(version): value for version, value in self.store.migration_checksums.items()})
+        return {
+            "format": "vera-export-projection/v1",
+            "project_identity": self.store.identity.as_dict(),
+            "schema_version": max(self.store.migration_checksums, default=0),
+            "schema_hash": sha256(migrations.encode("utf-8")).hexdigest(),
+            "catalog_hashes": {
+                "capabilities": catalogs.capability_catalog_hash,
+                "gates": catalogs.gate_catalog_hash,
+                "policies": catalogs.policy_hash,
+            },
+            "counts": counts,
+        }
+
+    def preview_bundle_import(self, bundle_id: str) -> dict[str, object]:
+        """Verify one bundle of this project and report what restoring it would do.
+
+        The bundle is named, never pathed: the identifier is resolved inside the project's own
+        bundles directory, so no client input reaches the filesystem. Nothing is written, and a
+        manifest that does not belong to this project identity is refused (I010, I011).
+        """
+        try:
+            manifest = inspect_bundle(project_bundle_path(self.store, bundle_id))
+        except BundleError as exc:
+            raise ReadApiError("Bundle project-local introuvable, illisible ou altéré.") from exc
+        if manifest.get("project_identity") != self.store.identity.as_dict():
+            raise ReadApiError("Bundle lié à une autre identité de projet.")
+        database = self.store.locator.sqlite_path
+        return {
+            "format": "vera-bundle-import-preview/v1",
+            "bundle_id": str(manifest["bundle_id"]),
+            "project_identity": dict(manifest["project_identity"]),
+            "memory_hash": str(manifest["memory_hash"]),
+            "schema_hash": str(manifest["schema_hash"]),
+            "artifact_count": len(manifest["artifact_inventory"]),
+            "target_state": "OCCUPIED" if database.exists() else "EMPTY",
+            "mutation": "NONE",
+        }
 
     def work_graph(self) -> dict[str, object]:
         """Return the bounded work graph: items, their lifecycle state and declared edges.

@@ -437,6 +437,16 @@ class ResumeGuardService:
         if parsed != expected or canonical_json(parsed) + "\n" != dossier.json_text:
             raise LifecycleError("Resume Dossier non canonique ou ambigu.")
 
+    def read_state(self, session_identity: str, adapter_id: str) -> ResumeGuardState | None:
+        """Read the persisted guard state for this host session without arming or acknowledging.
+
+        The session identity comes from the attested adapter, never from a client. Returns
+        ``None`` when no contract has been armed for this session and adapter.
+        """
+        _require_session_identity(session_identity)
+        _require_adapter_id(adapter_id)
+        return self._read_existing(self.state_path(session_identity, adapter_id), session_identity, adapter_id)
+
     def _read_existing(self, path: Path, session_identity: str, adapter_id: str) -> ResumeGuardState | None:
         if path.is_symlink():
             raise LifecycleError("État lifecycle symlinké refusé.")

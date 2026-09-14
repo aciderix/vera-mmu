@@ -57,6 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
     replace_front=sub.add_parser("replace-front",help="Enregistre un snapshot Front complet après confirmation explicite.");replace_front.add_argument("profile",type=Path,help="Chemin project.yaml.");replace_front.add_argument("--id",required=True,dest="identifier");replace_front.add_argument("--field",action="append",required=True,dest="fields",help="Champ Front déclaré, au format cle=valeur.");replace_front.add_argument("--actor",default="vera-cli");replace_front.add_argument("--confirm",action="store_true")
     update_front=sub.add_parser("update-front",help="Dérive un nouveau Front en ne modifiant que les champs fournis.");update_front.add_argument("profile",type=Path,help="Chemin project.yaml.");update_front.add_argument("--id",required=True,dest="identifier");update_front.add_argument("--field",action="append",required=True,dest="fields",help="Champ Front déclaré, au format cle=valeur.");update_front.add_argument("--actor",default="vera-cli");update_front.add_argument("--confirm",action="store_true")
     prepare_handoff=sub.add_parser("prepare-handoff",help="Prépare un handoff en compilant le contrat de reprise depuis le profile.");prepare_handoff.add_argument("profile",type=Path,help="Chemin project.yaml.");prepare_handoff.add_argument("--id",required=True,dest="identifier");prepare_handoff.add_argument("--section",action="append",required=True,dest="sections",help="Section de reprise requise, au format id=texte.");prepare_handoff.add_argument("--actor",default="vera-cli");prepare_handoff.add_argument("--confirm",action="store_true")
+    resume_brief=sub.add_parser("resume-brief",help="Indique ce qu’une reprise doit contenir, sans armer ni acquitter.");resume_brief.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    export_projection=sub.add_parser("export",help="Projette l’état vérifiable du projet sans produire d’archive.");export_projection.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    import_bundle=sub.add_parser("bundle-preview",help="Vérifie un bundle project-local et décrit une restauration, sans écrire.");import_bundle.add_argument("profile",type=Path,help="Chemin project.yaml.");import_bundle.add_argument("--bundle-id",required=True)
+    restore_by_id=sub.add_parser("bundle-restore-id",help="Restaure un bundle project-local nommé après confirmation explicite.");restore_by_id.add_argument("profile",type=Path,help="Chemin project.yaml.");restore_by_id.add_argument("--bundle-id",required=True);restore_by_id.add_argument("--confirm",action="store_true")
+    attach=sub.add_parser("attach-proof",help="Rattache une evidence existante à une gate déclarée.");attach.add_argument("profile",type=Path,help="Chemin project.yaml.");attach.add_argument("--gate-id",required=True);attach.add_argument("--evidence-id",required=True);attach.add_argument("--actor",default="vera-cli")
     work_graph=sub.add_parser("work-graph",help="Lit le work graph borné : items, dépendances et gates déclarées.");work_graph.add_argument("profile",type=Path,help="Chemin project.yaml.")
     list_proofs=sub.add_parser("list-proofs",help="Liste les promotions persistées sans jamais retourner de signature.");list_proofs.add_argument("profile",type=Path,help="Chemin project.yaml.");list_proofs.add_argument("--max-items",type=int,default=20)
     create_work_item=sub.add_parser("create-work-item",help="Crée un work item dans l’état initial du cycle de vie Core.");create_work_item.add_argument("profile",type=Path,help="Chemin project.yaml.");create_work_item.add_argument("--id",required=True,dest="identifier");create_work_item.add_argument("--type",required=True,dest="item_type");create_work_item.add_argument("--title",required=True);create_work_item.add_argument("--description",default="");create_work_item.add_argument("--priority",type=int);create_work_item.add_argument("--parent-id");create_work_item.add_argument("--assignee");create_work_item.add_argument("--actor",default="vera-cli")
@@ -153,7 +158,7 @@ def main(argv:Sequence[str]|None=None)->int:
                         print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
             else:
                 raise StoreError("Opération de migration inconnue.")
-        elif args.command in {"boot","find","read","read-batch","related","list-executions","list-evidence","get-front","get-handoff","work-graph","list-proofs"}:
+        elif args.command in {"boot","find","read","read-batch","related","list-executions","list-evidence","get-front","get-handoff","work-graph","list-proofs","resume-brief","export","bundle-preview"}:
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:
                 reader=ReadService(store)
@@ -167,8 +172,11 @@ def main(argv:Sequence[str]|None=None)->int:
                 elif args.command=="get-front":payload={"ok":True,"front":reader.current_front()}
                 elif args.command=="work-graph":payload={"ok":True,"work_graph":reader.work_graph()}
                 elif args.command=="list-proofs":payload={"ok":True,"proofs":reader.list_proofs(max_items=args.max_items)}
+                elif args.command=="resume-brief":payload={"ok":True,"resume_brief":reader.resume_brief()}
+                elif args.command=="export":payload={"ok":True,"export":reader.export_projection()}
+                elif args.command=="bundle-preview":payload={"ok":True,"bundle_preview":reader.preview_bundle_import(args.bundle_id)}
                 else:payload={"ok":True,"handoff":reader.latest_handoff()}
-        elif args.command in {"sync-knowledge-types","sync-capabilities","append-knowledge","replace-front","update-front","prepare-handoff","create-work-item","transition-work-item","add-work-dependency","declare-gate","declare-proof-policy","promote-knowledge"}:
+        elif args.command in {"sync-knowledge-types","sync-capabilities","append-knowledge","replace-front","update-front","prepare-handoff","create-work-item","transition-work-item","add-work-dependency","declare-gate","declare-proof-policy","promote-knowledge","bundle-restore-id","attach-proof"}:
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:
                 writer=WriteService(store)
@@ -183,6 +191,8 @@ def main(argv:Sequence[str]|None=None)->int:
                 elif args.command=="add-work-dependency":payload={"ok":True,"dependency":writer.add_work_dependency(args.dependent_id,args.prerequisite_id,actor=args.actor)}
                 elif args.command=="declare-gate":payload={"ok":True,"gate":writer.declare_gate(args.identifier,work_item_id=args.work_item_id,evidence_id=args.evidence_id,requirement_evidence_ids=tuple(args.requirements or ()),actor=args.actor)}
                 elif args.command=="declare-proof-policy":payload={"ok":True,"proof_policy":writer.declare_proof_policy(args.algorithm,hmac_required=args.hmac_required,actor=args.actor)}
+                elif args.command=="bundle-restore-id":payload={"ok":True,"bundle_restore":writer.restore_bundle_by_id(args.bundle_id,confirm=args.confirm)}
+                elif args.command=="attach-proof":payload={"ok":True,"attachment":writer.attach_proof(args.gate_id,evidence_id=args.evidence_id,actor=args.actor)}
                 else:payload={"ok":True,"proof":writer.promote_knowledge(args.identifier,knowledge_id=args.knowledge_id,evidence_id=args.evidence_id,admission_id=args.admission_id,actor=args.actor)}
         elif args.command=="bundle-export":
             profile=load_profile(args.profile)
