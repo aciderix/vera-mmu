@@ -1,5 +1,7 @@
 # Registre de découplage ARET-MMU → VERA-MMU
 
+> **Avertissement de péremption — 2026-09-14.** Ce registre n’a pas suivi les lots postérieurs à M1 alors que le dépôt est à M11. Recomptage à cette date : **75 lignes, dont 72 `SPLIT`, 2 `IN_PROGRESS`, 1 `BLOCKED` et 0 `DONE`**. Tant qu’il reste dans cet état, il ne mesure plus l’avancement réel et **aucune affirmation de parité ARET ne peut s’appuyer sur lui**. Sa remise en service, ou son remplacement formel par un autre instrument, est un lot ouvert. Voir `continuity/ENGINEERING_LOG.md` — LOG-0280.
+
 > **Statut :** registre M0.2, complété par l’avancement M1 pour C01/C02/C11 — couplages cartographiés ; **aucun code ARET n’a été déplacé**.
 >
 > **Baseline :** ARET-MMU `7f7b4df6d4f3bb493dfa26868fcec5f5b95a7ac4`, capturé dans `/home/ubuntu/ARET_MMU_M0_1_BASELINE/`.

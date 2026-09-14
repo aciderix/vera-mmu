@@ -3401,3 +3401,31 @@ Commit fonctionnel : `354e4dd`. La séquence de migration physique universelle e
 ## LOG-0276 — Intégration de la spécification finale Universal Dev-MMU
 **Statut : PASS documentaire.**
 Le document fourni `UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md` est intégré dans `docs/UNIVERSAL_DEV_MMU_SPECIFICATION_FINALE.md` et référencé par le handoff et le workplan. SHA-256 : `d8e5d01b673e243e0104a30fb62328bc2a7fc650373ab91b1a103652a1737d75`. Cette intégration versionne la référence ; elle ne transforme pas la Definition of Done globale en statut livré.
+
+## LOG-0277 — Ouverture des surfaces d’écriture CLI et MCP
+**Statut : PASS dans le périmètre implémenté.**
+Un audit de vérification a établi que `KnowledgeService.append`, `FrontService.update/replace`, `HandoffService.prepare`, `WorkItemService.create`, `GateService.declare` et `ProofService.promote` existaient, étaient testés, mais n’étaient atteignables par aucune surface : la CLI n’importait aucun de ces services et la façade MCP n’exposait que des lectures. `ProofService.promote`, qui porte l’invariant I004, n’avait aucun appelant hors tests.
+
+`write_api.WriteService` est ajouté comme contrepartie mutante de `ReadService`, câblé à la CLI et à MCP. Deux impédances déclaratif/store bloquaient le parcours et sont résolues : les types knowledge sont déclarés en majuscules et stockés en minuscules, et le catalogue de capabilities était validé et hashé sans jamais être matérialisé en SQLite.
+
+Le secret de promotion est lu dans `VERA_MMU_PROOF_HMAC_SECRET`, jamais fourni par le client et jamais placé sous `.vera-mmu/`, que la synchronisation mémoire commit sur Git. Une policy exigeant HMAC sans secret est un refus explicite, jamais une promotion non signée.
+
+Validation : suite Python — `686 passed, 55 subtests passed`; `git diff --check` PASS; scan frontière Core PASS; parcours MCP stdio réel PASS. Couverture de l’API §24 : `24/30` outils, contre `14/30` avant ce lot. Restent non livrés : `mmu_restore`, `mmu_get_resume_brief`, `mmu_get_resume_status`, `mmu_attach_proof`, `mmu_export`, `mmu_import_bundle`.
+
+## LOG-0278 — Critère de sortie Annexe B franchi sur les six domaines
+**Statut : PASS dans le périmètre implémenté.**
+`generate` refusait tout projet fraîchement initialisé : les six templates ne différaient que par leur liste de types d’entités et émettaient `capabilities: []`, alors que la génération exige au moins une capability `ALLOW`. Les capabilities et gates sont désormais déclarées par domaine, et la synchronisation matérialise le catalogue déclaré.
+
+Un second défaut, invisible par la seule voie déclarative, a été trouvé en exécutant la chaîne : une capability peut passer la génération et rester inexécutable si son schéma de paramètres ne correspond pas au runner qu’elle nomme. Les runners `EVIDENCE_FIELDS` et `EVIDENCE_HASH` n’acceptent que `{validator_id, evidence_id}` ; les champs métier sont portés par `inputs` et deviennent les clés requises du validator. Chaque domaine déclare en outre un collecteur `NOOP`, sans lequel aucune evidence ne peut être rattachée à une execution.
+
+Validation : `scan → init → validate → generate → doctor` rejoué pour `software`, `data`, `research`, `documentation`, `game` et `hardware`; déterminisme du `mcp_build_hash` vérifié; chaîne complète capability → evidence → validation → admission → promotion `PROVEN` signée, avec refus prouvé sur evidence incomplète.
+
+## LOG-0279 — Doctor complété face à la spécification §45
+**Statut : PASS dans le périmètre implémenté.**
+Le rapport fusionnait capabilities, gates et policies en une ligne `catalogs`, omettait `HMAC` et `HOOKS`, et n’avait pas de rendu humain. Les trois catalogues sont désormais des lignes distinctes attribuées au fichier que l’erreur nomme, `hmac` signale une policy exigeant une signature dont le secret est absent avant qu’une promotion ne soit tentée, `hooks` vérifie que toute intégration déclarée est installée, et `vmmu doctor --human` rend les lignes alignées décrites par la spécification. Le secret n’apparaît jamais dans le rapport, ce qu’un test garantit.
+
+## LOG-0280 — Péremption constatée du registre de découplage
+**Statut : OBSERVED, aucune ligne promue.**
+`DECOUPLING_MATRIX.md` est désigné par la spécification §52 comme la référence d’avancement. Son recomptage donne `75` lignes : `72 SPLIT`, `2 IN_PROGRESS`, `1 BLOCKED`, `0 DONE`. Son en-tête se date lui-même « registre M0.2, complété par l’avancement M1 » alors que le dépôt est à M11.
+
+Aucune ligne n’est promue par ce lot : les travaux ci-dessus portent sur les surfaces universelles, pas sur la parité ARET que le registre mesure. Le constat est enregistré tel quel afin qu’aucune affirmation de parité ne s’appuie sur un registre qui ne mesure plus l’état réel. Sa remise en service, ou son remplacement formel, reste un lot distinct.
