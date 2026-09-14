@@ -16,6 +16,7 @@ from .migrations import MigrationError
 from .project_import import apply_project_document_import, preview_project_document_import
 from .read_api import ReadService
 from .runtime import RuntimeLocator
+from .write_api import WriteApiError, WriteService
 from .project_operations import ProjectOperationError, compile_generation_preview, scan_project
 from .project_bootstrap import ProjectBootstrapError, apply_project_initialization, preview_project_initialization
 from .profile_migration import inspect_profile_migration_journal, recover_profile_physical_migration
@@ -50,6 +51,11 @@ def build_parser() -> argparse.ArgumentParser:
     evidence=sub.add_parser("list-evidence",help="Liste un historique d’evidences VERA compact et borné.");evidence.add_argument("profile",type=Path,help="Chemin project.yaml.");evidence.add_argument("--max-items",type=int,default=20)
     get_front=sub.add_parser("get-front",help="Lit le Front courant du projet sans accepter d’identifiant client.");get_front.add_argument("profile",type=Path,help="Chemin project.yaml.")
     get_handoff=sub.add_parser("get-handoff",help="Lit le dernier handoff vérifié du projet sans accepter d’identifiant client.");get_handoff.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    sync_types=sub.add_parser("sync-knowledge-types",help="Enregistre exactement les types knowledge déclarés par le Project Profile.");sync_types.add_argument("profile",type=Path,help="Chemin project.yaml.");sync_types.add_argument("--actor",default="vera-cli")
+    append_knowledge=sub.add_parser("append-knowledge",help="Ajoute exactement une connaissance ; PROVEN reste refusé à l’append.");append_knowledge.add_argument("profile",type=Path,help="Chemin project.yaml.");append_knowledge.add_argument("--id",required=True,dest="identifier");append_knowledge.add_argument("--type-id",required=True);append_knowledge.add_argument("--status",required=True);append_knowledge.add_argument("--title",required=True);append_knowledge.add_argument("--content",required=True);append_knowledge.add_argument("--actor",default="vera-cli")
+    replace_front=sub.add_parser("replace-front",help="Enregistre un snapshot Front complet après confirmation explicite.");replace_front.add_argument("profile",type=Path,help="Chemin project.yaml.");replace_front.add_argument("--id",required=True,dest="identifier");replace_front.add_argument("--field",action="append",required=True,dest="fields",help="Champ Front déclaré, au format cle=valeur.");replace_front.add_argument("--actor",default="vera-cli");replace_front.add_argument("--confirm",action="store_true")
+    update_front=sub.add_parser("update-front",help="Dérive un nouveau Front en ne modifiant que les champs fournis.");update_front.add_argument("profile",type=Path,help="Chemin project.yaml.");update_front.add_argument("--id",required=True,dest="identifier");update_front.add_argument("--field",action="append",required=True,dest="fields",help="Champ Front déclaré, au format cle=valeur.");update_front.add_argument("--actor",default="vera-cli");update_front.add_argument("--confirm",action="store_true")
+    prepare_handoff=sub.add_parser("prepare-handoff",help="Prépare un handoff en compilant le contrat de reprise depuis le profile.");prepare_handoff.add_argument("profile",type=Path,help="Chemin project.yaml.");prepare_handoff.add_argument("--id",required=True,dest="identifier");prepare_handoff.add_argument("--section",action="append",required=True,dest="sections",help="Section de reprise requise, au format id=texte.");prepare_handoff.add_argument("--actor",default="vera-cli");prepare_handoff.add_argument("--confirm",action="store_true")
     export=sub.add_parser("bundle-export",help="Exporte un bundle VERA sous le runtime project-local après confirmation.");export.add_argument("profile",type=Path,help="Chemin project.yaml.");export.add_argument("--bundle-id",required=True);export.add_argument("--confirm",action="store_true")
     restore=sub.add_parser("bundle-restore",help="Restaure un bundle vérifié vers une cible VERA vide et de même identité.");restore.add_argument("profile",type=Path,help="Chemin project.yaml cible.");restore.add_argument("--bundle",type=Path,required=True,help="Archive ZIP VERA explicitement sélectionnée.");restore.add_argument("--confirm",action="store_true")
     project_import=sub.add_parser("project-import",help="Prévisualise ou importe explicitement des documents locaux comme observations provenancées.");project_import.add_argument("profile",type=Path,help="Chemin project.yaml.");project_import.add_argument("--document",action="append",required=True,help="Chemin relatif d’un document depuis une racine workspace.");project_import.add_argument("--batch-id",required=True);project_import.add_argument("--knowledge-type-id",required=True);project_import.add_argument("--knowledge-type-label",required=True);project_import.add_argument("--apply",action="store_true");project_import.add_argument("--confirm",action="store_true")
@@ -61,6 +67,17 @@ def build_parser() -> argparse.ArgumentParser:
     config=ops.add_parser("configure",help="Prévisualise ou applique la configuration project-local de l’adapter.");config.add_argument("--profile",type=Path,required=True);config.add_argument("--adapter",required=True);config.add_argument("--apply-project",action="store_true");config.add_argument("--confirm",action="store_true");config.add_argument("--apply-user-scope",action="store_true")
     validate=ops.add_parser("validate",help="Valide profile/workspace et présente la capacité demandée.");validate.add_argument("--profile",type=Path,required=True);validate.add_argument("--adapter",required=True)
     return parser
+
+
+def _pairs(values:Sequence[str],label:str)->dict[str,str]:
+    """Parse repeated `key=value` options without ever evaluating or splitting on the value."""
+    parsed:dict[str,str]={}
+    for item in values:
+        key,separator,value=item.partition("=")
+        if not separator or not key.strip():raise WriteApiError(f"{label} attendu au format cle=valeur.")
+        if key.strip() in parsed:raise WriteApiError(f"{label} dupliqué : {key.strip()}.")
+        parsed[key.strip()]=value
+    return parsed
 
 
 def _doctor(profile_path:Path,name:str)->dict[str,object]:
@@ -137,6 +154,15 @@ def main(argv:Sequence[str]|None=None)->int:
                 elif args.command=="list-evidence":payload={"ok":True,"evidence":reader.evidence_history(max_items=args.max_items)}
                 elif args.command=="get-front":payload={"ok":True,"front":reader.current_front()}
                 else:payload={"ok":True,"handoff":reader.latest_handoff()}
+        elif args.command in {"sync-knowledge-types","append-knowledge","replace-front","update-front","prepare-handoff"}:
+            profile=load_profile(args.profile)
+            with MemoryStore.open(profile,args.profile) as store:
+                writer=WriteService(store)
+                if args.command=="sync-knowledge-types":payload={"ok":True,"knowledge_types":writer.sync_profile_knowledge_types(actor=args.actor)}
+                elif args.command=="append-knowledge":payload={"ok":True,"knowledge":writer.append_knowledge(args.identifier,type_id=args.type_id,status=args.status,title=args.title,content=args.content,actor=args.actor)}
+                elif args.command=="replace-front":payload={"ok":True,"front":writer.replace_front(args.identifier,_pairs(args.fields,"Champ Front"),actor=args.actor,confirm=args.confirm)}
+                elif args.command=="update-front":payload={"ok":True,"front":writer.update_front(args.identifier,_pairs(args.fields,"Champ Front"),actor=args.actor,confirm=args.confirm)}
+                else:payload={"ok":True,"handoff":writer.prepare_handoff(args.identifier,_pairs(args.sections,"Section de reprise"),actor=args.actor,confirm=args.confirm)}
         elif args.command=="bundle-export":
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"bundle":asdict(BundleService(store).export(args.bundle_id,confirm=args.confirm))}

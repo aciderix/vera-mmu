@@ -101,6 +101,11 @@ class MCPManifestTests(unittest.TestCase):
                     "mmu_list_evidence",
                     "mmu_read",
                     "mmu_read_batch",
+                    "mmu_sync_knowledge_types",
+                    "mmu_append_knowledge",
+                    "mmu_replace_front",
+                    "mmu_update_front",
+                    "mmu_prepare_handoff",
                 ))
 
     def test_i012_changes_to_declared_capability_change_build_hash(self) -> None:

@@ -37,6 +37,7 @@ from .mcp_instructions import MCPInstructions, compile_mcp_instructions
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
 from .project_import import apply_project_document_import, preview_project_document_import
 from .read_api import ReadService
+from .write_api import WriteService
 from .session_lifecycle import ResumeGuardService, touch_mcp_ready
 from .store import MemoryStore, StoreError
 from .validators import ValidatorService
@@ -365,6 +366,45 @@ def create_server(
     async def mmu_read_batch(addresses: list[str]) -> dict[str, object]:
         """Lit un batch explicitement borné d’adresses VERA exactes dans l’ordre fourni."""
         return _call("read_batch", lambda: {"records": ReadService(store).read_batch(addresses)})
+
+    @server.tool(name="mmu_sync_knowledge_types", structured_output=True)
+    async def mmu_sync_knowledge_types(actor: str = "vera-mcp") -> dict[str, object]:
+        """Enregistre exactement les types knowledge déclarés par le Project Profile."""
+        return _mutating_call("sync_knowledge_types", store, lambda: {"knowledge_types": WriteService(store).sync_profile_knowledge_types(actor=actor)})
+
+    @server.tool(name="mmu_append_knowledge", structured_output=True)
+    async def mmu_append_knowledge(
+        identifier: str, type_id: str, status: str, title: str, content: str, metadata: dict[str, object] | None = None, actor: str = "vera-mcp",
+    ) -> dict[str, object]:
+        """Ajoute exactement une connaissance dans la taxonomie déclarée par le profile.
+
+        Le statut `PROVEN` est refusé ici : il exige une evidence admissible `PASS`.
+        """
+        return _mutating_call(
+            "append_knowledge",
+            store,
+            lambda: WriteService(store).append_knowledge(
+                identifier, type_id=type_id, status=status, title=title, content=content, metadata=metadata, actor=actor,
+            ),
+        )
+
+    @server.tool(name="mmu_replace_front", structured_output=True)
+    async def mmu_replace_front(identifier: str, fields: dict[str, str], confirm: bool = False, actor: str = "vera-mcp") -> dict[str, object]:
+        """Enregistre un snapshot Front complet pour les champs déclarés par le profile."""
+        return _mutating_call("replace_front", store, lambda: WriteService(store).replace_front(identifier, fields, actor=actor, confirm=confirm))
+
+    @server.tool(name="mmu_update_front", structured_output=True)
+    async def mmu_update_front(identifier: str, fields: dict[str, str], confirm: bool = False, actor: str = "vera-mcp") -> dict[str, object]:
+        """Dérive un nouveau Front en ne modifiant que les champs déclarés fournis."""
+        return _mutating_call("update_front", store, lambda: WriteService(store).update_front(identifier, fields, actor=actor, confirm=confirm))
+
+    @server.tool(name="mmu_prepare_handoff", structured_output=True)
+    async def mmu_prepare_handoff(identifier: str, sections: dict[str, str], confirm: bool = False, actor: str = "vera-mcp") -> dict[str, object]:
+        """Prépare un handoff ; le contrat de reprise est compilé depuis le Project Profile.
+
+        Aucun hash de contrat, dossier complet ou identité de projet ne peut être fourni.
+        """
+        return _mutating_call("prepare_handoff", store, lambda: WriteService(store).prepare_handoff(identifier, sections, actor=actor, confirm=confirm))
 
     @server.tool(name="mmu_get_capability_catalog", structured_output=True)
     async def mmu_get_capability_catalog() -> dict[str, object]:

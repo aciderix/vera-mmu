@@ -43,6 +43,11 @@ TOOL_NAMES = (
     "mmu_list_evidence",
     "mmu_read",
     "mmu_read_batch",
+    "mmu_sync_knowledge_types",
+    "mmu_append_knowledge",
+    "mmu_replace_front",
+    "mmu_update_front",
+    "mmu_prepare_handoff",
 )
 _ADAPTER_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,127}")
 
