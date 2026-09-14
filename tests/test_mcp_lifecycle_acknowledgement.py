@@ -60,6 +60,7 @@ class MCPLifecycleAcknowledgementTests(unittest.IsolatedAsyncioTestCase):
         "mmu_import_bundle",
         "mmu_restore",
         "mmu_attach_proof",
+        "mmu_compile",
     }
     _forbidden_fields = {
         "session_id",

@@ -34,6 +34,7 @@ from .mcp_adapters import RuntimeAdapterRegistry
 from .lifecycle_adapters import LifecycleAdapterPlan, LifecycleAdapterRegistry
 from .memory_sync import automatic_memory_sync
 from .mcp_instructions import MCPInstructions, compile_mcp_instructions
+from .mcp_compiler import compile_mcp_package
 from .mcp_manifest import MCPManifest, verify_mcp_manifest
 from .project_import import apply_project_document_import, preview_project_document_import
 from .read_api import ReadService
@@ -457,6 +458,21 @@ def create_server(
     async def mmu_attach_proof(gate_id: str, evidence_id: str, actor: str = "vera-mcp") -> dict[str, object]:
         """Rattache une evidence existante à une gate déclarée comme exigence supplémentaire."""
         return _mutating_call("attach_proof", store, lambda: WriteService(store).attach_proof(gate_id, evidence_id=evidence_id, actor=actor))
+
+    @server.tool(name="mmu_compile", structured_output=True)
+    async def mmu_compile(adapter: str = "generic-mcp", with_outputs: bool = False) -> dict[str, object]:
+        """Exécute le pipeline MCP ordonné et retourne le package, sans aucune écriture hôte.
+
+        La validation statique est bloquante : un artefact lié à un autre build arrête la
+        compilation au lieu d’être livré.
+        """
+        def build() -> Mapping[str, object]:
+            package = compile_mcp_package(store, adapter).as_dict()
+            if not with_outputs:
+                package.pop("outputs", None)
+            return package
+
+        return _call("compile", build)
 
     @server.tool(name="mmu_get_work_graph", structured_output=True)
     async def mmu_get_work_graph() -> dict[str, object]:

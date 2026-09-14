@@ -63,6 +63,7 @@ TOOL_NAMES = (
     "mmu_import_bundle",
     "mmu_restore",
     "mmu_attach_proof",
+    "mmu_compile",
 )
 _ADAPTER_ID_RE = re.compile(r"[a-z][a-z0-9-]{0,127}")
 

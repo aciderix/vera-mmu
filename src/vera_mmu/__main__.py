@@ -11,6 +11,7 @@ from .coverage_report import compile_coverage_report
 from .doctor import diagnose_project, render_doctor_report
 from .documentation_generator import compile_project_documentation
 from .identity import ProfileError, load_profile, profile_identity, project_identity
+from .mcp_compiler import compile_mcp_package
 from .memory_sync import automatic_memory_sync
 from .migrations import MigrationError
 from .project_import import apply_project_document_import, preview_project_document_import
@@ -30,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name,help_text in (("identity","Valide un Project Profile et affiche son identité canonique."),("inspect","Valide le profile, workspace et confinement runtime."),("init","Initialise le substrat SQLite lié au profile.")):
         child=sub.add_parser(name,help=help_text);child.add_argument("profile",type=Path,help="Chemin project.yaml.")
     scan=sub.add_parser("scan",help="Observe une arborescence locale sans lire de contenu ni écrire.");scan.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
+    compile_pkg=sub.add_parser("compile",help="Exécute le pipeline MCP ordonné et produit le package, sans écriture hôte.");compile_pkg.add_argument("profile",type=Path,help="Chemin project.yaml.");compile_pkg.add_argument("--adapter",required=True);compile_pkg.add_argument("--with-outputs",action="store_true",help="Inclut le texte complet des sorties générées.")
     generate=sub.add_parser("generate",help="Compile un preview MCP déterministe sans installer.");generate.add_argument("profile",type=Path,help="Chemin project.yaml.");generate.add_argument("--adapter",required=True)
     install=sub.add_parser("install",help="Prévisualise ou applique la configuration project-local d’un adapter.");install.add_argument("profile",type=Path,help="Chemin project.yaml.");install.add_argument("--adapter",required=True);install.add_argument("--apply-project",action="store_true");install.add_argument("--confirm",action="store_true")
     bootstrap=sub.add_parser("init-project",help="Prévisualise ou initialise les fichiers VERA dans un projet choisi.");bootstrap.add_argument("root",type=Path,help="Racine locale du projet.");bootstrap.add_argument("--template",required=True);bootstrap.add_argument("--project-id",required=True);bootstrap.add_argument("--project-name",required=True);bootstrap.add_argument("--apply",action="store_true");bootstrap.add_argument("--confirm",action="store_true")
@@ -207,6 +209,12 @@ def main(argv:Sequence[str]|None=None)->int:
                     result=apply_project_document_import(store,preview,confirm=args.confirm)
                     payload={"ok":True,"project_import":_project_result_payload(result)}
                 else:payload={"ok":True,"preview":_project_preview_payload(preview)}
+        elif args.command=="compile":
+            profile=load_profile(args.profile)
+            with MemoryStore.open(profile,args.profile) as store:
+                package=compile_mcp_package(store,args.adapter).as_dict()
+                if not args.with_outputs:package.pop("outputs",None)
+                payload={"ok":True,"package":package}
         elif args.command=="generate":
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"generation":compile_generation_preview(store,args.adapter).as_dict()}
