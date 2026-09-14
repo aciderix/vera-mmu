@@ -1,6 +1,6 @@
 # Registre de découplage ARET-MMU → VERA-MMU
 
-> **Avertissement de péremption — 2026-09-14.** Ce registre n’a pas suivi les lots postérieurs à M1 alors que le dépôt est à M11. Recomptage à cette date : **75 lignes, dont 72 `SPLIT`, 2 `IN_PROGRESS`, 1 `BLOCKED` et 0 `DONE`**. Tant qu’il reste dans cet état, il ne mesure plus l’avancement réel et **aucune affirmation de parité ARET ne peut s’appuyer sur lui**. Sa remise en service, ou son remplacement formel par un autre instrument, est un lot ouvert. Voir `continuity/ENGINEERING_LOG.md` — LOG-0280.
+> **État au 2026-09-14 — aucun couplage clos.** Ce registre suit **16 couplages** (`C01`–`C16`). Aucun n’est `DONE` : 14 restent `SPLIT` et 2 `IN_PROGRESS` (`C07`, `C08`). Il est pourtant activement tenu — 33 sections d’avancement observé couvrent M1, M2.1 à M2.14, M3.S1 et M4.1 à M4-C — mais aucune de ces observations n’a jamais promu une ligne mère, faute du test de parité que la règle exige. **Aucune affirmation de parité ARET ne peut donc s’appuyer sur lui en l’état.** Voir `continuity/ENGINEERING_LOG.md` — LOG-0280 et LOG-0283.
 
 > **Statut :** registre M0.2, complété par l’avancement M1 pour C01/C02/C11 — couplages cartographiés ; **aucun code ARET n’a été déplacé**.
 >

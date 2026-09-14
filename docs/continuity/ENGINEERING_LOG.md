@@ -3457,3 +3457,11 @@ Prouvé par exécution :
 Une précondition d’ordre de build, jusqu’ici non documentée, a été identifiée : le sidecar Python doit être construit avant `cargo`, faute de quoi le build échoue sur `resource path binaries/vmmu-desktop-bridge-… doesn't exist`. Ce n’est ni un défaut de code ni une dette, mais un ordre à écrire pour que chaque nouvel arrivant ne le redécouvre pas.
 
 **Ce qui reste non prouvé :** le dialogue WebView ↔ Rust ↔ sidecar déclenché par la sélection humaine d’un dossier dans le dialogue natif. Le parent Rust ne démarre le sidecar qu’à cette action, qui ne peut pas être simulée honnêtement ici. Le statut correct est donc : **build natif, paquet et sidecar prouvés ; parcours utilisateur interactif toujours à observer sur une machine réelle.**
+
+## LOG-0283 — Correction du chiffrage du registre de découplage
+**Statut : correction documentaire.**
+LOG-0280 a décrit `DECOUPLING_MATRIX.md` comme comptant « 75 lignes, 0 `DONE` » et comme n’ayant « pas suivi les lots postérieurs à M1 ». Les deux formulations sont fautives et sont corrigées ici.
+
+Le registre suit **16 couplages** (`C01`–`C16`), pas 75 : le comptage précédent additionnait les lignes mères et environ 59 sous-lignes des tables d’avancement observé, où un même couplage reparaît à chaque lot (`C03` y figure 20 fois, `C16` 19 fois). Et il a bien été tenu au-delà de M1 : 33 sections d’avancement couvrent M1, M2.1 à M2.14, M3.S1 et M4.1 à M4-C. Seul son en-tête est resté daté de M0.2/M1.
+
+Le constat de fond est inchangé et reste le seul point qui compte : **aucune ligne mère n’est `DONE`**, 14 sont `SPLIT` et 2 `IN_PROGRESS`. Le registre enregistre donc scrupuleusement ce qui a été observé sans jamais conclure une parité, ce que sa propre règle interdit sans test de parité exécuté. Aucune affirmation de parité ARET ne peut s’appuyer sur lui en l’état.
