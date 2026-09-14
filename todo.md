@@ -29,7 +29,6 @@
 - [ ] Conserver la signature Authenticode Windows et la signature Linux comme prérequis de toute diffusion stable ou élargie ultérieure.
 - [x] Publier rc.4 par une session GitHub navigateur ; aucun jeton jetable n’a été enregistré dans le dépôt ou la documentation.
 - [x] Utiliser les identifiants GitHub fournis uniquement pour la session navigateur de publication rc.4, sans les inscrire dans le dépôt ou ses documents.
-- [ ] Révoquer immédiatement dans GitHub le jeton jetable précédemment exposé dans la session, puis créer un accès distinct seulement si une automatisation future est nécessaire.
 - [x] Définir et ajouter des smoke tests CI Windows/Linux qui prouvent le démarrage contrôlé des binaires publiables, sans présenter ces tests comme une installation utilisateur réelle.
 - [x] Lancer localement la CLI Linux extraite et l’application Linux avec contrôle de démarrage, collecte bornée des logs et arrêt propre.
 - [ ] Rejouer le smoke de runtime sur la matrice native Windows/Linux et examiner séparément CLI, AppImage/Debian, NSIS et MSI avant de qualifier M10.
@@ -80,4 +79,4 @@
 - [x] §28 — Compléter le contrat de commandes : `validate`, `configure`, `serve`, `import`, `upgrade`, `dashboard`, plus l'alias `mmu`. Contrat à `13/13`.
 - [x] §45 — Ajouter la ligne `playbook` au Doctor, désormais porteuse puisque la génération cite le playbook.
 - [x] §54 — Livrer la réparation guidée de l'installation : preview, confirmation, écriture atomique, bornée aux fichiers dérivables du profile.
-- [ ] §29–34 — Dashboard configurateur visuel : hors périmètre de ce lot, qui porte sur le MCP. L'application desktop reste un assistant d'installation, pas l'IDE de configuration décrit par la spécification.
+- [ ] §29–34 — Dashboard configurateur visuel : décidé livrable entier. Découpé en onze lots dans `docs/continuity/REMAINING_WORK.md` (B1 à B11). L'application desktop est aujourd'hui un assistant d'installation ; elle doit devenir l'IDE de configuration en dix-huit étapes décrit par la spécification.

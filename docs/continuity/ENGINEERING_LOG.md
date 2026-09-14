@@ -3481,3 +3481,16 @@ Quatre chapitres de la spécification touchant le MCP étaient partiellement liv
 Validation : suite Python — `749 passed, 55 subtests passed` ; parcours complet du contrat §28 rejoué sur un projet neuf, onze étapes nominales vertes et refus attendu sur bundle inexistant ; cycle casse → Doctor `FAIL` → réparation → Doctor `PASS` vérifié.
 
 **Hors périmètre de ce lot :** le Dashboard configurateur visuel des §29 à §34. L’application desktop reste un assistant d’installation ; l’IDE de configuration complet décrit par la spécification n’est pas livré et ne doit pas être revendiqué.
+
+## LOG-0285 — Décision : le Dashboard configurateur est une cible livrable
+**Statut : décision du propriétaire, enregistrée. Aucun code écrit dans cette entrée.**
+
+LOG-0284 rangeait les §29 à §34 hors périmètre. Le propriétaire a tranché l’inverse : le Dashboard configurateur visuel doit être **pleinement livré**. La mention « hors périmètre » de `todo.md` est donc remplacée, et `docs/continuity/REMAINING_WORK.md` découpe la cible en onze lots `B1` à `B11`.
+
+**État mesuré du départ, pour que le découpage ne repose pas sur une impression.** `apps/desktop/ui/src/DesktopConsole.tsx` est une console d’une seule page, huit panneaux, 207 lignes, adossée à 24 méthodes de bridge. Du parcours en dix-huit étapes de §29.2, elle couvre les étapes 1 et 2, l’étape 4 partiellement, les étapes 9 et 10 sous une forme déclarative bornée, l’étape 13, et les étapes 15 à 18. Manquent l’étape 3, les étapes 5 à 8, les étapes 11, 12 et 14, ainsi que la forme complète de §32 et §33.
+
+**Trois règles fixées pour tous les lots.** Aucun écran n’écrit sans le cycle preview → fraîcheur → confirmation → écriture atomique ou refus. L’interface ne fournit jamais commande, chemin, URL ou runner libre : elle compose à partir de ce que le Core déclare (I008). Toute validation vit dans le Core et est testée en Python ; l’interface l’affiche sans la réimplémenter, faute de quoi les deux divergeraient et c’est l’interface qui mentirait.
+
+**Un point de tension est identifié plutôt que contourné.** §32 affiche un champ « commande » et I008 interdit qu’un client en fournisse une. La conciliation retenue, à écrire dans le lot `B6` : l’interface choisit parmi les profils de runner déclarés et leurs paramètres bornés, et n’envoie jamais de chaîne de commande.
+
+**Ligne de sécurité retirée.** La ligne de `todo.md` demandant la révocation d’un jeton jetable est supprimée sur décision du propriétaire. Cette entrée ne la réintroduit pas ; elle en enregistre seulement le retrait, conformément à l’append-only.
