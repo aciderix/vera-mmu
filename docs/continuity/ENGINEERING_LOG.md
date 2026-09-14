@@ -3429,3 +3429,15 @@ Le rapport fusionnait capabilities, gates et policies en une ligne `catalogs`, o
 `DECOUPLING_MATRIX.md` est désigné par la spécification §52 comme la référence d’avancement. Son recomptage donne `75` lignes : `72 SPLIT`, `2 IN_PROGRESS`, `1 BLOCKED`, `0 DONE`. Son en-tête se date lui-même « registre M0.2, complété par l’avancement M1 » alors que le dépôt est à M11.
 
 Aucune ligne n’est promue par ce lot : les travaux ci-dessus portent sur les surfaces universelles, pas sur la parité ARET que le registre mesure. Le constat est enregistré tel quel afin qu’aucune affirmation de parité ne s’appuie sur un registre qui ne mesure plus l’état réel. Sa remise en service, ou son remplacement formel, reste un lot distinct.
+
+## LOG-0281 — API Core §24 complète
+**Statut : PASS dans le périmètre implémenté.**
+Les six outils restants du contrat §24 sont livrés : `mmu_get_resume_brief`, `mmu_get_resume_status`, `mmu_export`, `mmu_import_bundle`, `mmu_restore` et `mmu_attach_proof`. La couverture passe de `24/30` à `30/30`.
+
+Deux choix de conception méritent d’être tracés. D’abord, `mmu_import_bundle` vérifie et décrit sans écrire, tandis que `mmu_restore` exécute après confirmation : plutôt que deux noms pour une même opération, la séparation preview/confirmation reprend la doctrine appliquée partout ailleurs dans le produit. Ensuite, un bundle est désigné par identifiant et jamais par chemin : `project_bundle_path` le résout dans le répertoire de bundles du projet après application de la règle canonique d’identifiant, de sorte qu’aucun séparateur ni segment de traversée n’atteint le système de fichiers.
+
+Un comportement a été épinglé par test plutôt que contourné : restaurer un bundle dans le projet qui l’a produit est refusé comme fusion, car l’export écrit l’archive dans le runtime, qui ne correspond donc plus à son propre snapshot. Le bundle est fait pour voyager vers une cible vide de même identité.
+
+`resume_status` ne retourne jamais la clé d’état de session dérivée de l’identité hôte : lire un statut n’est pas une raison de l’exposer.
+
+Validation : suite Python — `699 passed, 55 subtests passed`; `git diff --check` PASS; scan frontière Core PASS.

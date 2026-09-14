@@ -30,13 +30,13 @@ VERA est testé sur des fixtures **software, data, research, documentation, game
 | Surface | Ce qui est disponible | Ce qui n’est pas encore revendiqué |
 |---|---|---|
 | Core Python | SQLite project-bound, migrations, audit, entities, relations, knowledge, evidence, gates et lifecycle | Validation métier externe ou oracle de domaine universel |
-| CLI `vmmu` | Scan sans écriture, init project-local, génération, staging, preview/install contrôlé, doctor et memory sync | Une API de commandes libres ou un accès implicite à Git |
-| MCP | Façade fermée, modèles d’adapters, reprise et opérations project-local | Preuve live auprès de chaque fournisseur d’agent |
+| CLI `vmmu` | Scan, init project-local, génération, staging, preview/install contrôlé, doctor, memory sync, et les écritures mémoire : knowledge, Front, handoff, work graph, gates et promotion de preuve | Une API de commandes libres ou un accès implicite à Git |
+| MCP | Façade fermée couvrant l’intégralité du contrat Core de la spécification, en lecture comme en écriture, avec reprise et opérations project-local | Preuve live auprès de chaque fournisseur d’agent |
 | Desktop | Tauri v2 Windows/Linux, dialogue natif de dossier, bridge Python stdio embarqué | Installation effectivement testée sur une machine utilisateur |
 | Mémoire Git | Commit/push optionnels de `.vera-mmu/` sur la branche courante | Pull implicite, merge automatique de SQLite ou staging des fichiers métier |
 | Viewer web | Dashboard statique séparé, lecture/import-export de rapports | Installation MCP, accès au disque, shell ou bridge local depuis GitHub Pages |
 
-La suite actuelle compte **686 tests et 55 sous-tests**, dont le parcours de sortie complet — `scan`, `init`, `validate`, `generate`, `doctor` — rejoué sur les six domaines, et une chaîne épistémique complète menée jusqu’à une promotion `PROVEN` signée. Ce décompte est relevé sur Linux x64 ; le dernier passage Windows x64 attesté correspond à la campagne M8/M9 et porte sur une suite antérieure. Les résultats et limites détaillés figurent dans les [records de conformance M8](docs/continuity/artifacts/m8_multi_domain_conformance_2026-08-27.md) et de [candidats M9](docs/continuity/artifacts/m9_release_candidate_pipeline_2026-08-27.md).
+La suite actuelle compte **699 tests et 55 sous-tests**, dont le parcours de sortie complet — `scan`, `init`, `validate`, `generate`, `doctor` — rejoué sur les six domaines, et une chaîne épistémique complète menée jusqu’à une promotion `PROVEN` signée. Ce décompte est relevé sur Linux x64 ; le dernier passage Windows x64 attesté correspond à la campagne M8/M9 et porte sur une suite antérieure. Les résultats et limites détaillés figurent dans les [records de conformance M8](docs/continuity/artifacts/m8_multi_domain_conformance_2026-08-27.md) et de [candidats M9](docs/continuity/artifacts/m9_release_candidate_pipeline_2026-08-27.md).
 
 ## Installation depuis le source
 

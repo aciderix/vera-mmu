@@ -67,7 +67,7 @@
 - [x] Franchir le critère de sortie Annexe B — `scan`, `init`, `validate`, `generate`, `doctor` — sur les six domaines.
 - [x] Prouver la chaîne complète capability → evidence → validation → admission → promotion `PROVEN` signée sur un projet générique.
 - [x] Compléter le Doctor face à §45 : lignes `hmac` et `hooks`, catalogues dégroupés, rendu humain `vmmu doctor --human`.
-- [ ] Livrer les six outils §24 restants : `mmu_restore`, `mmu_get_resume_brief`, `mmu_get_resume_status`, `mmu_attach_proof`, `mmu_export`, `mmu_import_bundle`.
+- [x] Livrer les six outils §24 restants : `mmu_restore`, `mmu_get_resume_brief`, `mmu_get_resume_status`, `mmu_attach_proof`, `mmu_export`, `mmu_import_bundle`. L’API §24 est à `30/30`.
 - [ ] Remettre en service ou remplacer formellement `DECOUPLING_MATRIX.md`, à `0 ligne DONE sur 75` ; aucune parité ARET ne peut être affirmée avant.
 - [ ] Rejouer la suite complète sur la matrice native Windows x64 ; le décompte actuel de 686 tests n’est attesté que sur Linux x64.
 - [ ] Certifier le front Tauri au-delà de la compilation : `tauri build`, lancement natif et dialogue réel WebView ↔ Rust ↔ sidecar.
