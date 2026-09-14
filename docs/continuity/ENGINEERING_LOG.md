@@ -3494,3 +3494,18 @@ LOG-0284 rangeait les §29 à §34 hors périmètre. Le propriétaire a tranché
 **Un point de tension est identifié plutôt que contourné.** §32 affiche un champ « commande » et I008 interdit qu’un client en fournisse une. La conciliation retenue, à écrire dans le lot `B6` : l’interface choisit parmi les profils de runner déclarés et leurs paramètres bornés, et n’envoie jamais de chaîne de commande.
 
 **Ligne de sécurité retirée.** La ligne de `todo.md` demandant la révocation d’un jeton jetable est supprimée sur décision du propriétaire. Cette entrée ne la réintroduit pas ; elle en enregistre seulement le retrait, conformément à l’append-only.
+
+## LOG-0286 — Trois causes racines derrière vingt-trois échecs de CI
+**Statut : correctifs écrits et verts sur Linux x64. Verdict Windows en attente du prochain run.**
+
+Le run `desktop-packaging.yml` #44 est rouge sur les deux runners. Premier fait à établir avant tout diagnostic : **ce rouge précède ce lot**. Au commit `afc931f` du 12 septembre, sur `main`, Linux tombait déjà sur les trois mêmes tests (`3 failed, 630 passed`) et Windows sur seize. Aucune régression de branche ; une dette de portabilité jamais traitée.
+
+Les vingt échecs Windows et les trois échecs Linux se réduisent à trois causes.
+
+**1. `os.fsync` sur une poignée ouverte en lecture seule — huit échecs.** `bundles.py` refermait l’archive zip puis la rouvrait en `"rb"` pour la synchroniser avant `os.replace`. Windows ne valide qu’une poignée ouverte en écriture ; l’`OSError` était rattrapée et présentée comme « Écriture atomique du bundle impossible », ce qui masquait la cause. Ouverture passée en `"rb+"`.
+
+**2. Séparateur natif écrit dans un format déclaré portable — quatre échecs et une transition en cascade.** `_relative()` refuse explicitement toute barre inverse dans `copy_progress.path`. L’écrivain, lui, produisait `str(relative)`, donc `nested\file.txt` sous Windows : le module refusait son propre journal. Six sites convertis en `as_posix()` — écriture de la progression, clés d’inventaire attendu, progression workspace, fichiers cibles constatés, artefacts SQLite et comparaison du Profile. Un test vérifie désormais que chaque chemin journalisé repasse son propre validateur.
+
+**3. Connexions SQLite laissées ouvertes par les fixtures — cinq `WinError 32` et, très probablement, les trois échecs Linux.** `with sqlite3.connect(...) as connection:` valide la transaction et **ne ferme pas** la connexion : le contrat du context manager porte sur la transaction, pas sur la poignée. Sous Windows, un fichier ouvert ne peut être ni déplacé ni supprimé. Sous Linux il se déplace, mais un `PRAGMA wal_checkpoint(TRUNCATE)` reste `busy` tant qu’un lecteur subsiste. Six fixtures passées par `closing()`.
+
+**Ce qui reste non prouvé, et doit être dit comme tel.** La cause 3 est cohérente avec les deux plateformes mais n’a pas été reproduite localement : la suite complète passe ici en 3.11 comme en 3.12. Plutôt que de conclure par ressemblance, le refus de checkpoint énonce maintenant ce qu’il a observé — `busy`, `log`, `checkpointed`. Un refus qui ne dit pas ce qu’il a vu n’est pas diagnosticable depuis un journal de CI, et c’est exactement ce que I014 reproche à une incertitude silencieuse. Le prochain run tranchera par mesure.

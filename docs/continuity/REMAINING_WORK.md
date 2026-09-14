@@ -20,16 +20,37 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ## A. En cours de vérification
 
-### A1 — Matrice native Windows x64
+### A1 — Matrice native Windows x64 et Linux x64
 
-**État :** workflow `desktop-packaging.yml` déclenché manuellement sur la branche.
-**Ce qu’il prouve s’il passe :** la suite complète sur Windows, plus le sidecar, l’archive CLI
-et les installeurs NSIS et MSI construits sur un vrai runner.
-**Critère de sortie :** run vert sur les deux runners de la matrice.
-**Si rouge :** l’historique du dépôt montre deux classes d’échec Windows déjà rencontrées — un
-alias de chemins et un MSI refusant un identifiant de préversion textuel. Commencer par là.
-**Ensuite :** retirer du README la restriction « décompte relevé sur Linux x64 » et dater le
-passage Windows dans le journal.
+**Run observé :** `desktop-packaging.yml` #44 sur la branche. **Les deux jobs sont rouges**, et
+les deux l’étaient déjà sur `main` au commit `afc931f` du 12 septembre, avant ce lot : Linux
+`3 failed, 630 passed` alors, `3 failed, 746 passed` sur les mêmes trois tests ici. Ce rouge
+n’est donc pas une régression de la branche, mais il est à la charge de ce lot.
+
+**Les vingt échecs Windows se réduisent à trois causes, et la troisième explique aussi Linux.**
+
+1. **`os.fsync` sur une poignée en lecture seule** — huit échecs. `bundles.py` écrivait l’archive,
+   puis la rouvrait en `"rb"` pour la synchroniser. Windows ne valide que une poignée ouverte en
+   écriture ; l’`OSError` remontait en « Écriture atomique du bundle impossible ». *Corrigé :*
+   ouverture en `"rb+"`.
+2. **Séparateur de chemin natif dans le journal de migration** — quatre échecs, plus une
+   transition en cascade. Le format de journal est déclaré portable et son propre validateur
+   refuse une barre inverse ; l’écrivain émettait pourtant `os.sep`, donc `nested\file.txt` sous
+   Windows, que le lecteur refusait ensuite. *Corrigé :* six sites convertis en `as_posix()`, et
+   un test épingle que tout chemin journalisé repasse son validateur.
+3. **Poignées SQLite laissées ouvertes par les fixtures de test** — cinq `WinError 32` sous
+   Windows, et **les trois échecs Linux**. `with sqlite3.connect(...)` valide la transaction mais
+   **ne ferme pas** la connexion. Sous Windows un fichier ouvert ne peut pas être déplacé ; sous
+   Linux il se déplace, mais un `wal_checkpoint(TRUNCATE)` reste `busy`. *Corrigé :* six fixtures
+   passées par `closing()`.
+
+**Reste à vérifier :** la cause 3 est la plus probable pour Linux mais n’a pas été reproduite
+localement — la suite complète passe ici sur 3.11 et sur 3.12. Le refus de checkpoint énonce
+désormais ce qu’il a observé (`busy`, `log`, `checkpointed`), donc le prochain run tranchera au
+lieu de nous laisser supposer.
+
+**Critère de sortie :** run vert sur les deux runners. **Ensuite :** retirer du README la
+restriction « décompte relevé sur Linux x64 » et dater le passage Windows dans le journal.
 
 ---
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import closing
 from copy import deepcopy
 import json
 import os
@@ -12,7 +13,7 @@ import yaml
 
 import vera_mmu.profile_migration as profile_migration
 from vera_mmu.identity import load_profile
-from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, prepare_sqlite_migration_artifacts, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state, validate_profile_migration_inventory, validate_sqlite_migration_target
+from vera_mmu.profile_migration import ProfileMigrationError, _copy_tree_verified, _relative, execute_profile_physical_migration, inspect_profile_migration_journal, prepare_profile_migration_journal, preview_profile_physical_migration, prepare_sqlite_migration_artifacts, record_copy_progress, recover_profile_physical_migration, transition_profile_migration_state, validate_profile_migration_inventory, validate_sqlite_migration_target
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
 
@@ -23,7 +24,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
         runtime = root / ".vera-mmu"
         sqlite_path = runtime / "memory.sqlite"
         sqlite_path.unlink(missing_ok=True)
-        with sqlite3.connect(sqlite_path) as connection:
+        with closing(sqlite3.connect(sqlite_path)) as connection, connection:
             connection.execute("CREATE TABLE fixture(value TEXT)")
             connection.execute("INSERT INTO fixture VALUES ('ok')")
         (runtime / "artifacts").mkdir(exist_ok=True)
@@ -102,6 +103,11 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
                 ],
             )
             self.assertEqual((target / "nested" / "file.txt").read_text(encoding="utf-8"), "journalled")
+            # The journal format is declared portable and its own validator refuses a backslash:
+            # a writer emitting the host separator would make the record unreadable on Windows.
+            for item in record["copy_progress"]:
+                self.assertNotIn("\\", item["path"])
+                _relative(item["path"], "copy_progress.path")
 
     def test_copy_tree_verified_keeps_copying_when_verified_persistence_fails(self) -> None:
         with TemporaryDirectory() as directory:
@@ -297,7 +303,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             root = Path(directory)
             source = root / "source.sqlite"
             target = root / "target.sqlite"
-            with sqlite3.connect(source) as connection:
+            with closing(sqlite3.connect(source)) as connection, connection:
                 connection.execute("CREATE TABLE marker(value TEXT)")
                 connection.execute("INSERT INTO marker VALUES ('ok')")
             target.write_bytes(source.read_bytes())
@@ -309,7 +315,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertEqual(report["source_schema_sha256"], report["target_schema_sha256"])
             self.assertEqual(report["mutation"], "NONE")
 
-            with sqlite3.connect(target) as connection:
+            with closing(sqlite3.connect(target)) as connection, connection:
                 connection.execute("ALTER TABLE marker ADD COLUMN extra TEXT")
             diverged = validate_sqlite_migration_target(source, target)
             codes = {issue["code"] for issue in diverged["issues"]}
@@ -322,7 +328,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             root = Path(directory)
             source = root / "source.sqlite"
             target = root / "target.sqlite"
-            with sqlite3.connect(source) as connection:
+            with closing(sqlite3.connect(source)) as connection, connection:
                 connection.execute("CREATE TABLE marker(value TEXT)")
                 connection.commit()
             target.write_bytes(source.read_bytes())
@@ -411,7 +417,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             profile_path = self._project(root)
             sqlite_path = root / ".vera-mmu" / "memory.sqlite"
             sqlite_path.unlink()
-            with sqlite3.connect(sqlite_path) as connection:
+            with closing(sqlite3.connect(sqlite_path)) as connection, connection:
                 connection.execute("CREATE TABLE marker(value TEXT)")
                 connection.execute("INSERT INTO marker VALUES ('ok')")
                 connection.commit()
@@ -474,7 +480,7 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             candidate["integrations"]["agent_profiles"] = ".vera-mmu-next/agent-profiles.yaml"
             sqlite_path = root / ".vera-mmu" / "memory.sqlite"
             sqlite_path.unlink()
-            with sqlite3.connect(sqlite_path) as connection:
+            with closing(sqlite3.connect(sqlite_path)) as connection, connection:
                 connection.execute("CREATE TABLE marker(value TEXT)")
                 connection.execute("INSERT INTO marker VALUES ('root-move')")
             with patch.object(profile_migration, "_device_for_target", return_value=999999):

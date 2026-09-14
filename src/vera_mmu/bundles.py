@@ -131,7 +131,8 @@ class BundleService:
                     _write_member(archive, _MANIFEST_NAME, manifest_bytes)
                     for path, payload in sorted(archive_files.items()):
                         _write_member(archive, path, payload)
-                with temporary.open("rb") as handle:
+                # Windows commits only a handle opened for writing: "rb" would fail here.
+                with temporary.open("rb+") as handle:
                     os.fsync(handle.fileno())
                 os.replace(temporary, output)
             except (OSError, zipfile.BadZipFile) as exc:

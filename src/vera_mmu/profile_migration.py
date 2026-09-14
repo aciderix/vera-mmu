@@ -248,8 +248,8 @@ def _copy_tree_verified(
             if not item.is_file():
                 raise ProfileMigrationError(f"Entrée non régulière dans la copie : {item}.")
             destination.parent.mkdir(parents=True, exist_ok=True)
-            relative_path = str(relative)
-            journal_relative_path = str(Path(progress_prefix) / relative) if progress_prefix else relative_path
+            relative_path = relative.as_posix()
+            journal_relative_path = (Path(progress_prefix) / relative).as_posix() if progress_prefix else relative_path
             if journal_path is not None:
                 record_copy_progress(journal_path, journal_relative_path, "COPYING")
             if progress is not None:
@@ -587,7 +587,7 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
             relative = target.relative_to(new_runtime)
         except ValueError as exc:
             raise ProfileMigrationError("Cible d’inventaire hors du runtime cible.") from exc
-        expected[str(relative)] = item
+        expected[relative.as_posix()] = item
     progress_states: dict[str, list[str]] = {}
     for item in progress:
         if not isinstance(item, dict) or set(item) != {"path", "state"} or not isinstance(item["path"], str) or item["state"] not in {"COPYING", "VERIFIED"}:
@@ -609,7 +609,7 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
             issues.append({"code": "TARGET_SYMLINK", "path": str(target)})
         elif not target.is_file():
             issues.append({"code": "TARGET_MISSING", "path": str(target)})
-        elif relative != str(profile_relative):
+        elif relative != profile_relative.as_posix():
             digest = sha256(target.read_bytes()).hexdigest()
             if digest != item["sha256"] or target.stat().st_size != item["size"]:
                 issues.append({"code": "TARGET_DIVERGED", "path": str(target)})
@@ -641,7 +641,7 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
                 relative = target.relative_to(Path(str(move["target"])))
             except ValueError:
                 continue
-            workspace_progress = progress_states.get(str(Path("workspace") / str(index) / relative), [])
+            workspace_progress = progress_states.get((Path("workspace") / str(index) / relative).as_posix(), [])
             break
         if workspace_progress != ["COPYING", "VERIFIED"]:
             issues.append({"code": "WORKSPACE_COPY_NOT_VERIFIED", "path": str(target)})
@@ -674,7 +674,7 @@ def validate_profile_migration_inventory(journal_path: str | Path) -> dict[str, 
                 if target.is_symlink():
                     issues.append({"code": "TARGET_SYMLINK", "path": str(target)})
                 elif target.is_file():
-                    actual_files.add(str(target.relative_to(new_runtime)))
+                    actual_files.add(target.relative_to(new_runtime).as_posix())
     for relative in sorted(actual_files - set(expected)):
         issues.append({"code": "UNEXPECTED_TARGET", "path": relative})
     status = "READY_FOR_SWITCH" if not issues and record["state"] == "VERIFIED" else "RECOVERY_REQUIRED"
@@ -719,8 +719,14 @@ def _checkpoint_sqlite(path: Path) -> None:
         if mode is None or str(mode[0]).lower() != "wal":
             raise ProfileMigrationError("Mode WAL SQLite non confirmé.")
         result = connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
-        if result is None or len(result) < 3 or int(result[1]) != 0:
-            raise ProfileMigrationError("Checkpoint WAL SQLite non confirmé.")
+        if result is None or len(result) < 3:
+            raise ProfileMigrationError("Checkpoint WAL SQLite non confirmé : PRAGMA sans verdict.")
+        busy, log_pages, checkpointed = int(result[0]), int(result[1]), int(result[2])
+        # A refusal that does not say what it observed cannot be diagnosed from a CI log.
+        if busy != 0 or log_pages != 0:
+            raise ProfileMigrationError(
+                f"Checkpoint WAL SQLite non confirmé (busy={busy}, log={log_pages}, checkpointed={checkpointed})."
+            )
         integrity = connection.execute("PRAGMA integrity_check").fetchone()
         if integrity is None or integrity[0] != "ok":
             raise ProfileMigrationError("Intégrité SQLite non confirmée avant migration.")
@@ -850,7 +856,7 @@ def prepare_sqlite_migration_artifacts(
         for source_artifact in present_sources:
             suffix = source_artifact.name[len(source.name):]
             destination = target.with_name(target.name + suffix)
-            relative = str(destination.relative_to(new_runtime)) if journal_record is not None else None
+            relative = destination.relative_to(new_runtime).as_posix() if journal_record is not None else None
             if relative is not None:
                 record_copy_progress(journal_path, relative, "COPYING")
             temporary = destination.with_name(f".{destination.name}.vera-copy-tmp")
