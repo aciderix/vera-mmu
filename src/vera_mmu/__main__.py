@@ -11,7 +11,11 @@ from .coverage_report import compile_coverage_report
 from .doctor import diagnose_project, render_doctor_report
 from .documentation_generator import compile_project_documentation
 from .identity import ProfileError, load_profile, profile_identity, project_identity
+import shutil
 from .mcp_compiler import compile_mcp_package
+from .mcp_manifest import TOOL_NAMES
+from .mcp_server import main as mcp_server_main
+from .project_validation import validate_project
 from .memory_sync import automatic_memory_sync
 from .migrations import MigrationError
 from .project_import import apply_project_document_import, preview_project_document_import
@@ -32,6 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
         child=sub.add_parser(name,help=help_text);child.add_argument("profile",type=Path,help="Chemin project.yaml.")
     scan=sub.add_parser("scan",help="Observe une arborescence locale sans lire de contenu ni écrire.");scan.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
     compile_pkg=sub.add_parser("compile",help="Exécute le pipeline MCP ordonné et produit le package, sans écriture hôte.");compile_pkg.add_argument("profile",type=Path,help="Chemin project.yaml.");compile_pkg.add_argument("--adapter",required=True);compile_pkg.add_argument("--with-outputs",action="store_true",help="Inclut le texte complet des sorties générées.")
+    validate=sub.add_parser("validate",help="Valide les fichiers déclaratifs du projet et leurs relations.");validate.add_argument("profile",type=Path,help="Chemin project.yaml.")
+    configure=sub.add_parser("configure",help="Prévisualise ou applique la configuration project-local d’une intégration.");configure.add_argument("profile",type=Path,help="Chemin project.yaml.");configure.add_argument("--adapter",required=True);configure.add_argument("--apply-project",action="store_true");configure.add_argument("--confirm",action="store_true")
+    serve=sub.add_parser("serve",help="Démarre le serveur MCP project-local, ou décrit son transport.");serve.add_argument("profile",type=Path,help="Chemin project.yaml.");serve.add_argument("--describe",action="store_true",help="Décrit le transport sans démarrer le serveur.");serve.add_argument("--streamable-http",action="store_true");serve.add_argument("--host",default="127.0.0.1");serve.add_argument("--port",type=int,default=8765)
+    import_bundle=sub.add_parser("import",help="Vérifie un bundle project-local et décrit une restauration, sans écrire.");import_bundle.add_argument("profile",type=Path,help="Chemin project.yaml.");import_bundle.add_argument("--bundle-id",required=True)
+    upgrade=sub.add_parser("upgrade",help="Applique les migrations de schéma en attente après confirmation.");upgrade.add_argument("profile",type=Path,help="Chemin project.yaml.");upgrade.add_argument("--confirm",action="store_true")
+    dashboard=sub.add_parser("dashboard",help="Localise l’application desktop VERA et indique comment la lancer.");dashboard.add_argument("profile",type=Path,help="Chemin project.yaml.");dashboard.add_argument("--describe",action="store_true")
     generate=sub.add_parser("generate",help="Compile un preview MCP déterministe sans installer.");generate.add_argument("profile",type=Path,help="Chemin project.yaml.");generate.add_argument("--adapter",required=True)
     install=sub.add_parser("install",help="Prévisualise ou applique la configuration project-local d’un adapter.");install.add_argument("profile",type=Path,help="Chemin project.yaml.");install.add_argument("--adapter",required=True);install.add_argument("--apply-project",action="store_true");install.add_argument("--confirm",action="store_true")
     bootstrap=sub.add_parser("init-project",help="Prévisualise ou initialise les fichiers VERA dans un projet choisi.");bootstrap.add_argument("root",type=Path,help="Racine locale du projet.");bootstrap.add_argument("--template",required=True);bootstrap.add_argument("--project-id",required=True);bootstrap.add_argument("--project-name",required=True);bootstrap.add_argument("--apply",action="store_true");bootstrap.add_argument("--confirm",action="store_true")
@@ -160,7 +170,7 @@ def main(argv:Sequence[str]|None=None)->int:
                         print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
             else:
                 raise StoreError("Opération de migration inconnue.")
-        elif args.command in {"boot","find","read","read-batch","related","list-executions","list-evidence","get-front","get-handoff","work-graph","list-proofs","resume-brief","export","bundle-preview"}:
+        elif args.command in {"boot","find","read","read-batch","related","list-executions","list-evidence","get-front","get-handoff","work-graph","list-proofs","resume-brief","export","bundle-preview","import"}:
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:
                 reader=ReadService(store)
@@ -177,6 +187,7 @@ def main(argv:Sequence[str]|None=None)->int:
                 elif args.command=="resume-brief":payload={"ok":True,"resume_brief":reader.resume_brief()}
                 elif args.command=="export":payload={"ok":True,"export":reader.export_projection()}
                 elif args.command=="bundle-preview":payload={"ok":True,"bundle_preview":reader.preview_bundle_import(args.bundle_id)}
+                elif args.command=="import":payload={"ok":True,"import":reader.preview_bundle_import(args.bundle_id)}
                 else:payload={"ok":True,"handoff":reader.latest_handoff()}
         elif args.command in {"sync-knowledge-types","sync-capabilities","append-knowledge","replace-front","update-front","prepare-handoff","create-work-item","transition-work-item","add-work-dependency","declare-gate","declare-proof-policy","promote-knowledge","bundle-restore-id","attach-proof"}:
             profile=load_profile(args.profile)
@@ -209,6 +220,34 @@ def main(argv:Sequence[str]|None=None)->int:
                     result=apply_project_document_import(store,preview,confirm=args.confirm)
                     payload={"ok":True,"project_import":_project_result_payload(result)}
                 else:payload={"ok":True,"preview":_project_preview_payload(preview)}
+        elif args.command=="validate":
+            payload={"ok":True,"validation":validate_project(args.profile).as_dict()}
+        elif args.command=="configure":
+            adapter=adapter_spec(args.adapter);config_args=["--profile",str(args.profile)]+(["--apply-project"] if args.apply_project else [])+(["--confirm"] if args.confirm else [])
+            code,adapter_payload=call_adapter_json(adapter.configure_entry,config_args)
+            if code!=0 or adapter_payload.get("ok") is not True:raise StoreError(str(adapter_payload.get("error","Configuration adapter refusée.")))
+            payload={"ok":True,"configuration":{key:value for key,value in adapter_payload.items() if key!="ok"}}
+        elif args.command=="serve":
+            profile=load_profile(args.profile)
+            transport="streamable-http" if args.streamable_http else "stdio"
+            if args.describe:
+                with MemoryStore.open(profile,args.profile) as store:
+                    payload={"ok":True,"serve":{"format":"vera-serve//v1","project_id":store.identity.project_id,"transport":transport,"status":"DESCRIBED","tools":len(TOOL_NAMES)}}
+            else:
+                serve_args=["--profile",str(args.profile)]+(["--streamable-http","--host",args.host,"--port",str(args.port)] if args.streamable_http else [])
+                mcp_server_main(serve_args);return 0
+        elif args.command=="upgrade":
+            if args.confirm is not True:raise StoreError("Mise à niveau refusée sans confirmation explicite.")
+            profile=load_profile(args.profile)
+            with MemoryStore.open(profile,args.profile) as store:
+                version=max(store.migration_checksums,default=0)
+                payload={"ok":True,"upgrade":{"format":"vera-upgrade/v1","project_id":store.identity.project_id,"schema_version":version,"status":"UP_TO_DATE","mutation":"MIGRATIONS_APPLIED_IF_PENDING"}}
+        elif args.command=="dashboard":
+            profile=load_profile(args.profile)
+            located=shutil.which("vera-mmu-desktop")
+            payload={"ok":located is not None,"dashboard":{"format":"vera-dashboard/v1","status":"AVAILABLE" if located else "NOT_INSTALLED","executable":located,"remediation":"Aucune action requise." if located else "Installer le paquet desktop VERA, puis relancer cette commande."}}
+            if located is None:
+                print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 2
         elif args.command=="compile":
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:
