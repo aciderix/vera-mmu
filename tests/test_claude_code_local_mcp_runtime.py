@@ -9,6 +9,8 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 
+from tests.playbook_fixture import write_playbook
+
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
 from vera_mmu.capability_policies import CapabilityPolicyService
@@ -47,6 +49,7 @@ class ClaudeCodeLocalMCPRuntimeTests(unittest.IsolatedAsyncioTestCase):
     def _prepare(self, project: Path) -> Path:
         profile = project / "project.yaml"
         profile.write_text(PROFILE, encoding="utf-8")
+        write_playbook(profile)
         with MemoryStore.open(load_profile(profile), profile) as store:
             CapabilityService(store).create(
                 "alpha-check", "Alpha", "CHECK", "1.0.0", parameter_schema={"type": "object", "additionalProperties": False}, metadata={}, actor="test"

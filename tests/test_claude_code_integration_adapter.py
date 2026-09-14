@@ -7,6 +7,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
+from tests.playbook_fixture import write_playbook
+
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
 from vera_mmu.capability_policies import CapabilityPolicyService
@@ -41,6 +43,7 @@ class ClaudeCodeIntegrationAdapterTests(unittest.TestCase):
     def _store(self, directory: Path) -> MemoryStore:
         profile_path = directory / "project.yaml"
         profile_path.write_text(PROFILE, encoding="utf-8")
+        write_playbook(profile_path)
         return MemoryStore.open(load_profile(profile_path), profile_path)
 
     @staticmethod

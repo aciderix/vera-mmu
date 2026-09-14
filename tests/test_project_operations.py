@@ -7,6 +7,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
+from tests.playbook_fixture import write_playbook
+
 from vera_mmu.__main__ import main
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
@@ -64,6 +66,7 @@ promotion: {proven_requires: [admissible_pass]}
                 CapabilityService(store).create("check","Check","CHECK","1.0.0",parameter_schema={"type":"object","additionalProperties":False},metadata={},actor="test")
                 CapabilityContractService(store).declare("check","OBSERVED_PROCESS","DENY_NETWORK",30,parameter_schema={"type":"object","additionalProperties":False},actor="test")
                 CapabilityPolicyService(store).declare("check","ALLOW","test",actor="test")
+        write_playbook(profile)
         return profile
     def test_i007_i011_scan_is_observational_deterministic_and_never_follows_symlink(self)->None:
         from vera_mmu.project_operations import ProjectOperationError,scan_project

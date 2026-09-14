@@ -11,6 +11,7 @@ from typing import Any, Callable, Mapping
 from .identity import ProjectIdentity, ProfileError, load_profile, project_identity
 from .profile_migration import ProfileMigrationError, inspect_profile_migration_journal
 from .migrations import MigrationRunner, migration_checksums
+from .playbook import PLAYBOOK_FILE_NAME
 from .project_catalogs import ProjectCatalogError, load_project_catalogs
 from .write_api import PROOF_HMAC_SECRET_VARIABLE
 from .workspace import Workspace, WorkspaceError, resolve_workspace
@@ -26,6 +27,7 @@ _CHECK_ORDER = (
     "capability_catalog",
     "gates",
     "policies",
+    "playbook",
     "runtime",
     "sqlite_integrity",
     "migration_ledger",
@@ -41,7 +43,7 @@ _CHECK_ORDER = (
 # a missing one means the report no longer answers what the specification asks of it.
 SPECIFIED_CHECKS = frozenset({
     "project_identity", "profile", "migration_ledger", "sqlite_integrity", "wal", "artifact_store",
-    "hmac", "capability_catalog", "gates", "policies", "runtime", "mcp_transport", "hooks", "resume", "vcs",
+    "hmac", "capability_catalog", "gates", "policies", "playbook", "runtime", "mcp_transport", "hooks", "resume", "vcs",
 })
 _CATALOG_FILES = {"capability_catalog": "capabilities.yaml", "gates": "gates.yaml", "policies": "policies.yaml"}
 _CATALOG_KEYWORDS = {"capability_catalog": "capabilit", "gates": "gate", "policies": "policie"}
@@ -129,6 +131,7 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
         checks["vcs"] = _info("vcs", "VCS non observé sans workspace valide.")
         _diagnose_catalogs(checks, path)
 
+    checks["playbook"] = _diagnose_playbook(store_profile_path=path, workspace=workspace)
     _diagnose_mcp_transport(checks)
     checks.setdefault("hmac", _info("hmac", "Policy de preuve non lisible sans mémoire VERA valide."))
     checks["hooks"] = _diagnose_hooks(profile, workspace)
@@ -409,6 +412,28 @@ def render_doctor_report(report: DoctorReport) -> str:
         if check.status != "PASS":
             lines.append(f"    → {check.remediation}")
     return "\n".join(lines) + "\n"
+
+
+def _diagnose_playbook(*, store_profile_path: Path, workspace: Workspace | None) -> DoctorCheck:
+    """Check the project playbook the generated instructions must quote.
+
+    The playbook is load-bearing since the MCP instructions carry it verbatim: an absent one
+    stops generation, so the Doctor names it here rather than letting it surface at generate
+    time (invariant I014).
+    """
+    if workspace is None:
+        return _info("playbook", "Playbook non observable sans workspace valide.")
+    candidate = workspace.runtime_dir / PLAYBOOK_FILE_NAME
+    if candidate.is_symlink():
+        return _fail("playbook", "Playbook symlinké : règle de projet ambiguë.", f"Remplacer `{PLAYBOOK_FILE_NAME}` par un fichier régulier du runtime VERA.")
+    if not candidate.exists():
+        return _fail(
+            "playbook",
+            "Playbook projet absent : la génération MCP ne peut pas citer les règles du projet.",
+            f"Créer `.vera-mmu/{PLAYBOOK_FILE_NAME}` ; `vmmu init-project` en écrit un modèle.",
+        )
+    del store_profile_path
+    return _pass("playbook", f"Playbook projet lisible ({candidate.stat().st_size} octets).")
 
 
 def _pass(name: str, detail: str) -> DoctorCheck:

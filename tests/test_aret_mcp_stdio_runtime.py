@@ -9,6 +9,8 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 
+from tests.playbook_fixture import write_playbook
+
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_SERVER = ROOT / "tests" / "aret_mcp_runtime_fixture_server.py"
@@ -46,6 +48,7 @@ identity:
             + "\n",
             encoding="utf-8",
         )
+        write_playbook(profile)
         parameters = StdioServerParameters(
             command=sys.executable,
             args=[str(FIXTURE_SERVER), "--profile", str(profile)],

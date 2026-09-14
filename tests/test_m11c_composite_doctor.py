@@ -51,6 +51,7 @@ class CompositeDoctorTests(unittest.TestCase):
         "capability_catalog",
         "gates",
         "policies",
+        "playbook",
         "runtime",
         "sqlite_integrity",
         "migration_ledger",

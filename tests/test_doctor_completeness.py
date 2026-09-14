@@ -138,6 +138,26 @@ class DoctorCompletenessTests(unittest.TestCase):
             self.assertIn("CAPABILITY CATALOG", rendered)
             self.assertIn("Non évalué", rendered)
 
+    # --- playbook --------------------------------------------------------
+
+    def test_playbook_passes_on_a_freshly_initialized_project(self) -> None:
+        with TemporaryDirectory() as tmp:
+            report = diagnose_project(self._project(Path(tmp)))
+            playbook = next(check for check in report.checks if check.name == "playbook")
+            self.assertEqual(playbook.status, "PASS")
+
+    def test_missing_playbook_fails_before_generation_does(self) -> None:
+        """The instructions quote it verbatim, so its absence must be named here."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            profile = self._project(root)
+            (root / ".vera-mmu" / "playbook.md").unlink()
+            report = diagnose_project(profile)
+            playbook = next(check for check in report.checks if check.name == "playbook")
+            self.assertEqual(report.status, "FAIL")
+            self.assertEqual(playbook.status, "FAIL")
+            self.assertIn("playbook.md", playbook.remediation)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,6 +7,8 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 
+from tests.playbook_fixture import write_playbook
+
 from vera_mmu.capabilities import CapabilityService
 from vera_mmu.capability_contracts import CapabilityContractService
 from vera_mmu.capability_policies import CapabilityPolicyService
@@ -36,6 +38,7 @@ class GenericMCPAdapterTests(unittest.IsolatedAsyncioTestCase):
     def _prepare(self, project: Path) -> Path:
         from vera_mmu.generic_mcp_adapter import compile_generic_mcp_plan, stage_generic_mcp_runtime
         profile = project / "project.yaml"; profile.write_text(PROFILE, encoding="utf-8")
+        write_playbook(profile)
         with MemoryStore.open(load_profile(profile), profile) as store:
             CapabilityService(store).create("alpha-check", "Alpha", "CHECK", "1.0.0", parameter_schema={"type":"object","additionalProperties":False}, metadata={}, actor="test")
             CapabilityContractService(store).declare("alpha-check", "OBSERVED_PROCESS", "DENY_NETWORK", 30, parameter_schema={"type":"object","additionalProperties":False}, actor="test")
