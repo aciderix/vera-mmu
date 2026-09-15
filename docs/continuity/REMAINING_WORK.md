@@ -1,7 +1,7 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-15 — A1, C2, B2 et B3 clos ; B1 partiel.
+**Révisé le :** 2026-09-15 — A1, B1, B2, B3 et C2 clos.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
@@ -91,46 +91,49 @@ forme complète de 9 et 10 décrite par §32 et §33.
 **Le préalable des huit étapes visuelles est le socle B1 :** sans machine à états, les écrans
 ajoutés s’empileraient dans la page unique actuelle et le parcours resterait implicite.
 
-### B1 — Socle : le parcours en dix-huit étapes — **PARTIEL, reste ouvert**
+### B1 — Socle : le parcours en dix-huit étapes — **FAIT**
 
-**Livré et prouvé.** `wizard.py` déclare les dix-huit étapes de §29.2 dans l’ordre, chacune avec
-son critère d’entrée et l’évidence qui la termine, et dérive leur état **du projet lui-même** :
-le Project Profile, les catalogues, `generated/`, la configuration hôte. Aucun drapeau n’est
-conservé nulle part. Exposé en CLI (`wizard`), par le bridge (`wizard.state`), par une commande
-Rust et par un panneau de la console qui affiche un état qu’il ne calcule pas.
+**La dérivation.** `wizard.py` déclare les dix-huit étapes de §29.2 dans l’ordre, chacune avec son
+critère d’entrée et l’évidence qui la termine, et dérive leur état **du projet lui-même** :
+Project Profile, catalogues, `generated/`, configuration hôte. Aucun drapeau conservé nulle part.
+Exposé en CLI (`wizard`), bridge (`wizard.state`), commande Rust, et panneau de console.
 
 **Un quatrième état, contre ce que ce document annonçait.** Il prévoyait `BLOCKED`, `AVAILABLE`,
-`COMPLETED`. Six étapes — scanner, détecter, proposer, prévisualiser le MCP, valider, lancer le
-Doctor — ne laissent **aucune trace sur le disque**. Les dire `COMPLETED` aurait été inventer la
-seule chose qu’on ne peut pas voir ; les dire `AVAILABLE` pour toujours aurait été aussi faux.
-Elles sont `NOT_OBSERVABLE` : disponibles, et dont l’exécution n’est pas observable.
+`COMPLETED`. Six étapes — scanner, détecter, proposer, prévisualiser, valider, diagnostiquer — ne
+laissent **aucune trace sur le disque**. Les dire `COMPLETED` aurait inventé la seule chose qu’on
+ne peut pas voir. Elles sont `NOT_OBSERVABLE`.
 
-**Un compteur corrigé en chemin.** La règle des policies comptait une clé `policies:` que le
-format n’a jamais eue — le catalogue déclare chaque policy en section de premier niveau. Elle
-aurait rapporté tout projet sain comme illisible.
+**Le gouvernail.** Quatre panneaux — capabilities, structure de gate, policy de gate, intégration
+MCP — se ferment désormais quand leur étape est `BLOCKED`, en affichant **la raison du Core**, et
+leurs boutons sont désactivés. Ce n’est plus une page de panneaux indépendants.
 
-**Ce qui reste ouvert, et pourquoi ce lot ne se déclare pas fait.**
+**Le lanceur de tests d’interface, qui manquait.** `apps/desktop` n’en avait aucun ; `vitest` est
+installé, `pnpm test` ajouté, et `build` enchaîne désormais `tsc --noEmit && vitest run && vite
+build`. Comme `beforeBuildCommand` vaut `pnpm build`, la CI l’exécute déjà sur les deux runners ;
+une étape explicite a été ajoutée au workflow pour échouer tôt plutôt qu’au moment du bundle.
+Le verrou de dépendances a été vérifié par `rm -rf node_modules && pnpm install --frozen-lockfile`
+— exactement ce que consomme la CI.
 
-1. **La console reste une page de panneaux indépendants.** Le parcours y est *affiché*, il n’y
-   *gouverne* rien : aucun panneau n’est encore fermé parce que son étape est `BLOCKED`. Le
-   périmètre annoncé était « transformer la page unique en un parcours ordonné » ; la dérivation
-   est livrée, le gouvernail non.
-2. **Le critère de sortie que j’avais écrit était irréalisable tel quel.** Il exigeait « la
-   navigation exercée dans la suite TypeScript ». **Cette suite n’existe pas** : `apps/desktop`
-   n’a aucun lanceur de tests, son `build` se limite à `tsc --noEmit && vite build`. Ce qui est
-   prouvé côté interface est donc le typage et la construction, pas un comportement. Installer un
-   lanceur de tests touche au verrou de dépendances que la CI consomme en `--frozen-lockfile`,
-   et ce lot a refusé de risquer une matrice qui vient tout juste de passer au vert pour la
-   première fois.
+**La seule logique de parcours que l’interface a le droit de porter** vit dans `journey.ts` :
+lire le payload, et dire quel panneau une étape ouvre. Tout le reste est dérivé côté Core et
+seulement affiché — le réimplémenter en TypeScript laisserait les deux diverger, et c’est
+l’interface qui finirait par mentir.
 
-**Critère de sortie révisé :** les panneaux gouvernés par l’état dérivé, et un lanceur de tests
-d’interface installé dans son propre lot, avec la CI vérifiée.
+**Deux refus épinglés par les tests d’interface :** un état inconnu dans le payload est lu
+`BLOCKED` et non comme une progression, et un parcours **non encore lu ne ferme aucun panneau** —
+verrouiller sans avoir demandé serait agir sur une information absente.
 
-**Preuve du livré :** `tests/test_wizard.py`, seize tests — ordre des dix-huit étapes, répertoire
-vierge, ce que l’initialisation termine réellement, intégrations restées ouvertes, installation
-bloquée puis disponible puis terminée, absence d’écriture, état **redérivé** après suppression du
-runtime, déterminisme, catalogue cassé qui bloque son étape sans faire tomber le parcours, profil
-cassé, racine symlinkée refusée. `tsc --noEmit`, `vite build` et `cargo check` passent.
+**Preuve :** `tests/test_wizard.py`, seize tests côté Core — ordre des étapes, ce que
+l’initialisation termine réellement, installation bloquée puis disponible puis terminée, absence
+d’écriture, état **redérivé à l’identique** après suppression du runtime, catalogue cassé qui
+bloque son étape sans faire tomber le parcours, racine symlinkée refusée. Et
+`apps/desktop/ui/src/journey.test.ts`, dix tests côté interface, dont le mordant a été vérifié en
+cassant la règle de blocage : le test tombe. `tsc --noEmit`, `vitest run`, `vite build` et
+`cargo check` passent.
+
+**Une ligne morte retirée en chemin :** un garde sur le parcours vide que le cas suivant absorbait
+déjà. Le constat vient de la vérification de mordant — le test ne tombait pas en la supprimant,
+parce que le comportement était identique.
 
 ### B2 — Scanner de projet complet (§30) — étapes 1 et 2 — **FAIT**
 
@@ -315,8 +318,7 @@ seule écriture user-scope.
 1. **A1** — laisser la CI Windows conclure ; traiter ses échecs s’il y en a.
 2. ~~**C2** — prouver Zero Pollution~~ — fait.
 3. ~~**B2** et **B3**~~ faits : les étapes 1 à 3 du parcours sont livrées côté Core.
-4. **B1** — dérivation livrée ; reste à gouverner les panneaux par l’état, et à installer un
-   lanceur de tests d’interface dans son propre lot avec la CI vérifiée.
+4. ~~**B1**~~ fait : dérivation, gouvernail et lanceur de tests d’interface.
 5. **B4 à B9** — les écrans, dans l’ordre du parcours ; chacun avec ses méthodes de bridge et ses
    tests Core.
 6. **B10 puis B11** — le MCP Preview, puis le raccordement des quatre dernières étapes.

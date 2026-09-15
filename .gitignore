@@ -13,7 +13,7 @@ htmlcov/
 .build/
 
 # Desktop build products (recreated by scripts/build_desktop_sidecar.sh and Tauri)
-apps/desktop/node_modules/
+node_modules/
 apps/desktop/ui/dist/
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/binaries/*

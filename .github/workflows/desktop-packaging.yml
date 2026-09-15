@@ -68,6 +68,9 @@ jobs:
         working-directory: apps/desktop
         run: |
           pnpm install --frozen-lockfile
+      - name: Run desktop interface tests
+        working-directory: apps/desktop
+        run: pnpm test
       - name: Build native VERA sidecar
         run: python scripts/build_desktop_sidecar.py ${{ matrix.target }}
       - name: Build standalone VERA CLI archive
