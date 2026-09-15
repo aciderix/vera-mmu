@@ -1,11 +1,13 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-15 — A1 clos par un run vert sur les deux runners.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite au moment de l’établissement :** `749 passed, 55 subtests passed` sur Linux x64.
+**Suite :** `750 passed, 55 subtests passed`, attestée sur Linux x64 **et** Windows x64
+(run `desktop-packaging.yml` #47, 2026-09-15).
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -18,58 +20,45 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ---
 
-## A. En cours de vérification
+## A. Clos
 
-### A1 — Matrice native Windows x64 et Linux x64
+### A1 — Matrice native Windows x64 et Linux x64 — **FAIT**
 
-**Run observé :** `desktop-packaging.yml` #44 sur la branche. **Les deux jobs sont rouges**, et
-les deux l’étaient déjà sur `main` au commit `afc931f` du 12 septembre, avant ce lot : Linux
-`3 failed, 630 passed` alors, `3 failed, 746 passed` sur les mêmes trois tests ici. Ce rouge
-n’est donc pas une régression de la branche, mais il est à la charge de ce lot.
+**Run #47 sur `ec1fd93`, le 15 septembre 2026 : les deux runners sont verts**, quatorze étapes
+chacun — suite de conformité, sidecar natif, archive CLI autonome, AppImage et `.deb` côté Linux,
+NSIS et MSI côté Windows. C’est le premier passage vert de ce workflow.
 
-**Les vingt échecs Windows se réduisaient à trois causes.** La troisième semblait expliquer aussi
-Linux ; la mesure ci-dessous a montré que non.
+Le rouge était antérieur à ce lot — Linux tombait déjà sur les mêmes trois tests sur `main` au
+commit `afc931f`, et Windows y portait seize échecs. Quatre causes racines l’expliquaient.
 
-1. **`os.fsync` sur une poignée en lecture seule** — huit échecs. `bundles.py` écrivait l’archive,
-   puis la rouvrait en `"rb"` pour la synchroniser. Windows ne valide que une poignée ouverte en
-   écriture ; l’`OSError` remontait en « Écriture atomique du bundle impossible ». *Corrigé :*
-   ouverture en `"rb+"`.
-2. **Séparateur de chemin natif dans le journal de migration** — quatre échecs, plus une
-   transition en cascade. Le format de journal est déclaré portable et son propre validateur
-   refuse une barre inverse ; l’écrivain émettait pourtant `os.sep`, donc `nested\file.txt` sous
-   Windows, que le lecteur refusait ensuite. *Corrigé :* six sites convertis en `as_posix()`, et
-   un test épingle que tout chemin journalisé repasse son validateur.
-3. **Poignées SQLite laissées ouvertes par les fixtures de test** — cinq `WinError 32` sous
-   Windows. `with sqlite3.connect(...)` valide la transaction mais **ne ferme pas** la connexion,
-   et sous Windows un fichier ouvert ne peut pas être déplacé. *Corrigé :* six fixtures passées
-   par `closing()`. Je supposais alors que cette même fuite expliquait Linux par un checkpoint
-   `busy` ; c’était faux, et c’est pour cela que le refus a été instrumenté plutôt que conclu.
+1. **`os.fsync` sur une poignée en lecture seule** — huit échecs Windows. `bundles.py` rouvrait
+   l’archive en `"rb"` avant de la remplacer ; Windows ne valide qu’une poignée ouverte en
+   écriture, et l’`OSError` remontait en « Écriture atomique du bundle impossible », masquant sa
+   propre cause. *Corrigé :* `"rb+"`.
+2. **Séparateur natif écrit dans un format déclaré portable** — quatre échecs plus une transition
+   en cascade. `_relative()` refuse la barre inverse dans `copy_progress.path`, et l’écrivain
+   émettait pourtant `os.sep` : le module refusait son propre journal. *Corrigé :* six sites en
+   `as_posix()`, et un test épingle que tout chemin journalisé repasse son validateur.
+3. **Poignées SQLite laissées ouvertes par les fixtures** — cinq `WinError 32`. `with
+   sqlite3.connect(...)` valide la transaction mais **ne ferme pas** la connexion. *Corrigé :*
+   six fixtures par `closing()`. J’ai d’abord cru que cette fuite expliquait aussi Linux ; la
+   mesure a montré que non, et c’est pour cela que le refus a été instrumenté plutôt que conclu.
+4. **Le checkpoint WAL repliait sur rien** — les trois échecs Linux. Le refus instrumenté a rendu
+   `busy=0, log=-1, checkpointed=-1`, la réponse de SQLite quand le pager ne détient aucun objet
+   WAL : déclarer `journal_mode=WAL` ne l’ouvre pas, il faut une lecture. Le checkpoint retournait
+   donc `OK` sans rien replier, indistinguable d’un vrai repli pour qui n’examine que `busy`.
 
-**Run #46, après ces trois correctifs : Windows x64 est vert pour la première fois** — suite,
-sidecar, archive CLI, NSIS et MSI construits sur un vrai runner. Linux tombait encore sur les
-mêmes trois tests, mais le refus portait cette fois ses chiffres : `busy=0, log=-1,
-checkpointed=-1`.
+**La quatrième portait plus loin que son test.** Trois sites checkpointaient. `bundles` n’examinait
+que `busy` — un bundle pouvait être pris par-dessus un WAL jamais replié, contre I010.
+`memory_sync` checkpointait sur une connexion neuve avant toute lecture — il pouvait committer
+dans Git une mémoire incomplète. Aucun des deux ne faisait échouer de test : ils rendaient un
+verdict faux en silence, ce qui est pire qu’un rouge. *Corrigé :* un `checkpoint_wal()` unique
+dans `store.py` ouvre le WAL par une lecture avant de replier, et les trois appelants refusent
+tout ce qui n’est pas `busy == 0` **et** `log == 0`.
 
-**Ce n’était donc pas un verrou, et la cause 3 n’expliquait pas Linux.** `(0, -1, -1)` est la
-réponse de SQLite quand le pager ne détient **aucun objet WAL** : déclarer `journal_mode=WAL`
-n’ouvre pas le WAL, il faut une lecture. Le checkpoint réussissait sur rien, et un appelant qui
-ne regarde que `busy` ne pouvait pas faire la différence avec un vrai repli.
-
-**La portée dépassait le test qui échouait.** Trois sites checkpointaient : la migration, l’export
-de bundle et la synchronisation mémoire. `memory_sync` ouvrait une connexion neuve et
-checkpointait avant toute lecture — il pouvait donc committer dans Git une base dont le WAL
-n’avait jamais été replié. `bundles` n’examinait que `busy`, donc un bundle pouvait être pris
-par-dessus un WAL intact, contre I010. *Corrigé :* un `checkpoint_wal()` partagé dans `store.py`
-ouvre le WAL par une lecture avant de replier, et les trois appelants refusent désormais tout ce
-qui n’est pas `busy == 0` **et** `log == 0`.
-
-**Ce que ce correctif n’a pas prouvé :** le test de régression ajouté vérifie sur disque qu’un WAL
-réellement peuplé est replié, mais il passe ici avec comme sans la lecture — l’ouverture du WAL
-dépend du build SQLite, et le défaut n’est pas reproductible sur cette machine. Seul un run vert
-sur le runner Linux le tranchera.
-
-**Critère de sortie :** run vert sur les deux runners. **Ensuite :** retirer du README la
-restriction « décompte relevé sur Linux x64 » et dater le passage Windows dans le journal.
+**Ce que ce run autorise désormais à dire :** le README ne porte plus la restriction « décompte
+relevé sur Linux x64 ». La suite — `750 passed, 55 subtests passed` — est attestée sur les deux
+plateformes.
 
 ---
 

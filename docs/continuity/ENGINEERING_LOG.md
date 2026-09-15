@@ -3524,3 +3524,14 @@ Les vingt échecs Windows et les trois échecs Linux se réduisent à trois caus
 **Correctif.** Un `checkpoint_wal()` unique dans `store.py` ouvre le WAL par une lecture avant de replier, et rend `(busy, log, checkpointed)`. Les trois appelants refusent désormais tout ce qui n’est pas `busy == 0` **et** `log == 0`, chacun avec son propre message.
 
 **Ce qui reste non prouvé.** Le test de régression ajouté vérifie sur disque qu’un WAL réellement peuplé est replié et que les données restent lisibles. Il passe ici avec comme sans la lecture : il n’a de mordant que là où le pager n’ouvre pas son WAL seul. Seul un run vert sur le runner Linux tranchera. Suite locale : `750 passed, 55 subtests passed`.
+
+## LOG-0288 — Premier run vert de la matrice native
+**Statut : PASS mesuré sur les deux runners.**
+
+Run `desktop-packaging.yml` #47 sur `ec1fd93`, le 2026-09-15 : **Linux x64 et Windows x64 sont verts**, quatorze étapes chacun — suite de conformité, sidecar natif, archive CLI autonome, AppImage et paquet Debian côté Linux, NSIS et MSI côté Windows. C’est le premier passage vert de ce workflow ; les quarante-six runs précédents avaient tous échoué, y compris sur `main`.
+
+Quatre causes racines l’expliquaient, détaillées en LOG-0286 et LOG-0287 : `os.fsync` sur une poignée ouverte en lecture seule, le séparateur natif écrit dans un format dont le validateur refuse la barre inverse, les connexions SQLite laissées ouvertes par les fixtures, et un checkpoint WAL qui repliait sur rien faute d’avoir ouvert le WAL.
+
+**Ce que ce run change dans ce que le produit a le droit de dire.** Le README portait la restriction « ce décompte est relevé sur Linux x64 ; le dernier passage Windows x64 attesté correspond à la campagne M8/M9 et porte sur une suite antérieure ». Elle est retirée : la suite, `750 passed, 55 subtests passed`, est désormais attestée sur les deux plateformes à la même date et sur le même commit. `REMAINING_WORK.md` passe A1 en clos, et `todo.md` coche la ligne correspondante.
+
+**Ce que ce run ne prouve pas.** Il atteste que les binaires se construisent et que la suite passe, pas qu’une installation utilisateur réelle a été observée. Le parcours desktop interactif — sélection humaine d’un dossier, dialogue WebView ↔ Rust ↔ sidecar — reste non observé, et les preuves hôtes par fournisseur restent à faire. Ces deux points restent ouverts au chapitre D.
