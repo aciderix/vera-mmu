@@ -13,3 +13,16 @@ main { flex: 1; min-width: 0; }.topbar { position: sticky; top: 0; z-index: 3; d
 @media (max-width: 830px) { .app-shell { display: block; }.rail { position: relative; min-height: auto; padding: 16px; }.brand { padding-bottom: 15px; }.rail nav, .fail-card, .version { display: none; }.rail-label { margin: 16px 0 8px; }.project-card { max-width: 360px; }.topbar { position: relative; height: 61px; padding: 0 18px; }.content { padding: 18px; }.content::before { display: none; }.hero { min-height: 380px; padding: 39px 29px; }.hero-art { right: 0; bottom: -2%; width: 75%; opacity: .28; }.two-columns, .doctor { grid-template-columns: 1fr; }.action-grid { grid-template-columns: 1fr; }.action-grid > div { min-height: 0; }.agent-row { display: block; }.agent-row label { display: block; }.coverage { margin-top: 15px; }.topbar .evidence { font-size: 8px; } }
 .verify-actions { display: grid; gap: .7rem; justify-items: start; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+/* Parcours en dix-huit étapes : l’état vient du Core, la couleur ne fait que le rendre lisible. */
+.journey { display: grid; gap: 1px; margin: 20px 0 0; padding: 0; border: 1px solid rgba(177,223,212,.12); background: rgba(177,223,212,.12); list-style: none; }
+.journey-step { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px; padding: 11px 14px; background: #0b2425; }
+.journey-index { color: #6d8785; font: 10px ui-monospace, monospace; letter-spacing: .1em; }
+.journey-label { color: #d8e9e5; font-size: 13px; }
+.journey-state { font: 9px ui-monospace, monospace; letter-spacing: .12em; color: #8da6a3; }
+.journey-reason { grid-column: 2 / -1; color: #7f9995; font-size: 11px; line-height: 1.5; }
+.journey-completed .journey-state { color: #8af0cf; }
+.journey-completed .journey-index { color: #41d8ab; }
+.journey-available { background: #0d2c2b; }
+.journey-available .journey-state { color: #e9bb69; }
+.journey-blocked { opacity: .62; }
+.journey-not_observable .journey-state { color: #92a8d8; }

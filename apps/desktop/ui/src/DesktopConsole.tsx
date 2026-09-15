@@ -4,6 +4,7 @@ import { desktopApi, type JsonObject } from "./desktop-api";
 
 type AgentProfile = { id: string; label: string; adapter: string; coverage: string; mode: string };
 type Notice = { tone: "neutral" | "success" | "error"; title: string; detail: string };
+type JourneyStep = { id: string; index: number; label: string; state: string; reason: string };
 
 const templates = ["software", "data", "research", "documentation", "game", "hardware"];
 
@@ -22,6 +23,18 @@ function asProfiles(value: unknown): AgentProfile[] {
   })).filter((profile) => profile.id.length > 0);
 }
 
+/** Read the journey as the Core derived it; the interface never computes a step's state itself. */
+function asJourney(value: unknown): JourneyStep[] {
+  if (!isRecord(value) || !Array.isArray(value.steps)) return [];
+  return value.steps.filter(isRecord).map((step) => ({
+    id: typeof step.id === "string" ? step.id : "",
+    index: typeof step.index === "number" ? step.index : 0,
+    label: typeof step.label === "string" ? step.label : "Étape inconnue",
+    state: typeof step.state === "string" ? step.state : "BLOCKED",
+    reason: typeof step.reason === "string" ? step.reason : "",
+  })).filter((step) => step.id.length > 0);
+}
+
 function getHash(value: JsonObject | null, key = "preview_hash"): string | null {
   return value && typeof value[key] === "string" ? value[key] : null;
 }
@@ -37,6 +50,7 @@ function Evidence({ label, state }: { label: string; state: string }) {
 export function DesktopConsole() {
   const [project, setProject] = useState<string | null>(null);
   const [scan, setScan] = useState<JsonObject | null>(null);
+  const [journey, setJourney] = useState<JsonObject | null>(null);
   const [profiles, setProfiles] = useState<AgentProfile[]>([]);
   const [template, setTemplate] = useState("software");
   const [projectId, setProjectId] = useState("my-project");
@@ -130,6 +144,7 @@ export function DesktopConsole() {
   });
 
   const scanProject = () => action("Scan mis à jour", async () => setScan(await desktopApi.scanProject()));
+  const refreshJourney = () => action("Parcours relu", async () => setJourney(await desktopApi.wizardState()));
   const createInitializationPreview = () => action("Preview d’initialisation produit", async () => setInitPreview(await desktopApi.initializationPreview(template, projectId, projectName)));
   const applyInitialization = () => action("Initialisation project-local appliquée", async () => {
     const hash = getHash(initPreview);
@@ -174,6 +189,9 @@ export function DesktopConsole() {
 
   const selectedAgent = profiles.find((profile) => profile.id === agentProfileId);
   const observations = scan && Array.isArray(scan.observations) ? scan.observations.length : 0;
+  const journeySteps = asJourney(journey);
+  const journeyDone = journeySteps.filter((step) => step.state === "COMPLETED").length;
+  const journeyNext = journey && typeof journey.next_step === "string" ? journey.next_step : null;
   const coverageTools = projectStatus && isRecord(projectStatus.coverage) && Array.isArray(projectStatus.coverage.mcp_tools) ? projectStatus.coverage.mcp_tools.length : null;
   const vcsState = projectStatus && isRecord(projectStatus.vcs) && typeof projectStatus.vcs.status === "string" ? projectStatus.vcs.status : "UNKNOWN";
 
@@ -191,6 +209,7 @@ export function DesktopConsole() {
       <header className="topbar"><div><span className="micro">POSTE DE CONTRÔLE</span><b>Installation MCP project-local</b></div><Evidence label="BRIDGE" state={project ? "READY" : "OFFLINE"} /></header>
       <div className="content">
         <section className="hero" id="observe"><div className="hero-copy"><p className="eyebrow">01 · AUCUNE ÉCRITURE INITIALE</p><h1>Installer avec des <em>règles visibles.</em></h1><p>Choisissez un projet. VERA l’observe sans lire le contenu métier, puis prépare les fichiers MCP nécessaires avant toute confirmation.</p><button className="primary" onClick={selectProject} disabled={busy}>{project ? "Choisir un autre projet" : "Choisir le dossier du projet"}</button></div><img className="hero-art" src="/vera-proof-orbit.png" alt="Fragments VERA convergeant vers un point de preuve" /></section>
+        <section className="panel" id="journey"><div className="panel-top"><div><p className="eyebrow">Parcours en dix-huit étapes</p><h2>Savoir où l’on en est, sans le supposer</h2></div><Evidence label="ÉTAPES" state={journeySteps.length ? `${journeyDone}/18 FAITES` : "WAITING"} /></div><p>L’état de chaque étape est <b>dérivé du projet</b>, jamais retenu par cette fenêtre : rouvrir l’application sur un projet à moitié configuré retrouve exactement la même étape. Six étapes ne laissent aucune trace — scanner, détecter, proposer, prévisualiser, valider, diagnostiquer : VERA les déclare non observables plutôt que de prétendre les avoir vues.</p><button className="secondary" onClick={refreshJourney} disabled={!project || busy}>Relire le parcours</button>{journeyNext && <div className="metric"><b>{journeyNext}</b><span>prochaine étape</span></div>}{journeySteps.length > 0 && <ol className="journey">{journeySteps.map((step) => <li key={step.id} className={`journey-step journey-${step.state.toLowerCase()}`}><span className="journey-index">{String(step.index).padStart(2, "0")}</span><span className="journey-label">{step.label}</span><span className="journey-state">{step.state}</span>{step.reason && <small className="journey-reason">{step.reason}</small>}</li>)}</ol>}</section>
         <section className="two-columns" id="prepare"><div className="panel"><div className="panel-top"><div><p className="eyebrow">Observation</p><h2>Scanner sans toucher</h2></div><Evidence label="SCAN" state={scan ? "OBSERVED" : "WAITING"} /></div><p>Le scan identifie seulement des marqueurs structuraux réguliers, dans les quatorze catégories de la spécification. Il ne démarre aucun agent et ne modifie pas votre dossier.</p><div className="metric"><b>{observations}</b><span>observations VERA</span></div><button className="secondary" onClick={scanProject} disabled={!project || busy}>Actualiser le scan</button>{scan && <details><summary>Voir le ScanReport v2</summary><pre>{JSON.stringify(scan, null, 2)}</pre></details>}</div>
           <div className="panel"><div className="panel-top"><div><p className="eyebrow">Initialisation</p><h2>Préparer VERA</h2></div><Evidence label="ÉTAT" state={initialized ? "READY" : "PREVIEW"} /></div><p>Le preview propose uniquement `.vera-mmu/` : profil, playbook et profils d’agents. Rien n’est créé avant votre confirmation.</p><div className="field-grid"><label>Type de projet<select value={template} onChange={(event) => setTemplate(event.target.value)}>{templates.map((item) => <option key={item}>{item}</option>)}</select></label><label>Identifiant<input value={projectId} onChange={(event) => setProjectId(event.target.value)} /></label><label className="wide">Nom du projet<input value={projectName} onChange={(event) => setProjectName(event.target.value)} /></label></div><button className="secondary" onClick={createInitializationPreview} disabled={!project || busy}>Générer le preview</button>{initPreview && <div className="confirmation"><label><input type="checkbox" checked={initConfirmed} onChange={(event) => setInitConfirmed(event.target.checked)} /> J’ai vérifié les fichiers proposés.</label><button className="primary" onClick={applyInitialization} disabled={!initConfirmed || busy}>Confirmer l’initialisation</button><details><summary>Inspecter le preview</summary><pre>{JSON.stringify(initPreview, null, 2)}</pre></details></div>}</div></section>
         <section className="panel integration" id="integrate"><div className="panel-top"><div><p className="eyebrow">Intégration MCP</p><h2>Associer l’agent, sans configuration cachée</h2></div><Evidence label="ÉCRITURE" state="CONFIRMED ONLY" /></div><p>Le profil d’agent choisit un adapter déclaré par VERA. L’interface ne fournit jamais un adapter ou une commande libre.</p><div className="agent-row"><label>Agent Profile<select value={agentProfileId} onChange={(event) => setAgentProfileId(event.target.value)} disabled={profiles.length === 0}>{profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}</select></label>{selectedAgent && <div className="coverage"><b>{selectedAgent.coverage}</b><span>{selectedAgent.adapter} · {selectedAgent.mode}</span></div>}</div><div className="action-grid"><div><h3>1. Générer</h3><p>Compile un `GenerationPreview/v1` déterministe.</p><button className="secondary" onClick={generate} disabled={!project || busy}>Générer</button></div><div><h3>2. Préparer le runtime</h3><p>Le staging reste local au runtime VERA.</p><label className="check"><input type="checkbox" checked={stageConfirmed} onChange={(event) => setStageConfirmed(event.target.checked)} /> Confirmer le staging</label><button className="secondary" onClick={stage} disabled={!project || !stageConfirmed || busy}>Préparer</button></div><div><h3>3. Examiner puis installer</h3><p>Le bridge recalcule le preview avant l’écriture.</p><button className="secondary" onClick={createInstallationPreview} disabled={!project || busy}>Voir l’intégration</button></div></div>{generation && <details><summary>GenerationPreview/v1</summary><pre>{JSON.stringify(generation, null, 2)}</pre></details>}{installPreview && <div className="confirmation"><label><input type="checkbox" checked={installConfirmed} onChange={(event) => setInstallConfirmed(event.target.checked)} /> J’ai vérifié l’intégration project-local affichée.</label><button className="primary" onClick={applyInstallation} disabled={!installConfirmed || busy}>Confirmer l’installation MCP</button><details><summary>Inspecter le preview d’intégration</summary><pre>{JSON.stringify(installPreview, null, 2)}</pre></details></div>}</section>
