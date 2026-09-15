@@ -3622,3 +3622,10 @@ LOG-0292 laissait B1 explicitement partiel pour deux raisons. Les deux sont lev�
 **Une règle d’ignorance trop étroite, révélée par le lot.** `vitest` crée un `node_modules` sous `apps/desktop/ui/`, et `.gitignore` ne couvrait que `apps/desktop/node_modules/`. La règle vaut désormais à toute profondeur. C’est la même classe de défaut que §36 : une promesse tenue par un chemin écrit à la main plutôt que par une règle.
 
 **Preuve.** `apps/desktop/ui/src/journey.test.ts` : dix tests. Avec `tests/test_wizard.py` et ses seize tests côté Core, le parcours est désormais mesuré des deux côtés de la frontière. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent.
+
+## LOG-0294 — Run #48 : le verrou modifié et les tests d’interface passent sur les deux runners
+**Statut : PASS mesuré.**
+
+Run `desktop-packaging.yml` #48 sur `14706d9` : **Linux x64 et Windows x64 verts**, quinze étapes chacun. L’étape ajoutée « Run desktop interface tests » a tourné sur les deux.
+
+**Ce que ce run lève.** LOG-0293 avait vérifié en local que `pnpm install --frozen-lockfile` acceptait le verrou mis à jour ; c’était une mesure sur une seule machine. Elle est maintenant faite sur les runners, Windows compris, là où le risque était réel. Et la réserve traînée depuis LOG-0289 — « les tests ajoutés depuis le run #47 ne sont attestés que sur Linux » — tombe : `798 passed, 69 subtests` côté Core et `10 passed` côté interface sont attestés sur les deux plateformes, au même commit. Le README et `REMAINING_WORK.md` sont mis à jour en conséquence.

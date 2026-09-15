@@ -6,9 +6,8 @@
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `798 passed, 69 subtests passed`. Le décompte `750` était attesté sur Linux x64 **et**
-Windows x64 (run `desktop-packaging.yml` #47, 2026-09-15) ; les six ajouts de C2 restent à
-attester sur Windows.
+**Suite :** `798 passed, 69 subtests passed` côté Core et `10 passed` côté interface, attestés sur
+Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48, 2026-09-15).
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
