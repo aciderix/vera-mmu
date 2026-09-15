@@ -59,6 +59,7 @@ def preview_project_initialization(root:str|Path,*,template:str,project_id:str,p
     if not isinstance(project_id,str) or PROJECT_ID_RE.fullmatch(project_id) is None:raise ProjectBootstrapError("project_id invalide.")
     if not isinstance(project_name,str) or not project_name.strip() or len(project_name)>160:raise ProjectBootstrapError("project_name invalide.")
     files=(
+        _file(".vera-mmu/.gitignore",_ignore_rules()),
         _file(".vera-mmu/agent-profiles.yaml",builtin_agent_profiles_json()),
         _file(".vera-mmu/capabilities.yaml",_capabilities(template)),
         _file(".vera-mmu/gates.yaml",_gates(template)),
@@ -213,6 +214,19 @@ destructive:
 promotion:
   proven_requires: [admissible_pass]
 """
+def _ignore_rules()->str:
+    """Keep the volatile SQLite sidecars out of the project's history (§36).
+
+    The canonical memory and every declarative file stay versionable; only what SQLite rebuilds
+    on its own is ignored. The rules live inside the VERA directory so they cover a user staging
+    the project by hand, not just the automatic memory sync.
+    """
+    return ("# VERA-MMU — Zero Pollution (§36).\n"
+            "# Volatile SQLite sidecars: rebuilt by SQLite, never part of the memory.\n"
+            "*.sqlite-wal\n"
+            "*.sqlite-shm\n"
+            "# Transient staging of a bundle restore, should a run be interrupted.\n"
+            "runtime/\n")
 def _sync_policy()->str:
     return '{"auto_commit":true,"auto_push":true,"branch":"CURRENT","format":"vera-memory-sync-policy/v1","remote":"origin"}\n'
 def _playbook(name:str)->str:

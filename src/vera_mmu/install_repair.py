@@ -25,7 +25,7 @@ from .workspace import WorkspaceError, resolve_workspace
 
 REPAIR_FORMAT = "vera-install-repair/v1"
 # Files the initialization derives from the profile, and may therefore restore verbatim.
-REPAIRABLE_FILES = ("agent-profiles.yaml", "capabilities.yaml", "gates.yaml", "playbook.md", "policies.yaml", "sync-policy.json")
+REPAIRABLE_FILES = (".gitignore", "agent-profiles.yaml", "capabilities.yaml", "gates.yaml", "playbook.md", "policies.yaml", "sync-policy.json")
 
 
 class InstallRepairError(StoreError):

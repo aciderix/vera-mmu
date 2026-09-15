@@ -6,11 +6,13 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
 from typing import Any, Callable, Mapping
 
 from .identity import ProjectIdentity, ProfileError, load_profile, project_identity
 from .profile_migration import ProfileMigrationError, inspect_profile_migration_journal
 from .migrations import MigrationRunner, migration_checksums
+from .memory_sync import VOLATILE_PATTERNS
 from .playbook import PLAYBOOK_FILE_NAME
 from .project_catalogs import ProjectCatalogError, load_project_catalogs
 from .write_api import PROOF_HMAC_SECRET_VARIABLE
@@ -38,6 +40,7 @@ _CHECK_ORDER = (
     "mcp_transport",
     "hooks",
     "vcs",
+    "zero_pollution",
 )
 # The rows the specification requires the report to carry (§45). Extra rows are welcome;
 # a missing one means the report no longer answers what the specification asks of it.
@@ -135,6 +138,12 @@ def diagnose_project(profile_path: str | Path) -> DoctorReport:
     _diagnose_mcp_transport(checks)
     checks.setdefault("hmac", _info("hmac", "Policy de preuve non lisible sans mémoire VERA valide."))
     checks["hooks"] = _diagnose_hooks(profile, workspace)
+    # The profile lives in the runtime directory by construction, as the migration row assumes.
+    checks["zero_pollution"] = (
+        _diagnose_zero_pollution(workspace, path.parent)
+        if workspace is not None
+        else _info("zero_pollution", "Empreinte non observable sans workspace valide.")
+    )
     ordered = tuple(checks[name] for name in _CHECK_ORDER)
     status = "FAIL" if any(check.status == "FAIL" for check in ordered) else "PASS"
     return DoctorReport(
@@ -312,6 +321,53 @@ def _diagnose_vcs(workspace: Workspace) -> DoctorCheck:
     if marker.exists() and marker.is_dir():
         return _pass("vcs", "Marqueur Git project-local observé.")
     return _info("vcs", "Aucun VCS local observé : configuration no-Git valide.")
+
+
+def _diagnose_zero_pollution(workspace: Workspace, runtime_dir: Path) -> DoctorCheck:
+    """Check that nothing SQLite rebuilds on its own is versioned by the project (§36).
+
+    Two different claims are at stake and only one is cheap: that the ignore rules are declared,
+    and that nothing volatile is actually tracked. A rule added after the fact does not untrack
+    a file, so an installation upgraded from an earlier version can carry versioned sidecars
+    while its rules look perfect. This asks Git what it tracks rather than inferring it — and
+    says `INFO` when it cannot ask, never `PASS`.
+    """
+    rules = runtime_dir / ".gitignore"
+    declared = rules.is_file() and not rules.is_symlink() and all(
+        pattern in rules.read_text(encoding="utf-8", errors="replace") for pattern in VOLATILE_PATTERNS
+    )
+    marker = workspace.project_root / ".git"
+    if not marker.exists() or marker.is_symlink():
+        if declared:
+            return _info("zero_pollution", "Aucun dépôt Git observé : règles d’ignorance déclarées, rien à vérifier.")
+        return _fail(
+            "zero_pollution",
+            "Règles d’ignorance VERA absentes ou incomplètes.",
+            "Restaurer `.vera-mmu/.gitignore` avec `repair`, qui le dérive du Project Profile.",
+        )
+    try:
+        listed = subprocess.run(
+            ["git", "ls-files", "--", str(runtime_dir)],
+            cwd=workspace.project_root, capture_output=True, text=True, timeout=15, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return _info("zero_pollution", "Git non interrogeable : versionnement des fichiers volatils non observé.")
+    if listed.returncode != 0:
+        return _info("zero_pollution", "Dépôt Git non interrogeable : versionnement des fichiers volatils non observé.")
+    volatile = sorted(path for path in listed.stdout.splitlines() if path.endswith(("-wal", "-shm")))
+    if volatile:
+        return _fail(
+            "zero_pollution",
+            f"Fichiers SQLite volatils versionnés : {', '.join(volatile)}.",
+            "Les retirer de l’index Git (`git rm --cached`) ; ils sont reconstruits par SQLite et n’appartiennent pas à la mémoire.",
+        )
+    if not declared:
+        return _fail(
+            "zero_pollution",
+            "Aucun fichier volatil versionné, mais les règles d’ignorance sont absentes ou incomplètes.",
+            "Restaurer `.vera-mmu/.gitignore` avec `repair`, qui le dérive du Project Profile.",
+        )
+    return _pass("zero_pollution", "Aucun fichier SQLite volatil versionné ; règles d’ignorance déclarées.")
 
 
 def _diagnose_catalogs(checks: dict[str, DoctorCheck], path: Path) -> None:

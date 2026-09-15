@@ -1,13 +1,14 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-15 — A1 clos par un run vert sur les deux runners.
+**Révisé le :** 2026-09-15 — A1 et C2 clos.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `750 passed, 55 subtests passed`, attestée sur Linux x64 **et** Windows x64
-(run `desktop-packaging.yml` #47, 2026-09-15).
+**Suite :** `756 passed, 55 subtests passed`. Le décompte `750` était attesté sur Linux x64 **et**
+Windows x64 (run `desktop-packaging.yml` #47, 2026-09-15) ; les six ajouts de C2 restent à
+attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -263,17 +264,35 @@ n’est pas terminé.
 **À ne pas faire :** laisser les 16 lignes pourrir en `SPLIT` silencieux. C’est l’état actuel, et
 c’est le seul qui soit indéfendable.
 
-### C2 — Zero Pollution : le prouver (§36)
+### C2 — Zero Pollution (§36) — **FAIT**
 
-**État :** le comportement semble respecté — l’installation n’écrit que sous `.vera-mmu/` et la
-configuration hôte project-local — mais aucun test ne le **prouve** comme invariant.
+**Ce que la mesure a montré.** L’empreinte tenait : une installation complète sur un projet
+témoin ne crée rien hors `.vera-mmu/` sauf la configuration hôte déclarée, et ne touche aucun
+fichier métier. La seconde moitié de la promesse ne tenait pas : la synchronisation automatique
+stageait `.vera-mmu/` en bloc, donc **`memory.sqlite-wal` et `memory.sqlite-shm` étaient commités
+dans le dépôt de l’utilisateur**, ce que §36 interdit explicitement.
 
-**Critère de sortie :** un test qui initialise, génère et installe dans un projet témoin, puis
-vérifie qu’aucun fichier hors `.vera-mmu/` et hors configuration hôte déclarée n’a été créé ou
-modifié, et que `*.sqlite-wal`, `*.sqlite-shm` et `runtime/` restent ignorés.
+**Corrigé en deux endroits, parce qu’un seul n’aurait pas suffi.** L’initialisation écrit
+désormais `.vera-mmu/.gitignore` — les règles vivent là où Git les voit, donc elles couvrent aussi
+un `git add -A` fait à la main. Et `memory_sync` exclut les sidecars de son pathspec sur le
+`status`, le `add` **et** le `commit` : `commit --only` prend son contenu dans l’arbre de travail,
+donc un pathspec qui les nommait encore les aurait versionnés même laissés hors index.
 
-**Coût :** faible. **Valeur :** c’est une promesse centrale du README, actuellement non gardée par
-la suite. À faire avant le Dashboard, puisque le Dashboard écrira davantage.
+**Le cas que les règles ne peuvent pas régler.** Une règle ajoutée après coup ne désuit pas un
+fichier : une installation antérieure garde ses sidecars versionnés. Le Doctor porte donc une
+ligne `zero_pollution` qui **interroge Git** au lieu de déduire — elle nomme les fichiers volatils
+suivis et donne le `git rm --cached` correspondant. Quand elle ne peut pas interroger Git, elle
+répond `INFO`, jamais un `PASS` qu’elle n’a pas vérifié.
+
+**Reste ouvert, volontairement hors de ce lot :** retirer ces fichiers de l’index est une écriture
+dans l’historique de l’utilisateur. Elle doit passer par un cycle preview → confirmation, donc par
+`repair`, et non par une correction silencieuse. Le Doctor le signale ; personne ne le fait à sa
+place.
+
+**Preuve :** `tests/test_zero_pollution.py`, six tests mesurés sur un projet témoin sous Git —
+empreinte, code métier intact, sidecars non versionnés y compris après un `git add -A` de
+l’utilisateur, mémoire et profil restés versionnables, installation ancienne signalée, et absence
+de `PASS` non vérifié. Suite : `756 passed, 55 subtests passed`.
 
 ### C3 — Abstraction VCS (§22)
 
@@ -325,7 +344,7 @@ seule écriture user-scope.
 ## Ordre recommandé
 
 1. **A1** — laisser la CI Windows conclure ; traiter ses échecs s’il y en a.
-2. **C2** — prouver Zero Pollution avant d’ajouter des écrans qui écrivent.
+2. ~~**C2** — prouver Zero Pollution~~ — fait.
 3. **B2 puis B3** — scanner complet, puis recommandation : ce sont les étapes 1 à 3 du parcours
    et la matière de tout le reste du Dashboard.
 4. **B1** — le socle du parcours, une fois qu’il a de quoi remplir ses premières étapes.

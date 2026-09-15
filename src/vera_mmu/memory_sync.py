@@ -15,6 +15,8 @@ from .store import MemoryStore, StoreError, checkpoint_wal
 SYNC_POLICY_FORMAT = "vera-memory-sync-policy/v1"
 _POLICY_FILE = "sync-policy.json"
 _OPERATION = re.compile(r"[A-Z][A-Z0-9_]{1,63}")
+# What SQLite rebuilds on its own is never part of the memory a project versions (§36).
+VOLATILE_PATTERNS = ("*.sqlite-wal", "*.sqlite-shm")
 _POLICY_KEYS = frozenset({"format", "auto_commit", "auto_push", "remote", "branch"})
 
 
@@ -101,17 +103,28 @@ def _current_branch(repository: Path) -> str:
     return branch
 
 
-def _changes_in_scope(repository: Path, relative_memory: str) -> bool:
-    changed = _run(repository, "status", "--porcelain=v1", "--untracked-files=all", "--", relative_memory)
+def _memory_pathspec(relative_memory: str) -> list[str]:
+    """Scope every Git call to the memory, minus what SQLite rebuilds on its own (§36).
+
+    The exclusions belong on the status, the staging *and* the commit: ``commit --only`` takes
+    its content from the working tree, so a pathspec that still named the sidecars would version
+    them however carefully they had been left unstaged.
+    """
+    return [relative_memory, *(f":(exclude){relative_memory}/{pattern}" for pattern in VOLATILE_PATTERNS)]
+
+
+def _changes_in_scope(repository: Path, pathspec: list[str]) -> bool:
+    changed = _run(repository, "status", "--porcelain=v1", "--untracked-files=all", "--", *pathspec)
     return bool(changed)
 
 
 def _commit_memory(repository: Path, relative_memory: str, operation: str) -> str | None:
-    if not _changes_in_scope(repository, relative_memory):
+    pathspec = _memory_pathspec(relative_memory)
+    if not _changes_in_scope(repository, pathspec):
         return None
-    _run(repository, "add", "--all", "--", relative_memory)
+    _run(repository, "add", "--all", "--", *pathspec)
     message = f"VERA-MMU memory: {operation} — {datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')}"
-    _run(repository, "commit", "--only", "-m", message, "--", relative_memory)
+    _run(repository, "commit", "--only", "-m", message, "--", *pathspec)
     return _run(repository, "rev-parse", "HEAD")
 
 

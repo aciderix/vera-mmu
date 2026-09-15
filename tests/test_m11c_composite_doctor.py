@@ -62,6 +62,7 @@ class CompositeDoctorTests(unittest.TestCase):
         "mcp_transport",
         "hooks",
         "vcs",
+        "zero_pollution",
     }
 
     def test_i001_i005_i010_i011_doctor_reports_healthy_project_without_mutation(self) -> None:

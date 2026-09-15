@@ -28,8 +28,8 @@ class ProjectBootstrapTests(unittest.TestCase):
         from vera_mmu.project_bootstrap import preview_project_initialization
         with TemporaryDirectory() as directory:
             root=Path(directory);first=preview_project_initialization(root,template="software",project_id="my-app",project_name="My App");second=preview_project_initialization(root,template="software",project_id="my-app",project_name="My App")
-            expected_paths=[".vera-mmu/agent-profiles.yaml",".vera-mmu/capabilities.yaml",".vera-mmu/gates.yaml",".vera-mmu/playbook.md",".vera-mmu/policies.yaml",".vera-mmu/project.yaml",".vera-mmu/sync-policy.json"]
-            self.assertEqual(first,second);self.assertEqual(first.status,"PREVIEW");self.assertEqual([item.path for item in first.files],expected_paths);self.assertIn("domain: software",first.files[5].content);self.assertIn('"auto_push":true',first.files[6].content)
+            expected_paths=[".vera-mmu/.gitignore",".vera-mmu/agent-profiles.yaml",".vera-mmu/capabilities.yaml",".vera-mmu/gates.yaml",".vera-mmu/playbook.md",".vera-mmu/policies.yaml",".vera-mmu/project.yaml",".vera-mmu/sync-policy.json"]
+            self.assertEqual(first,second);self.assertEqual(first.status,"PREVIEW");self.assertEqual([item.path for item in first.files],expected_paths);self.assertIn("domain: software",first.files[6].content);self.assertIn('"auto_push":true',first.files[7].content);self.assertIn("*.sqlite-wal",first.files[0].content)
             self.assertFalse((root/".vera-mmu").exists())
             code,payload=invoke(["init-project",str(root),"--template","software","--project-id","my-app","--project-name","My App"]);self.assertEqual(code,0);self.assertEqual(payload["initialization"]["status"],"PREVIEW");self.assertFalse((root/".vera-mmu").exists())
             applied_root=Path(directory)/"applied";applied_root.mkdir();preview=preview_project_initialization(applied_root,template="software",project_id="my-app",project_name="My App")

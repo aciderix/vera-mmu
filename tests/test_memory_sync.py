@@ -49,6 +49,9 @@ class MemorySyncTests(unittest.TestCase):
         store.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
         if policy is not None:
             (memory / "sync-policy.json").write_text(json.dumps(policy, sort_keys=True) + "\n", encoding="utf-8")
+        # A VERA installation carries its ignore rules; without them the baseline below would
+        # track the volatile sidecars, which is exactly what §36 forbids.
+        (memory / ".gitignore").write_text("*.sqlite-wal\n*.sqlite-shm\nruntime/\n", encoding="utf-8")
         git(directory, "add", "--", ".vera-mmu")
         git(directory, "commit", "-m", "VERA memory baseline")
         if not remote:

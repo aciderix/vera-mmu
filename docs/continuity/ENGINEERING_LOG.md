@@ -3535,3 +3535,20 @@ Quatre causes racines l’expliquaient, détaillées en LOG-0286 et LOG-0287 : `
 **Ce que ce run change dans ce que le produit a le droit de dire.** Le README portait la restriction « ce décompte est relevé sur Linux x64 ; le dernier passage Windows x64 attesté correspond à la campagne M8/M9 et porte sur une suite antérieure ». Elle est retirée : la suite, `750 passed, 55 subtests passed`, est désormais attestée sur les deux plateformes à la même date et sur le même commit. `REMAINING_WORK.md` passe A1 en clos, et `todo.md` coche la ligne correspondante.
 
 **Ce que ce run ne prouve pas.** Il atteste que les binaires se construisent et que la suite passe, pas qu’une installation utilisateur réelle a été observée. Le parcours desktop interactif — sélection humaine d’un dossier, dialogue WebView ↔ Rust ↔ sidecar — reste non observé, et les preuves hôtes par fournisseur restent à faire. Ces deux points restent ouverts au chapitre D.
+
+## LOG-0289 — Zero Pollution : la moitié de la promesse ne tenait pas
+**Statut : PASS mesuré sur Linux x64. Les six tests ajoutés restent à attester sur Windows.**
+
+§36 promet trois choses : aucune modification du code métier, une empreinte limitée au répertoire VERA et à la configuration hôte, et des fichiers SQLite volatils qui **restent ignorés** pendant que la mémoire canonique et le profil demeurent versionnables. Le comportement était réputé correct et n’était gardé par aucun test. La mesure sur un projet témoin a séparé le vrai du supposé.
+
+**Ce qui tenait.** Une installation complète — `init-project`, déclaration des capabilities, `generate`, `adapter stage`, `install` — ne crée rien hors `.vera-mmu/` sauf `.mcp.json`, la configuration hôte déclarée, et ne touche aucun fichier métier préexistant.
+
+**Ce qui ne tenait pas.** `automatic_memory_sync` stageait `.vera-mmu/` en bloc. `memory.sqlite-wal` et `memory.sqlite-shm` étaient donc **commités dans le dépôt de l’utilisateur**, exactement ce que §36 interdit. Aucun `.gitignore` n’existait nulle part.
+
+**Corrigé en deux endroits, parce qu’un seul n’aurait pas suffi.** L’initialisation écrit désormais `.vera-mmu/.gitignore` : les règles vivent là où Git les voit, donc elles couvrent aussi un `git add -A` fait à la main par l’utilisateur, pas seulement la synchronisation automatique. Et `memory_sync` exclut les sidecars de son pathspec sur le `status`, le `add` **et** le `commit` — cette dernière exclusion n’est pas redondante : `commit --only` prend son contenu dans l’arbre de travail, donc un pathspec qui les nommait encore les aurait versionnés même laissés hors index. `.gitignore` rejoint les fichiers réparables de §54.
+
+**Le cas que les règles ne peuvent pas régler, et le refus de le masquer.** Une règle ajoutée après coup ne désuit pas un fichier : une installation antérieure garde ses sidecars versionnés, avec des règles d’apparence parfaite. Une ligne de Doctor qui n’aurait vérifié que les règles aurait donc répondu `PASS` sur un projet en violation — le même défaut que LOG-0287 vient de corriger ailleurs. La ligne `zero_pollution` **interroge donc Git** plutôt que de déduire : elle nomme les fichiers volatils suivis et donne le `git rm --cached` correspondant, et quand elle ne peut pas interroger Git elle répond `INFO`, jamais un `PASS` qu’elle n’a pas vérifié.
+
+**Volontairement hors de ce lot.** Retirer ces fichiers de l’index est une écriture dans l’historique de l’utilisateur. Elle relève du cycle preview → confirmation, donc de `repair`, et non d’une correction silencieuse. Le Doctor le signale ; personne ne le fait à sa place.
+
+**Preuve.** `tests/test_zero_pollution.py` — six tests mesurés sur un projet témoin sous Git : empreinte, code métier intact, sidecars non versionnés y compris après un `git add -A` de l’utilisateur, mémoire et profil restés versionnables, installation ancienne signalée, et absence de `PASS` non vérifié. Le troisième échouait avant le correctif et passe après. Suite complète : `756 passed, 55 subtests passed`.
