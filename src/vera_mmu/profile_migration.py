@@ -19,6 +19,7 @@ import yaml
 
 from .identity import canonical_json, load_profile, project_identity, validate_profile
 from .runtime import RuntimeLocator
+from .store import checkpoint_wal
 from .workspace import WorkspaceError, resolve_workspace
 
 
@@ -718,10 +719,10 @@ def _checkpoint_sqlite(path: Path) -> None:
         mode = connection.execute("PRAGMA journal_mode=WAL").fetchone()
         if mode is None or str(mode[0]).lower() != "wal":
             raise ProfileMigrationError("Mode WAL SQLite non confirmé.")
-        result = connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
-        if result is None or len(result) < 3:
+        result = checkpoint_wal(connection)
+        if result is None:
             raise ProfileMigrationError("Checkpoint WAL SQLite non confirmé : PRAGMA sans verdict.")
-        busy, log_pages, checkpointed = int(result[0]), int(result[1]), int(result[2])
+        busy, log_pages, checkpointed = result
         # A refusal that does not say what it observed cannot be diagnosed from a CI log.
         if busy != 0 or log_pages != 0:
             raise ProfileMigrationError(

@@ -22,6 +22,28 @@ class StoreIdentityError(StoreError):
     """Raised when an existing store belongs to a different ProjectIdentity."""
 
 
+def checkpoint_wal(connection: sqlite3.Connection) -> tuple[int, int, int] | None:
+    """Fold the WAL into the database and report ``(busy, log, checkpointed)``.
+
+    Declaring ``journal_mode=WAL`` does not open the WAL. Until the connection has read the
+    database the pager holds no WAL object, and ``wal_checkpoint`` then answers ``(0, -1, -1)``:
+    a success over nothing, indistinguishable from a real checkpoint for a caller that only
+    looks at ``busy``. Copying or committing a database on that answer would carry a WAL whose
+    frames were never folded in. The read below opens the WAL so the checkpoint acts on it.
+
+    Whether the pager opens the WAL on its own varies with the SQLite build, so this is not
+    observable on every host: it was measured on a GitHub Linux runner, not reproduced locally.
+
+    Callers phrase their own refusal: anything but ``busy == 0`` and ``log == 0`` means the
+    database was not left whole, and ``None`` means the PRAGMA returned no verdict at all.
+    """
+    connection.execute("SELECT count(*) FROM sqlite_master").fetchone()
+    row = connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+    if row is None or len(row) < 3:
+        return None
+    return int(row[0]), int(row[1]), int(row[2])
+
+
 class MemoryStore:
     """Small transport-neutral SQLite substrate; domain services are intentionally absent."""
 

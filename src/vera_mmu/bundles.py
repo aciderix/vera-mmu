@@ -19,7 +19,7 @@ import zipfile
 from .identity import ProjectIdentity, canonical_json, load_profile, project_identity
 from .migrations import MigrationRunner, migration_checksums
 from .project_policy import ProjectPolicyError, require_project_write, require_project_write_for_profile
-from .store import MemoryStore, StoreError
+from .store import MemoryStore, StoreError, checkpoint_wal
 from .workspace import WorkspaceError, resolve_workspace
 
 
@@ -292,14 +292,19 @@ def _read_regular(path: Path, label: str) -> bytes:
 
 def _checkpoint(store: MemoryStore) -> dict[str, int | bool]:
     try:
-        row = store.connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+        row = checkpoint_wal(store.connection)
     except sqlite3.DatabaseError as exc:
         raise BundleError("Checkpoint WAL impossible avant export de bundle.") from exc
     if row is None:
         raise BundleError("Checkpoint WAL sans résultat avant export de bundle.")
-    busy, log_frames, checkpointed_frames = (int(value) for value in row)
+    busy, log_frames, checkpointed_frames = row
     if busy:
         raise BundleError("Checkpoint WAL refusé : une connexion mémoire est active.")
+    if log_frames != 0:
+        # A bundle taken over an unfolded WAL would carry an incomplete database (I010).
+        raise BundleError(
+            f"Checkpoint WAL non replié avant export (log={log_frames}, checkpointed={checkpointed_frames})."
+        )
     return {"checkpointed": True, "busy": busy, "log_frames": log_frames, "checkpointed_frames": checkpointed_frames}
 
 

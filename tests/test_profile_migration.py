@@ -342,6 +342,30 @@ class ProfileMigrationPreviewTests(unittest.TestCase):
             self.assertTrue(any(issue["code"] == "SQLITE_ARTIFACT_AMBIGUOUS" for issue in report["issues"]))
             self.assertTrue(any(issue["code"] == "SQLITE_INTEGRITY_ERROR" for issue in report["issues"]))
 
+    def test_checkpoint_folds_a_wal_that_actually_holds_frames(self) -> None:
+        """Declaring WAL does not open it: a checkpoint before any read succeeds over nothing.
+
+        SQLite answers ``(0, -1, -1)`` when the pager holds no WAL object — indistinguishable
+        from a real checkpoint for a caller that only looks at ``busy``. Copying a database on
+        that answer would leave its frames behind, so the fold is verified on disk here.
+        """
+        with TemporaryDirectory() as directory:
+            database = Path(directory) / "memory.sqlite"
+            wal = Path(f"{database}-wal")
+            # The writer stays open: closing it would fold and delete the WAL by itself.
+            with closing(sqlite3.connect(database, isolation_level=None)) as writer:
+                writer.execute("PRAGMA journal_mode=WAL")
+                writer.execute("CREATE TABLE fixture(value TEXT)")
+                for index in range(64):
+                    writer.execute("INSERT INTO fixture VALUES (?)", (f"row-{index}",))
+                self.assertTrue(wal.exists() and wal.stat().st_size > 0, "le WAL de départ doit porter des frames")
+
+                profile_migration._checkpoint_sqlite(database)
+
+                self.assertEqual(wal.stat().st_size if wal.exists() else 0, 0)
+            with closing(sqlite3.connect(database)) as reader:
+                self.assertEqual(reader.execute("SELECT count(*) FROM fixture").fetchone()[0], 64)
+
     def test_sqlite_preparation_checkpoints_copies_and_journals_database(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)

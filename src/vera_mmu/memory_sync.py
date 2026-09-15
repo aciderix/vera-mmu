@@ -9,7 +9,7 @@ import sqlite3
 import subprocess
 from typing import Any
 
-from .store import MemoryStore, StoreError
+from .store import MemoryStore, StoreError, checkpoint_wal
 
 
 SYNC_POLICY_FORMAT = "vera-memory-sync-policy/v1"
@@ -76,16 +76,21 @@ def _checkpoint(store: MemoryStore) -> dict[str, int | bool]:
     connection = sqlite3.connect(database, timeout=5.0, isolation_level=None)
     try:
         connection.execute("PRAGMA busy_timeout = 5000")
-        row = connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+        row = checkpoint_wal(connection)
     except sqlite3.DatabaseError as exc:
         raise MemorySyncError("Checkpoint WAL de la mémoire impossible.") from exc
     finally:
         connection.close()
     if row is None:
         raise MemorySyncError("Checkpoint WAL mémoire sans résultat.")
-    busy, log_frames, checkpointed_frames = (int(value) for value in row)
+    busy, log_frames, checkpointed_frames = row
     if busy:
         raise MemorySyncError("Checkpoint WAL refusé : connexion mémoire active.")
+    if log_frames != 0:
+        # Committing a database whose WAL was never folded in would version an incomplete memory.
+        raise MemorySyncError(
+            f"Checkpoint WAL mémoire non replié (log={log_frames}, checkpointed={checkpointed_frames})."
+        )
     return {"checkpointed": True, "busy": busy, "log_frames": log_frames, "checkpointed_frames": checkpointed_frames}
 
 

@@ -3509,3 +3509,18 @@ Les vingt échecs Windows et les trois échecs Linux se réduisent à trois caus
 **3. Connexions SQLite laissées ouvertes par les fixtures — cinq `WinError 32` et, très probablement, les trois échecs Linux.** `with sqlite3.connect(...) as connection:` valide la transaction et **ne ferme pas** la connexion : le contrat du context manager porte sur la transaction, pas sur la poignée. Sous Windows, un fichier ouvert ne peut être ni déplacé ni supprimé. Sous Linux il se déplace, mais un `PRAGMA wal_checkpoint(TRUNCATE)` reste `busy` tant qu’un lecteur subsiste. Six fixtures passées par `closing()`.
 
 **Ce qui reste non prouvé, et doit être dit comme tel.** La cause 3 est cohérente avec les deux plateformes mais n’a pas été reproduite localement : la suite complète passe ici en 3.11 comme en 3.12. Plutôt que de conclure par ressemblance, le refus de checkpoint énonce maintenant ce qu’il a observé — `busy`, `log`, `checkpointed`. Un refus qui ne dit pas ce qu’il a vu n’est pas diagnosticable depuis un journal de CI, et c’est exactement ce que I014 reproche à une incertitude silencieuse. Le prochain run tranchera par mesure.
+
+## LOG-0287 — Le checkpoint WAL repliait sur rien
+**Statut : Windows x64 vert pour la première fois. Correctif Linux écrit, verdict au prochain run.**
+
+**Correction de LOG-0286.** J’y écrivais que les connexions SQLite laissées ouvertes par les fixtures expliquaient « très probablement » les trois échecs Linux. C’était faux. Je l’avais dit comme une probabilité et instrumenté le refus plutôt que de conclure ; la mesure a tranché contre l’hypothèse.
+
+**Ce que le run #46 a mesuré.** Windows x64 passe intégralement — suite, sidecar, archive CLI, NSIS et MSI sur un vrai runner : les trois causes de LOG-0286 étaient les bonnes de ce côté. Linux tombait encore sur les mêmes trois tests, mais le refus portait ses chiffres : `busy=0, log=-1, checkpointed=-1`.
+
+**Ce que ces chiffres disent.** Ce n’est pas un verrou. `(0, -1, -1)` est la réponse de SQLite lorsque le pager ne détient aucun objet WAL : déclarer `PRAGMA journal_mode=WAL` ne l’ouvre pas, il faut que la connexion lise la base. Le checkpoint retournait donc `SQLITE_OK` **sans rien replier**, et un appelant qui n’examine que `busy` ne pouvait pas distinguer ce succès sur rien d’un repli réel. Que le pager ouvre le WAL de lui-même dépend du build SQLite, ce qui explique que la machine de développement n’ait jamais vu le défaut.
+
+**La portée dépassait le test qui échouait, et c’est le vrai enseignement.** Trois sites checkpointaient. `profile_migration` avant de copier la base — le test rouge. `bundles` avant un export, en n’examinant que `busy` : un bundle pouvait donc être pris par-dessus un WAL jamais replié, contre I010. `memory_sync` sur une connexion neuve, avant toute lecture : il pouvait committer dans Git une mémoire incomplète. Les deux derniers ne faisaient échouer aucun test ; ils rendaient un verdict faux en silence, ce qui est pire qu’un rouge.
+
+**Correctif.** Un `checkpoint_wal()` unique dans `store.py` ouvre le WAL par une lecture avant de replier, et rend `(busy, log, checkpointed)`. Les trois appelants refusent désormais tout ce qui n’est pas `busy == 0` **et** `log == 0`, chacun avec son propre message.
+
+**Ce qui reste non prouvé.** Le test de régression ajouté vérifie sur disque qu’un WAL réellement peuplé est replié et que les données restent lisibles. Il passe ici avec comme sans la lecture : il n’a de mordant que là où le pager n’ouvre pas son WAL seul. Seul un run vert sur le runner Linux tranchera. Suite locale : `750 passed, 55 subtests passed`.
