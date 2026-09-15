@@ -33,6 +33,7 @@ from .project_bootstrap import (
 from .project_operations import ProjectOperationError, scan_project
 from .project_recommendation import recommend_profile
 from .profile_taxonomy import TaxonomyPreview, apply_taxonomy_edit, preview_taxonomy_edit
+from .work_graph_config import WorkGraphPreview, apply_work_graph_configuration, preview_work_graph_configuration, read_work_graph_configuration
 from .wizard import wizard_state
 from .store import MemoryStore, StoreError
 
@@ -78,6 +79,9 @@ class DesktopBridge:
             "profile.rebind.recovery.apply": self._profile_rebind_recovery_apply,
             "project.init.preview": self._initialization_preview,
             "project.init.apply": self._initialization_apply,
+            "work.graph.read": self._work_graph_read,
+            "work.graph.preview": self._work_graph_preview,
+            "work.graph.apply": self._work_graph_apply,
             "taxonomy.preview": self._taxonomy_preview,
             "taxonomy.apply": self._taxonomy_apply,
             "capability.preview": self._capability_preview,
@@ -249,6 +253,39 @@ class DesktopBridge:
         result = apply_project_initialization(self._project_root, cached.value, confirm=True)
         del self._previews[preview_hash]
         return result.as_dict()
+
+    def _work_graph_read(self, value: dict[str, Any]) -> dict[str, object]:
+        """Report the Core's lifecycle and the project's declared transition policies."""
+        _exact_input(value, set())
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            return read_work_graph_configuration(store)
+
+    def _work_graph_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"startMode", "completionMode"})
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            preview = preview_work_graph_configuration(
+                store,
+                start_mode=value.get("startMode") if value.get("startMode") is not None else None,
+                completion_mode=value.get("completionMode") if value.get("completionMode") is not None else None,
+            )
+        self._previews[preview.preview_hash] = _CachedPreview("work-graph", preview)
+        return preview.as_dict()
+
+    def _work_graph_apply(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"previewHash", "confirm"})
+        preview_hash = _string(value, "previewHash")
+        if value.get("confirm") is not True:
+            raise _ProtocolError("CONFIRMATION_REQUIRED", "Application refusée sans confirmation explicite.")
+        cached = self._previews.get(preview_hash)
+        if cached is None or cached.kind != "work-graph" or not isinstance(cached.value, WorkGraphPreview):
+            raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de Work Graph inconnue, expirée ou étrangère.")
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            result = apply_work_graph_configuration(store, cached.value, confirm=True)
+        del self._previews[preview_hash]
+        return result
 
     def _taxonomy_preview(self, value: dict[str, Any]) -> dict[str, object]:
         """Plan an edit of the declared taxonomy, entities and relations. Writes nothing."""

@@ -3646,3 +3646,22 @@ Le Core déclarait les types de connaissance, d’entité et de relation, et les
 **Une réparation du registre, à dire plutôt qu’à taire.** En réécrivant la section B au fil des lots précédents, j’avais fait disparaître de `REMAINING_WORK.md` les entrées B5 à B11 — Work Graph, Capability Builder §32, Gate Builder §33, policies, Resume et intégrations, MCP Preview §34, raccordement final. Elles sont rétablies avec leurs périmètres et critères de sortie. Un plan dont les lots restants s’effacent silencieusement au fil des réécritures est exactement le registre auquel ce document refuse de ressembler.
 
 **Preuve.** `tests/test_profile_taxonomy.py`, quatorze tests. Suite complète : `812 passed, 69 subtests passed`.
+
+## LOG-0296 — Le Work Graph se configure, mais ne s’invente pas
+**Statut : PASS mesuré sur Linux x64. Les quatorze ajouts restent à attester sur Windows.**
+
+**Un périmètre corrigé par la mesure, pas par confort.** `REMAINING_WORK.md` annonçait pour cette étape « déclarer les états de work item, les transitions autorisées et les dépendances ». La lecture du code a montré que ce n’était pas tenable : le cycle de vie est **fermé dans le Core** — quatre états, trois événements, transitions fixes dans `work_lifecycle.py`. Laisser un projet déclarer une machine à états que le Core n’applique pas produirait un graphe qui ment : l’écran offrirait une transition que le moteur refuse, et c’est exactement la classe de mensonge que ce produit existe pour empêcher. Le graphe est donc **rapporté**, depuis les constantes mêmes que le Core applique, et ce qu’un projet configure est la **sévérité de la barrière** sur une transition.
+
+**Un test épingle cette équivalence** plutôt que de la supposer : une transition déclarée par le rapport est acceptée par le moteur, une transition absente du rapport est refusée par le Core — pas seulement absente d’un écran.
+
+**Deux services sans appelant, encore.** `WorkStartPolicyService.declare` et `WorkCompletionPolicyService.declare` existaient, testés, et rien ne pouvait les atteindre : ni la CLI, ni le bridge, ni `write_api`. C’est le même défaut que le diagnostic d’ouverture avait nommé — des serrures excellentes sans porte. Ils en ont une maintenant : CLI `work-graph-config`, bridge `work.graph.read` / `work.graph.preview` / `work.graph.apply`.
+
+**Une irréversibilité dite à voix haute.** Une policy de transition se déclare **une seule fois** : sa table tient une ligne unique et refuse `UPDATE` comme `DELETE` par trigger. C’est une garantie voulue — un projet ne peut pas assouplir sa propre règle après coup pour faire passer un élément gênant. Le preview l’énonce en toutes lettres, parce qu’un assistant qui laisserait cliquer là-dessus dans un formulaire ordinaire cacherait une décision définitive derrière une apparence banale.
+
+**Une policy absente est rapportée `NOT_DECLARED`, jamais comme un défaut.** Le moteur traite l’absence comme non contrainte, mais écrire « OPEN » là où le store ne tient rien rapporterait une décision que personne n’a prise.
+
+**Un test qui serait passé par accident.** J’avais écrit « `REQUIRE_READY` bloque le démarrage ». C’est faux tel quel : un élément sans prérequis **est** prêt et démarrerait, policy déclarée ou non — le test aurait été vert sans rien prouver. Il exige maintenant une dépendance non satisfaite, et son pendant vérifie qu’un élément sans prérequis démarre quand même. La policy est prouvée dans les deux sens.
+
+**Une collision rattrapée par la suite complète.** La commande s’appelait d’abord `work-graph`, nom déjà porté par la lecture des items : 55 tests sont tombés d’un coup, dont toute la suite Zero Pollution. Renommée `work-graph-config`. C’est précisément pourquoi la suite complète tourne avant chaque push, et pas seulement les fichiers touchés.
+
+**Preuve.** `tests/test_work_graph_config.py`, quatorze tests. Suite complète : `826 passed, 69 subtests passed`.

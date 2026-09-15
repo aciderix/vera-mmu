@@ -1,15 +1,14 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-15 — A1, B1 à B4 et C2 clos ; B5 à B11 rétablis dans ce document,
-après avoir été perdus lors d’une réécriture antérieure de la section B.
+**Révisé le :** 2026-09-15 — A1, B1 à B5 et C2 clos ; B6 à B11 ouverts.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `812 passed, 69 subtests passed` côté Core et `10 passed` côté interface. Le décompte
+**Suite :** `826 passed, 69 subtests passed` côté Core et `10 passed` côté interface. Le décompte
 `798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-quatorze ajouts de B4 restent à attester sur Windows.
+vingt-huit ajouts de B4 et B5 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -229,13 +228,44 @@ rien mémoriser — et un preview périmé, rejoué à l’identique avant écri
 
 **Preuve :** `tests/test_profile_taxonomy.py`, quatorze tests.
 
-### B5 — Configuration du Work Graph (étape 8)
+### B5 — Configuration du Work Graph (étape 8) — **FAIT, avec un périmètre corrigé**
 
-**Périmètre :** déclarer les états de work item, les transitions autorisées et les dépendances. Le
-Core porte déjà le cycle de vie append-only et `work_graph` ; l’écran les rend éditables.
+**Ce document annonçait :** « déclarer les états de work item, les transitions autorisées et les
+dépendances ». **Ce n’était pas tenable, et c’est la mesure qui l’a montré.** Le cycle de vie est
+fermé dans le Core — quatre états, trois événements, transitions fixes dans `work_lifecycle.py`.
+Laisser un projet déclarer une machine à états que le Core n’applique pas produirait **un graphe
+qui ment** : l’écran offrirait une transition que le moteur refuse. Le graphe est donc *rapporté*,
+depuis les constantes mêmes que le Core applique, et ce qu’un projet configure est la **sévérité
+de la barrière** sur une transition.
 
-**Critère de sortie :** un graphe déclaré se relit identique via `work_graph`, et une transition
-non déclarée est refusée par le Core, pas seulement grisée.
+**Livré :** `work_graph_config.py` — lecture du cycle de vie et des policies déclarées, puis
+déclaration des policies de démarrage et de complétion sous preview et confirmation. CLI
+`work-graph-config`, bridge `work.graph.read` / `work.graph.preview` / `work.graph.apply`.
+
+**Deux services qui n’avaient aucun appelant.** `WorkStartPolicyService.declare` et
+`WorkCompletionPolicyService.declare` existaient, testés, et rien ne pouvait les atteindre —
+le même défaut que le diagnostic initial avait nommé. Ils ont maintenant une porte.
+
+**Une irréversibilité dite à voix haute.** Une policy de transition se déclare **une seule fois** :
+sa table tient une ligne unique et refuse `UPDATE` comme `DELETE` par trigger. C’est une garantie
+voulue — un projet ne peut pas assouplir sa propre règle après coup pour faire passer un élément
+gênant — et le preview l’énonce, parce qu’un assistant qui laisserait cliquer là-dessus dans un
+formulaire ordinaire cacherait une décision définitive.
+
+**Une policy absente est rapportée `NOT_DECLARED`, jamais comme un défaut.** Le moteur traite
+l’absence comme non contrainte, mais écrire « OPEN » là où le store ne tient rien rapporterait une
+décision que personne n’a prise.
+
+**Un test qui aurait passé par accident, corrigé.** « `REQUIRE_READY` bloque le démarrage » est
+faux tel quel : un élément sans prérequis **est** prêt, et démarrerait policy ou pas. La preuve
+exige une dépendance non satisfaite, et son pendant — un élément sans prérequis démarre quand
+même — pour que la policy soit prouvée dans les deux sens.
+
+**Une collision de nom rattrapée par la suite complète.** La commande s’appelait d’abord
+`work-graph`, nom déjà pris par la lecture des items : 55 tests sont tombés d’un coup. Renommée
+`work-graph-config`.
+
+**Preuve :** `tests/test_work_graph_config.py`, quatorze tests. Suite : `826 passed, 69 subtests`.
 
 ### B6 — Capability Builder visuel complet (§32) — étape 9
 
