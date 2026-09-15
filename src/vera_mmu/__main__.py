@@ -25,6 +25,7 @@ from .runtime import RuntimeLocator
 from .write_api import WriteApiError, WriteService
 from .project_operations import ProjectOperationError, compile_generation_preview, scan_project
 from .project_recommendation import RecommendationError, recommend_profile
+from .profile_taxonomy import TaxonomyError, apply_taxonomy_edit, preview_taxonomy_edit
 from .wizard import WizardError, wizard_state
 from .project_bootstrap import ProjectBootstrapError, apply_project_initialization, preview_project_initialization
 from .profile_migration import inspect_profile_migration_journal, recover_profile_physical_migration
@@ -40,6 +41,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan=sub.add_parser("scan",help="Observe une arborescence locale sans lire de contenu ni écrire.");scan.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
     recommend=sub.add_parser("recommend",help="Propose un template, des capabilities et des gates depuis un scan, sans rien écrire.");recommend.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
     wizard=sub.add_parser("wizard",help="Décrit où en est le parcours de configuration en dix-huit étapes, sans rien écrire.");wizard.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
+    taxonomy=sub.add_parser("taxonomy",help="Prévisualise ou applique l’édition des types de connaissance, d’entité et de relation.");taxonomy.add_argument("profile",type=Path,help="Chemin project.yaml.");taxonomy.add_argument("--knowledge-type",action="append",dest="knowledge_types");taxonomy.add_argument("--entity-type",action="append",dest="entity_types");taxonomy.add_argument("--relation-type",action="append",dest="relation_types");taxonomy.add_argument("--apply",action="store_true");taxonomy.add_argument("--confirm",action="store_true")
     compile_pkg=sub.add_parser("compile",help="Exécute le pipeline MCP ordonné et produit le package, sans écriture hôte.");compile_pkg.add_argument("profile",type=Path,help="Chemin project.yaml.");compile_pkg.add_argument("--adapter",required=True);compile_pkg.add_argument("--with-outputs",action="store_true",help="Inclut le texte complet des sorties générées.")
     validate=sub.add_parser("validate",help="Valide les fichiers déclaratifs du projet et leurs relations.");validate.add_argument("profile",type=Path,help="Chemin project.yaml.")
     configure=sub.add_parser("configure",help="Prévisualise ou applique la configuration project-local d’une intégration.");configure.add_argument("profile",type=Path,help="Chemin project.yaml.");configure.add_argument("--adapter",required=True);configure.add_argument("--apply-project",action="store_true");configure.add_argument("--confirm",action="store_true")
@@ -142,6 +144,9 @@ def main(argv:Sequence[str]|None=None)->int:
             payload={"ok":True,"recommendation":recommend_profile(scan_project(args.root)).as_dict()}
         elif args.command=="wizard":
             payload={"ok":True,"wizard":wizard_state(args.root).as_dict()}
+        elif args.command=="taxonomy":
+            preview=preview_taxonomy_edit(args.profile,knowledge_types=args.knowledge_types,entity_types=args.entity_types,relation_types=args.relation_types)
+            payload={"ok":True,"taxonomy":preview.as_dict()} if not args.apply else {"ok":True,"taxonomy":apply_taxonomy_edit(args.profile,preview,confirm=args.confirm)}
         elif args.command=="memory-sync":
             profile=load_profile(args.profile)
             with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"memory_sync":automatic_memory_sync(store,"CLI_MEMORY_SYNC")}
@@ -299,7 +304,7 @@ def main(argv:Sequence[str]|None=None)->int:
             elif args.command=="init":
                 with MemoryStore.open(profile,args.profile) as store:payload={"ok":True,"identity":store.identity.as_dict(),"migration_checksums":store.migration_checksums,"metadata":store.metadata()}
             else:raise StoreError("Commande inconnue.")
-    except (MigrationError,ProfileError,ProjectBootstrapError,ProjectOperationError,RecommendationError,StoreError,WizardError,WorkspaceError,ValueError) as exc:
+    except (MigrationError,ProfileError,ProjectBootstrapError,ProjectOperationError,RecommendationError,StoreError,TaxonomyError,WizardError,WorkspaceError,ValueError) as exc:
         print(json.dumps({"ok":False,"error":str(exc)},ensure_ascii=False,sort_keys=True));return 2
     print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 0
 

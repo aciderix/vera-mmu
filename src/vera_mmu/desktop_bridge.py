@@ -32,6 +32,7 @@ from .project_bootstrap import (
 )
 from .project_operations import ProjectOperationError, scan_project
 from .project_recommendation import recommend_profile
+from .profile_taxonomy import TaxonomyPreview, apply_taxonomy_edit, preview_taxonomy_edit
 from .wizard import wizard_state
 from .store import MemoryStore, StoreError
 
@@ -77,6 +78,8 @@ class DesktopBridge:
             "profile.rebind.recovery.apply": self._profile_rebind_recovery_apply,
             "project.init.preview": self._initialization_preview,
             "project.init.apply": self._initialization_apply,
+            "taxonomy.preview": self._taxonomy_preview,
+            "taxonomy.apply": self._taxonomy_apply,
             "capability.preview": self._capability_preview,
             "capability.apply": self._capability_apply,
             "gate.policy.preview": self._gate_policy_preview,
@@ -246,6 +249,30 @@ class DesktopBridge:
         result = apply_project_initialization(self._project_root, cached.value, confirm=True)
         del self._previews[preview_hash]
         return result.as_dict()
+
+    def _taxonomy_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        """Plan an edit of the declared taxonomy, entities and relations. Writes nothing."""
+        _exact_input(value, {"knowledgeTypes", "entityTypes", "relationTypes"})
+        preview = preview_taxonomy_edit(
+            self._profile_path(),
+            knowledge_types=_optional_identifier_list(value, "knowledgeTypes"),
+            entity_types=_optional_identifier_list(value, "entityTypes"),
+            relation_types=_optional_identifier_list(value, "relationTypes"),
+        )
+        self._previews[preview.preview_hash] = _CachedPreview("taxonomy", preview)
+        return preview.as_dict()
+
+    def _taxonomy_apply(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"previewHash", "confirm"})
+        preview_hash = _string(value, "previewHash")
+        if value.get("confirm") is not True:
+            raise _ProtocolError("CONFIRMATION_REQUIRED", "Application refusée sans confirmation explicite.")
+        cached = self._previews.get(preview_hash)
+        if cached is None or cached.kind != "taxonomy" or not isinstance(cached.value, TaxonomyPreview):
+            raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de taxonomie inconnue, expirée ou étrangère.")
+        result = apply_taxonomy_edit(self._profile_path(), cached.value, confirm=True)
+        del self._previews[preview_hash]
+        return result
 
     def _capability_preview(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, {"identifier", "name", "kind", "version", "description"})
@@ -442,6 +469,16 @@ def _root(value: str | Path) -> Path:
 def _exact_input(value: Mapping[str, Any], expected: set[str]) -> None:
     if set(value) != expected:
         raise _ProtocolError("INPUT_INVALID", "Champs d’entrée bridge interdits ou manquants.")
+
+
+def _optional_identifier_list(value: Mapping[str, Any], key: str) -> list[str] | None:
+    """Read one optional list of declarative identifiers; their shape is the Core's to judge."""
+    raw = value.get(key)
+    if raw is None:
+        return None
+    if not isinstance(raw, list) or len(raw) > 256 or any(not isinstance(item, str) for item in raw):
+        raise _ProtocolError("INPUT_INVALID", f"`{key}` doit être une liste bornée d’identifiants.")
+    return list(raw)
 
 
 def _string(value: Mapping[str, Any], key: str) -> str:

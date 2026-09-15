@@ -3629,3 +3629,20 @@ LOG-0292 laissait B1 explicitement partiel pour deux raisons. Les deux sont lev�
 Run `desktop-packaging.yml` #48 sur `14706d9` : **Linux x64 et Windows x64 verts**, quinze étapes chacun. L’étape ajoutée « Run desktop interface tests » a tourné sur les deux.
 
 **Ce que ce run lève.** LOG-0293 avait vérifié en local que `pnpm install --frozen-lockfile` acceptait le verrou mis à jour ; c’était une mesure sur une seule machine. Elle est maintenant faite sur les runners, Windows compris, là où le risque était réel. Et la réserve traînée depuis LOG-0289 — « les tests ajoutés depuis le run #47 ne sont attestés que sur Linux » — tombe : `798 passed, 69 subtests` côté Core et `10 passed` côté interface sont attestés sur les deux plateformes, au même commit. Le README et `REMAINING_WORK.md` sont mis à jour en conséquence.
+
+## LOG-0295 — La taxonomie devient éditable, et un retrait destructeur devient impossible
+**Statut : PASS mesuré sur Linux x64. Les quatorze ajouts restent à attester sur Windows.**
+
+Le Core déclarait les types de connaissance, d’entité et de relation, et les synchronisait dans le store ; **rien ne pouvait lui demander de les changer**. `profile_taxonomy.py` ferme cela, sous le cycle habituel — preview, vérification de fraîcheur, confirmation explicite, écriture atomique ou refus. Exposé en CLI (`taxonomy`) et par le bridge (`taxonomy.preview` / `taxonomy.apply`).
+
+**Le refus qui porte le lot, et pourquoi il vit dans le Core.** Retirer un type qui porte déjà de la connaissance, des entités ou des relations rendrait orphelin ce que le projet a enregistré. Le compte est fait **contre la mémoire elle-même** — `COUNT(*)` sur `knowledge`, `entity` et `relation`, connexion en lecture seule — et le refus est rendu ici, pas grisé dans un écran. C’est la troisième des règles fixées pour tout le Dashboard : une règle tenue seulement par l’interface cesse d’exister dès que quoi que ce soit d’autre écrit — la CLI, le MCP, un autre agent.
+
+**Le compteur ne peut pas être faussement toujours nul.** Deux tests l’encadrent : retirer un type utilisé est refusé avec le nombre d’enregistrements qui seraient orphelins, retirer un type inutilisé passe. Si le compte était systématiquement zéro, le premier tomberait ; s’il était systématiquement non nul, le second tomberait.
+
+**Le piège des identifiants, tranché comme annoncé avant le lot.** Le déclaratif est en majuscules, le stockage en minuscules à tirets. L’écran n’édite que le déclaratif, la conversion reste dans le Core, et un identifiant minuscule est refusé à la saisie plutôt que converti en silence — convertir aurait accepté une saisie ambiguë en faisant semblant de la comprendre.
+
+**Deux autres refus.** Une section `knowledge` vide : un projet sans type de connaissance ne peut rien mémoriser, et l’accepter aurait produit un projet muet d’apparence valide. Et un preview périmé : l’application rejoue exactement la même édition et exige que le Profile n’ait pas bougé depuis sa relecture.
+
+**Une réparation du registre, à dire plutôt qu’à taire.** En réécrivant la section B au fil des lots précédents, j’avais fait disparaître de `REMAINING_WORK.md` les entrées B5 à B11 — Work Graph, Capability Builder §32, Gate Builder §33, policies, Resume et intégrations, MCP Preview §34, raccordement final. Elles sont rétablies avec leurs périmètres et critères de sortie. Un plan dont les lots restants s’effacent silencieusement au fil des réécritures est exactement le registre auquel ce document refuse de ressembler.
+
+**Preuve.** `tests/test_profile_taxonomy.py`, quatorze tests. Suite complète : `812 passed, 69 subtests passed`.

@@ -1,13 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-15 — A1, B1, B2, B3 et C2 clos.
+**Révisé le :** 2026-09-15 — A1, B1 à B4 et C2 clos ; B5 à B11 rétablis dans ce document,
+après avoir été perdus lors d’une réécriture antérieure de la section B.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `798 passed, 69 subtests passed` côté Core et `10 passed` côté interface, attestés sur
-Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48, 2026-09-15).
+**Suite :** `812 passed, 69 subtests passed` côté Core et `10 passed` côté interface. Le décompte
+`798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
+quatorze ajouts de B4 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -203,6 +205,94 @@ qu’il est écrit, déterminisme, absence d’écriture, absence de clé de com
 proposé sans sa capability, quatre templates, et le lien au `report_hash` du scan lu. Passé sur ce
 dépôt : template `software`, capabilities `install`, `build`, `test`, `typecheck`, quatre gates.
 Suite : `782 passed, 69 subtests passed`.
+
+### B4 — Taxonomie, entités et relations (étapes 5 à 7) — **FAIT**
+
+**Livré :** `profile_taxonomy.py`, sous le même cycle que toute écriture sensible — preview,
+vérification de fraîcheur, confirmation explicite, écriture atomique ou refus. Exposé en CLI
+(`taxonomy`) et par le bridge (`taxonomy.preview` / `taxonomy.apply`).
+
+**Le refus qui porte le lot.** Retirer un type qui porte déjà de la connaissance, des entités ou
+des relations rendrait orphelin ce que le projet a enregistré. C’est **compté contre la mémoire
+elle-même** — `COUNT(*)` sur `knowledge`, `entity`, `relation`, en lecture seule — et refusé **par
+le Core**, pas grisé dans un écran : une règle tenue seulement par l’interface cesse d’exister dès
+que quoi que ce soit d’autre écrit. Le refus dit combien d’enregistrements seraient orphelins, et
+un type inutilisé se retire sans difficulté — deux tests, pour que le compteur ne puisse pas être
+faussement toujours nul.
+
+**Le piège des identifiants, tranché comme annoncé.** Le déclaratif est en majuscules, le stockage
+en minuscules à tirets. L’écran n’édite que le déclaratif ; la conversion reste dans le Core, et un
+identifiant minuscule est refusé à la saisie.
+
+**Deux autres refus :** une section `knowledge` vide — un projet sans type de connaissance ne peut
+rien mémoriser — et un preview périmé, rejoué à l’identique avant écriture.
+
+**Preuve :** `tests/test_profile_taxonomy.py`, quatorze tests.
+
+### B5 — Configuration du Work Graph (étape 8)
+
+**Périmètre :** déclarer les états de work item, les transitions autorisées et les dépendances. Le
+Core porte déjà le cycle de vie append-only et `work_graph` ; l’écran les rend éditables.
+
+**Critère de sortie :** un graphe déclaré se relit identique via `work_graph`, et une transition
+non déclarée est refusée par le Core, pas seulement grisée.
+
+### B6 — Capability Builder visuel complet (§32) — étape 9
+
+**Écart :** le builder ne saisit qu’identifiant, nom, type, version, description. §32 exige le
+contrat complet — runner, commande ou API, entrées, sorties, timeout, policy, artifacts,
+validator, admissibilité, confirmation — et **sept refus** : commande non bornée, chemins hors
+racines, réseau sans policy, capability sans timeout, sortie non interprétable servant de gate,
+dépendance inexistante, placeholder présenté comme validator.
+
+**Point de tension à trancher dans le lot :** §32 parle d’une « commande », I008 interdit qu’un
+client en fournisse une. L’interface choisit parmi les profils de runner déclarés et leurs
+paramètres bornés, et n’envoie jamais de chaîne de commande. À écrire, pas à supposer.
+
+**Critère de sortie :** un test par refus, côté Core, prouvant le rejet même si l’interface est
+contournée.
+
+### B7 — Gate Builder (§33) — étape 10
+
+**Écart :** les builders couvrent exigences et mode d’agrégation, pas la distinction que §33
+impose d’afficher entre **validation technique**, **appréciation sémantique** et **simple
+observation**. C’est elle qui empêche qu’une opinion soit rangée comme une preuve : elle doit
+vivre dans le modèle de données, pas dans une couleur.
+
+**Critère de sortie :** une gate dont l’exigence est « appréciation sémantique » ne peut pas créer
+de proof, et un test le prouve.
+
+### B8 — Éditeur de policies (étape 11)
+
+**Périmètre :** éditer les policies déclarées — réseau, système de fichiers, timeouts,
+confirmations — avec preview et confirmation. **Rappel fail-closed :** la seule policy réseau
+déclarable reste `DENY_NETWORK` ; un écran qui suggérerait autre chose mentirait sur ce que le
+Core acceptera.
+
+### B9 — Configuration du Resume et des intégrations (étapes 12 et 13)
+
+**État :** l’étape 13 existe partiellement (choix d’un agent profile et de son adapter). L’étape 12
+n’existe pas : le contrat de reprise, ses sections requises et sa barrière doivent être éditables.
+
+**Critère de sortie :** un contrat édité produit exactement le hash que la barrière exige à
+l’exécution, et un contrat modifié invalide visiblement la reprise en cours.
+
+### B10 — MCP Preview avec métriques et alertes (§34) — étape 14
+
+**Périmètre :** avant génération, afficher les décomptes de tools Core et projet, lecture seule,
+écriture, sensibles, réseau, gates et capabilities, plus profile hash et policy hash. Puis les
+alertes de §34 : capability sans validator objectif (`ERROR`), gate dépendant d’une capability
+réseau (`WARNING`), chemin de sortie hors périmètre (`ERROR`), PROVEN activé sans secret HMAC
+(`WARNING`).
+
+**Le plus proche de l’existant :** le compilateur produit déjà paquet, hachages et validation
+statique bloquante. Il s’agit de **rendre** ces chiffres, jamais de les recalculer côté interface.
+
+### B11 — Valider, générer, installer, Doctor (étapes 15 à 18)
+
+**État :** les quatre actions existent et sont exercées ; elles sont désormais gouvernées par le
+parcours. Reste à afficher le Doctor final comme la sortie du parcours et non comme un outil de
+côté.
 
 ---
 
