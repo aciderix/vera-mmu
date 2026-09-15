@@ -107,6 +107,9 @@ _FILE_MARKERS: dict[str, tuple[tuple[str, str], ...]] = {
     # frameworks
     "manage.py": (("framework", "django"),),
     "angular.json": (("framework", "angular"),),
+    "platformio.ini": (("framework", "platformio"),),
+    "project.godot": (("framework", "godot"),),
+    "tsconfig.json": (("configuration", "tsconfig"),),
     "config.ru": (("framework", "rack"),),
     "artisan": (("framework", "laravel"),),
     "Procfile": (("configuration", "procfile"),),
@@ -187,11 +190,13 @@ _LANGUAGE_EXTENSIONS: dict[str, str] = {
     ".cpp": "cpp", ".cc": "cpp", ".cxx": "cpp", ".hpp": "cpp", ".swift": "swift",
     ".scala": "scala", ".ex": "elixir", ".exs": "elixir", ".sh": "shell", ".bash": "shell",
     ".lua": "lua", ".r": "r", ".m": "objective-c", ".dart": "dart", ".sql": "sql",
+    ".ino": "arduino",
 }
 
 _OTHER_EXTENSIONS: dict[str, tuple[str, str]] = {
     ".md": ("documentation", "markdown"), ".rst": ("documentation", "restructuredtext"),
     ".adoc": ("documentation", "asciidoc"),
+    ".ipynb": ("framework", "jupyter"), ".kicad_pcb": ("framework", "kicad"),
     ".csv": ("dataset", "csv"), ".tsv": ("dataset", "tsv"), ".parquet": ("dataset", "parquet"),
     ".jsonl": ("dataset", "jsonl"), ".ndjson": ("dataset", "ndjson"), ".arrow": ("dataset", "arrow"),
     ".feather": ("dataset", "feather"), ".h5": ("dataset", "hdf5"), ".hdf5": ("dataset", "hdf5"),

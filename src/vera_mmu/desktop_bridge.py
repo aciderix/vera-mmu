@@ -31,6 +31,7 @@ from .project_bootstrap import (
     preview_project_initialization,
 )
 from .project_operations import ProjectOperationError, scan_project
+from .project_recommendation import recommend_profile
 from .store import MemoryStore, StoreError
 
 BRIDGE_FORMAT = "vera-desktop-bridge/v1"
@@ -63,6 +64,7 @@ class DesktopBridge:
         self._previews: dict[str, _CachedPreview] = {}
         self._handlers: Mapping[str, Callable[[dict[str, Any]], dict[str, object]]] = {
             "project.scan": self._scan,
+            "project.recommend": self._recommend,
             "project.status": self._project_status,
             "project.documentation": self._project_documentation,
             "project.doctor": self._project_doctor,
@@ -135,6 +137,11 @@ class DesktopBridge:
     def _scan(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, set())
         return scan_project(self._project_root).as_dict()
+
+    def _recommend(self, value: dict[str, Any]) -> dict[str, object]:
+        """Propose a profile from the scan of the native-selected root; writes nothing."""
+        _exact_input(value, set())
+        return recommend_profile(scan_project(self._project_root)).as_dict()
 
     def _project_status(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, set())

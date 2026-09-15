@@ -1,12 +1,12 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-15 — A1, C2 et B2 clos.
+**Révisé le :** 2026-09-15 — A1, C2, B2 et B3 clos.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `768 passed, 69 subtests passed`. Le décompte `750` était attesté sur Linux x64 **et**
+**Suite :** `782 passed, 69 subtests passed`. Le décompte `750` était attesté sur Linux x64 **et**
 Windows x64 (run `desktop-packaging.yml` #47, 2026-09-15) ; les six ajouts de C2 restent à
 attester sur Windows.
 
@@ -141,117 +141,39 @@ couverture échoue dès qu’une catégorie exigée cesse d’être détectée �
 marqueurs de framework. Passé sur ce dépôt : vingt-sept observations, dix catégories, les quatre
 absentes l’étant réellement.
 
-### B3 — Recommandation automatique de profil (§31) — étape 3
+### B3 — Recommandation automatique de profil (§31) — étape 3 — **FAIT**
 
-**État :** absente. Suite directe de B2 : sans les catégories manquantes, une recommandation
-n’aurait pas de quoi se fonder.
+**Livré :** `project_recommendation.py` lit un `ScanReport/v2` et propose un template, un jeu de
+capabilities et les gates que ces capabilities pourraient satisfaire. Exposé en CLI (`recommend`)
+et par le bridge (`project.recommend`).
 
-**Périmètre :** depuis un rapport de scan, proposer un template, un jeu de capabilities et un jeu
-de gates, **modifiables**. La spécification insiste : « l’utilisateur peut modifier chaque
-élément ». Une recommandation n’est pas une décision.
+**Ce que la spécification impose et que le code porte.** «L’utilisateur peut modifier chaque
+élément» : le payload est `PROPOSED`, `mutation: NONE`, et chaque proposition porte
+`editable: true`. Chaque élément cite les observations qui le soutiennent — une recommandation
+qui ne peut pas dire pourquoi est une opinion.
 
-**Critère de sortie :** une recommandation déterministe pour un même rapport de scan, exposée en
-CLI et par le bridge, et un test prouvant qu’aucune recommandation n’écrit quoi que ce soit.
+**Trois refus explicites, plus intéressants que les propositions elles-mêmes.**
 
-**Dépend de :** B2.
+1. **Aucune commande, aucun chemin, aucune URL, aucun runner.** Nommer une capability `lint`
+   n’est pas dire ce que `lint` exécute : la première est une observation sur la forme du projet,
+   la seconde une décision que seul son propriétaire prend (I008). Un test parcourt tout le
+   payload et échoue sur la moindre clé interdite.
+2. **Rien n’est déduit que le scan n’ait observé.** L’exemple de §31 propose un `build` pour un
+   arbre dont l’étape de build vit dans les scripts d’un manifeste — or lire ce manifeste est
+   exactement ce que §30 interdit au scanner. `build` n’est donc proposé que si un marqueur de
+   build a réellement été vu, et l’écart est **inscrit dans `notes`** au lieu d’être comblé par
+   une supposition.
+3. **Le template `research` n’est jamais recommandé automatiquement.** Aucun nom de fichier ne
+   distingue un projet de recherche d’un autre. Il reste disponible au choix, et le rapport le dit.
 
-### B4 — Taxonomie, entités et relations (§29, étapes 5 à 7)
+**Et un aveu porté par le format :** un template retenu faute de mieux se présente comme un
+défaut, pas comme une déduction. Un test l’exige littéralement.
 
-**Périmètre :** éditer les types de connaissance déclarés par le profil, les types d’entités et
-les types de relations. Le Core sait déjà les déclarer et les synchroniser
-(`write_api.sync_profile_knowledge_types`) ; ce qui manque est l’écran et les méthodes de bridge
-de prévisualisation et d’application.
-
-**Piège à éviter :** les identifiants déclaratifs sont en majuscules et les identifiants de
-stockage en minuscules. L’interface édite le déclaratif ; la conversion reste dans le Core.
-
-**Critère de sortie :** un type ajouté dans l’écran apparaît dans le catalogue après confirmation
-et dans lui seul ; un type retiré est refusé s’il porte déjà de la connaissance, et le refus est
-affiché tel quel.
-
-### B5 — Configuration du Work Graph (étape 8)
-
-**Périmètre :** déclarer les états de work item, les transitions autorisées et les dépendances.
-Le Core porte déjà le cycle de vie append-only et le graphe (`work_graph`) ; l’écran les rend
-éditables et lisibles.
-
-**Critère de sortie :** un graphe déclaré dans l’interface se relit identique via `work_graph`,
-et une transition non déclarée est refusée par le Core, pas seulement grisée dans l’écran.
-
-### B6 — Capability Builder visuel complet (§32) — étape 9
-
-**Écart :** le builder actuel ne saisit que l’identifiant, le nom, le type, la version et la
-description. §32 exige un contrat complet : nom, type, runner, commande ou API, entrées, sorties,
-timeout, policy, artifacts, validator, admissibilité comme preuve, confirmation requise.
-
-**Et sept refus explicites**, que le Dashboard doit opposer : commande non bornée ; chemins hors
-racines ; réseau sans policy ; capability sans timeout ; sortie non interprétable quand elle sert
-de gate ; dépendance inexistante ; placeholder présenté comme validator.
-
-**Point de tension à trancher dans le lot :** §32 parle d’une « commande », et I008 interdit
-qu’un client fournisse une commande. Les deux se concilient d’une seule façon : l’interface
-choisit parmi les profils de runner déclarés et leurs paramètres bornés, et n’envoie jamais une
-chaîne de commande. Ce choix doit être écrit dans le lot, pas supposé.
-
-**Critère de sortie :** un test par refus, côté Core, qui prouve que la déclaration est rejetée
-même si l’interface est contournée.
-
-### B7 — Gate Builder (§33) — étape 10
-
-**Écart :** les deux builders existants — structure et policy — couvrent les exigences et le mode
-d’agrégation, mais pas la distinction que §33 impose d’afficher clairement entre **validation
-technique**, **appréciation sémantique** et **simple observation**.
-
-**Pourquoi cette distinction compte plus que l’écran :** c’est elle qui empêche qu’une opinion
-soit rangée comme une preuve. Elle doit donc être portée par le modèle de données et vérifiée par
-le Core, pas seulement colorée dans l’interface.
-
-**Critère de sortie :** une gate dont l’exigence est classée « appréciation sémantique » ne peut
-pas créer de proof, et un test le prouve.
-
-### B8 — Éditeur de policies (étape 11)
-
-**Périmètre :** éditer les policies déclarées — réseau, système de fichiers, timeouts,
-confirmations — avec preview et confirmation. Le Core les applique déjà ; l’écran les rend
-visibles et modifiables.
-
-**Rappel fail-closed :** la seule policy réseau déclarable reste `DENY_NETWORK`. Si l’écran
-suggère autre chose, il ment sur ce que le Core acceptera.
-
-### B9 — Configuration du Resume et des intégrations (étapes 12 et 13)
-
-**Périmètre :** l’étape 13 existe partiellement — le choix d’un agent profile et de son adapter.
-L’étape 12 n’existe pas : le contrat de reprise, ses sections requises et sa barrière doivent
-être éditables et prévisualisables.
-
-**Critère de sortie :** un contrat de reprise édité dans l’écran produit exactement le même
-hachage que celui que la barrière exige à l’exécution. Un contrat modifié invalide la reprise en
-cours, visiblement.
-
-### B10 — MCP Preview avec métriques et alertes (§34) — étape 14
-
-**Périmètre :** avant génération, afficher le décompte des tools Core et projet, lecture seule,
-écriture, sensibles, réseau, gates et capabilities, ainsi que le profile hash et le policy hash.
-Puis les alertes de §34 : capability sans validator objectif (`ERROR`), gate dépendant d’une
-capability réseau (`WARNING`), chemin de sortie hors périmètre (`ERROR`), PROVEN activé sans
-secret HMAC configuré (`WARNING`).
-
-**Ce lot est le plus proche de l’existant :** le compilateur MCP produit déjà le paquet, les
-hachages et une validation statique bloquante. Il s’agit de rendre ces chiffres, pas de les
-inventer — et de ne jamais les recalculer côté interface.
-
-**Critère de sortie :** les métriques affichées proviennent du paquet compilé, et un test vérifie
-que chaque alerte de §34 est levée sur un projet qui la déclenche.
-
-### B11 — Valider, générer, installer, Doctor (étapes 15 à 18)
-
-**État :** les quatre actions existent et sont exercées. Reste à les rattacher au parcours comme
-des étapes avec critère d’entrée, plutôt que comme des boutons indépendants, et à afficher le
-Doctor final comme la sortie du parcours et non comme un outil de côté.
-
-**Critère de sortie :** un parcours complet, du dossier vide au Doctor vert, exercé de bout en
-bout par un test d’interface, chaque étape refusant de s’ouvrir tant que la précédente n’est pas
-satisfaite.
+**Preuve :** `tests/test_project_recommendation.py`, quatorze tests — l’exemple de §31 rejoué tel
+qu’il est écrit, déterminisme, absence d’écriture, absence de clé de commande, un gate jamais
+proposé sans sa capability, quatre templates, et le lien au `report_hash` du scan lu. Passé sur ce
+dépôt : template `software`, capabilities `install`, `build`, `test`, `typecheck`, quatre gates.
+Suite : `782 passed, 69 subtests passed`.
 
 ---
 
@@ -365,8 +287,7 @@ seule écriture user-scope.
 
 1. **A1** — laisser la CI Windows conclure ; traiter ses échecs s’il y en a.
 2. ~~**C2** — prouver Zero Pollution~~ — fait.
-3. ~~**B2**~~ fait. **B3** — la recommandation de profil, qui s’appuie sur le scanner : c’est
-   l’étape 3 du parcours et la matière du reste du Dashboard.
+3. ~~**B2** et **B3**~~ faits : les étapes 1 à 3 du parcours sont livrées côté Core.
 4. **B1** — le socle du parcours, une fois qu’il a de quoi remplir ses premières étapes.
 5. **B4 à B9** — les écrans, dans l’ordre du parcours ; chacun avec ses méthodes de bridge et ses
    tests Core.

@@ -3569,3 +3569,24 @@ Quatre causes racines l’expliquaient, détaillées en LOG-0286 et LOG-0287 : `
 **Ce que le scanner reste.** Aucune lecture de contenu — un test réécrit les fichiers et exige un rapport identique —, aucun symlink suivi, aucun processus, aucun réseau, et uniquement des `OBSERVED`. La spécification écrit `DETECTED` ; VERA dit `OBSERVED` depuis l’origine et le vocabulaire est conservé : ce que §30 interdit est de présenter une observation comme `PROVEN`, et c’est respecté.
 
 **Preuve.** `tests/test_project_scan.py` : une fixture par catégorie, douze tests, quatorze sous-tests. Le test de couverture a été vérifié par soustraction — en retirant les marqueurs de framework, il échoue. Passé sur ce dépôt : vingt-sept observations, dix catégories, les quatre absentes (scripts de build, conteneur, datasets, linters) l’étant réellement. Suite complète : `768 passed, 69 subtests passed`.
+
+## LOG-0291 — La recommandation de profil argumente, elle ne décide pas
+**Statut : PASS mesuré sur Linux x64.**
+
+§31 était absent. `project_recommendation.py` lit un `ScanReport/v2` et propose un template, un jeu de capabilities et les gates que ces capabilities pourraient satisfaire. Exposé en CLI (`recommend`) et par le bridge (`project.recommend`).
+
+**Le contrat de la section tient en une phrase : «l’utilisateur peut modifier chaque élément».** Le payload est donc `PROPOSED`, `mutation: NONE`, chaque élément porte `editable: true`, et chaque proposition cite les observations qui la soutiennent. Une recommandation qui ne peut pas dire pourquoi elle propose quelque chose est une opinion, et VERA n’a pas le droit d’en présenter une comme une mesure.
+
+**Trois refus, plus intéressants que les propositions.**
+
+*Aucune commande, aucun chemin, aucune URL, aucun runner.* Nommer une capability `lint` n’est pas dire ce que `lint` exécute : la première est une observation sur la forme du projet, la seconde une décision que seul son propriétaire prend. I008 interdit à ce côté de la frontière de la prendre ; le binding d’un runner reste au capability builder, sous preview et confirmation. Un test parcourt récursivement tout le payload et échoue sur la moindre clé `command`, `argv`, `shell`, `interpreter`, `cwd`, `executable`, `runner`, `path` ou `url`.
+
+*Rien n’est déduit que le scan n’ait observé.* C’est le point qui méritait d’être tranché plutôt que contourné : l’exemple de §31 propose une capability `build` pour un arbre — TypeScript, React, Node, Vitest, Playwright, GitHub Actions — dont l’étape de build vit dans les `scripts` d’un `package.json`. Or ouvrir ce manifeste est exactement ce que §30 interdit au scanner. Proposer `build` malgré tout aurait été inventer une observation pour faire ressembler la sortie à l’exemple. `build` n’est donc proposé que si un marqueur de build a réellement été vu, et l’écart avec l’exemple est **inscrit dans `notes`** du rapport lui-même.
+
+*Le template `research` n’est jamais recommandé automatiquement.* Aucun nom de fichier ne distingue un projet de recherche d’un autre. Il reste disponible au choix, et le rapport porte cette limite au lieu de la taire.
+
+**Un aveu porté par le format.** Un template retenu faute de mieux se présente comme un défaut — « template `software` retenu par défaut : aucun marqueur observé ne permet de déduire un domaine » — et non comme une déduction. Un test l’exige littéralement : c’est la différence entre un fallback et une fabrication.
+
+**Trois marqueurs ajoutés au scanner** pour que les domaines soient inférables sans lire : `platformio.ini`, `project.godot`, `tsconfig.json`, plus les extensions `.ino`, `.ipynb` et `.kicad_pcb`. Ajout purement additif aux tables de LOG-0290.
+
+**Preuve.** `tests/test_project_recommendation.py`, quatorze tests : l’exemple de §31 rejoué tel qu’il est écrit, déterminisme, absence d’écriture vérifiée sur l’arborescence, absence de clé de commande, un gate jamais proposé sans sa capability, quatre templates, arbre vide ne proposant rien, et le lien au `report_hash` du scan lu — une proposition qui ne pourrait pas nommer son entrée pourrait être affichée à côté d’un autre projet. Passé sur ce dépôt : template `software` sur cinq langages et quatre gestionnaires de dépendances, capabilities `install`, `build`, `test`, `typecheck`, quatre gates. Suite complète : `782 passed, 69 subtests passed`.
