@@ -54,7 +54,7 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertEqual(response["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
             valid = self._call(bridge, "project.scan", {})
             observations = valid["result"]["observations"]  # type: ignore[index]
-            self.assertIn("python", {item["kind"] for item in observations})
+            self.assertIn("python", {item["marker"] for item in observations if item["kind"] == "dependency-manager"})
             self.assertNotIn("rust", {item["kind"] for item in observations})
             self.assertFalse((root / ".vera-mmu").exists())
 

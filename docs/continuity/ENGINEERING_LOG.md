@@ -3552,3 +3552,20 @@ Quatre causes racines l’expliquaient, détaillées en LOG-0286 et LOG-0287 : `
 **Volontairement hors de ce lot.** Retirer ces fichiers de l’index est une écriture dans l’historique de l’utilisateur. Elle relève du cycle preview → confirmation, donc de `repair`, et non d’une correction silencieuse. Le Doctor le signale ; personne ne le fait à sa place.
 
 **Preuve.** `tests/test_zero_pollution.py` — six tests mesurés sur un projet témoin sous Git : empreinte, code métier intact, sidecars non versionnés y compris après un `git add -A` de l’utilisateur, mémoire et profil restés versionnables, installation ancienne signalée, et absence de `PASS` non vérifié. Le troisième échouait avant le correctif et passe après. Suite complète : `756 passed, 55 subtests passed`.
+
+## LOG-0290 — Le scanner observe enfin les quatorze catégories de §30
+**Statut : PASS mesuré sur Linux x64.**
+
+**Correction préalable d’un chiffre que j’avais écrit.** `REMAINING_WORK.md` annonçait « au minimum quinze catégories ». §30 en énumère **quatorze** : gestionnaire de version, langages, frameworks, gestionnaires de dépendances, scripts de build, suites de tests, linters, CI, Docker, documentation, datasets, assets, sous-projets, fichiers de configuration. Le décompte a été refait sur le texte de la spécification, pas sur le registre.
+
+**Écart réel : six sur quatorze.** Le scanner observait VCS, CI, documentation, conteneur et chemins de test, plus les langages — mais déduits d’un manifeste de dépendances, donc confondus avec la catégorie que §30 énumère séparément. Frameworks, scripts de build, linters, datasets, assets, sous-projets et fichiers de configuration n’avaient aucune catégorie.
+
+**Le scanner a son module.** `project_scan.py` porte des tables déclaratives — marqueurs de répertoire, noms exacts, motifs de noms, extensions de source, extensions non-source, manifestes imbriqués. Une catégorie manquante se voit en lisant une table ; c’était précisément ce que l’ancienne forme, une suite de conditions dans `project_operations.py`, rendait invisible.
+
+**Deux distinctions que la spécification impose et que le code porte maintenant.** Un manifeste n’est pas un langage : `package.json` seul déclare un gestionnaire de dépendances et **aucun** langage, car c’est l’extension d’un fichier source qui nomme le langage. Et un manifeste imbriqué désigne un sous-projet, celui de la racine non.
+
+**Le rapport passe en `vera-scan-report/v2`.** `kind` porte la catégorie, `marker` ce qui a été reconnu, `occurrences` combien de fois. Une ligne par marqueur et non par fichier : quarante modules Python font une seule observation sur Python, portant son compte. Le format est bumpé plutôt que réinterprété en silence — `kind` passait de `"python"` à `"language"`, ce qui est un changement de sens, pas un ajout.
+
+**Ce que le scanner reste.** Aucune lecture de contenu — un test réécrit les fichiers et exige un rapport identique —, aucun symlink suivi, aucun processus, aucun réseau, et uniquement des `OBSERVED`. La spécification écrit `DETECTED` ; VERA dit `OBSERVED` depuis l’origine et le vocabulaire est conservé : ce que §30 interdit est de présenter une observation comme `PROVEN`, et c’est respecté.
+
+**Preuve.** `tests/test_project_scan.py` : une fixture par catégorie, douze tests, quatorze sous-tests. Le test de couverture a été vérifié par soustraction — en retirant les marqueurs de framework, il échoue. Passé sur ce dépôt : vingt-sept observations, dix catégories, les quatre absentes (scripts de build, conteneur, datasets, linters) l’étant réellement. Suite complète : `768 passed, 69 subtests passed`.

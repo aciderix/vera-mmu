@@ -69,12 +69,12 @@ promotion: {proven_requires: [admissible_pass]}
         write_playbook(profile)
         return profile
     def test_i007_i011_scan_is_observational_deterministic_and_never_follows_symlink(self)->None:
-        from vera_mmu.project_operations import ProjectOperationError,scan_project
+        from vera_mmu.project_operations import ProjectScanError,scan_project
         with TemporaryDirectory() as directory:
             root=Path(directory);(root/"pyproject.toml").write_text("[project]\n",encoding="utf-8");(root/"README.md").write_text("x",encoding="utf-8");(root/"tests").mkdir();(root/"tests"/"test_x.py").write_text("",encoding="utf-8");outside=root.parent/"outside-vera-scan";outside.mkdir(exist_ok=True);(outside/"secret.py").write_text("",encoding="utf-8");(root/"foreign").symlink_to(outside,target_is_directory=True)
             first=scan_project(root);second=scan_project(root)
-            self.assertEqual(first,second);self.assertEqual(first.status,"OBSERVED");self.assertIn("python",{item.kind for item in first.observations});self.assertIn("tests",{item.kind for item in first.observations});self.assertNotIn("foreign/secret.py",{item.path for item in first.observations})
-            with self.assertRaises(ProjectOperationError):scan_project(root/"foreign")
+            self.assertEqual(first,second);self.assertEqual(first.status,"OBSERVED");self.assertIn("python",{item.marker for item in first.observations if item.kind=="dependency-manager"});self.assertIn("tests",{item.kind for item in first.observations});self.assertNotIn("foreign/secret.py",{item.path for item in first.observations})
+            with self.assertRaises(ProjectScanError):scan_project(root/"foreign")
             code,payload=invoke(["scan",str(root)])
             self.assertEqual(code,0);self.assertTrue(payload["ok"]);self.assertEqual(payload["scan"]["status"],"OBSERVED")
             self.assertFalse((root/".vera-mmu").exists())

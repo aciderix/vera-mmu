@@ -33,6 +33,7 @@
 - [x] Lancer localement la CLI Linux extraite et l’application Linux avec contrôle de démarrage, collecte bornée des logs et arrêt propre.
 - [x] Run vert de `desktop-packaging.yml` sur les deux runners natifs, le 2026-09-15 sur `ec1fd93` : quatre causes racines corrigées (`os.fsync` sur poignée lecture seule, séparateur natif dans le journal de migration, connexions SQLite non fermées par les fixtures, checkpoint WAL replié sur rien faute d’ouverture du WAL).
 - [x] §36 Zero Pollution prouvé : `.vera-mmu/.gitignore` écrit à l’initialisation, sidecars volatils exclus du pathspec de synchronisation (status, add **et** commit), ligne Doctor `zero_pollution` qui interroge Git au lieu de déduire.
+- [x] §30 Scanner complet : quatorze catégories observées (et non quinze — décompte corrigé sur le texte), tables déclaratives dans `project_scan.py`, langage distingué du gestionnaire de dépendances, rapport en `vera-scan-report/v2` avec une ligne par marqueur.
 - [ ] Offrir dans `repair`, sous preview et confirmation, le retrait de l’index des sidecars d’une installation antérieure : le Doctor les nomme, rien ne les retire.
 - [ ] Rejouer le smoke de runtime sur la matrice native Windows/Linux et examiner séparément CLI, AppImage/Debian, NSIS et MSI avant de qualifier M10.
 - [x] Qualifier le smoke Linux M10 : intégrité, CLI `--help`, scan `OBSERVED`, démarrage contrôlé AppImage et payload Debian, en local puis sur runner Ubuntu GitHub Actions.

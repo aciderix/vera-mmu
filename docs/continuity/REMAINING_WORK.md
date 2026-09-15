@@ -1,12 +1,12 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-15 — A1 et C2 clos.
+**Révisé le :** 2026-09-15 — A1, C2 et B2 clos.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `756 passed, 55 subtests passed`. Le décompte `750` était attesté sur Linux x64 **et**
+**Suite :** `768 passed, 69 subtests passed`. Le décompte `750` était attesté sur Linux x64 **et**
 Windows x64 (run `desktop-packaging.yml` #47, 2026-09-15) ; les six ajouts de C2 restent à
 attester sur Windows.
 
@@ -105,21 +105,41 @@ dix-huit étapes et la raison de chaque blocage.
 **Critère de sortie :** un test Python sur la dérivation des dix-huit états à partir d’un projet
 donné, et la navigation exercée dans la suite TypeScript.
 
-### B2 — Scanner de projet complet (§30) — étapes 1 et 2
+### B2 — Scanner de projet complet (§30) — étapes 1 et 2 — **FAIT**
 
-**Écart mesuré :** la spécification exige au minimum quinze catégories d’observation. Le scanner
-en produit environ sept : VCS, CI, langages via manifestes de dépendances, documentation,
-conteneur, chemins de test.
+**Correction d’une erreur de ce document.** Il annonçait « au minimum quinze catégories ». §30 en
+énumère **quatorze** : gestionnaire de version, langages, frameworks, gestionnaires de
+dépendances, scripts de build, suites de tests, linters, CI, Docker, documentation, datasets,
+assets, sous-projets, fichiers de configuration. Le décompte vient d’être fait sur le texte.
 
-**Manquent :** frameworks, scripts de build, linters, datasets, assets, sous-projets et fichiers
-de configuration comme catégories distinctes.
+**Écart mesuré au départ : six sur quatorze.** VCS, CI, documentation, conteneur, chemins de test,
+et les langages — mais déduits d’un manifeste de dépendances, donc confondus avec la catégorie
+« gestionnaires de dépendances » que §30 énumère séparément. Frameworks, scripts de build,
+linters, datasets, assets, sous-projets et fichiers de configuration n’existaient pas.
 
-**Contrainte à respecter :** le scan ne lit pas le contenu, ne suit pas les symlinks, n’exécute
-ni processus ni réseau, et produit des observations `DETECTED`, jamais des vérités. Détecter un
-framework signifie donc reconnaître un marqueur de fichier, pas analyser du code.
+**Livré.** Le scanner vit dans `project_scan.py`, en tables déclaratives : marqueurs de
+répertoire, marqueurs de nom exact, motifs de nom, extensions de source, extensions non-source,
+manifestes imbriqués. Une catégorie manquante se voit en lisant une table, pas en dépliant des
+conditions.
 
-**Critère de sortie :** une fixture par catégorie, et un test qui échoue si une catégorie exigée
-par la spécification cesse d’être détectée.
+**Deux distinctions que §30 impose et que le code porte maintenant.** Un manifeste n’est pas un
+langage : `package.json` seul déclare un gestionnaire de dépendances et **aucun** langage ; c’est
+l’extension d’un fichier source qui nomme le langage. Et un manifeste imbriqué est un
+sous-projet, celui de la racine non.
+
+**Modèle du rapport, passé en `vera-scan-report/v2`.** `kind` porte la catégorie, `marker` ce qui
+a été reconnu, `occurrences` combien de fois. Une ligne par marqueur, pas par fichier : quarante
+modules Python font **une** observation sur Python portant son compte. Le rapport reste borné,
+comparable d’un run à l’autre, et exploitable tel quel par §31.
+
+**Ce que le scanner reste.** Il ne lit aucun contenu — un test le prouve en réécrivant les
+fichiers et en exigeant un rapport identique —, ne suit aucun symlink, ne démarre aucun processus,
+n’atteint aucun réseau, et n’émet que des `OBSERVED`.
+
+**Preuve :** `tests/test_project_scan.py`, une fixture par catégorie et douze tests. Le test de
+couverture échoue dès qu’une catégorie exigée cesse d’être détectée — vérifié en retirant les
+marqueurs de framework. Passé sur ce dépôt : vingt-sept observations, dix catégories, les quatre
+absentes l’étant réellement.
 
 ### B3 — Recommandation automatique de profil (§31) — étape 3
 
@@ -345,8 +365,8 @@ seule écriture user-scope.
 
 1. **A1** — laisser la CI Windows conclure ; traiter ses échecs s’il y en a.
 2. ~~**C2** — prouver Zero Pollution~~ — fait.
-3. **B2 puis B3** — scanner complet, puis recommandation : ce sont les étapes 1 à 3 du parcours
-   et la matière de tout le reste du Dashboard.
+3. ~~**B2**~~ fait. **B3** — la recommandation de profil, qui s’appuie sur le scanner : c’est
+   l’étape 3 du parcours et la matière du reste du Dashboard.
 4. **B1** — le socle du parcours, une fois qu’il a de quoi remplir ses premières étapes.
 5. **B4 à B9** — les écrans, dans l’ordre du parcours ; chacun avec ses méthodes de bridge et ses
    tests Core.
