@@ -1,0 +1,38 @@
+{
+  "addresses": [
+    "ARET://brick/RECOV-SPIRVCROSS-0X0",
+    "ARET://knowledge/ARCH-0003",
+    "ARET://knowledge/CORE-0001",
+    "ARET://knowledge/CORPUS-0017",
+    "ARET://knowledge/EH-0025",
+    "ARET://knowledge/HLE-0004",
+    "ARET://knowledge/INDUS-0021",
+    "ARET://knowledge/INFRA-0018",
+    "ARET://knowledge/KN-0002",
+    "ARET://knowledge/KN-0003",
+    "ARET://knowledge/KN-0004",
+    "ARET://knowledge/KN-0005",
+    "ARET://knowledge/KN-0006",
+    "ARET://knowledge/KN-0008",
+    "ARET://knowledge/KN-0010",
+    "ARET://knowledge/KN-0011",
+    "ARET://knowledge/LIFT-0019",
+    "ARET://knowledge/RECOV-0001",
+    "ARET://knowledge/RECOV-0021",
+    "ARET://knowledge/RECOV-0023",
+    "ARET://knowledge/RECOV-0024",
+    "ARET://knowledge/X87-0003"
+  ],
+  "provenance": {
+    "commit": "b9511dccc811b5fc2efaf26a7a3cfc941c0e5754",
+    "extracted_from": [
+      "audit_event.payload_after",
+      "audit_event.payload_before",
+      "front_state.value"
+    ],
+    "memory_bytes": 11280384,
+    "memory_path": "aret-memory/.aret-memory/aret_memory.sqlite",
+    "memory_sha256": "85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5",
+    "repository": "aciderix/ARET-MMU"
+  }
+}

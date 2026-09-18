@@ -4165,3 +4165,53 @@ asymétrie de style, pas un défaut, et rien n’a été changé pour un soupço
 
 **Preuve.** Run `desktop-packaging.yml` #49, jobs `Linux x64` et `Windows x64`, conclusion `success`,
 sur `9861450`. Les chiffres sont lus dans les logs des deux runners, pas déduits du run local.
+
+---
+
+## LOG-0305 — `C01` promu : la première parité ARET réellement exécutée
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Le diagnostic que je répétais était faux.** `REMAINING_WORK` affirmait que C1 était bloqué par le
+matériel — qu’il fallait la chaîne d’outils ARET réelle, absente. Vérifié plutôt que repris : c’est
+vrai pour **deux** couplages sur seize. Les quatorze autres exigent une comparaison de données et de
+comportement, dont les seuls prérequis sont la source ARET et une mémoire baseline. Les deux sont
+disponibles : 64 fichiers Python au commit `b9511dcc`, et `aret_memory.sqlite` de `11 280 384`
+octets — exactement la taille que le registre cite — portant 17 `component`, 532 `knowledge`,
+47 `relation`. Wine et MinGW manquent, et sont installables par apt.
+
+**Le test de compatibilité existant ne testait pas la compatibilité.**
+`test_aret_address_compatibility.py` compare la réimplémentation VERA à **ses propres attentes** ;
+il n’exécute jamais `core/addressing.py`. Il passerait à l’identique si les deux modules
+divergeaient. C’est un test de cohérence interne portant le nom d’un test de parité — la même famille
+de défaut que le décompte auto-référentiel de B10, et la raison pour laquelle aucune ligne mère
+n’avait jamais été promue.
+
+**Ce qui a été mesuré.** Une copie octet pour octet de `core/addressing.py` est versionnée sous
+`tests/fixtures/aret_v1/` avec son SHA-256 épinglé dans le test, plus les 22 adresses `ARET://` que la
+baseline porte réellement, avec l’empreinte de la mémoire d’où elles viennent. Les deux
+implémentations sont exécutées et leurs verdicts comparés : écriture `242 paires, 0 divergence` ;
+round-trip `160 adresses produites par ARET, 0 non relue à l’identique` ; corpus réel
+`22 adresses, 0 divergence` ; direction `0 élargissement, 80 resserrements`.
+
+**La parité utile est dirigée, et les deux directions n’ont pas la même gravité.** Ne pas relire ce
+qu’ARET savait écrire rendrait une mémoire existante partiellement illisible. Accepter ce qu’ARET
+refusait ne casserait rien — c’est exactement pourquoi cela passerait inaperçu, et pourquoi c’est
+épinglé séparément. Les 80 resserrements portent tous sur des formes non canoniques —
+`%41`, `%ZZ`, espace littéral, `#`, `+`, `?`, `é`, `日本` — et le test vérifie qu’aucune n’est dans
+l’image de `ARET.make_address` : un resserrement sur une forme écrivable serait une régression de
+lecture déguisée en rigueur.
+
+**Deux erreurs de ma propre mesure, corrigées avant d’écrire le test.** Le premier différentiel
+comparait les **noms de classes d’exception** et rapportait 92 divergences d’écriture ;
+`AretAddressCompatibilityError` hérite de `ValueError`, donc deux refus identiques se lisaient comme
+un désaccord. Le vrai chiffre est zéro. Et la première mutation de contrôle — élargir `safe` de
+`quote` avec `~` — s’est révélée inerte parce que `~` n’est jamais échappé par Python quel que soit
+`safe` ; remplacée par le retrait de `!`, qui mord.
+
+**Preuve.** `tests/test_aret_c01_addressing_parity.py`, dix tests, mordant vérifié règle par règle
+(sept mutations mordent ; deux se sont révélées inertes par construction et non par lacune du test).
+Suite complète : `937 passed, 69 subtests passed`. `C01` passe de `SPLIT` à `DONE` — première
+promotion du registre, et gabarit des treize couplages de données qui restent.
+
+**Ce que cette promotion ne dit pas :** rien sur les quinze autres couplages. Une parité d’adressage
+n’est pas une parité ARET, et l’en-tête du registre le dit désormais explicitement.

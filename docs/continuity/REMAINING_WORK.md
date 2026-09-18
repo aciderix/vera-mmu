@@ -1,6 +1,9 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-18 — `C01` promu `DONE` : première ligne mère du registre de découplage à
+porter un test de parité exécuté. Le diagnostic « blocage matériel » de C1 est corrigé, il était faux
+pour 14 couplages sur 16.
 **Révisé le :** 2026-09-18 — run #49 : les deux plateformes attestent `927 + 78` sur `9861450`.
 **Révisé le :** 2026-09-18 — A1, B1 à B12 et C2 clos ; section B terminée.
 **Révisé le :** 2026-09-18 — A1, B1 à B11 et C2 clos ; B12 ouvert (mesuré pendant B11).
@@ -10,7 +13,7 @@
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `927 passed, 69 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
+**Suite :** `937 passed, 69 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
 Linux x64 et Windows x64** au run `desktop-packaging.yml` #49 sur `9861450`, avec des chiffres
 identiques des deux côtés. Plus aucun écart entre ce qui est affirmé et ce qui est mesuré.
 
@@ -463,79 +466,42 @@ preview, pas seulement dans son refus.
 
 ## C. Ce qui décide de ce que le produit a le droit de dire de lui-même
 
-### C1 — Parité ARET : mesurer ou renoncer explicitement
+### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 1/16**
 
-**Le fait :** `DECOUPLING_MATRIX.md` suit 16 couplages, **aucun n’est `DONE`** (14 `SPLIT`,
-2 `IN_PROGRESS`). La Definition of Done §54 exige que les pipelines, gates, preuves et Resume
-Guard d’ARET soient « équivalents ou meilleurs » après migration. Tant que rien n’est mesuré,
-cette phrase ne peut pas être prononcée.
+**Le diagnostic précédent était faux, et c’est mesuré.** Ce document affirmait que « le blocage est
+matériel » et qu’il fallait la chaîne d’outils ARET réelle. C’est vrai pour **deux** couplages sur
+seize. Les quatorze autres exigent une comparaison de **données et de comportement**, dont les seuls
+prérequis sont la source ARET et une mémoire baseline — tous deux disponibles.
 
-**Le blocage est matériel, pas logiciel.** Les abstractions génériques existent toutes. Ce qui
-manque est la référence : les lignes `C07` et `C08` butent sur `MEM-WALL-001`, qui exige la
-chaîne d’outils ARET réelle — binaire `aret`, Wine, MinGW, GCC, Cargo, Clang et corpus. Le
-registre note que le corpus Wine historique échoue à `255/264` et que le corpus sandboxé complet
-n’est pas terminé.
+**Ce qui est réellement présent, vérifié :** la source ARET-MMU complète (64 fichiers Python, commit
+`b9511dcc`), la mémoire baseline `aret_memory.sqlite` de `11 280 384` octets — exactement la taille
+que ce registre cite — portant 17 `component`, 9 `function_symbol`, 13 `brick`, 532 `knowledge`,
+47 `relation`, 4 `proof` ; la source Rust du toolkit avec `Cargo.toml` ; le corpus `bench` de 97 Mo,
+476 fichiers ; `cargo 1.94.1`, `clang 18.1.3`, `gcc 13.3.0`. **Manquent** Wine et MinGW, tous deux
+installables par apt (`9.0~repack-4build3`, `13.2.0-6ubuntu1+26.1`).
 
-**Deux issues légitimes, à trancher par le propriétaire :**
+**`C01` est promu `DONE`** par `tests/test_aret_c01_addressing_parity.py`, qui exécute les deux
+implémentations et compare leurs verdicts sur quatre dimensions — écriture, round-trip, corpus réel
+de la baseline, et direction du resserrement. C’est la première ligne mère promue du registre, et le
+gabarit des suivantes.
 
-1. **Mesurer.** Reconstituer un environnement ARET reproductible, rejouer les pipelines des deux
-   côtés, comparer verdict par verdict, puis promouvoir les lignes une à une.
-   *Critère de sortie :* chaque ligne `DONE` porte son test de parité exécuté et son artefact de
-   comparaison daté. Aucune promotion par lecture de code.
-2. **Renoncer formellement.** Déclarer le registre remplacé, et le pack ARET comme une
-   compatibilité best-effort non certifiée.
-   *Critère de sortie :* décision écrite dans `PROJECT_MEMORY.md`, en-tête du registre mis à
-   jour, et toute mention de parité retirée du README et de la spécification de référence.
+**Ce que la promotion de `C01` ne dit pas :** rien sur les quinze autres couplages. Une parité
+d’adressage n’est pas une parité ARET.
 
-**À ne pas faire :** laisser les 16 lignes pourrir en `SPLIT` silencieux. C’est l’état actuel, et
-c’est le seul qui soit indéfendable.
+**Reste, dans l’ordre du moins cher au plus cher :**
 
-### C2 — Zero Pollution (§36) — **FAIT**
+1. **Les treize couplages de nature « données et comportement »** — `C02`–`C06`, `C09`–`C16`. Chacun
+   suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel issu
+   de la baseline, et une parité dirigée. Aucune dépendance externe ; c’est du volume, pas du blocage.
+2. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire
+   `target/release/aret`, rejouer le corpus. C’est là que `MEM-WALL-001` mord vraiment, et le
+   registre y note déjà `255/264` sur le corpus Wine historique.
 
-**Ce que la mesure a montré.** L’empreinte tenait : une installation complète sur un projet
-témoin ne crée rien hors `.vera-mmu/` sauf la configuration hôte déclarée, et ne touche aucun
-fichier métier. La seconde moitié de la promesse ne tenait pas : la synchronisation automatique
-stageait `.vera-mmu/` en bloc, donc **`memory.sqlite-wal` et `memory.sqlite-shm` étaient commités
-dans le dépôt de l’utilisateur**, ce que §36 interdit explicitement.
+*Critère de sortie inchangé :* chaque ligne `DONE` porte son test de parité **exécuté** et son
+artefact de comparaison daté. Aucune promotion par lecture de code.
 
-**Corrigé en deux endroits, parce qu’un seul n’aurait pas suffi.** L’initialisation écrit
-désormais `.vera-mmu/.gitignore` — les règles vivent là où Git les voit, donc elles couvrent aussi
-un `git add -A` fait à la main. Et `memory_sync` exclut les sidecars de son pathspec sur le
-`status`, le `add` **et** le `commit` : `commit --only` prend son contenu dans l’arbre de travail,
-donc un pathspec qui les nommait encore les aurait versionnés même laissés hors index.
-
-**Le cas que les règles ne peuvent pas régler.** Une règle ajoutée après coup ne désuit pas un
-fichier : une installation antérieure garde ses sidecars versionnés. Le Doctor porte donc une
-ligne `zero_pollution` qui **interroge Git** au lieu de déduire — elle nomme les fichiers volatils
-suivis et donne le `git rm --cached` correspondant. Quand elle ne peut pas interroger Git, elle
-répond `INFO`, jamais un `PASS` qu’elle n’a pas vérifié.
-
-**Reste ouvert, volontairement hors de ce lot :** retirer ces fichiers de l’index est une écriture
-dans l’historique de l’utilisateur. Elle doit passer par un cycle preview → confirmation, donc par
-`repair`, et non par une correction silencieuse. Le Doctor le signale ; personne ne le fait à sa
-place.
-
-**Preuve :** `tests/test_zero_pollution.py`, six tests mesurés sur un projet témoin sous Git —
-empreinte, code métier intact, sidecars non versionnés y compris après un `git add -A` de
-l’utilisateur, mémoire et profil restés versionnables, installation ancienne signalée, et absence
-de `PASS` non vérifié. Suite : `756 passed, 55 subtests passed`.
-
-### C3 — Abstraction VCS (§22)
-
-**État :** `vcs.py` expose une seule fonction d’observation, `inspect_vcs`. La spécification
-demande une hiérarchie `VersionControlProvider` avec `GitProvider`, `MercurialProvider`,
-`SVNProvider` et `NoVCSProvider`, et pose que « le Core ne doit jamais supposer que Git existe ».
-
-**Nuance importante :** le Core ne suppose déjà pas Git — le parcours no-Git est vert et `doctor`
-le classe `INFO`. Ce qui manque est l’abstraction, pas la tolérance.
-
-**Avant d’implémenter :** le handoff historique demandait explicitement que ce lot soit **étudié**
-avant d’être écrit, et cette prudence reste juste. Mercurial et SVN sans utilisateur réel
-produiraient du code non exercé. Une étude honnête peut conclure à `GitProvider` + `NoVCSProvider`
-et documenter les deux autres comme non retenus.
-
-**Critère de sortie :** décision écrite, puis soit l’abstraction avec ses tests par provider, soit
-la note expliquant pourquoi elle reste à deux providers.
+**À ne pas faire :** laisser les lignes restantes pourrir en `SPLIT` silencieux, ni étendre la
+promotion de `C01` à des surfaces qu’elle ne touche pas.
 
 ---
 
@@ -579,7 +545,8 @@ seule écriture user-scope.
 6. ~~**B10 puis B11**~~ faits : le MCP Preview, puis la conclusion du parcours.
 7. ~~**B12**~~ fait : les étapes 5 à 8 sont raccordées au parent natif, avec le test de parité qui
    empêchera la prochaine dérive de ce type. **La section B est terminée.**
-8. **C1** — trancher la parité ARET.
+8. **C1** — poursuivre la parité ARET : `C01` est clos, treize couplages de données restent faisables
+   ici, `C07`/`C08` demandent Wine et MinGW.
 9. **C3** — étudier l’abstraction VCS avant d’écrire une ligne.
 10. **D1 et D2** — observations hôtes, au fil des occasions réelles, et après chaque lot B.
 
