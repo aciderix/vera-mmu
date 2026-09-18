@@ -1,6 +1,7 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-18 — run #49 : les deux plateformes attestent `927 + 78` sur `9861450`.
 **Révisé le :** 2026-09-18 — A1, B1 à B12 et C2 clos ; section B terminée.
 **Révisé le :** 2026-09-18 — A1, B1 à B11 et C2 clos ; B12 ouvert (mesuré pendant B11).
 **Révisé le :** 2026-09-18 — A1, B1 à B10 et C2 clos ; B11 ouvert.
@@ -9,9 +10,9 @@
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `927 passed, 69 subtests passed` côté Core et `78 passed` côté interface. Le décompte
-`798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-ajouts de B4 à B12 restent à attester sur Windows.
+**Suite :** `927 passed, 69 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
+Linux x64 et Windows x64** au run `desktop-packaging.yml` #49 sur `9861450`, avec des chiffres
+identiques des deux côtés. Plus aucun écart entre ce qui est affirmé et ce qui est mesuré.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -28,7 +29,19 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ### A1 — Matrice native Windows x64 et Linux x64 — **FAIT**
 
-**Run #47 sur `ec1fd93`, le 15 septembre 2026 : les deux runners sont verts**, quatorze étapes
+**Run #49 sur `9861450`, le 18 septembre 2026 : les deux runners sont verts**, quinze étapes chacun,
+et les décomptes sont identiques — `927 passed, 69 subtests passed` côté Core (220,79 s sur Linux,
+515,88 s sur Windows) et `78 passed` sur huit fichiers côté interface. C’est la première attestation
+couvrant B4 à B12 : le run #48 datait de `14706d92`, et dix commits — 63 fichiers, 8327 lignes
+ajoutées — n’avaient jamais tourné sur Windows.
+
+L’audit mené avant le run n’a rien trouvé des trois causes racines de septembre : les cinq `fsync`
+ajoutés portent tous sur une poignée d’écriture, les deux seules occurrences de barre inverse sont
+des validateurs qui la **refusent**, et les connexions SQLite nouvelles ferment en `finally`. Les
+cinq écritures atomiques passent `newline="\n"`, sans quoi Windows aurait écrit des CRLF et fait
+diverger tous les hachages du projet entre plateformes. Le run l’a confirmé.
+
+**Historique.** Run #47 sur `ec1fd93`, le 15 septembre 2026 : premier passage vert, quatorze étapes
 chacun — suite de conformité, sidecar natif, archive CLI autonome, AppImage et `.deb` côté Linux,
 NSIS et MSI côté Windows. C’est le premier passage vert de ce workflow.
 
@@ -556,7 +569,8 @@ seule écriture user-scope.
 
 ## Ordre recommandé
 
-1. **A1** — laisser la CI Windows conclure ; traiter ses échecs s’il y en a.
+1. ~~**A1**~~ fait : run #49 sur `9861450`, les deux runners verts, décomptes identiques et aucun
+   échec à traiter.
 2. ~~**C2** — prouver Zero Pollution~~ — fait.
 3. ~~**B2** et **B3**~~ faits : les étapes 1 à 3 du parcours sont livrées côté Core.
 4. ~~**B1**~~ fait : dérivation, gouvernail et lanceur de tests d’interface.

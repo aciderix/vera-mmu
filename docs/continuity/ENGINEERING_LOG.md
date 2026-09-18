@@ -4131,3 +4131,37 @@ leurs méthodes `desktopApi`, et deux panneaux de console gouvernés par le parc
 mordant : treize règles neutralisées une à une, toutes mordent. Suite complète : `927 passed,
 69 subtests passed` côté Core et `78 passed` côté interface. `tsc --noEmit`, `vitest run`,
 `vite build` et `cargo check` passent.
+
+---
+
+## LOG-0304 — Les deux plateformes attestent enfin ce que le README affirme
+**Statut : PASS mesuré sur Linux x64 et Windows x64.**
+
+**L’écart, avant.** Le dernier run natif était le #48, sur `14706d92`, le 15 septembre. Depuis :
+dix commits, 63 fichiers, 8327 lignes ajoutées — B4 à B12, soit +129 tests Core, +68 tests
+d’interface et six commandes Rust. Rien de tout cela n’avait jamais tourné sur Windows, et le README
+prononçait pourtant une phrase sur « les deux plateformes ». La phrase était en avance sur la mesure.
+
+**Run #49 sur `9861450` : les deux runners sont verts, quinze étapes chacun, et les décomptes sont
+identiques.** `927 passed, 69 subtests passed` côté Core — 220,79 s sur Linux, 515,88 s sur Windows —
+et `78 passed` sur huit fichiers côté interface. Aucun test n’est conditionné à une plateforme, donc
+la collecte est bien la même des deux côtés : les chiffres se comparent.
+
+**L’audit préalable n’a rien trouvé, et c’est un résultat.** Les trois causes racines de septembre
+ont été reprises une par une sur le code ajouté depuis #48. Les cinq `fsync` nouveaux portent tous
+sur `NamedTemporaryFile(mode="w")`, donc une poignée d’écriture — le défaut de #44 était un `fsync`
+sur `"rb"`. Les deux seules occurrences de barre inverse sont des **validateurs qui la refusent**,
+le bon sens. Les connexions SQLite nouvelles ferment en `finally`, et `MemoryStore.__exit__` appelle
+bien `close()`, donc aucun `WinError 32` à l’unlink dans les tests de B11. Les cinq écritures
+atomiques passent `newline="\n"` : sans cela Windows aurait écrit des CRLF, les octets auraient
+changé, et **tous les hachages du projet auraient divergé entre plateformes** sans qu’aucun test
+local ne le voie.
+
+**Une piste ouverte puis fermée par la mesure.** `profile_taxonomy` construit son URI SQLite sans
+`as_posix()`, contrairement à quatre autres sites — de quoi soupçonner la cause racine nº 2. Mais
+`profile_migration` fait de même, cette ligne **est couverte** — la neutraliser fait tomber un test —
+et elle était passée verte sur Windows au run #48. La forme nue fonctionne donc ; c’est une
+asymétrie de style, pas un défaut, et rien n’a été changé pour un soupçon que la mesure contredit.
+
+**Preuve.** Run `desktop-packaging.yml` #49, jobs `Linux x64` et `Windows x64`, conclusion `success`,
+sur `9861450`. Les chiffres sont lus dans les logs des deux runners, pas déduits du run local.
