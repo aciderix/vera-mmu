@@ -23,6 +23,7 @@ from .coverage_report import compile_coverage_report
 from .documentation_generator import compile_project_documentation
 from .doctor import diagnose_project
 from .gate_policy_builder import GatePolicyDraftPreview, apply_gate_policy_draft, preview_gate_policy_draft
+from .gate_reports import report_gate
 from .gate_structure_builder import GateStructureDraftPreview, apply_gate_structure_draft, preview_gate_structure_draft
 from .identity import load_profile
 from .read_api import ReadService
@@ -92,6 +93,7 @@ class DesktopBridge:
             "capability.options": self._capability_options,
             "capability.preview": self._capability_preview,
             "capability.apply": self._capability_apply,
+            "gate.report": self._gate_report,
             "gate.policy.preview": self._gate_policy_preview,
             "gate.policy.apply": self._gate_policy_apply,
             "gate.structure.preview": self._gate_structure_preview,
@@ -366,6 +368,13 @@ class DesktopBridge:
         result = apply_capability_contract(self._profile_path(), cached.value, confirm=True)
         del self._previews[preview_hash]
         return result
+
+    def _gate_report(self, value: dict[str, Any]) -> dict[str, object]:
+        """Report one declared gate as §33 displays it, classes and promotion lines included."""
+        _exact_input(value, {"gateId"})
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            return report_gate(store, _string(value, "gateId"))
 
     def _gate_policy_preview(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, {"gateId", "mode", "minimumAdmissions"})

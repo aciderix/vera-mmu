@@ -288,6 +288,9 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
             preview = self._call(bridge, "gate.structure.preview", {"gateId": "dashboard-gate", "workItemId": "dashboard-gate", "primaryEvidenceId": "e1", "requirementEvidenceIds": ["e2"]})
             self.assertTrue(preview["ok"])
+            # §33: the classes cross the bridge with the structure, before the gate exists.
+            self.assertEqual([item["evidence_class"] for item in preview["result"]["endpoints"]], ["TECHNICAL_VALIDATION", "TECHNICAL_VALIDATION"])  # type: ignore[index]
+            self.assertTrue(preview["result"]["promotion"]["can_create_proof"])  # type: ignore[index]
             preview_hash = preview["result"]["preview_hash"]  # type: ignore[index]
             refused = self._call(bridge, "gate.structure.apply", {"previewHash": preview_hash, "confirm": False})
             self.assertFalse(refused["ok"])
@@ -295,6 +298,14 @@ class DesktopBridgeTests(unittest.TestCase):
             applied = self._call(bridge, "gate.structure.apply", {"previewHash": preview_hash, "confirm": True})
             self.assertTrue(applied["ok"])
             self.assertEqual(applied["result"]["status"], "DECLARED")  # type: ignore[index]
+            report = self._call(bridge, "gate.report", {"gateId": "dashboard-gate"})
+            self.assertTrue(report["ok"])
+            self.assertEqual(report["result"]["capability"], {"status": "DERIVED", "capability_id": "source"})  # type: ignore[index]
+            self.assertEqual({item["evidence_class"] for item in report["result"]["requirements"]}, {"TECHNICAL_VALIDATION"})  # type: ignore[index]
+            self.assertTrue(report["result"]["promotion"]["can_create_proof"])  # type: ignore[index]
+            absent = self._call(bridge, "gate.report", {"gateId": "nowhere"})
+            self.assertFalse(absent["ok"])
+            self.assertEqual(absent["error"]["code"], "OPERATION_REFUSED")  # type: ignore[index]
 
     def test_i001_i007_memory_sync_has_no_git_input_in_desktop_protocol(self) -> None:
         with TemporaryDirectory() as directory:

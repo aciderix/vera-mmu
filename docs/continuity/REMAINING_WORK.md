@@ -1,15 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-18 — A1, B1 à B6 et C2 clos ; B7 à B11 ouverts.
+**Révisé le :** 2026-09-18 — A1, B1 à B7 et C2 clos ; B8 à B11 ouverts.
 **Révisé le :** 2026-09-15 — A1, B1 à B5 et C2 clos ; B6 à B11 ouverts.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `844 passed, 69 subtests passed` côté Core et `23 passed` côté interface. Le décompte
+**Suite :** `856 passed, 69 subtests passed` côté Core et `30 passed` côté interface. Le décompte
 `798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-ajouts de B4, B5 et B6 restent à attester sur Windows.
+ajouts de B4 à B7 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -302,15 +302,47 @@ ni exécuter ni évaluer. Il est corrigé.
 treize tests. CLI `capability-contract`, bridge `capability.options` / `capability.preview` /
 `capability.apply`, commande Rust et panneau de console complet.
 
-### B7 — Gate Builder (§33) — étape 10
+### B7 — Gate Builder (§33) — étape 10 — **FAIT**
 
-**Écart :** les builders couvrent exigences et mode d’agrégation, pas la distinction que §33
-impose d’afficher entre **validation technique**, **appréciation sémantique** et **simple
-observation**. C’est elle qui empêche qu’une opinion soit rangée comme une preuve : elle doit
-vivre dans le modèle de données, pas dans une couleur.
+**Le trou mesuré.** Rien dans la chaîne de promotion ne regardait ce qu’une evidence *était*. Une
+`HUMAN_ASSERTION` enregistrée `PASS` et admise promouvait une connaissance en `PROVEN` exactement
+comme un `TEST_PROOF`. Une opinion rangée comme preuve — la seule chose que ce produit existe pour
+empêcher (I004, I006).
 
-**Critère de sortie :** une gate dont l’exigence est « appréciation sémantique » ne peut pas créer
-de proof, et un test le prouve.
+**Les trois classes vivent dans le modèle, pas dans une couleur.** `evidence_classes.py` classe les
+dix types fermés de `evidence.TYPES` : **validation technique** (verdict rejouable — `COMMAND_PROOF`,
+`TEST_PROOF`, `CI_PROOF`, `API_PROOF`, `HASH_PROOF`, `FILE_PROOF`), **simple observation** (fait
+enregistré dont le Core n’a dérivé aucun verdict — `METRIC_PROOF`, `EXTERNAL_ATTESTATION`),
+**appréciation sémantique** (jugement qu’aucune réexécution ne reproduit — `HUMAN_ASSERTION`,
+`MODEL_EVALUATION`). La classe est **dérivée** du type stocké plutôt que stockée à côté : une
+seconde colonne pourrait le contredire, et c’est celle qu’on lirait qui déciderait si une opinion
+compte comme preuve.
+
+**Les dents.** `ProofService.promote` refuse toute evidence qui n’est pas une validation technique,
+en nommant sa classe. Un test épingle le critère de sortie : une gate satisfaite par une
+appréciation admise `PASS` est bien `PASS`, et la promotion derrière elle est refusée **par le
+Core**. Le pendant est épinglé aussi — une validation technique promeut toujours — sans quoi le
+refus pourrait être un blocage général ne prouvant rien.
+
+**Une gate d’appréciations n’est pas refusée, elle est rapportée.** Une gate de relecture humaine
+est une chose légitime à déclarer ; elle ne peut simplement jamais fonder une promotion. Le
+builder et le rapport le disent avant la déclaration, plutôt que de le faire découvrir au moment
+de promouvoir.
+
+**L’écran §33, dérivé.** `gate_reports.py` rend gate, capability, exigences classées et les deux
+lignes « peut satisfaire la gate » / « peut créer une proof ». La capability est lue par la chaîne
+evidence → execution → capability, jamais redéclarée. CLI `gate-report`, bridge `gate.report`,
+commande Rust et panneau de console.
+
+**Preuve :** `tests/test_evidence_classes.py`, douze tests ; `apps/desktop/ui/src/gate.test.ts`,
+sept tests.
+
+**Trouvé en passant, laissé ouvert :** `policies.yaml` déclare `promotion.proven_requires:
+[admissible_pass]` dans tous les projets, et **rien ne le lit**. C’est une serrure sans porte de
+plus. Elle n’est pas ouverte ici à dessein : laisser un projet déclarer la condition de promotion
+lui permettrait de déclarer que les opinions prouvent, ce que ce lot ferme. Le raccordement — s’il
+a lieu — appartient à B8, l’éditeur de policies, et doit d’abord trancher ce que `proven_requires`
+a le droit d’assouplir.
 
 ### B8 — Éditeur de policies (étape 11)
 

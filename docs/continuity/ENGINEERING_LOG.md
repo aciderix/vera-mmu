@@ -3769,3 +3769,73 @@ Une phrase du même paragraphe répétait aussi sa propre seconde moitié ; elle
 treize tests. Suite complète : `844 passed, 69 subtests passed` côté Core et `23 passed` côté
 interface. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent — ce dernier après
 avoir construit le sidecar PyInstaller, que le script de build Tauri exige.
+
+## LOG-0298 — Une opinion cesse de pouvoir se ranger comme preuve
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Le trou, mesuré avant d’être bouché.** Rien dans la chaîne de promotion ne regardait ce qu’une
+evidence *était*. `ProofService.promote` exigeait une evidence `PASS`, une admission `ADMITTED`,
+une policy de preuve, un hash cohérent — et jamais son type. Donc une `HUMAN_ASSERTION` enregistrée
+`PASS` puis admise promouvait une connaissance en `PROVEN` exactement comme un `TEST_PROOF`. C’est
+une opinion rangée comme preuve : précisément ce que I004 et I006 existent pour empêcher, et ce
+que §33 demande au Dashboard de rendre visible.
+
+**Les trois classes vivent dans le modèle de données, pas dans une couleur.** C’est la formulation
+du registre, et elle est prise au mot : une distinction qu’une interface dessine cesse d’exister
+dès que la CLI, le serveur MCP ou un autre agent écrit. `evidence_classes.py` classe donc les dix
+types fermés de `evidence.TYPES` selon ce que le Core peut dire de leur verdict :
+
+- **validation technique** — le verdict découle d’un contrôle rejouable, qu’une réexécution peut
+  contredire : `COMMAND_PROOF`, `TEST_PROOF`, `CI_PROOF`, `API_PROOF`, `HASH_PROOF`, `FILE_PROOF` ;
+- **simple observation** — quelque chose a été enregistré tel que vu ; le nombre peut être exact
+  sans rien décider, le Core n’en a dérivé aucun verdict : `METRIC_PROOF`, `EXTERNAL_ATTESTATION` ;
+- **appréciation sémantique** — un jugement, humain ou de modèle, qu’aucune réexécution ne
+  reproduit : `HUMAN_ASSERTION`, `MODEL_EVALUATION`.
+
+**La classe est dérivée, pas stockée à côté.** Le type est déjà persisté, déjà fermé, déjà
+immuable. Une seconde colonne portant la classe pourrait le contredire — et celle des deux qu’on
+lirait déciderait si une opinion compte comme preuve. Dériver ne laisse rien diverger. Un test
+exige que **tout** type admis par le Core porte exactement une classe : en ajouter un sans le
+classer fait tomber la suite, au lieu de lui donner silencieusement un défaut.
+
+**Les dents sont au bon endroit.** `promote` refuse toute evidence qui n’est pas une validation
+technique, en nommant sa classe et la raison. Le critère de sortie du lot est épinglé tel quel :
+une gate satisfaite par une appréciation admise `PASS` est bien `PASS` — le Core ne l’empêche pas —
+et la promotion derrière elle est refusée. Le pendant est épinglé aussi, une validation technique
+promeut toujours ; sans lui, le refus pourrait être un blocage général ne prouvant rien.
+
+**Deux classes refusées, deux raisons différentes, et ce n’est pas cosmétique.** Ni une observation
+ni une appréciation ne peut fonder une preuve, mais ce qu’il faut faire diffère : une observation
+est un fait que le Core n’a jamais re-dérivé — ajouter un contrôle ; une appréciation n’est pas un
+contrôle du tout — la remplacer. Les confondre dirait « impossible de promouvoir » sans dire
+laquelle des deux.
+
+**Une gate d’appréciations n’est pas refusée.** Une gate de relecture humaine est une chose
+légitime à déclarer ; elle ne peut simplement jamais fonder une promotion. Le builder et le rapport
+l’annoncent avant la déclaration plutôt que de le faire découvrir au moment de promouvoir. Refuser
+la gate aurait interdit un usage réel pour appliquer une règle qui porte ailleurs.
+
+**L’écran §33, entièrement dérivé.** `gate_reports.py` rend la gate, sa capability, ses exigences
+classées une par une, et les deux lignes « peut satisfaire la gate » / « peut créer une proof ».
+La capability est lue par la chaîne evidence → execution → capability : la redéclarer aurait créé
+une seconde chose à maintenir vraie. Une policy non déclarée est rapportée `NOT_DECLARED` et jamais
+« ALL », bien que le moteur évalue ainsi une policy absente — écrire le défaut du moteur
+rapporterait une décision que personne n’a prise.
+
+**Mon propre test le plus faible, trouvé par le contrôle de mordant.** J’avais vérifié que les deux
+raisons diffèrent et que chacune contient un mot-clé. Une mutation qui échangeait les explications
+de deux classes en gardant les mots-clés passait au vert. La vérification est maintenant
+structurelle : la raison rapportée pour chaque type doit être exactement celle que sa propre classe
+porte, et les trois doivent être deux à deux distinctes. Les sept autres règles du lot — le refus à
+la promotion, la classification, le type inconnu refusé, les deux lignes de promotion, la gate
+absente — faisaient déjà tomber un test chacune, ainsi que les trois refus côté interface.
+
+**Laissé ouvert, et nommé.** `policies.yaml` déclare `promotion.proven_requires: [admissible_pass]`
+dans tous les projets, et **rien ne le lit** : une serrure sans porte de plus. Elle n’est pas
+ouverte ici à dessein — laisser un projet déclarer la condition de promotion lui permettrait de
+déclarer que les opinions prouvent, ce que ce lot ferme. Le raccordement appartient à B8, et doit
+d’abord trancher ce que `proven_requires` a le droit d’assouplir.
+
+**Preuve.** `tests/test_evidence_classes.py`, douze tests ; `apps/desktop/ui/src/gate.test.ts`,
+sept tests. Suite complète : `856 passed, 69 subtests passed` côté Core et `30 passed` côté
+interface. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent.

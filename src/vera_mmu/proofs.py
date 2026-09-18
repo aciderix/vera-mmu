@@ -6,6 +6,7 @@ import hmac
 import json
 import sqlite3
 
+from .evidence_classes import classify, may_create_proof, reason as evidence_class_reason
 from .identity import canonical_json
 from .store import MemoryStore, StoreError
 
@@ -59,7 +60,7 @@ class ProofService:
                 if connection.execute("SELECT 1 FROM knowledge WHERE id=?", (knowledge_id,)).fetchone() is None:
                     raise ProofError("Knowledge inconnue.")
                 evidence = connection.execute(
-                    "SELECT verdict, content_json, content_hash FROM evidence WHERE id=?", (evidence_id,)
+                    "SELECT evidence_type, verdict, content_json, content_hash FROM evidence WHERE id=?", (evidence_id,)
                 ).fetchone()
                 admission = connection.execute(
                     "SELECT evidence_id, decision FROM evidence_admission WHERE id=?", (admission_id,)
@@ -72,6 +73,15 @@ class ProofService:
                     or admission["decision"] != "ADMITTED"
                 ):
                     raise ProofError("Evidence non admissible pour promotion.")
+                # §33: a gate may legitimately require an observation or an appreciation, but
+                # neither can found a proof. Admitting one and promoting it would launder an
+                # opinion into a verified fact (I004, I006).
+                evidence_type = str(evidence["evidence_type"])
+                if not may_create_proof(evidence_type):
+                    raise ProofError(
+                        f"Promotion refusée : `{evidence_type}` est une {classify(evidence_type)}. "
+                        + evidence_class_reason(classify(evidence_type))
+                    )
                 try:
                     content = json.loads(str(evidence["content_json"]))
                 except (TypeError, ValueError) as exc:
