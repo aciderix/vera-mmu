@@ -187,8 +187,44 @@ fn profile_rebind_recovery_apply(state: State<'_, AppState>, preview_hash: Strin
 }
 
 #[tauri::command]
-fn capability_preview(state: State<'_, AppState>, identifier: String, name: String, kind: String, version: String, description: String) -> Result<Value, String> {
-    with_bridge(&state, |bridge| bridge.call("capability.preview", json!({"identifier": identifier, "name": name, "kind": kind, "version": version, "description": description})))
+fn capability_options(state: State<'_, AppState>) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("capability.options", json!({})))
+}
+
+/// The complete §32 contract. There is deliberately no command, API, argv or URL parameter:
+/// the Core holds no such field, and a runner is chosen among the profiles it declares (I008).
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+fn capability_preview(
+    state: State<'_, AppState>,
+    identifier: String,
+    name: String,
+    description: String,
+    kind: String,
+    version: String,
+    runner: String,
+    policy: String,
+    timeout_seconds: Option<i64>,
+    inputs: Vec<String>,
+    outputs: Vec<String>,
+    artifacts: Vec<String>,
+    validator: String,
+    yields_proof: bool,
+    confirmation_required: bool,
+    gate_backed: bool,
+) -> Result<Value, String> {
+    with_bridge(&state, |bridge| {
+        bridge.call(
+            "capability.preview",
+            json!({
+                "identifier": identifier, "name": name, "description": description, "kind": kind,
+                "version": version, "runner": runner, "policy": policy,
+                "timeoutSeconds": timeout_seconds, "inputs": inputs, "outputs": outputs,
+                "artifacts": artifacts, "validator": validator, "yieldsProof": yields_proof,
+                "confirmationRequired": confirmation_required, "gateBacked": gate_backed
+            }),
+        )
+    })
 }
 
 #[tauri::command]
@@ -266,7 +302,7 @@ fn main() {
             app.manage(AppState { session: Mutex::new(None), executable });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![select_project, scan_project, wizard_state, recommend_profile, project_status, project_doctor, migration_status, project_documentation, profile_rebind_preview, profile_rebind_apply, profile_rebind_recovery_preview, profile_rebind_recovery_apply, capability_preview, capability_apply, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
+        .invoke_handler(tauri::generate_handler![select_project, scan_project, wizard_state, recommend_profile, project_status, project_doctor, migration_status, project_documentation, profile_rebind_preview, profile_rebind_apply, profile_rebind_recovery_preview, profile_rebind_recovery_apply, capability_options, capability_preview, capability_apply, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
         .run(tauri::generate_context!())
         .expect("échec de l’application desktop VERA");
 }

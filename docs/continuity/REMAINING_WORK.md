@@ -1,14 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-18 — A1, B1 à B6 et C2 clos ; B7 à B11 ouverts.
 **Révisé le :** 2026-09-15 — A1, B1 à B5 et C2 clos ; B6 à B11 ouverts.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `826 passed, 69 subtests passed` côté Core et `10 passed` côté interface. Le décompte
+**Suite :** `844 passed, 69 subtests passed` côté Core et `23 passed` côté interface. Le décompte
 `798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-vingt-huit ajouts de B4 et B5 restent à attester sur Windows.
+ajouts de B4, B5 et B6 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -267,20 +268,39 @@ même — pour que la policy soit prouvée dans les deux sens.
 
 **Preuve :** `tests/test_work_graph_config.py`, quatorze tests. Suite : `826 passed, 69 subtests`.
 
-### B6 — Capability Builder visuel complet (§32) — étape 9
+### B6 — Capability Builder visuel complet (§32) — étape 9 — **FAIT**
 
-**Écart :** le builder ne saisit qu’identifiant, nom, type, version, description. §32 exige le
-contrat complet — runner, commande ou API, entrées, sorties, timeout, policy, artifacts,
-validator, admissibilité, confirmation — et **sept refus** : commande non bornée, chemins hors
-racines, réseau sans policy, capability sans timeout, sortie non interprétable servant de gate,
-dépendance inexistante, placeholder présenté comme validator.
+**Le défaut était plus grave que « des champs manquants ».** L’ancien builder écrivait cinq champs
+directement dans SQLite. Une capability déclarée ainsi ne porte **ni contrat ni policy** : aucun
+runner ne l’exécute — `capability_contract` est absente —, aucune décision ne la couvre, et aucun
+hash déclaratif ne la voit, puisque `capability_catalog_hash` porte sur `capabilities.yaml`, que
+cette voie ne touchait jamais. L’écran annonçait un succès ; le moteur tenait un objet inerte.
 
-**Point de tension à trancher dans le lot :** §32 parle d’une « commande », I008 interdit qu’un
-client en fournisse une. L’interface choisit parmi les profils de runner déclarés et leurs
-paramètres bornés, et n’envoie jamais de chaîne de commande. À écrire, pas à supposer.
+**Le contrat est écrit là où il existe.** `.vera-mmu/capabilities.yaml` est la seule source qui
+porte le contrat entier — runner, policy projet, timeout, entrées, sorties, artefacts, validator,
+admissibilité, confirmation. `load_project_catalogs` la valide, `capability_catalog_hash` la hache,
+`sync-capabilities` la matérialise en une capability, un contrat et une décision de policy.
 
-**Critère de sortie :** un test par refus, côté Core, prouvant le rejet même si l’interface est
-contournée.
+**La tension §32 / I008, tranchée par la lecture du code.** Le Core ne borne pas une commande :
+**il n’a aucun champ de commande.** `capability_contract` tient un *profil* de runner choisi parmi
+quatre, et aucun ne lance de processus depuis une chaîne fournie par le projet — `OBSERVED_PROCESS`
+enregistre qu’un processus a eu lieu ailleurs. La ligne « Commande / API » est donc rapportée
+`NOT_APPLICABLE` avec son motif : afficher un champ vide inviterait à le remplir.
+
+**Les sept refus, chacun avec son code stable**, et chacun prouvé **deux fois** — par le builder,
+et contre le fichier déclaratif lui-même, pour qu’écrire `capabilities.yaml` à la main ne change
+rien : `COMMAND_NOT_BOUNDED`, `PATH_OUTSIDE_ROOTS`, `NETWORK_WITHOUT_POLICY`, `MISSING_TIMEOUT`,
+`OUTPUT_NOT_INTERPRETABLE`, `DEPENDENCY_MISSING`, `PLACEHOLDER_VALIDATOR`.
+
+**Un test qui épinglait l’inverse.** `test_project_bootstrap` déclarait une capability
+`yields_proof: True` avec `outputs: []` adossée à une gate, et vérifiait que le catalogue
+**chargeait**. Or tous les runners refusent `yields_proof`, et une gate lit `expected.verdict`
+qu’aucune sortie ne rendait : ce test attestait comme valide une déclaration que le moteur ne peut
+ni exécuter ni évaluer. Il est corrigé.
+
+**Preuve :** `tests/test_capability_builder.py`, dix-neuf tests ; `apps/desktop/ui/src/contract.test.ts`,
+treize tests. CLI `capability-contract`, bridge `capability.options` / `capability.preview` /
+`capability.apply`, commande Rust et panneau de console complet.
 
 ### B7 — Gate Builder (§33) — étape 10
 

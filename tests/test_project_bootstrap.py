@@ -67,7 +67,7 @@ class ProjectBootstrapTests(unittest.TestCase):
     def test_i007_i008_project_catalog_declarations_are_closed_and_linked(self)->None:
         from vera_mmu.project_bootstrap import apply_project_initialization,preview_project_initialization
         from vera_mmu.project_catalogs import ProjectCatalogError,load_project_catalogs
-        capability={"id":"unit-tests","name":"Unit tests","description":"Verify unit tests","kind":"CHECK","version":"1.0.0","runner":"OBSERVED_PROCESS","network_policy":"DENY_NETWORK","timeout_seconds":180,"parameter_schema":{"type":"object","additionalProperties":False},"yields_proof":True,"policy":"READ_ONLY","inputs":[],"outputs":[],"validator":"EVIDENCE_HASH","artifacts":[],"confirmation_required":False}
+        capability={"id":"unit-tests","name":"Unit tests","description":"Verify unit tests","kind":"CHECK","version":"1.0.0","runner":"OBSERVED_PROCESS","network_policy":"DENY_NETWORK","timeout_seconds":180,"parameter_schema":{"type":"object","additionalProperties":False},"yields_proof":False,"policy":"READ_ONLY","inputs":[],"outputs":["verdict"],"validator":"EVIDENCE_HASH","artifacts":[],"confirmation_required":False}
         gate={"id":"UNIT_TESTS_OK","name":"Unit tests pass","capability_id":"unit-tests","required":True,"expected":{"verdict":"PASS"}}
         with TemporaryDirectory() as directory:
             root=Path(directory);preview=preview_project_initialization(root,template="software",project_id="catalog-app",project_name="Catalog App");apply_project_initialization(root,preview,confirm=True)

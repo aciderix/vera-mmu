@@ -20,8 +20,25 @@ export const desktopApi = {
     invoke<JsonObject>("profile_rebind_recovery_preview"),
   profileRebindRecoveryApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("profile_rebind_recovery_apply", { previewHash, confirm }),
-  capabilityPreview: (identifier: string, name: string, kind: string, version: string, description: string) =>
-    invoke<JsonObject>("capability_preview", { identifier, name, kind, version, description }),
+  capabilityOptions: () => invoke<JsonObject>("capability_options"),
+  /** The complete §32 contract. No command, API, URL or path parameter exists: the Core holds none. */
+  capabilityPreview: (contract: {
+    identifier: string;
+    name: string;
+    description: string;
+    kind: string;
+    version: string;
+    runner: string;
+    policy: string;
+    timeoutSeconds: number | null;
+    inputs: string[];
+    outputs: string[];
+    artifacts: string[];
+    validator: string;
+    yieldsProof: boolean;
+    confirmationRequired: boolean;
+    gateBacked: boolean;
+  }) => invoke<JsonObject>("capability_preview", contract),
   capabilityApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("capability_apply", { previewHash, confirm }),
   gatePolicyPreview: (gateId: string, mode: string, minimumAdmissions: number | null) =>

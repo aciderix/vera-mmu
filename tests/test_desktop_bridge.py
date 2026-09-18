@@ -222,23 +222,42 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertTrue(recovered["ok"])
             self.assertEqual(recovered["result"]["status"], "RECOVERED")  # type: ignore[index]
 
-    def test_m11dc_capability_builder_requires_closed_preview_and_confirmation(self) -> None:
+    def test_m11dc_capability_contract_requires_closed_preview_and_confirmation(self) -> None:
+        """The full §32 contract crosses the bridge; a command field never does."""
+        contract = {
+            "identifier": "lint", "name": "Lint", "description": "Contrôle de style déclaré.",
+            "kind": "COLLECTOR", "version": "1.0.0", "runner": "NOOP", "policy": "READ_ONLY",
+            "timeoutSeconds": 60, "inputs": ["tool"], "outputs": ["verdict"], "artifacts": [],
+            "validator": "EVIDENCE_FIELDS", "yieldsProof": False, "confirmationRequired": False,
+            "gateBacked": True,
+        }
         with TemporaryDirectory() as directory:
             root = Path(directory)
             bridge = self._bridge(root)
             preview = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "builder-desktop", "projectName": "Builder desktop"})
             self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
-            rejected = self._call(bridge, "capability.preview", {"identifier": "lint", "name": "Lint", "kind": "CHECK", "version": "1.0.0", "description": "", "command": "unsafe"})
+            options = self._call(bridge, "capability.options", {})
+            self.assertEqual(options["result"]["command"]["status"], "NOT_APPLICABLE")  # type: ignore[index]
+            rejected = self._call(bridge, "capability.preview", {**contract, "command": "unsafe"})
             self.assertFalse(rejected["ok"])
             self.assertEqual(rejected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
-            draft = self._call(bridge, "capability.preview", {"identifier": "lint", "name": "Lint", "kind": "CHECK", "version": "1.0.0", "description": ""})
+            incomplete = self._call(bridge, "capability.preview", {key: value for key, value in contract.items() if key != "timeoutSeconds"})
+            self.assertFalse(incomplete["ok"])
+            self.assertEqual(incomplete["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            network = self._call(bridge, "capability.preview", {**contract, "policy": "NETWORK"})
+            self.assertTrue(network["ok"])
+            self.assertEqual(network["result"]["status"], "REFUSED")  # type: ignore[index]
+            self.assertEqual([item["code"] for item in network["result"]["refusals"]], ["NETWORK_WITHOUT_POLICY"])  # type: ignore[index]
+            draft = self._call(bridge, "capability.preview", contract)
             self.assertTrue(draft["ok"])
+            self.assertEqual(draft["result"]["contract"]["command"]["status"], "NOT_APPLICABLE")  # type: ignore[index]
             refused = self._call(bridge, "capability.apply", {"previewHash": draft["result"]["preview_hash"], "confirm": False})  # type: ignore[index]
             self.assertFalse(refused["ok"])
             self.assertEqual(refused["error"]["code"], "CONFIRMATION_REQUIRED")  # type: ignore[index]
             applied = self._call(bridge, "capability.apply", {"previewHash": draft["result"]["preview_hash"], "confirm": True})  # type: ignore[index]
             self.assertTrue(applied["ok"])
-            self.assertEqual(applied["result"]["capability"]["id"], "lint")  # type: ignore[index]
+            self.assertEqual(applied["result"]["identifier"], "lint")  # type: ignore[index]
+            self.assertEqual(applied["result"]["materialization"]["status"], "PENDING")  # type: ignore[index]
 
     def test_m11dd2_gate_structure_builder_requires_cached_preview_and_confirmation(self) -> None:
         from vera_mmu.capabilities import CapabilityService

@@ -13,7 +13,12 @@ from typing import Any, Callable, Mapping, Sequence
 
 from .adapter_catalog import adapter_spec, call_adapter_json
 from .agent_profiles import builtin_agent_profiles
-from .capability_builder import CapabilityDraftPreview, apply_capability_draft, preview_capability_draft
+from .capability_builder import (
+    CapabilityContractPreview,
+    apply_capability_contract,
+    capability_contract_options,
+    preview_capability_contract,
+)
 from .coverage_report import compile_coverage_report
 from .documentation_generator import compile_project_documentation
 from .doctor import diagnose_project
@@ -84,6 +89,7 @@ class DesktopBridge:
             "work.graph.apply": self._work_graph_apply,
             "taxonomy.preview": self._taxonomy_preview,
             "taxonomy.apply": self._taxonomy_apply,
+            "capability.options": self._capability_options,
             "capability.preview": self._capability_preview,
             "capability.apply": self._capability_apply,
             "gate.policy.preview": self._gate_policy_preview,
@@ -311,18 +317,41 @@ class DesktopBridge:
         del self._previews[preview_hash]
         return result
 
+    def _capability_options(self, value: dict[str, Any]) -> dict[str, object]:
+        """Report the runners, policies and validators a contract may be composed from."""
+        _exact_input(value, set())
+        return capability_contract_options(self._profile_path())
+
     def _capability_preview(self, value: dict[str, Any]) -> dict[str, object]:
-        _exact_input(value, {"identifier", "name", "kind", "version", "description"})
-        profile_path = self._profile_path()
-        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
-            preview = preview_capability_draft(
-                store,
-                identifier=_string(value, "identifier"),
-                name=_string(value, "name"),
-                kind=_string(value, "kind"),
-                version=_string(value, "version"),
-                description=_optional_string(value, "description"),
-            )
+        """Plan one complete §32 contract. No command, API or path is ever accepted here."""
+        _exact_input(
+            value,
+            {
+                "identifier", "name", "description", "kind", "version", "runner", "policy",
+                "timeoutSeconds", "inputs", "outputs", "artifacts", "validator", "yieldsProof",
+                "confirmationRequired", "gateBacked",
+            },
+        )
+        preview = preview_capability_contract(
+            self._profile_path(),
+            {
+                "id": _string(value, "identifier"),
+                "name": _string(value, "name"),
+                "description": _optional_string(value, "description"),
+                "kind": _string(value, "kind"),
+                "version": _string(value, "version"),
+                "runner": _string(value, "runner"),
+                "policy": _string(value, "policy"),
+                "timeout_seconds": _bounded_integer(value, "timeoutSeconds"),
+                "inputs": _optional_identifier_list(value, "inputs") or [],
+                "outputs": _optional_identifier_list(value, "outputs") or [],
+                "artifacts": _optional_identifier_list(value, "artifacts") or [],
+                "validator": _string(value, "validator"),
+                "yields_proof": _flag(value, "yieldsProof"),
+                "confirmation_required": _flag(value, "confirmationRequired"),
+                "gate_backed": _flag(value, "gateBacked"),
+            },
+        )
         self._previews[preview.preview_hash] = _CachedPreview("capability", preview)
         return preview.as_dict()
 
@@ -332,11 +361,9 @@ class DesktopBridge:
         if value.get("confirm") is not True:
             raise _ProtocolError("CONFIRMATION_REQUIRED", "Application refusée sans confirmation explicite.")
         cached = self._previews.get(preview_hash)
-        if cached is None or cached.kind != "capability" or not isinstance(cached.value, CapabilityDraftPreview):
+        if cached is None or cached.kind != "capability" or not isinstance(cached.value, CapabilityContractPreview):
             raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de capability inconnue, expirée ou étrangère.")
-        profile_path = self._profile_path()
-        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
-            result = apply_capability_draft(store, cached.value, confirm=True)
+        result = apply_capability_contract(self._profile_path(), cached.value, confirm=True)
         del self._previews[preview_hash]
         return result
 
@@ -516,6 +543,23 @@ def _optional_identifier_list(value: Mapping[str, Any], key: str) -> list[str] |
     if not isinstance(raw, list) or len(raw) > 256 or any(not isinstance(item, str) for item in raw):
         raise _ProtocolError("INPUT_INVALID", f"`{key}` doit être une liste bornée d’identifiants.")
     return list(raw)
+
+
+def _bounded_integer(value: Mapping[str, Any], key: str) -> int | None:
+    """Read one optional integer; whether it is inside the Core's bounds is the Core's to judge."""
+    item = value.get(key)
+    if item is None:
+        return None
+    if isinstance(item, bool) or not isinstance(item, int):
+        raise _ProtocolError("INPUT_INVALID", f"Champ bridge invalide : {key}.")
+    return item
+
+
+def _flag(value: Mapping[str, Any], key: str) -> bool:
+    item = value.get(key)
+    if not isinstance(item, bool):
+        raise _ProtocolError("INPUT_INVALID", f"Champ bridge invalide : {key}.")
+    return item
 
 
 def _string(value: Mapping[str, Any], key: str) -> str:

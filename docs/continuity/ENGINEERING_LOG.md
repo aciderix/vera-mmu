@@ -3665,3 +3665,107 @@ Le Core déclarait les types de connaissance, d’entité et de relation, et les
 **Une collision rattrapée par la suite complète.** La commande s’appelait d’abord `work-graph`, nom déjà porté par la lecture des items : 55 tests sont tombés d’un coup, dont toute la suite Zero Pollution. Renommée `work-graph-config`. C’est précisément pourquoi la suite complète tourne avant chaque push, et pas seulement les fichiers touchés.
 
 **Preuve.** `tests/test_work_graph_config.py`, quatorze tests. Suite complète : `826 passed, 69 subtests passed`.
+
+## LOG-0297 — Le contrat de capability en entier, ou rien
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Le défaut trouvé était plus grave que celui annoncé.** `REMAINING_WORK.md` décrivait B6 comme
+« le builder ne saisit que cinq champs ». La lecture a montré pire : ces cinq champs partaient
+**directement dans SQLite**, et une capability écrite ainsi ne porte **ni contrat ni policy**.
+Aucun runner ne peut l’exécuter — `capability_contract` est absente et chaque runner exige la
+sienne. Aucune décision ne la couvre — `capability_policy` est absente et chaque runner exige un
+`ALLOW` explicite. Et aucun hash déclaratif ne la voit, parce que `capability_catalog_hash` porte
+sur `capabilities.yaml`, que cette voie ne touchait jamais. L’écran annonçait « DECLARED » ; le
+moteur tenait un objet inerte. C’est la même classe que les serrures sans porte du diagnostic
+d’ouverture, retournée : une porte qui ne donne sur rien.
+
+**Le contrat est désormais écrit là où il existe réellement.** `.vera-mmu/capabilities.yaml` est la
+seule source qui porte le contrat entier de §32 — runner, policy projet, timeout, entrées, sorties,
+artefacts, validator, admissibilité de preuve, confirmation. Le Core la valide (`load_project_catalogs`),
+la hache (`capability_catalog_hash`) et la matérialise (`sync-capabilities`) en une capability, un
+contrat et une décision de policy. Écrire ailleurs aurait créé une seconde vérité partielle. La
+chaîne complète a été mesurée : `capability-contract --apply` puis `sync-capabilities` puis
+`validate`, sur un projet neuf.
+
+**La tension §32 / I008, tranchée par le code et pas par un arbitrage de confort.** §32 affiche une
+ligne « Commande / API » ; I008 interdit qu’un client fournisse une commande. Le Core ne *borne*
+pas une commande : **il n’a aucun champ de commande.** `capability_contract` tient un *profil* de
+runner choisi parmi quatre, et aucun des quatre ne lance un processus depuis une chaîne fournie par
+le projet — `OBSERVED_PROCESS` enregistre qu’un processus a eu lieu ailleurs, il n’en démarre pas.
+La ligne est donc rapportée `NOT_APPLICABLE` avec son motif. Afficher un champ « Commande » vide
+aurait invité quelqu’un à le remplir, et le refus serait arrivé après la frappe plutôt qu’avant.
+
+**Le schéma de paramètres est dérivé, jamais saisi.** L’interface nomme des entrées ; le Core en
+compose le schéma — chaînes requises, `additionalProperties: false` — et impose `validator_id` /
+`evidence_id` aux deux runners de validation. Une classe entière d’erreur disparaît ainsi, et la
+deuxième règle du Dashboard est tenue à la lettre : l’interface compose des déclarations à partir
+de ce que le Core expose, elle n’en invente aucune. `capability.options` publie ces catalogues
+fermés, y compris le fait que `NETWORK` n’est pas déclarable et que la policy réseau ne se choisit
+pas.
+
+**Les sept refus de §32, chacun avec un code stable, et chacun prouvé deux fois.** Une fois par le
+builder — ce qu’un écran appelle — et une fois **contre le fichier déclaratif lui-même**, pour
+qu’écrire `capabilities.yaml` à la main ne change rien. Une règle tenue seulement par le builder
+cesserait d’exister dès que la CLI, le MCP ou un éditeur de texte écrit.
+
+1. `COMMAND_NOT_BOUNDED` — une clé hors du contrat fermé (`command`, `api`, `argv`…), ou un runner
+   hors des quatre profils.
+2. `PATH_OUTSIDE_ROOTS` — un artefact absolu, en `..`, avec lettre de lecteur ou barre inverse. Le
+   contrôle est lexical à dessein : un artefact est déclaré avant que quoi que ce soit ne le
+   produise, il n’y a rien à résoudre sur le disque, et une déclaration qui pourrait sortir des
+   racines doit être refusée quand elle est écrite, pas quand elle est suivie.
+3. `NETWORK_WITHOUT_POLICY` — `policy: NETWORK` refusée : la seule policy réseau déclarable est
+   `DENY_NETWORK`, donc rien ne bornerait une capability réseau.
+4. `MISSING_TIMEOUT` — absent, non entier ou hors de 1 à 3600 secondes, sans valeur par défaut.
+5. `OUTPUT_NOT_INTERPRETABLE` — destinée à une gate sans déclarer `verdict` en sortie. Le Core
+   refuse aussi, dans `gates.yaml`, une gate adossée à une capability sans sortie lisible : elle
+   rendrait une opinion là où elle prétend rapporter une observation.
+6. `DEPENDENCY_MISSING` — deux dépendances qui n’existeraient jamais : un runner de validation dont
+   le validator déclaré n’est pas du même type — l’exécution est refusée par
+   `ensure_runner_validator_compatibility` — et un validator `EVIDENCE_FIELDS` sans aucune entrée,
+   dont l’enregistrement est refusé faute de clé requise.
+7. `PLACEHOLDER_VALIDATOR` — un validator hors catalogue, `TODO` ou `manual` en tête ; et
+   `yields_proof: true`, qui est la même absence habillée : aucun runner du Core ne produit de
+   preuve, tous refusent un contrat qui le prétend, et une preuve naît d’une evidence PASS validée
+   puis admise (I004, I006).
+
+**Un test qui attestait exactement l’inverse.** `test_project_bootstrap` déclarait une capability
+`yields_proof: True` avec `outputs: []`, y adossait une gate, et vérifiait que le catalogue
+**chargeait**. Or tous les runners refusent `yields_proof`, et la gate lisait un `verdict` qu’aucune
+sortie ne rendait. Ce test épinglait comme valide une déclaration que le moteur ne peut ni exécuter
+ni évaluer — précisément le genre de vert qui masque un défaut. Corrigé.
+
+**Les refus sont rendus ensemble, pas un par un.** Un preview invalide rapporte tous ses codes en
+une fois et vaut `REFUSED` ; `apply` refuse un preview `REFUSED` et n’écrit rien. Un écran qui
+tomberait sur le premier refus ferait découvrir les six autres par essais successifs.
+
+**Six de mes propres preuves passaient pour la mauvaise raison, et c’est le contrôle de mordant qui
+l’a montré.** J’ai neutralisé chaque règle ajoutée une par une et rejoué les tests. Six refus
+côté catalogue restaient verts sans leur règle : le helper qui écrit la déclaration à la main
+remplaçait tout le catalogue par une seule capability, si bien que les gates du template ne
+référençaient plus rien et que le chargeur s’arrêtait sur une gate orpheline **avant d’atteindre la
+règle examinée**. Les assertions passaient ; elles ne prouvaient rien. Le helper vide désormais le
+catalogue de gates pour la durée du contrôle, et la mesure a été refaite : les sept règles du Core
+et les cinq garanties du builder — clé inconnue, timeout, sortie de gate, fraîcheur du preview,
+confirmation — font toutes tomber un test quand on les retire. Lire le code n’aurait pas trouvé
+cela : les deux versions du helper se ressemblent, et seule l’exécution distingue une preuve d’une
+coïncidence.
+
+**Côté interface.** `contract.ts` porte la seule logique que la console a le droit d’avoir : couper
+une saisie en liste, lire les catalogues fermés que le Core publie, lire les refus qu’il a nommés.
+Deux directions opposées y sont assumées et testées : un parcours non encore lu ne **ferme** aucun
+panneau — verrouiller sans avoir demandé cacherait un écran —, mais un contrat non encore relu ne
+se **confirme** pas — confirmer sans avoir demandé écrirait dans le projet. L’absence d’information
+va vers le refus quand le refus est ce qui ne fait rien.
+
+**Une affirmation du README corrigée au passage.** Il annonçait « 826 tests … passe intégralement
+sur Linux x64 et Windows x64, mesuré … run #48 ». Le run #48 portait sur `14706d9` et comptait
+`798 + 10` ; les vingt-huit ajouts de B4 et B5 n’ont jamais tourné sur Windows, ce que
+`REMAINING_WORK.md` disait déjà et que le README contredisait. Il énonce désormais les deux
+chiffres séparément : le décompte courant, et celui réellement attesté sur les deux plateformes.
+Une phrase du même paragraphe répétait aussi sa propre seconde moitié ; elle est nettoyée.
+
+**Preuve.** `tests/test_capability_builder.py`, dix-neuf tests ; `apps/desktop/ui/src/contract.test.ts`,
+treize tests. Suite complète : `844 passed, 69 subtests passed` côté Core et `23 passed` côté
+interface. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent — ce dernier après
+avoir construit le sidecar PyInstaller, que le script de build Tauri exige.
