@@ -29,6 +29,7 @@ from .capability_builder import CapabilityBuilderError, apply_capability_contrac
 from .gate_reports import GateReportError, report_gate
 from .policy_catalog import POLICY_LINES
 from .policy_editor import PolicyEditorError, apply_policy_edit, policy_options, preview_policy_edit
+from .resume_editor import ResumeEditorError, apply_resume_edit, preview_resume_edit, resume_contract_options
 from .profile_taxonomy import TaxonomyError, apply_taxonomy_edit, preview_taxonomy_edit
 from .work_graph_config import WorkGraphConfigError, apply_work_graph_configuration, preview_work_graph_configuration, read_work_graph_configuration
 from .wizard import WizardError, wizard_state
@@ -50,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     taxonomy=sub.add_parser("taxonomy",help="Prévisualise ou applique l’édition des types de connaissance, d’entité et de relation.");taxonomy.add_argument("profile",type=Path,help="Chemin project.yaml.");taxonomy.add_argument("--knowledge-type",action="append",dest="knowledge_types");taxonomy.add_argument("--entity-type",action="append",dest="entity_types");taxonomy.add_argument("--relation-type",action="append",dest="relation_types");taxonomy.add_argument("--apply",action="store_true");taxonomy.add_argument("--confirm",action="store_true")
     capability_contract=sub.add_parser("capability-contract",help="Lit les choix ouverts, ou compose le contrat complet d’une capability (§32).");capability_contract.add_argument("profile",type=Path,help="Chemin project.yaml.");capability_contract.add_argument("--id",dest="identifier");capability_contract.add_argument("--name");capability_contract.add_argument("--description");capability_contract.add_argument("--kind");capability_contract.add_argument("--version",default="1.0.0");capability_contract.add_argument("--runner");capability_contract.add_argument("--policy",default="READ_ONLY");capability_contract.add_argument("--timeout-seconds",type=int);capability_contract.add_argument("--input",action="append",dest="inputs");capability_contract.add_argument("--output",action="append",dest="outputs");capability_contract.add_argument("--artifact",action="append",dest="artifacts");capability_contract.add_argument("--validator");capability_contract.add_argument("--confirmation-required",action="store_true");capability_contract.add_argument("--gate-backed",action="store_true");capability_contract.add_argument("--yields-proof",action="store_true",help="Refusé par le Core : aucun runner ne produit de preuve directement.");capability_contract.add_argument("--apply",action="store_true");capability_contract.add_argument("--confirm",action="store_true")
     policies=sub.add_parser("policies",help="Lit les policies déclarées et ce qui les applique, ou les édite sous preview et confirmation.");policies.add_argument("profile",type=Path,help="Chemin project.yaml.");policies.add_argument("--set",action="append",dest="settings",help="Ligne de policy, au format section.cle=valeur ; une liste se donne séparée par des virgules.");policies.add_argument("--apply",action="store_true");policies.add_argument("--confirm",action="store_true")
+    resume_contract=sub.add_parser("resume-contract",help="Lit le contrat de reprise et les intégrations, ou les édite sous preview et confirmation.");resume_contract.add_argument("profile",type=Path,help="Chemin project.yaml.");resume_contract.add_argument("--template");resume_contract.add_argument("--section",action="append",dest="sections",help="Section de reprise, au format id=required|optional.");resume_contract.add_argument("--max-resume-bytes",type=int);resume_contract.add_argument("--integration",action="append",dest="integrations");resume_contract.add_argument("--apply",action="store_true");resume_contract.add_argument("--confirm",action="store_true")
     gate_report=sub.add_parser("gate-report",help="Lit une gate déclarée comme §33 l’affiche : exigences classées et lignes de promotion.");gate_report.add_argument("profile",type=Path,help="Chemin project.yaml.");gate_report.add_argument("--gate-id",required=True)
     compile_pkg=sub.add_parser("compile",help="Exécute le pipeline MCP ordonné et produit le package, sans écriture hôte.");compile_pkg.add_argument("profile",type=Path,help="Chemin project.yaml.");compile_pkg.add_argument("--adapter",required=True);compile_pkg.add_argument("--with-outputs",action="store_true",help="Inclut le texte complet des sorties générées.")
     validate=sub.add_parser("validate",help="Valide les fichiers déclaratifs du projet et leurs relations.");validate.add_argument("profile",type=Path,help="Chemin project.yaml.")
@@ -123,6 +125,16 @@ def _pairs(values:Sequence[str],label:str)->dict[str,str]:
     return parsed
 
 
+def _resume_sections(values:Sequence[str]|None)->list[dict[str,object]]|None:
+    """Parse repeated `id=required|optional` options; whether the set is usable is the Core's call."""
+    if values is None:return None
+    sections:list[dict[str,object]]=[]
+    for name,value in _pairs(values,"Section de reprise").items():
+        if value not in {"required","optional"}:raise WriteApiError("Section de reprise attendue au format id=required|optional.")
+        sections.append({"id":name,"required":value=="required"})
+    return sections
+
+
 def _policy_value(name:str,raw:str)->object:
     """Read one policy value in the shape its line declares; the Core judges what it holds."""
     section,_,key=name.partition(".")
@@ -179,6 +191,12 @@ def main(argv:Sequence[str]|None=None)->int:
             else:
                 preview=preview_policy_edit(args.profile,{name:_policy_value(name,value) for name,value in _pairs(args.settings,"Ligne de policy").items()})
                 payload={"ok":True,"policies":preview.as_dict()} if not args.apply else {"ok":True,"policies":apply_policy_edit(args.profile,preview,confirm=args.confirm)}
+        elif args.command=="resume-contract":
+            if args.template is None and args.sections is None and args.max_resume_bytes is None and args.integrations is None:
+                payload={"ok":True,"resume":resume_contract_options(args.profile)}
+            else:
+                preview=preview_resume_edit(args.profile,template=args.template,sections=_resume_sections(args.sections),max_resume_bytes=args.max_resume_bytes,integrations=args.integrations)
+                payload={"ok":True,"resume":preview.as_dict()} if not args.apply else {"ok":True,"resume":apply_resume_edit(args.profile,preview,confirm=args.confirm)}
         elif args.command=="gate-report":
             with MemoryStore.open(load_profile(args.profile),args.profile) as store:payload={"ok":True,"gate":report_gate(store,args.gate_id)}
         elif args.command=="taxonomy":

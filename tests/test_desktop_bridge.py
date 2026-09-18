@@ -289,6 +289,37 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertTrue(applied["ok"])
             self.assertEqual(applied["result"]["status"], "APPLIED")  # type: ignore[index]
 
+    def test_i009_resume_editor_reports_what_it_invalidates_and_reaches_step_thirteen(self) -> None:
+        """`integrations.enabled` gated the journey's step 13 and nothing could write it."""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            init = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "resume-desktop", "projectName": "Resume desktop"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": init["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+            options = self._call(bridge, "resume.options", {})
+            self.assertTrue(options["ok"])
+            self.assertEqual(options["result"]["integrations"]["enabled"], [])  # type: ignore[index]
+            self.assertIn("generic-mcp", options["result"]["integrations"]["available"])  # type: ignore[index]
+            injected = self._call(bridge, "resume.preview", {"integrations": ["generic-mcp"], "confirm": True})
+            self.assertFalse(injected["ok"])
+            self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            unknown = self._call(bridge, "resume.preview", {"template": None, "sections": None, "maxResumeBytes": None, "integrations": ["nowhere"]})
+            self.assertTrue(unknown["ok"])
+            self.assertEqual([item["code"] for item in unknown["result"]["refusals"]], ["INTEGRATION_UNDECLARED"])  # type: ignore[index]
+            preview = self._call(bridge, "resume.preview", {"template": None, "sections": None, "maxResumeBytes": None, "integrations": ["generic-mcp"]})
+            self.assertTrue(preview["ok"])
+            # Nothing is armed on a fresh project, and the payload says so rather than staying silent.
+            self.assertEqual(preview["result"]["invalidates"], [])  # type: ignore[index]
+            refused = self._call(bridge, "resume.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": False})  # type: ignore[index]
+            self.assertFalse(refused["ok"])
+            self.assertEqual(refused["error"]["code"], "CONFIRMATION_REQUIRED")  # type: ignore[index]
+            applied = self._call(bridge, "resume.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": True})  # type: ignore[index]
+            self.assertTrue(applied["ok"])
+            self.assertEqual(applied["result"]["integrations"], ["generic-mcp"])  # type: ignore[index]
+            journey = self._call(bridge, "wizard.state", {})
+            steps = {item["id"]: item["state"] for item in journey["result"]["steps"]}  # type: ignore[index]
+            self.assertEqual(steps["choose-integrations"], "COMPLETED")
+
     def test_m11dd2_gate_structure_builder_requires_cached_preview_and_confirmation(self) -> None:
         from vera_mmu.capabilities import CapabilityService
         from vera_mmu.capability_contracts import CapabilityContractService

@@ -47,6 +47,16 @@ export const desktopApi = {
     invoke<JsonObject>("policy_preview", { changes }),
   policyApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("policy_apply", { previewHash, confirm }),
+  resumeOptions: () => invoke<JsonObject>("resume_options"),
+  /** The resume contract and the enabled integrations; the Core says what a change invalidates. */
+  resumePreview: (edit: {
+    template: string | null;
+    sections: { id: string; required: boolean }[] | null;
+    maxResumeBytes: number | null;
+    integrations: string[] | null;
+  }) => invoke<JsonObject>("resume_preview", edit),
+  resumeApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("resume_apply", { previewHash, confirm }),
   /** One declared gate as §33 displays it: classified requirements and the promotion lines. */
   gateReport: (gateId: string) => invoke<JsonObject>("gate_report", { gateId }),
   gatePolicyPreview: (gateId: string, mode: string, minimumAdmissions: number | null) =>

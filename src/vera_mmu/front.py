@@ -40,9 +40,19 @@ class FrontService:
         self.store = store
 
     def current(self) -> FrontRevision | None:
+        """Return the latest revision **of this profile**, or none.
+
+        A revision written under a previous profile is that profile's history, not this one's
+        current Front. Reading the latest row regardless of its profile made `_from_row` refuse it,
+        and since `replace` reads the current Front to chain onto it, one profile edit left the
+        Front permanently unreadable *and* unwritable — a dead end with no recovery. Scoping the
+        query keeps every refusal intact: a foreign revision is still never current, never feeds a
+        handoff and never arms a resume; it simply no longer blocks the next one.
+        """
         row = self.store.connection.execute(
             "SELECT id, previous_front_id, profile_hash, fields_json, fields_hash, created_at, created_by "
-            "FROM front_revision ORDER BY created_at DESC, id DESC LIMIT 1"
+            "FROM front_revision WHERE profile_hash = ? ORDER BY created_at DESC, id DESC LIMIT 1",
+            (self.store.identity.profile_hash,),
         ).fetchone()
         return None if row is None else self._from_row(row)
 

@@ -25,7 +25,8 @@ import sqlite3
 
 import yaml
 
-from .identity import DECLARATION_ID_RE, ProfileError, canonical_json, load_profile
+from .identity import DECLARATION_ID_RE, ProfileError, canonical_json, load_profile, validate_profile
+from .profile_rebind import ProfileRebindError, commit_profile_change
 from .runtime import RuntimeLocator
 from .store import StoreError
 from .workspace import WorkspaceError, resolve_workspace
@@ -183,7 +184,18 @@ def apply_taxonomy_edit(profile_path: str | Path, preview: TaxonomyPreview, *, c
     if current.preview_hash != preview.preview_hash:
         raise TaxonomyError("Preview d’édition périmé : le Project Profile a changé depuis sa relecture.")
 
-    _write_atomic(path, preview._content)
+    # Editing the profile changes `profile_hash`, which the SQLite store is bound to. Writing
+    # the file alone left the project's memory unopenable — measured, not supposed.
+    try:
+        commit_profile_change(
+            path,
+            new_content=preview._content,
+            new_profile=_candidate_profile(preview._content),
+            preview_hash=preview.preview_hash,
+            actor="TAXONOMY_EDIT",
+        )
+    except ProfileRebindError as exc:
+        raise TaxonomyError(f"Réalignement de l’identité du store impossible : {exc}") from exc
     try:
         load_profile(path)
     except (ProfileError, OSError, ValueError) as exc:
@@ -195,6 +207,14 @@ def apply_taxonomy_edit(profile_path: str | Path, preview: TaxonomyPreview, *, c
         "changes": [item.as_dict() for item in preview.changes],
         "preview_hash": preview.preview_hash,
     }
+
+
+def _candidate_profile(content: str) -> dict[str, Any]:
+    """Validate the edited profile exactly as `load_profile` would, before it reaches the disk."""
+    decoded = yaml.safe_load(content)
+    if not isinstance(decoded, Mapping):
+        raise TaxonomyError("Project Profile candidat non objet.")
+    return validate_profile(dict(decoded))
 
 
 def _profile_path(value: str | Path) -> Path:

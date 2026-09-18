@@ -3903,3 +3903,66 @@ l’ouverture.
 six tests. CLI `policies`, bridge `policy.options` / `policy.preview` / `policy.apply`, commande
 Rust et panneau de console. Suite complète : `873 passed, 69 subtests passed` côté Core et
 `36 passed` côté interface. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent.
+
+## LOG-0300 — Le contrat de reprise devient éditable, et deux briques sont trouvées sous l’éditeur
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Deux serrures sans porte, encore.** `integrations.enabled` gouverne l’étape 13 du parcours et
+commande la génération MCP sur laquelle le projet se termine ; **rien** ne pouvait l’écrire — ni la
+CLI, ni le bridge, ni `write_api` — donc un projet fraîchement initialisé restait indéfiniment sur
+cette étape. Et l’étape 12 n’existait pas du tout : le contrat de reprise — quelles sections un
+handoff doit porter, et le budget d’octets qu’elles partagent — était lu par
+`profile_resume_requirements` et éditable par rien. `resume_editor.py` ferme les deux, sous le
+cycle habituel, en une seule écriture atomique parce que les deux déclarations vivent dans le même
+fichier.
+
+**Ce lot n’est pas un éditeur de plus : celui-ci casse quelque chose en vol.** La barrière de
+reprise lie une session au hash exact du dossier qui l’a armée, et ce dossier est compilé depuis ces
+exigences et depuis le hash du profil. Changer l’un ou l’autre rend tout accusé déjà armé
+impossible — la garantie qui fonctionne, pas un défaut. Le preview **nomme donc les gardes qu’il
+invalidera**, avec leur hash, avant toute écriture, et l’application rapporte ceux qu’elle a
+effectivement invalidés. Un éditeur qui casserait silencieusement une reprise en cours serait la
+manière la plus polie de perdre une session.
+
+**Le critère de sortie est prouvé dans ses deux moitiés, contre le Core.** Ce que le preview
+annonce est exactement ce que `profile_resume_requirements` dérive ensuite. Et une garde armée sous
+l’ancien contrat n’acquitte plus : réarmée sous le nouveau, elle exige un hash différent, l’ancien
+est refusé, le nouveau accepté. Le pendant est épinglé chaque fois — sans lui, un refus général
+prouverait la même chose qu’un moteur cassé.
+
+**Puis la mesure a trouvé deux briques que ce lot ne pouvait pas contourner.**
+
+**Première brique : toute édition de profil rendait le store SQLite inouvrable.** `project_identity`
+inclut `profile_hash`, et `MemoryStore` s’y lie ; écrire un profil édité sans réaligner l’identité
+laissait la mémoire du projet définitivement fermée. **B4 avait livré ce défaut** : le lot taxonomie
+éditait le profil et ses tests n’ouvraient jamais de store avant d’éditer, si bien que rien ne l’a
+vu. `profile_rebind` possédait déjà la machinerie exacte — sauvegarde, journal, `rebind_identity`,
+écriture, puis nettoyage, avec la reprise Doctor en cas d’interruption. Elle est extraite en
+`commit_profile_change`, le rebind y est routé pour qu’il n’existe qu’une implémentation, et les
+deux éditeurs de profil l’utilisent. Une édition sur un projet sans store n’en crée aucun pour le
+plaisir d’en rebinder un.
+
+**Seconde brique, découverte en corrigeant la première : le Front devenait inécrivable.**
+`FrontService.current()` lisait la dernière révision **quelle que soit** son profil, `_from_row` la
+refusait comme étrangère, et comme `replace` lit le Front courant pour s’y chaîner, plus aucune
+révision ne pouvait être enregistrée. Le Front était donc illisible *et* inécrivable, sans issue.
+La requête est désormais **bornée au profil courant** : une révision d’un profil précédent est son
+historique, pas le Front de celui-ci. Tous les refus restent intacts — une révision étrangère n’est
+jamais courante, ne nourrit aucun handoff, n’arme aucune reprise — elle cesse simplement de bloquer
+la suivante. `get()` la refuse toujours nommément.
+
+**Une conséquence à dire plutôt qu’à taire.** Après une édition de profil, `_verify_dossier` refuse
+un dossier ancien sur le **hash de profil** avant d’atteindre sa comparaison d’exigences. Cette
+seconde règle ne peut donc se déclencher que sur un dossier fabriqué à la main. Le test l’énonce au
+lieu d’affirmer un motif qu’il n’a pas obtenu.
+
+**Une règle sans mordant, corrigée.** Retirer la revalidation du profil candidat ne faisait tomber
+aucun test : toutes mes saisies invalides étaient déjà refusées en amont. Un identifiant de section
+que ce module accepte mais que le contrat du Core refuse — `Not A Section!` — la rend seule cause du
+refus. Les neuf autres règles du lot, et les deux refus côté interface, faisaient déjà tomber un
+test chacune.
+
+**Preuve.** `tests/test_resume_editor.py`, treize tests ; `apps/desktop/ui/src/resume.test.ts`, huit
+tests. CLI `resume-contract`, bridge `resume.options` / `resume.preview` / `resume.apply`, commande
+Rust et panneau de console. Suite complète : `887 passed, 69 subtests passed` côté Core et
+`44 passed` côté interface. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent.

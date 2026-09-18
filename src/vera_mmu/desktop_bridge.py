@@ -40,6 +40,7 @@ from .project_operations import ProjectOperationError, scan_project
 from .project_recommendation import recommend_profile
 from .policy_editor import PolicyEditPreview, apply_policy_edit, policy_options, preview_policy_edit
 from .profile_taxonomy import TaxonomyPreview, apply_taxonomy_edit, preview_taxonomy_edit
+from .resume_editor import ResumeEditPreview, apply_resume_edit, preview_resume_edit, resume_contract_options
 from .work_graph_config import WorkGraphPreview, apply_work_graph_configuration, preview_work_graph_configuration, read_work_graph_configuration
 from .wizard import wizard_state
 from .store import MemoryStore, StoreError
@@ -97,6 +98,9 @@ class DesktopBridge:
             "policy.options": self._policy_options,
             "policy.preview": self._policy_preview,
             "policy.apply": self._policy_apply,
+            "resume.options": self._resume_options,
+            "resume.preview": self._resume_preview,
+            "resume.apply": self._resume_apply,
             "gate.report": self._gate_report,
             "gate.policy.preview": self._gate_policy_preview,
             "gate.policy.apply": self._gate_policy_apply,
@@ -400,6 +404,38 @@ class DesktopBridge:
         if cached is None or cached.kind != "policy" or not isinstance(cached.value, PolicyEditPreview):
             raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de policies inconnue, expirée ou étrangère.")
         result = apply_policy_edit(self._profile_path(), cached.value, confirm=True)
+        del self._previews[preview_hash]
+        return result
+
+    def _resume_options(self, value: dict[str, Any]) -> dict[str, object]:
+        """Report the resume contract, the integrations available, and the guards a change breaks."""
+        _exact_input(value, set())
+        return resume_contract_options(self._profile_path())
+
+    def _resume_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"template", "sections", "maxResumeBytes", "integrations"})
+        sections = value.get("sections")
+        if sections is not None and (not isinstance(sections, list) or len(sections) > 64 or any(not isinstance(item, dict) for item in sections)):
+            raise _ProtocolError("INPUT_INVALID", "`sections` doit être une liste bornée de sections de reprise.")
+        preview = preview_resume_edit(
+            self._profile_path(),
+            template=value.get("template") if value.get("template") is not None else None,
+            sections=sections,
+            max_resume_bytes=_bounded_integer(value, "maxResumeBytes"),
+            integrations=_optional_identifier_list(value, "integrations"),
+        )
+        self._previews[preview.preview_hash] = _CachedPreview("resume", preview)
+        return preview.as_dict()
+
+    def _resume_apply(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"previewHash", "confirm"})
+        preview_hash = _string(value, "previewHash")
+        if value.get("confirm") is not True:
+            raise _ProtocolError("CONFIRMATION_REQUIRED", "Application refusée sans confirmation explicite.")
+        cached = self._previews.get(preview_hash)
+        if cached is None or cached.kind != "resume" or not isinstance(cached.value, ResumeEditPreview):
+            raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de reprise inconnue, expirée ou étrangère.")
+        result = apply_resume_edit(self._profile_path(), cached.value, confirm=True)
         del self._previews[preview_hash]
         return result
 

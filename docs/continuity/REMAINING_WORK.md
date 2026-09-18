@@ -1,15 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-18 — A1, B1 à B8 et C2 clos ; B9 à B11 ouverts.
+**Révisé le :** 2026-09-18 — A1, B1 à B9 et C2 clos ; B10 et B11 ouverts.
 **Révisé le :** 2026-09-15 — A1, B1 à B5 et C2 clos ; B6 à B11 ouverts.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `873 passed, 69 subtests passed` côté Core et `36 passed` côté interface. Le décompte
+**Suite :** `887 passed, 69 subtests passed` côté Core et `44 passed` côté interface. Le décompte
 `798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-ajouts de B4 à B8 restent à attester sur Windows.
+ajouts de B4 à B9 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -369,13 +369,27 @@ gouvernés par `sync-policy.json`, deviennent un **veto** : `deny` empêche, rie
 **Preuve :** `tests/test_policy_editor.py`, seize tests ; `apps/desktop/ui/src/policy.test.ts`,
 six tests. CLI `policies`, bridge `policy.options` / `policy.preview` / `policy.apply`.
 
-### B9 — Configuration du Resume et des intégrations (étapes 12 et 13)
+### B9 — Configuration du Resume et des intégrations (étapes 12 et 13) — **FAIT**
 
-**État :** l’étape 13 existe partiellement (choix d’un agent profile et de son adapter). L’étape 12
-n’existe pas : le contrat de reprise, ses sections requises et sa barrière doivent être éditables.
+**Deux serrures sans porte.** `integrations.enabled` gouverne l’étape 13 et commande la génération
+MCP ; **rien** ne pouvait l’écrire, donc un projet neuf restait indéfiniment sur cette étape. Et le
+contrat de reprise — sections requises, budget partagé — était lu par le Core et éditable par rien.
 
-**Critère de sortie :** un contrat édité produit exactement le hash que la barrière exige à
-l’exécution, et un contrat modifié invalide visiblement la reprise en cours.
+**Le critère de sortie, prouvé dans ses deux moitiés :** ce que le preview annonce est exactement ce
+que `profile_resume_requirements` dérive ; et une garde armée sous l’ancien contrat n’acquitte plus,
+tandis que le nouveau hash est accepté. Le preview **nomme les gardes qu’il invalidera** avant toute
+écriture — un éditeur qui casserait silencieusement une reprise serait la façon la plus polie de
+perdre une session.
+
+**Deux briques trouvées sous l’éditeur, et corrigées.** Toute édition de profil rendait le store
+SQLite inouvrable — `project_identity` inclut `profile_hash` — et **B4 avait livré ce défaut** avec
+l’éditeur de taxonomie. La machinerie de `profile_rebind` est extraite en `commit_profile_change`
+et utilisée par les deux éditeurs. En la corrigeant, une seconde est apparue : `current()` lisait la
+dernière révision Front quel que soit son profil, donc après une édition le Front était illisible
+*et* inécrivable, sans issue. La requête est bornée au profil courant, tous les refus intacts.
+
+**Preuve :** `tests/test_resume_editor.py`, treize tests ; `apps/desktop/ui/src/resume.test.ts`,
+huit tests. CLI `resume-contract`, bridge `resume.options` / `resume.preview` / `resume.apply`.
 
 ### B10 — MCP Preview avec métriques et alertes (§34) — étape 14
 

@@ -8,11 +8,12 @@ import json
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any
+from typing import Any, Mapping
 
 import yaml
 
 from .identity import canonical_json, load_profile, project_identity
+from .runtime import RuntimeLocator
 from .store import MemoryStore, StoreError
 from .workspace import resolve_workspace
 
@@ -95,6 +96,68 @@ def _write_atomic(path: Path, content: str, prefix: str) -> None:
         raise ProfileRebindError("Écriture atomique du Project Profile impossible.") from exc
 
 
+def commit_profile_change(
+    profile_path: str | Path,
+    *,
+    new_content: str,
+    new_profile: Mapping[str, Any],
+    preview_hash: str,
+    actor: str,
+) -> dict[str, str] | None:
+    """Write an edited Project Profile and move the store's bound identity onto it, recoverably.
+
+    **Every** profile edit changes `profile_hash`, and `MemoryStore` binds to it, so an edit that
+    wrote the file without realigning the store left the project's memory unopenable — a silent
+    brick, and exactly what the taxonomy editor did until this was measured. The sequence is the
+    one the rebind already used: back up, journal, realign, write, then clear. An interruption
+    leaves the journal the Doctor recovery reads, rather than a half-applied identity.
+
+    A project with no SQLite store yet has nothing to realign, and none is created for the sake of
+    rebinding one.
+    """
+    path = _profile_path(profile_path)
+    backup = path.parent / f".profile-rebind-{preview_hash}.backup"
+    journal = path.parent / f".profile-rebind-{preview_hash}.json"
+    if backup.exists() or journal.exists():
+        raise ProfileRebindError("Journal ou sauvegarde de rebind déjà présent : reprise Doctor requise.")
+    old_content = path.read_text(encoding="utf-8")
+    old_profile = load_profile(path)
+    old_identity = project_identity(old_profile, resolve_workspace(old_profile, path))
+    new_identity = project_identity(new_profile, resolve_workspace(new_profile, path))
+    new_hash = sha256(new_content.encode()).hexdigest()
+    backup.write_text(old_content, encoding="utf-8")
+    os.chmod(backup, 0o600)
+    journal.write_text(
+        json.dumps(
+            {
+                "format": "vera-profile-rebind-journal/v1",
+                "preview_hash": preview_hash,
+                "profile": path.name,
+                "backup": backup.name,
+                "old_profile_hash": sha256(old_content.encode()).hexdigest(),
+                "new_profile_hash": new_hash,
+                "new_profile_content": new_content,
+                "old_identity": old_identity.as_dict(),
+                "new_identity": new_identity.as_dict(),
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    os.chmod(journal, 0o600)
+    try:
+        if RuntimeLocator.from_profile(old_profile, path).sqlite_path.is_file():
+            with MemoryStore.open(old_profile, path) as store:
+                store.rebind_identity(new_identity, actor=actor)
+        _write_atomic(path, new_content, ".vera-profile-rebind-")
+    finally:
+        if path.exists() and sha256(path.read_text(encoding="utf-8").encode()).hexdigest() == new_hash:
+            journal.unlink(missing_ok=True)
+            backup.unlink(missing_ok=True)
+    return new_identity.as_dict()
+
+
 def apply_project_profile_rebind(profile_path: str | Path, preview: ProjectProfileRebindPreview, *, confirm: bool) -> dict[str, object]:
     if confirm is not True:
         raise ProfileRebindError("Rebind du Project Profile refusé sans confirmation explicite.")
@@ -105,26 +168,7 @@ def apply_project_profile_rebind(profile_path: str | Path, preview: ProjectProfi
     if current != preview:
         raise ProfileRebindError("Preview de rebind altéré ou périmé.")
     new_profile, new_content = _candidate(path, project_id=preview.project_id, project_name=preview.project_name, project_domain=preview.project_domain, project_description=preview.project_description)
-    backup = path.parent / f".profile-rebind-{preview.preview_hash}.backup"
-    journal = path.parent / f".profile-rebind-{preview.preview_hash}.json"
-    if backup.exists() or journal.exists():
-        raise ProfileRebindError("Journal ou sauvegarde de rebind déjà présent : reprise Doctor requise.")
-    old_content = path.read_text(encoding="utf-8")
-    backup.write_text(old_content, encoding="utf-8")
-    os.chmod(backup, 0o600)
-    journal.write_text(json.dumps({"format": "vera-profile-rebind-journal/v1", "preview_hash": preview.preview_hash, "profile": path.name, "backup": backup.name, "old_profile_hash": preview.old_profile_hash, "new_profile_hash": preview.new_profile_hash, "new_profile_content": new_content, "old_identity": preview.old_identity, "new_identity": preview.new_identity}, sort_keys=True) + "\n", encoding="utf-8")
-    os.chmod(journal, 0o600)
-    try:
-        old_profile = load_profile(path)
-        with MemoryStore.open(old_profile, path) as store:
-            store.rebind_identity(project_identity(new_profile, resolve_workspace(new_profile, path)), actor="PROFILE_REBIND")
-        _write_atomic(path, new_content, ".vera-profile-rebind-")
-    except Exception:
-        raise
-    finally:
-        if path.exists() and sha256(path.read_text(encoding="utf-8").encode()).hexdigest() == preview.new_profile_hash:
-            journal.unlink(missing_ok=True)
-            backup.unlink(missing_ok=True)
+    commit_profile_change(path, new_content=new_content, new_profile=new_profile, preview_hash=preview.preview_hash, actor="PROFILE_REBIND")
     return {"status": "REBOUND", "preview_hash": preview.preview_hash, "project_identity": preview.new_identity}
 
 
