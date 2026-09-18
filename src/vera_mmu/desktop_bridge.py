@@ -40,7 +40,7 @@ from .project_bootstrap import (
 from .project_operations import ProjectOperationError, scan_project
 from .project_recommendation import recommend_profile
 from .policy_editor import PolicyEditPreview, apply_policy_edit, policy_options, preview_policy_edit
-from .profile_taxonomy import TaxonomyPreview, apply_taxonomy_edit, preview_taxonomy_edit
+from .profile_taxonomy import TaxonomyPreview, apply_taxonomy_edit, preview_taxonomy_edit, taxonomy_options
 from .resume_editor import ResumeEditPreview, apply_resume_edit, preview_resume_edit, resume_contract_options
 from .work_graph_config import WorkGraphPreview, apply_work_graph_configuration, preview_work_graph_configuration, read_work_graph_configuration
 from .journey_outcome import journey_outcome
@@ -93,6 +93,7 @@ class DesktopBridge:
             "work.graph.read": self._work_graph_read,
             "work.graph.preview": self._work_graph_preview,
             "work.graph.apply": self._work_graph_apply,
+            "taxonomy.options": self._taxonomy_options,
             "taxonomy.preview": self._taxonomy_preview,
             "taxonomy.apply": self._taxonomy_apply,
             "capability.options": self._capability_options,
@@ -311,6 +312,11 @@ class DesktopBridge:
             result = apply_work_graph_configuration(store, cached.value, confirm=True)
         del self._previews[preview_hash]
         return result
+
+    def _taxonomy_options(self, value: dict[str, Any]) -> dict[str, object]:
+        """Report the declared types and what each already carries. Writes nothing."""
+        _exact_input(value, set())
+        return taxonomy_options(self._profile_path())
 
     def _taxonomy_preview(self, value: dict[str, Any]) -> dict[str, object]:
         """Plan an edit of the declared taxonomy, entities and relations. Writes nothing."""

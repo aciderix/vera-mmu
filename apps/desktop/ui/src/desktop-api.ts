@@ -8,6 +8,16 @@ export const desktopApi = {
   scanProject: () => invoke<JsonObject>("scan_project"),
   wizardState: () => invoke<JsonObject>("wizard_state"),
   journeyOutcome: () => invoke<JsonObject>("journey_outcome"),
+  workGraphRead: () => invoke<JsonObject>("work_graph_read"),
+  workGraphPreview: (startMode: string | null, completionMode: string | null) =>
+    invoke<JsonObject>("work_graph_preview", { startMode, completionMode }),
+  workGraphApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("work_graph_apply", { previewHash, confirm }),
+  taxonomyOptions: () => invoke<JsonObject>("taxonomy_options"),
+  taxonomyPreview: (knowledgeTypes: string[] | null, entityTypes: string[] | null, relationTypes: string[] | null) =>
+    invoke<JsonObject>("taxonomy_preview", { knowledgeTypes, entityTypes, relationTypes }),
+  taxonomyApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("taxonomy_apply", { previewHash, confirm }),
   recommendProfile: () => invoke<JsonObject>("recommend_profile"),
   projectStatus: () => invoke<JsonObject>("project_status"),
   projectDoctor: () => invoke<JsonObject>("project_doctor"),

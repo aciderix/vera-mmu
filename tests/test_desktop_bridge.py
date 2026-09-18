@@ -340,6 +340,29 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertFalse(rejected["ok"])
             self.assertEqual(rejected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
 
+    def test_b12_the_bridge_reads_the_taxonomy_before_it_is_asked_to_edit_it(self) -> None:
+        """The read the taxonomy editor shipped without, now the console's own route to steps 5-7."""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            init = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "taxonomy-bridge", "projectName": "Taxonomy bridge"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": init["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+
+            options = self._call(bridge, "taxonomy.options", {})
+            self.assertTrue(options["ok"])
+            sections = options["result"]["sections"]  # type: ignore[index]
+            self.assertEqual(set(sections), {"knowledge", "entities", "relations"})
+            self.assertTrue(sections["knowledge"]["declared"])
+            self.assertEqual(set(sections["knowledge"]["usage"]), set(sections["knowledge"]["declared"]))
+
+            # The edit the console can now plan from what it just read.
+            declared = list(sections["knowledge"]["declared"])
+            preview = self._call(bridge, "taxonomy.preview", {"knowledgeTypes": declared + ["NOUVEAU"], "entityTypes": None, "relationTypes": None})
+            self.assertTrue(preview["ok"])
+            self.assertEqual(preview["result"]["status"], "PREVIEW")  # type: ignore[index]
+            refused = self._call(bridge, "taxonomy.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": False})  # type: ignore[index]
+            self.assertEqual(refused["error"]["code"], "CONFIRMATION_REQUIRED")  # type: ignore[index]
+
     def test_m11dd2_gate_structure_builder_requires_cached_preview_and_confirmation(self) -> None:
         from vera_mmu.capabilities import CapabilityService
         from vera_mmu.capability_contracts import CapabilityContractService

@@ -22,6 +22,7 @@ from vera_mmu.profile_taxonomy import (
     TaxonomyError,
     apply_taxonomy_edit,
     preview_taxonomy_edit,
+    taxonomy_options,
 )
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 from vera_mmu.store import MemoryStore
@@ -102,6 +103,49 @@ class TaxonomyEditTests(unittest.TestCase):
             profile_path = self._project(root)
             preview = preview_taxonomy_edit(profile_path, knowledge_types=self._declared(profile_path, "knowledge"))
             self.assertEqual(preview.status, "NOTHING_TO_CHANGE")
+
+    # --- reading, which the editor shipped without --------------------------
+
+    def test_the_declared_taxonomy_can_be_read_before_it_is_edited(self) -> None:
+        """An editor with no read is an editor that can only be used destructively.
+
+        The screen has to send the **whole** list of a section to change it. Without a way to learn
+        the current list, it would be filled from the operator's memory, and every forgotten entry
+        would be a silent removal.
+        """
+        with TemporaryDirectory() as tmp:
+            profile_path = self._project(Path(tmp))
+            options = taxonomy_options(profile_path)
+
+            self.assertEqual(set(options["sections"]), {"knowledge", "entities", "relations"})
+            self.assertEqual(options["mutation"], "NONE")
+            for section in ("knowledge", "entities", "relations"):
+                self.assertEqual(
+                    options["sections"][section]["declared"],
+                    self._declared(profile_path, section),
+                    section,
+                )
+            self.assertTrue(options["sections"]["knowledge"]["required"])
+            self.assertFalse(options["sections"]["entities"]["required"])
+
+    def test_the_reading_says_what_each_type_already_carries(self) -> None:
+        """The orphan count is shown *before* the preview refuses, not only after."""
+        with TemporaryDirectory() as tmp:
+            profile_path = self._project(Path(tmp))
+            self._record_knowledge(profile_path, "RULE")
+
+            usage = taxonomy_options(profile_path)["sections"]["knowledge"]["usage"]
+
+            self.assertEqual(usage["RULE"], 1)
+            self.assertEqual(usage["HYPOTHESIS"], 0)
+            self.assertEqual(set(usage), set(self._declared(profile_path, "knowledge")))
+
+    def test_reading_a_broken_profile_is_refused_rather_than_answered(self) -> None:
+        with TemporaryDirectory() as tmp:
+            profile_path = self._project(Path(tmp))
+            profile_path.write_text("mmu: {version: '2.0'}\n", encoding="utf-8")
+            with self.assertRaises(TaxonomyError):
+                taxonomy_options(profile_path)
 
     # --- the refusal that carries the lot ----------------------------------
 

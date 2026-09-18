@@ -91,6 +91,38 @@ class TaxonomyPreview:
         }
 
 
+def taxonomy_options(profile_path: str | Path) -> dict[str, object]:
+    """Report the declared types and what each already carries. Writes nothing.
+
+    The editor shipped without this, and an editor that cannot be read is an editor that can only
+    be used destructively: a screen with no way to learn the current list would have to be filled
+    from the operator's memory, and every forgotten entry would be a silent removal. Each type
+    therefore comes with the number of records the memory already holds under it, so what a removal
+    would orphan is visible **before** the preview refuses it, not only after.
+    """
+    path = _profile_path(profile_path)
+    try:
+        profile = load_profile(path)
+    except (ProfileError, OSError, ValueError) as exc:
+        raise TaxonomyError(f"Project Profile invalide : lecture de la taxonomie refusée ({exc}).") from exc
+
+    usage = _usage(profile, path)
+    sections = {}
+    for section, (block, key, _, _) in sorted(_SECTIONS.items()):
+        declared = [str(item) for item in _current(profile, block, key)]
+        sections[section] = {
+            "declared": declared,
+            "required": section in _REQUIRED_SECTIONS,
+            "usage": {item: usage.get(section, {}).get(item, 0) for item in declared},
+        }
+    return {
+        "format": TAXONOMY_FORMAT,
+        "profile_path": str(path),
+        "sections": sections,
+        "mutation": "NONE",
+    }
+
+
 def preview_taxonomy_edit(
     profile_path: str | Path,
     *,

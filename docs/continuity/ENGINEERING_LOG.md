@@ -4086,3 +4086,48 @@ commande Rust et panneau de console rendant le verdict, les deux lignes de clôt
 échec avec leur réparation et les étapes restantes. Suite complète : `917 passed, 69 subtests
 passed` côté Core et `67 passed` côté interface. `tsc --noEmit`, `vitest run`, `vite build` et
 `cargo check` passent.
+
+---
+
+## LOG-0303 — Quatre étapes que le Dashboard affichait sans pouvoir les faire
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Le défaut, mesuré pendant B11.** Cinq opérations du bridge — `taxonomy.preview`,
+`taxonomy.apply`, `work.graph.read`, `work.graph.preview`, `work.graph.apply` — n’étaient appelées
+par aucune commande Rust, et `desktop-api.ts` comme `DesktopConsole.tsx` n’en contenaient aucune
+occurrence. Les lots B4 et B5 avaient livré le Core et le bridge, jamais le parent natif. Les
+étapes 5 à 8 du parcours étaient donc **affichées** par la console, **exécutables** par le Core, et
+impossibles depuis le Dashboard. Chaque couche passait ses propres tests ; il fallait lire les
+quatre fichiers côte à côte pour le voir.
+
+**C’est le genre de vérification qui ne doit pas dépendre de l’idée d’aller regarder.**
+`tests/test_desktop_surface_parity.py` ferme la chaîne dans les cinq directions : toute opération du
+bridge est appelée par une commande Rust, tout appel Rust nomme une opération déclarée, toute
+commande `#[tauri::command]` est enregistrée et réciproquement, et tout ce qui est enregistré est
+exposé par `desktopApi` — et rien d’autre. Les analyseurs sont eux-mêmes vérifiés contre un membre
+connu et une taille plausible : une expression régulière qui ne trouverait rien ferait passer toutes
+les règles pour la mauvaise raison, ce qui est précisément le défaut que ces règles existent pour
+empêcher.
+
+**L’éditeur de taxonomie n’avait aucune lecture, et c’est plus grave qu’une commodité manquante.**
+Pour changer une section, l’écran doit envoyer la liste **entière** de cette section. Sans moyen
+d’apprendre la liste courante, il faudrait la remplir de mémoire, et chaque entrée oubliée serait un
+retrait silencieux — un retrait que le Core refuse à juste titre quand il orphelinerait quelque
+chose, mais qu’il accepte quand le type est inutilisé. `taxonomy_options` rend donc les types
+déclarés **et le nombre d’enregistrements que la mémoire porte déjà sous chacun**, de sorte que ce
+qu’un retrait orphelinerait est visible *avant* le preview, pas seulement dans son refus.
+
+**Le sens du refus de l’interface a une direction précise ici.** Un décompte que le Core n’a pas
+donné vaut `null`, jamais `0` : zéro se lit « sans risque », et un type montré à tort comme inutilisé
+est la seule erreur qui orpheline réellement. De même, un cycle de vie dont le drapeau `editable`
+est illisible est tenu pour fixe : proposer une édition que le Core refuserait est pire que taire
+une édition qu’il aurait permise.
+
+**Preuve.** Trois tests de lecture dans `tests/test_profile_taxonomy.py`, un test de route dans
+`tests/test_desktop_bridge.py`, six règles de parité dans `tests/test_desktop_surface_parity.py`, et
+`apps/desktop/ui/src/structure.test.ts`, onze tests. Six commandes Rust (`work_graph_read`,
+`work_graph_preview`, `work_graph_apply`, `taxonomy_options`, `taxonomy_preview`, `taxonomy_apply`),
+leurs méthodes `desktopApi`, et deux panneaux de console gouvernés par le parcours. Contrôle de
+mordant : treize règles neutralisées une à une, toutes mordent. Suite complète : `927 passed,
+69 subtests passed` côté Core et `78 passed` côté interface. `tsc --noEmit`, `vitest run`,
+`vite build` et `cargo check` passent.

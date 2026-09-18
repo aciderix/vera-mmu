@@ -94,5 +94,5 @@
 - [x] §28 — Compléter le contrat de commandes : `validate`, `configure`, `serve`, `import`, `upgrade`, `dashboard`, plus l'alias `mmu`. Contrat à `13/13`.
 - [x] §45 — Ajouter la ligne `playbook` au Doctor, désormais porteuse puisque la génération cite le playbook.
 - [x] §54 — Livrer la réparation guidée de l'installation : preview, confirmation, écriture atomique, bornée aux fichiers dérivables du profile.
-- [ ] §29–34 — Dashboard configurateur visuel : décidé livrable entier. B1 à B11 sont clos ; il reste B12 dans `docs/continuity/REMAINING_WORK.md`. Les étapes 5 à 8 ont un Core et un bridge mais aucun contrôle dans le Dashboard : cinq opérations du bridge ne sont appelées par aucune commande Rust.
+- [x] §29–34 — Dashboard configurateur visuel : livré entier. B1 à B12 sont clos ; les dix-huit étapes sont toutes praticables depuis le Dashboard, et un test de parité ferme la chaîne Core → bridge → parent Rust → console.
 - [x] §29.2 — Rendre la conclusion du parcours : `journey_outcome` joint validation et Doctor en un verdict unique, refusé tant qu'une étape observable est ouverte. Le Doctor cesse d'être un bouton de côté.

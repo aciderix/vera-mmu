@@ -278,6 +278,50 @@ fn resume_apply(state: State<'_, AppState>, preview_hash: String, confirm: bool)
     with_bridge(&state, |bridge| bridge.call("resume.apply", json!({"previewHash": preview_hash, "confirm": confirm})))
 }
 
+/// The Core's lifecycle and the project's declared transition policies. Reading only.
+#[tauri::command]
+fn work_graph_read(state: State<'_, AppState>) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("work.graph.read", json!({})))
+}
+
+/// A transition-policy change, planned. The modes offered are the Core's, never this parent's.
+#[tauri::command]
+fn work_graph_preview(state: State<'_, AppState>, start_mode: Option<String>, completion_mode: Option<String>) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("work.graph.preview", json!({"startMode": start_mode, "completionMode": completion_mode})))
+}
+
+#[tauri::command]
+fn work_graph_apply(state: State<'_, AppState>, preview_hash: String, confirm: bool) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("work.graph.apply", json!({"previewHash": preview_hash, "confirm": confirm})))
+}
+
+/// The declared knowledge, entity and relation types, and what each already carries.
+#[tauri::command]
+fn taxonomy_options(state: State<'_, AppState>) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("taxonomy.options", json!({})))
+}
+
+/// An edit of the declared knowledge, entity and relation types, planned. Writes nothing.
+#[tauri::command]
+fn taxonomy_preview(
+    state: State<'_, AppState>,
+    knowledge_types: Option<Vec<String>>,
+    entity_types: Option<Vec<String>>,
+    relation_types: Option<Vec<String>>,
+) -> Result<Value, String> {
+    with_bridge(&state, |bridge| {
+        bridge.call(
+            "taxonomy.preview",
+            json!({"knowledgeTypes": knowledge_types, "entityTypes": entity_types, "relationTypes": relation_types}),
+        )
+    })
+}
+
+#[tauri::command]
+fn taxonomy_apply(state: State<'_, AppState>, preview_hash: String, confirm: bool) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("taxonomy.apply", json!({"previewHash": preview_hash, "confirm": confirm})))
+}
+
 /// The §34 figures, hashes and alerts, before generation. Every number comes from the Core.
 #[tauri::command]
 fn mcp_preview(state: State<'_, AppState>, adapter_id: String) -> Result<Value, String> {
@@ -360,7 +404,7 @@ fn main() {
             app.manage(AppState { session: Mutex::new(None), executable });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![select_project, scan_project, wizard_state, journey_outcome, recommend_profile, project_status, project_doctor, migration_status, project_documentation, profile_rebind_preview, profile_rebind_apply, profile_rebind_recovery_preview, profile_rebind_recovery_apply, capability_options, capability_preview, capability_apply, policy_options, policy_preview, policy_apply, resume_options, resume_preview, resume_apply, mcp_preview, gate_report, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
+        .invoke_handler(tauri::generate_handler![select_project, scan_project, wizard_state, journey_outcome, recommend_profile, project_status, project_doctor, migration_status, project_documentation, profile_rebind_preview, profile_rebind_apply, profile_rebind_recovery_preview, profile_rebind_recovery_apply, capability_options, capability_preview, capability_apply, policy_options, policy_preview, policy_apply, resume_options, resume_preview, resume_apply, work_graph_read, work_graph_preview, work_graph_apply, taxonomy_options, taxonomy_preview, taxonomy_apply, mcp_preview, gate_report, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
         .run(tauri::generate_context!())
         .expect("échec de l’application desktop VERA");
 }

@@ -1,6 +1,7 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-18 — A1, B1 à B12 et C2 clos ; section B terminée.
 **Révisé le :** 2026-09-18 — A1, B1 à B11 et C2 clos ; B12 ouvert (mesuré pendant B11).
 **Révisé le :** 2026-09-18 — A1, B1 à B10 et C2 clos ; B11 ouvert.
 **Révisé le :** 2026-09-15 — A1, B1 à B5 et C2 clos ; B6 à B11 ouverts.
@@ -8,9 +9,9 @@
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `917 passed, 69 subtests passed` côté Core et `67 passed` côté interface. Le décompte
+**Suite :** `927 passed, 69 subtests passed` côté Core et `78 passed` côté interface. Le décompte
 `798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-ajouts de B4 à B11 restent à attester sur Windows.
+ajouts de B4 à B12 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -431,23 +432,19 @@ relations croisées que `load_project_catalogs` refuse avant qu’elle ne les at
 
 ---
 
-### B12 — Les étapes 5 à 8 n’ont aucun contrôle dans le Dashboard
+### B12 — Les étapes 5 à 8 n’ont aucun contrôle dans le Dashboard — **FAIT**
 
-**Le fait, mesuré :** cinq opérations du bridge ne sont appelées par aucune commande Rust —
-`taxonomy.preview`, `taxonomy.apply`, `work.graph.read`, `work.graph.preview`, `work.graph.apply`.
-`desktop-api.ts` et `DesktopConsole.tsx` n’en contiennent aucune occurrence. Les lots B4 et B5 ont
-livré le Core et le bridge, jamais le parent natif.
+Six commandes Rust (`work_graph_read`, `work_graph_preview`, `work_graph_apply`,
+`taxonomy_options`, `taxonomy_preview`, `taxonomy_apply`), leurs méthodes `desktopApi`, et deux
+panneaux de console gouvernés par le parcours. `tests/test_desktop_surface_parity.py` ferme la
+chaîne Core → bridge → parent Rust → console dans les cinq directions, de sorte que la prochaine
+dérive de ce type tombe sur un test au lieu d’attendre une mesure manuelle.
 
-**Conséquence exacte :** le parcours affiche « Modifier la taxonomie », « Définir les entités »,
-« Définir les relations » et « Configurer le Work Graph » comme quatre étapes du parcours, le Core
-sait les exécuter, et le Dashboard n’offre aucun moyen de les faire. Ce n’est pas bloquant pour
-conclure : le gabarit d’initialisation remplit déjà ces sections, donc elles sont `COMPLETED` dès
-l’initialisation et `COMPLETE` reste atteignable. C’est un éditeur manquant, pas une barrière.
-
-**Critère de sortie :** quatre commandes Rust, leurs méthodes `desktopApi`, deux panneaux de console
-gouvernés par le parcours, et un test de parité qui échoue si une opération du bridge n’est
-appelable par aucune commande Rust — pour que la prochaine dérive de ce type tombe sur un test au
-lieu d’attendre une mesure manuelle.
+Au passage : l’éditeur de taxonomie n’avait **aucune lecture**. Un écran qui doit envoyer la liste
+entière d’une section sans pouvoir apprendre la liste courante ne peut être utilisé que
+destructivement. `taxonomy_options` rend les types déclarés et le nombre d’enregistrements que la
+mémoire porte déjà sous chacun, pour que ce qu’un retrait orphelinerait soit visible avant le
+preview, pas seulement dans son refus.
 
 ---
 
@@ -566,8 +563,8 @@ seule écriture user-scope.
 5. ~~**B4 à B9**~~ faits : les écrans, dans l’ordre du parcours, chacun avec ses méthodes de bridge
    et ses tests Core.
 6. ~~**B10 puis B11**~~ faits : le MCP Preview, puis la conclusion du parcours.
-7. **B12** — raccorder les étapes 5 à 8 au parent natif, avec le test de parité qui empêchera la
-   prochaine dérive de ce type.
+7. ~~**B12**~~ fait : les étapes 5 à 8 sont raccordées au parent natif, avec le test de parité qui
+   empêchera la prochaine dérive de ce type. **La section B est terminée.**
 8. **C1** — trancher la parité ARET.
 9. **C3** — étudier l’abstraction VCS avant d’écrire une ligne.
 10. **D1 et D2** — observations hôtes, au fil des occasions réelles, et après chaque lot B.
