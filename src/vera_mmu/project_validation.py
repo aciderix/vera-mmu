@@ -1,9 +1,16 @@
 """Validate a project's declarative files and the relations between them.
 
-`load_project_catalogs` already refuses a malformed file. This module adds the second half of
-what the specification asks of `validate`: that the catalogs agree with one another and with
-the profile — a gate naming a capability nobody declares, a resume section the profile does not
-require, an integration enabled without an agent profile behind it.
+`load_project_catalogs` already refuses a malformed file **and the two cross-catalog relations it
+can see**: a gate naming a capability nobody declares, and an integration enabled without an agent
+profile behind it. This module long carried its own copy of those two checks; neither could ever
+fire, because the loader raises first and `validate_project` never reaches them. A second
+implementation of a rule that lives elsewhere is not defence in depth — it is a rule nobody can
+test, free to rot into disagreement with the one that runs. They were removed, and
+`test_project_validation` now pins that `validate_project` still refuses both cases and quotes the
+layer that refuses them, so relaxing the loader fails a test instead of opening a hole in silence.
+
+What is left here is what the loader genuinely cannot see: the profile's own resume contract, and
+the project playbook that generation will have to quote verbatim.
 
 Nothing here opens the store, executes a capability or writes a byte.
 """
@@ -77,7 +84,7 @@ def validate_project(profile_path: str | Path) -> ProjectValidation:
     if not raw.strip():
         raise ProjectValidationError("Playbook projet vide : déclarer au moins une règle de travail.")
 
-    findings = _cross_references(profile, catalogs)
+    findings = _declarative_relations(profile)
     if findings:
         raise ProjectValidationError("Relations déclaratives incohérentes : " + " ; ".join(findings))
     return ProjectValidation(
@@ -96,20 +103,14 @@ def validate_project(profile_path: str | Path) -> ProjectValidation:
     )
 
 
-def _cross_references(profile: dict[str, object], catalogs: object) -> tuple[str, ...]:
-    """Report every relation a single-file validation cannot catch."""
+def _declarative_relations(profile: dict[str, object]) -> tuple[str, ...]:
+    """Report what the catalog loader cannot see, because it never reads the profile's resume.
+
+    A resume contract that requires nothing is a contract in name only: it lets any session resume
+    against an empty accusation, and `resume_editor` refuses to write one (`NO_REQUIRED_SECTION`).
+    A profile hand-edited past that editor would otherwise reach generation unnoticed.
+    """
     findings: list[str] = []
-    capability_ids = {str(item["id"]) for item in catalogs.capabilities["capabilities"]}  # type: ignore[attr-defined]
-    for gate in catalogs.gates["gates"]:  # type: ignore[attr-defined]
-        capability_id = str(gate.get("capability_id"))
-        if capability_id not in capability_ids:
-            findings.append(f"la gate `{gate.get('id')}` référence une capability non déclarée `{capability_id}`")
-    declared_profiles = set(catalogs.agent_profiles)  # type: ignore[arg-type]
-    integrations = profile.get("integrations", {})
-    enabled = integrations.get("enabled", []) if isinstance(integrations, dict) else []
-    for name in enabled if isinstance(enabled, list) else []:
-        if str(name) not in declared_profiles:
-            findings.append(f"l’intégration activée `{name}` n’a aucun agent profile déclaré")
     resume = profile.get("resume", {})
     sections = resume.get("sections", []) if isinstance(resume, dict) else []
     required = [item for item in sections if isinstance(item, dict) and item.get("required") is True]

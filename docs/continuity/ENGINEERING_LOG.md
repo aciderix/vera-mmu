@@ -4022,3 +4022,67 @@ capabilities en sens opposés dans le même projet.
 tests. CLI `mcp-preview`, bridge `mcp.preview`, commande Rust et panneau de console. Suite
 complète : `899 passed, 69 subtests passed` côté Core et `53 passed` côté interface. `tsc --noEmit`,
 `vitest run`, `vite build` et `cargo check` passent.
+
+---
+
+## LOG-0302 — Le parcours cesse de finir en silence, et deux règles mortes tombent
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Le parcours finissait en silence sur un projet cassé.** Les quatre dernières étapes de §29.2 —
+valider, générer, installer, lancer Doctor — existaient toutes et fonctionnaient toutes. Rien ne
+les reliait. `wizard_state` rend `next_step: None` dès que chaque étape observable porte sa preuve,
+et s’arrête là ; le Doctor siégeait dans la console comme un bouton parmi six, sous un titre
+partagé avec la synchronisation mémoire. J’ai construit l’état : parcours mené jusqu’au bout par le
+vrai pipeline, puis `memory.sqlite` supprimé. Le parcours répond « rien ne reste » et le Doctor
+répond `FAIL`. Aucun écran du produit ne disait la seconde phrase. C’est ce silence que
+`journey_outcome` ferme, et c’est de cet état que part le premier test du lot.
+
+**Le wizard ne pouvait pas répondre, et ne doit pas essayer.** Il est délibérément bon marché,
+total et dérivé : il doit décrire un projet à moitié configuré sans échouer dessus, donc il lit les
+fichiers déclaratifs défensivement et n’ouvre jamais la mémoire. Le Doctor, lui, ouvre SQLite,
+importe le runtime MCP et demande à Git ce qu’il suit. Fondre l’un dans l’autre aurait rendu le
+parcours coûteux à chaque lecture et capable d’échouer sur l’état même qu’il existe pour décrire.
+
+**« Non observable » recouvrait deux situations différentes.** Savoir si quelqu’un a *lancé* le
+Doctor ne laisse aucune trace et n’en laissera jamais. Mais son **verdict** est une fonction pure
+du projet sur le disque : personne n’a besoin d’avoir appuyé sur quoi que ce soit pour qu’il soit
+vrai. Idem pour `validate`. Quatre étapes — scanner, détecter, proposer, prévisualiser — ne rendent
+aucun verdict que le projet porte, et restent non observables pour de bon ; deux en rendent un, et
+la conclusion le calcule. Les raisons affichées disent désormais laquelle des deux situations
+s’applique, parce qu’aplatir les deux revient à annoncer qu’on ne peut rien savoir là où on peut.
+
+**Le verdict est refusé tôt, exprès.** Tant qu’une étape observable est ouverte, le Doctor échoue
+pour des raisons qui ne veulent dire que « pas encore » : pas de mémoire, pas de runtime généré,
+pas de configuration hôte. Présenter cela comme des échecs à la fin d’un parcours qui n’est pas
+fini apprendrait à l’opérateur à passer outre le seul contrôle qu’on ne doit jamais passer. Les
+deux lignes valent alors `NOT_REACHED`, en nommant l’étape qui vient d’abord.
+
+**Deux des trois relations croisées de `validate` ne pouvaient pas se déclencher.** Mesuré, pas
+supposé : une gate référençant une capability non déclarée et une intégration activée sans Agent
+Profile sont refusées par `load_project_catalogs`, qui lève avant que `_cross_references` ne soit
+atteint. `project_validation` en portait sa propre copie ; aucune des deux ne pouvait être testée.
+Une seconde implémentation d’une règle qui vit ailleurs n’est pas une défense en profondeur, c’est
+une règle que personne ne peut éprouver et qui est libre de diverger de celle qui s’exécute. Les
+copies sont retirées, et `test_cli_contract` épingle désormais **quelle couche refuse** chaque cas :
+relâcher le chargeur fait tomber un test au lieu d’ouvrir un trou en silence. Ce que `validate`
+ajoute vraiment reste : le contrat de reprise, que le chargeur ne lit jamais.
+
+**Ce que le contrôle de mordant a trouvé.** Dix-huit règles neutralisées une à une ; dix-sept
+mordaient du premier coup. La dix-huitième — la raison distincte des étapes 15 et 18 — était muette :
+je l’avais écrite sans qu’aucun test ne la tienne, ce qui en faisait exactement la règle morte que
+le même lot retire ailleurs. `test_wizard` épingle maintenant que ces deux étapes nomment la
+conclusion et que les quatre autres ne la nomment pas.
+
+**Ce que le lot ne fait pas, et qui est mesuré.** Cinq opérations du bridge ne sont appelées par
+aucune commande Rust : `taxonomy.preview`, `taxonomy.apply`, `work.graph.read`, `work.graph.preview`
+et `work.graph.apply`. Les étapes 5 à 8 du parcours ont donc un Core, un bridge et aucun contrôle
+dans le Dashboard. Ce n’est pas bloquant pour conclure — le gabarit d’initialisation remplit déjà
+ces sections, donc `COMPLETE` reste atteignable — mais c’est le même défaut, et il est inscrit en
+B12 plutôt que traité ici.
+
+**Preuve.** `tests/test_journey_outcome.py`, quatorze tests ; `apps/desktop/ui/src/outcome.test.ts`,
+quatorze tests. CLI `conclude` (sortie `0` sur `COMPLETE` seulement), bridge `journey.outcome`,
+commande Rust et panneau de console rendant le verdict, les deux lignes de clôture, les contrôles en
+échec avec leur réparation et les étapes restantes. Suite complète : `917 passed, 69 subtests
+passed` côté Core et `67 passed` côté interface. `tsc --noEmit`, `vitest run`, `vite build` et
+`cargo check` passent.

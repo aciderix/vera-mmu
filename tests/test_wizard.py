@@ -8,10 +8,16 @@ The state is **derived from the project**, never from a flag the interface keeps
 application on a project someone left half-configured must land on the same step, and asking
 where the journey stands must write nothing.
 
-Five of the eighteen steps leave no trace at all — scanning, detecting, proposing, previewing,
+Six of the eighteen steps leave no trace at all — scanning, detecting, proposing, previewing,
 validating and running the Doctor change nothing on disk. They are reported `NOT_OBSERVABLE`
 rather than guessed at: a wizard that claimed a scan had happened would be inventing the one
 thing it cannot see.
+
+Two of those six differ from the other four and must say so. Whether anyone ran `validate` or the
+Doctor stays unobservable, but their **verdict** is a pure function of the project, and
+`journey_outcome` computes it at the end of the journey. The other four yield no verdict at all.
+A reason that flattened the two cases would tell the operator that nothing can be known where
+something can.
 """
 from __future__ import annotations
 
@@ -70,6 +76,19 @@ class WizardJourneyTests(unittest.TestCase):
             for step in wizard_state(Path(tmp)).steps:
                 if step.state != "COMPLETED":
                     self.assertTrue(step.reason, f"`{step.id}` sans raison")
+
+    def test_the_two_steps_whose_verdict_is_computable_say_where_it_is_rendered(self) -> None:
+        """Unobservable is not one situation but two, and the reason must not flatten them."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._initialize(root)
+            steps = self._by_id(root)
+            for identifier in ("validate", "run-doctor"):
+                self.assertEqual(steps[identifier].state, "NOT_OBSERVABLE", identifier)
+                self.assertIn("conclusion du parcours", steps[identifier].reason, identifier)
+            for identifier in ("scan-project", "detect-structure", "propose-profile", "preview-mcp"):
+                self.assertEqual(steps[identifier].state, "NOT_OBSERVABLE", identifier)
+                self.assertNotIn("conclusion du parcours", steps[identifier].reason, identifier)
 
     def test_the_next_step_of_an_untouched_directory_is_the_domain(self) -> None:
         with TemporaryDirectory() as tmp:

@@ -43,6 +43,7 @@ from .policy_editor import PolicyEditPreview, apply_policy_edit, policy_options,
 from .profile_taxonomy import TaxonomyPreview, apply_taxonomy_edit, preview_taxonomy_edit
 from .resume_editor import ResumeEditPreview, apply_resume_edit, preview_resume_edit, resume_contract_options
 from .work_graph_config import WorkGraphPreview, apply_work_graph_configuration, preview_work_graph_configuration, read_work_graph_configuration
+from .journey_outcome import journey_outcome
 from .wizard import wizard_state
 from .store import MemoryStore, StoreError
 
@@ -78,6 +79,7 @@ class DesktopBridge:
             "project.scan": self._scan,
             "project.recommend": self._recommend,
             "wizard.state": self._wizard_state,
+            "journey.outcome": self._journey_outcome,
             "project.status": self._project_status,
             "project.documentation": self._project_documentation,
             "project.doctor": self._project_doctor,
@@ -174,6 +176,11 @@ class DesktopBridge:
         """Report where the eighteen-step journey stands, derived from the project itself."""
         _exact_input(value, set())
         return wizard_state(self._project_root).as_dict()
+
+    def _journey_outcome(self, value: dict[str, Any]) -> dict[str, object]:
+        """Conclude the journey: validate, diagnose, and render the verdict. Writes nothing."""
+        _exact_input(value, set())
+        return journey_outcome(self._project_root)
 
     def _project_status(self, value: dict[str, Any]) -> dict[str, object]:
         _exact_input(value, set())

@@ -7,6 +7,7 @@ export const desktopApi = {
   selectProject: () => invoke<JsonObject>("select_project"),
   scanProject: () => invoke<JsonObject>("scan_project"),
   wizardState: () => invoke<JsonObject>("wizard_state"),
+  journeyOutcome: () => invoke<JsonObject>("journey_outcome"),
   recommendProfile: () => invoke<JsonObject>("recommend_profile"),
   projectStatus: () => invoke<JsonObject>("project_status"),
   projectDoctor: () => invoke<JsonObject>("project_doctor"),

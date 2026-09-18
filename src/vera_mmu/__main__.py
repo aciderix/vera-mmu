@@ -13,6 +13,7 @@ from .documentation_generator import compile_project_documentation
 from .identity import ProfileError, load_profile, profile_identity, project_identity
 import shutil
 from .install_repair import apply_install_repair, preview_install_repair
+from .journey_outcome import COMPLETE, journey_outcome
 from .mcp_compiler import compile_mcp_package
 from .mcp_manifest import TOOL_NAMES
 from .mcp_server import main as mcp_server_main
@@ -48,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan=sub.add_parser("scan",help="Observe une arborescence locale sans lire de contenu ni écrire.");scan.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
     recommend=sub.add_parser("recommend",help="Propose un template, des capabilities et des gates depuis un scan, sans rien écrire.");recommend.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
     wizard=sub.add_parser("wizard",help="Décrit où en est le parcours de configuration en dix-huit étapes, sans rien écrire.");wizard.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
+    conclude=sub.add_parser("conclude",help="Conclut le parcours : valide, diagnostique et rend le verdict des dix-huit étapes. Sort 0 uniquement sur COMPLETE.");conclude.add_argument("root",type=Path,help="Racine locale explicitement sélectionnée.")
     work_graph_config=sub.add_parser("work-graph-config",help="Lit le cycle de vie du Core, ou déclare définitivement ses policies de transition.");work_graph_config.add_argument("profile",type=Path,help="Chemin project.yaml.");work_graph_config.add_argument("--start-mode");work_graph_config.add_argument("--completion-mode");work_graph_config.add_argument("--apply",action="store_true");work_graph_config.add_argument("--confirm",action="store_true")
     taxonomy=sub.add_parser("taxonomy",help="Prévisualise ou applique l’édition des types de connaissance, d’entité et de relation.");taxonomy.add_argument("profile",type=Path,help="Chemin project.yaml.");taxonomy.add_argument("--knowledge-type",action="append",dest="knowledge_types");taxonomy.add_argument("--entity-type",action="append",dest="entity_types");taxonomy.add_argument("--relation-type",action="append",dest="relation_types");taxonomy.add_argument("--apply",action="store_true");taxonomy.add_argument("--confirm",action="store_true")
     capability_contract=sub.add_parser("capability-contract",help="Lit les choix ouverts, ou compose le contrat complet d’une capability (§32).");capability_contract.add_argument("profile",type=Path,help="Chemin project.yaml.");capability_contract.add_argument("--id",dest="identifier");capability_contract.add_argument("--name");capability_contract.add_argument("--description");capability_contract.add_argument("--kind");capability_contract.add_argument("--version",default="1.0.0");capability_contract.add_argument("--runner");capability_contract.add_argument("--policy",default="READ_ONLY");capability_contract.add_argument("--timeout-seconds",type=int);capability_contract.add_argument("--input",action="append",dest="inputs");capability_contract.add_argument("--output",action="append",dest="outputs");capability_contract.add_argument("--artifact",action="append",dest="artifacts");capability_contract.add_argument("--validator");capability_contract.add_argument("--confirmation-required",action="store_true");capability_contract.add_argument("--gate-backed",action="store_true");capability_contract.add_argument("--yields-proof",action="store_true",help="Refusé par le Core : aucun runner ne produit de preuve directement.");capability_contract.add_argument("--apply",action="store_true");capability_contract.add_argument("--confirm",action="store_true")
@@ -176,6 +178,10 @@ def main(argv:Sequence[str]|None=None)->int:
             payload={"ok":True,"recommendation":recommend_profile(scan_project(args.root)).as_dict()}
         elif args.command=="wizard":
             payload={"ok":True,"wizard":wizard_state(args.root).as_dict()}
+        elif args.command=="conclude":
+            # The journey's own verdict, so a pipeline can gate on it: only COMPLETE exits 0.
+            outcome=journey_outcome(args.root);payload={"ok":outcome["status"]==COMPLETE,"outcome":outcome}
+            print(json.dumps(payload,ensure_ascii=False,sort_keys=True));return 0 if payload["ok"] else 2
         elif args.command=="work-graph-config":
             with MemoryStore.open(load_profile(args.profile),args.profile) as store:
                 if args.start_mode is None and args.completion_mode is None:payload={"ok":True,"workGraph":read_work_graph_configuration(store)}

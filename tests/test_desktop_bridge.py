@@ -320,6 +320,26 @@ class DesktopBridgeTests(unittest.TestCase):
             steps = {item["id"]: item["state"] for item in journey["result"]["steps"]}  # type: ignore[index]
             self.assertEqual(steps["choose-integrations"], "COMPLETED")
 
+    def test_b11_the_bridge_serves_the_journey_s_conclusion_without_writing(self) -> None:
+        """The console's own route to steps 15 to 18, and its refusal to guess them early."""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            init = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "journey-bridge", "projectName": "Journey bridge"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": init["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+
+            outcome = self._call(bridge, "journey.outcome", {})
+            self.assertTrue(outcome["ok"])
+            result = outcome["result"]  # type: ignore[index]
+            self.assertEqual(result["format"], "vera-journey-outcome/v1")
+            self.assertEqual(result["status"], "INCOMPLETE")
+            self.assertEqual(result["doctor"]["status"], "NOT_REACHED")
+            self.assertEqual(result["mutation"], "NONE")
+
+            rejected = self._call(bridge, "journey.outcome", {"root": str(root)})
+            self.assertFalse(rejected["ok"])
+            self.assertEqual(rejected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+
     def test_m11dd2_gate_structure_builder_requires_cached_preview_and_confirmation(self) -> None:
         from vera_mmu.capabilities import CapabilityService
         from vera_mmu.capability_contracts import CapabilityContractService

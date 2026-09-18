@@ -15,6 +15,14 @@ Six of the eighteen steps leave no trace — scanning, detecting, proposing, pre
 validating and running the Doctor all change nothing on disk. They are reported `NOT_OBSERVABLE`
 instead of guessed at. A journey that claimed a scan had happened would be inventing the one
 thing it cannot see, which is precisely what this product exists to refuse.
+
+Two of those six are not quite like the other four, and their reason says so. Whether anyone ran
+`validate` or the Doctor is unobservable and stays that way; but their **verdict** is a pure
+function of the project on disk, and needs nobody to have pressed anything. Computing it here
+would cost a SQLite open, an MCP import and a Git call on every reading of the journey, and could
+fail on the half-configured project this module exists to describe — so it is computed once, at
+the end, by `journey_outcome`. The other four yield no verdict at all: nothing on disk says
+whether a scan was performed, so nothing ever will.
 """
 from __future__ import annotations
 
@@ -30,6 +38,7 @@ from .store import StoreError
 
 WIZARD_FORMAT = "vera-wizard-state/v1"
 RUNTIME_DIR_NAME = ".vera-mmu"
+PROFILE_FILE_NAME = "project.yaml"
 
 BLOCKED = "BLOCKED"
 AVAILABLE = "AVAILABLE"
@@ -174,6 +183,14 @@ def _never_observable(project: _Project) -> str | None:
     return "Cette étape ne laisse aucune trace : son exécution n’est pas observable."
 
 
+def _verdict_at_the_end(project: _Project) -> str | None:
+    """Unobservable like the other four, but for a different reason worth stating."""
+    return (
+        "Cette étape ne laisse aucune trace : son exécution n’est pas observable. Son verdict, "
+        "lui, se calcule à partir du projet — la conclusion du parcours le rend."
+    )
+
+
 WIZARD_STEPS: tuple[_StepRule, ...] = (
     _StepRule("scan-project", 1, "Scanner le projet", _needs_root, _never_observable, observable=False),
     _StepRule("detect-structure", 2, "Détecter la structure", _needs_root, _never_observable, observable=False),
@@ -198,11 +215,11 @@ WIZARD_STEPS: tuple[_StepRule, ...] = (
     _StepRule("choose-integrations", 13, "Choisir les intégrations", _needs_profile,
               _declared("integrations", "enabled", "Aucune intégration activée par le Project Profile.")),
     _StepRule("preview-mcp", 14, "Prévisualiser le MCP", _needs_capability, _never_observable, observable=False),
-    _StepRule("validate", 15, "Valider", _needs_profile, _never_observable, observable=False),
+    _StepRule("validate", 15, "Valider", _needs_profile, _verdict_at_the_end, observable=False),
     _StepRule("generate", 16, "Générer", _needs_capability,
               _counted("generated", "Aucun artefact généré sous `.vera-mmu/generated/`.")),
     _StepRule("install", 17, "Installer", _needs_generated, _installed),
-    _StepRule("run-doctor", 18, "Lancer Doctor", _needs_profile, _never_observable, observable=False),
+    _StepRule("run-doctor", 18, "Lancer Doctor", _needs_profile, _verdict_at_the_end, observable=False),
 )
 
 
@@ -241,7 +258,7 @@ def _read(root: Path) -> _Project:
     runtime = root / RUNTIME_DIR_NAME
     profile: Mapping[str, Any] | None = None
     profile_error: str | None = None
-    profile_path = runtime / "project.yaml"
+    profile_path = runtime / PROFILE_FILE_NAME
     if runtime.is_dir() and not runtime.is_symlink() and profile_path.is_file() and not profile_path.is_symlink():
         try:
             loaded = yaml.safe_load(profile_path.read_text(encoding="utf-8"))

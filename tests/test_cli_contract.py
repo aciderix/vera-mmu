@@ -15,6 +15,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
+import yaml
+
 from vera_mmu.__main__ import build_parser, main
 from vera_mmu.identity import load_profile
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
@@ -67,7 +69,14 @@ class CLIContractTests(unittest.TestCase):
             self.assertTrue(validation["playbook_hash"])
 
     def test_validate_reports_a_broken_catalog_relation(self) -> None:
-        """§28: validate checks the declarative files *and their relations*."""
+        """§28: validate checks the declarative files *and their relations*.
+
+        This asserts **which layer** refuses, not merely that something did. `project_validation`
+        long carried its own copy of this check and could never reach it, because
+        `load_project_catalogs` raises first; the copy was removed. Naming the refusing layer here
+        is what keeps that removal honest: relax the loader and this fails, instead of opening a
+        hole nobody would notice.
+        """
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             profile = self._project(root)
@@ -80,6 +89,35 @@ class CLIContractTests(unittest.TestCase):
             code, payload = run(["validate", str(profile)])
             self.assertEqual(code, 2)
             self.assertFalse(payload["ok"])
+            self.assertIn("Catalogues déclaratifs invalides", str(payload["error"]))
+            self.assertIn("capability déclarée", str(payload["error"]))
+
+    def test_validate_reports_an_integration_without_an_agent_profile(self) -> None:
+        """The loader's second cross-catalog relation, pinned where it actually lives."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            profile = self._project(root)
+            document = yaml.safe_load(profile.read_text(encoding="utf-8"))
+            document["integrations"]["enabled"] = ["aucun-agent-profile"]
+            profile.write_text(yaml.safe_dump(document, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            code, payload = run(["validate", str(profile)])
+            self.assertEqual(code, 2)
+            self.assertIn("Catalogues déclaratifs invalides", str(payload["error"]))
+            self.assertIn("Agent Profile absent", str(payload["error"]))
+
+    def test_validate_refuses_a_resume_contract_that_requires_nothing(self) -> None:
+        """The one relation `validate` still adds: the loader never reads the profile's resume."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            profile = self._project(root)
+            document = yaml.safe_load(profile.read_text(encoding="utf-8"))
+            for section in document["resume"]["sections"]:
+                section["required"] = False
+            profile.write_text(yaml.safe_dump(document, allow_unicode=True, sort_keys=False), encoding="utf-8")
+            code, payload = run(["validate", str(profile)])
+            self.assertEqual(code, 2)
+            self.assertIn("Relations déclaratives incohérentes", str(payload["error"]))
+            self.assertIn("n’exige aucune section", str(payload["error"]))
 
     def test_validate_refuses_a_project_without_playbook(self) -> None:
         with TemporaryDirectory() as tmp:

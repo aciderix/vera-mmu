@@ -1,15 +1,16 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-18 — A1, B1 à B11 et C2 clos ; B12 ouvert (mesuré pendant B11).
 **Révisé le :** 2026-09-18 — A1, B1 à B10 et C2 clos ; B11 ouvert.
 **Révisé le :** 2026-09-15 — A1, B1 à B5 et C2 clos ; B6 à B11 ouverts.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `899 passed, 69 subtests passed` côté Core et `53 passed` côté interface. Le décompte
+**Suite :** `917 passed, 69 subtests passed` côté Core et `67 passed` côté interface. Le décompte
 `798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-ajouts de B4 à B10 restent à attester sur Windows.
+ajouts de B4 à B11 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -414,11 +415,39 @@ validator déclaré mais non enregistré — est atteignable et nomme la capabil
 **Preuve :** `tests/test_mcp_preview.py`, douze tests ; `apps/desktop/ui/src/preview.test.ts`, neuf
 tests. CLI `mcp-preview`, bridge `mcp.preview`.
 
-### B11 — Valider, générer, installer, Doctor (étapes 15 à 18)
+### B11 — Valider, générer, installer, Doctor (étapes 15 à 18) — **FAIT**
 
-**État :** les quatre actions existent et sont exercées ; elles sont désormais gouvernées par le
-parcours. Reste à afficher le Doctor final comme la sortie du parcours et non comme un outil de
-côté.
+`journey_outcome` rend la conclusion du parcours : le verdict unique (`INCOMPLETE`, `REFUSED`,
+`FAILED`, `COMPLETE`), la ligne de l’étape 15, celle de l’étape 18 avec ses contrôles en échec et
+leur réparation, et les étapes encore ouvertes. Tant qu’une étape observable est ouverte, les deux
+lignes valent `NOT_REACHED` : un Doctor rendu trop tôt ne dit que « pas encore » et apprend à passer
+outre. CLI `conclude` (sortie `0` sur `COMPLETE` seulement), bridge `journey.outcome`, commande Rust
+et panneau de console. Quatorze tests Core, quatorze tests interface, dix-huit règles au mordant
+vérifié.
+
+Deux règles mortes retirées au passage : `project_validation` portait sa propre copie de deux
+relations croisées que `load_project_catalogs` refuse avant qu’elle ne les atteigne. Les tests
+épinglent désormais **quelle couche** refuse chaque cas.
+
+---
+
+### B12 — Les étapes 5 à 8 n’ont aucun contrôle dans le Dashboard
+
+**Le fait, mesuré :** cinq opérations du bridge ne sont appelées par aucune commande Rust —
+`taxonomy.preview`, `taxonomy.apply`, `work.graph.read`, `work.graph.preview`, `work.graph.apply`.
+`desktop-api.ts` et `DesktopConsole.tsx` n’en contiennent aucune occurrence. Les lots B4 et B5 ont
+livré le Core et le bridge, jamais le parent natif.
+
+**Conséquence exacte :** le parcours affiche « Modifier la taxonomie », « Définir les entités »,
+« Définir les relations » et « Configurer le Work Graph » comme quatre étapes du parcours, le Core
+sait les exécuter, et le Dashboard n’offre aucun moyen de les faire. Ce n’est pas bloquant pour
+conclure : le gabarit d’initialisation remplit déjà ces sections, donc elles sont `COMPLETED` dès
+l’initialisation et `COMPLETE` reste atteignable. C’est un éditeur manquant, pas une barrière.
+
+**Critère de sortie :** quatre commandes Rust, leurs méthodes `desktopApi`, deux panneaux de console
+gouvernés par le parcours, et un test de parité qui échoue si une opération du bridge n’est
+appelable par aucune commande Rust — pour que la prochaine dérive de ce type tombe sur un test au
+lieu d’attendre une mesure manuelle.
 
 ---
 
@@ -534,12 +563,14 @@ seule écriture user-scope.
 2. ~~**C2** — prouver Zero Pollution~~ — fait.
 3. ~~**B2** et **B3**~~ faits : les étapes 1 à 3 du parcours sont livrées côté Core.
 4. ~~**B1**~~ fait : dérivation, gouvernail et lanceur de tests d’interface.
-5. **B4 à B9** — les écrans, dans l’ordre du parcours ; chacun avec ses méthodes de bridge et ses
-   tests Core.
-6. **B10 puis B11** — le MCP Preview, puis le raccordement des quatre dernières étapes.
-7. **C1** — trancher la parité ARET.
-8. **C3** — étudier l’abstraction VCS avant d’écrire une ligne.
-9. **D1 et D2** — observations hôtes, au fil des occasions réelles, et après chaque lot B.
+5. ~~**B4 à B9**~~ faits : les écrans, dans l’ordre du parcours, chacun avec ses méthodes de bridge
+   et ses tests Core.
+6. ~~**B10 puis B11**~~ faits : le MCP Preview, puis la conclusion du parcours.
+7. **B12** — raccorder les étapes 5 à 8 au parent natif, avec le test de parité qui empêchera la
+   prochaine dérive de ce type.
+8. **C1** — trancher la parité ARET.
+9. **C3** — étudier l’abstraction VCS avant d’écrire une ligne.
+10. **D1 et D2** — observations hôtes, au fil des occasions réelles, et après chaque lot B.
 
 ## Ce qu’il ne faut pas faire
 
