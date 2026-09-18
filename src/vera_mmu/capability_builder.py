@@ -150,6 +150,7 @@ def capability_contract_options(profile_path: str | Path) -> dict[str, object]:
             {"id": policy, "declarable": policy != "NETWORK", "reason": _policy_reason(policy)}
             for policy in sorted(PROJECT_POLICIES)
         ],
+        "allowed_runners": sorted(_allowed_runners(path)),
         "validators": sorted(VALIDATORS),
         "network_policy": {"value": FIXED_NETWORK_POLICY, "editable": False, "available": sorted(NETWORK_POLICIES)},
         "command": {
@@ -209,6 +210,15 @@ def preview_capability_contract(profile_path: str | Path, declaration: Mapping[s
                 "COMMAND_NOT_BOUNDED",
                 f"Runner `{runner}` hors catalogue fermé : le Core n’exécute que {', '.join(sorted(RUNNER_PROFILES))}, "
                 "et aucun d’eux ne prend de commande.",
+            )
+        )
+    elif runner not in _allowed_runners(path):
+        # The project's own process policy is checked here rather than after the write, so a
+        # forbidden runner is refused in the preview instead of leaving a file the loader rejects.
+        refusals.append(
+            ContractRefusal(
+                "DECLARATION_INVALID",
+                f"Runner `{runner}` non autorisé par `policies.process.allowed_runners` de ce projet.",
             )
         )
 
@@ -577,6 +587,14 @@ def _catalog_path(profile_path: Path) -> Path:
     if not path.is_file():
         raise CapabilityBuilderError("Catalogue de capabilities introuvable ou non régulier.")
     return path
+
+
+def _allowed_runners(profile_path: Path) -> frozenset[str]:
+    """Read the runners this project's policy allows; an unreadable catalogue allows none."""
+    try:
+        return frozenset(load_project_catalogs(profile_path).policies["process"]["allowed_runners"])
+    except (ProjectCatalogError, KeyError, TypeError):
+        return frozenset()
 
 
 def _catalog(profile_path: Path) -> dict[str, Any]:

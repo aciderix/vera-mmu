@@ -64,7 +64,7 @@ def preview_project_initialization(root:str|Path,*,template:str,project_id:str,p
         _file(".vera-mmu/capabilities.yaml",_capabilities(template)),
         _file(".vera-mmu/gates.yaml",_gates(template)),
         _file(".vera-mmu/playbook.md",_playbook(project_name)),
-        _file(".vera-mmu/policies.yaml",_policies()),
+        _file(".vera-mmu/policies.yaml",_policies(template)),
         _file(".vera-mmu/project.yaml",_profile(template,project_id,project_name)),
         _file(".vera-mmu/sync-policy.json",_sync_policy()),)
     digest=sha256("\0".join((str(target),template,project_id,project_name,*[x.sha256 for x in files])).encode()).hexdigest()
@@ -197,22 +197,29 @@ def _gates(template:str)->str:
             "      verdict: PASS",
         ))
     return "\n".join(lines)+"\n"
-def _policies()->str:
-    return """format: vera-policy-catalog/v1
+def _policies(template:str)->str:
+    """Emit the policy catalog, naming the runners this template's own capabilities declare.
+
+    It used to emit `allowed_runners: []` while declaring capabilities that run — a policy
+    contradicting the file next to it, which nothing compared. The list is now derived from the
+    template, so the declaration is true of the project it ships with.
+    """
+    runners=", ".join(sorted({str(item["runner"]) for item in _TEMPLATE_CAPABILITIES[template]}))
+    return f"""format: vera-policy-catalog/v1
 filesystem:
   read: allow
   write: confirm
 network:
   default: deny
 process:
-  allowed_runners: []
+  allowed_runners: [{runners}]
 git:
   commit: confirm
   push: confirm
 destructive:
   default: confirm
 promotion:
-  proven_requires: [admissible_pass]
+  proven_requires: [admissible_pass, technical_validation]
 """
 def _ignore_rules()->str:
     """Keep the volatile SQLite sidecars out of the project's history (§36).

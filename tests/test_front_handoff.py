@@ -53,7 +53,7 @@ network: {{default: deny}}
 process: {{allowed_runners: []}}
 git: {{commit: confirm, push: confirm}}
 destructive: {{default: confirm}}
-promotion: {{proven_requires: [admissible_pass]}}
+promotion: {{proven_requires: [admissible_pass, technical_validation]}}
 """, encoding="utf-8")
         return MemoryStore.open(load_profile(profile_path), profile_path, schema_dir=schema_dir)
 

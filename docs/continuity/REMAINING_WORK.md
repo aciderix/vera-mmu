@@ -1,15 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-18 — A1, B1 à B7 et C2 clos ; B8 à B11 ouverts.
+**Révisé le :** 2026-09-18 — A1, B1 à B8 et C2 clos ; B9 à B11 ouverts.
 **Révisé le :** 2026-09-15 — A1, B1 à B5 et C2 clos ; B6 à B11 ouverts.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `856 passed, 69 subtests passed` côté Core et `30 passed` côté interface. Le décompte
+**Suite :** `873 passed, 69 subtests passed` côté Core et `36 passed` côté interface. Le décompte
 `798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-ajouts de B4 à B7 restent à attester sur Windows.
+ajouts de B4 à B8 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -344,12 +344,30 @@ lui permettrait de déclarer que les opinions prouvent, ce que ce lot ferme. Le 
 a lieu — appartient à B8, l’éditeur de policies, et doit d’abord trancher ce que `proven_requires`
 a le droit d’assouplir.
 
-### B8 — Éditeur de policies (étape 11)
+### B8 — Éditeur de policies (étape 11) — **FAIT**
 
-**Périmètre :** éditer les policies déclarées — réseau, système de fichiers, timeouts,
-confirmations — avec preview et confirmation. **Rappel fail-closed :** la seule policy réseau
-déclarable reste `DENY_NETWORK` ; un écran qui suggérerait autre chose mentirait sur ce que le
-Core acceptera.
+**Le lot annoncé était « un éditeur » ; un éditeur seul aurait été un écran qui ment.**
+`policies.yaml` validait sa forme et presque aucune de ses valeurs. Un projet pouvait écrire
+`network: {default: allow}`, `destructive: {default: allow}` ou `promotion: {proven_requires: []}`,
+le chargeur acceptait et le Doctor rapportait « valide ». Les valeurs sont donc fermées **dans le
+Core, sur le fichier lui-même** — le rappel fail-closed du réseau est tenu par le chargeur, pas par
+un menu grisé.
+
+**`proven_requires`, question laissée ouverte par B7, tranchée : elle ne peut pas assouplir.** La
+liste enregistre ce que `promote` vérifie — evidence PASS admise **et** validation technique — et
+le Core refuse une liste qui en déclare moins, parce qu’elle décrirait un moteur plus permissif que
+celui qui tourne.
+
+**`allowed_runners` était de la décoration.** Chaque projet l’expédiait vide pendant que ses
+capabilities déclaraient des runners. Le template émet désormais les siens, le chargeur croise les
+deux fichiers, et le builder §32 refuse dans son preview plutôt qu’après l’écriture.
+
+**Chaque ligne dit ce qui l’applique :** `ENFORCED` avec le module qui la lit, ou `DECLARED_ONLY`
+— `filesystem.read` et `destructive.default`. Et `git.commit` / `git.push`, déclarés ici mais
+gouvernés par `sync-policy.json`, deviennent un **veto** : `deny` empêche, rien n’élargit.
+
+**Preuve :** `tests/test_policy_editor.py`, seize tests ; `apps/desktop/ui/src/policy.test.ts`,
+six tests. CLI `policies`, bridge `policy.options` / `policy.preview` / `policy.apply`.
 
 ### B9 — Configuration du Resume et des intégrations (étapes 12 et 13)
 

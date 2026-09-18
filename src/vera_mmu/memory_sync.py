@@ -46,6 +46,21 @@ def _git_root(project_root: Path) -> Path:
     return root
 
 
+def _declared_git_policy(store: MemoryStore) -> dict[str, str]:
+    """Read `policies.yaml` git decisions. An unreadable catalogue vetoes nothing it did not say.
+
+    Refusing the sync outright when the catalogue cannot be read would turn an unrelated failure
+    into a silent stop; the declared values are a veto, and a veto nobody declared is not one.
+    """
+    from .project_catalogs import ProjectCatalogError, load_project_catalogs
+
+    try:
+        git = load_project_catalogs(store.workspace.profile_path).policies["git"]
+        return {"commit": str(git["commit"]), "push": str(git["push"])}
+    except (ProjectCatalogError, KeyError, TypeError):
+        return {"commit": "confirm", "push": "confirm"}
+
+
 def _policy(memory_dir: Path) -> dict[str, object]:
     target = memory_dir / _POLICY_FILE
     if target.is_symlink():
@@ -144,6 +159,12 @@ def automatic_memory_sync(store: MemoryStore, operation: str) -> dict[str, objec
         policy = _policy(memory_dir)
         if policy["auto_commit"] is not True:
             return {**result, "status": "DISABLED", "reason": "auto_commit=false"}
+        # `policies.yaml` can only restrict what `sync-policy.json` already permits. Two files
+        # declared Git behaviour and only one was read; this makes the declared one a veto rather
+        # than leaving it decorative, and it can never widen the automatic sync.
+        declared = _declared_git_policy(store)
+        if declared["commit"] == "deny":
+            return {**result, "status": "DISABLED", "reason": "policies.yaml git.commit=deny"}
         repository = _git_root(store.workspace.project_root)
         try:
             relative = memory_dir.resolve(strict=True).relative_to(repository).as_posix()
@@ -156,6 +177,8 @@ def automatic_memory_sync(store: MemoryStore, operation: str) -> dict[str, objec
         result.update({"committed": True, "head": head, "wal_checkpoint": checkpoint})
         if policy["auto_push"] is not True:
             return {**result, "status": "COMMITTED"}
+        if declared["push"] == "deny":
+            return {**result, "status": "COMMITTED", "reason": "policies.yaml git.push=deny"}
         branch = _current_branch(repository)
         _run(repository, "remote", "get-url", "origin")
         _run(repository, "push", "origin", branch)

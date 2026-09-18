@@ -232,6 +232,22 @@ fn capability_apply(state: State<'_, AppState>, preview_hash: String, confirm: b
     with_bridge(&state, |bridge| bridge.call("capability.apply", json!({"previewHash": preview_hash, "confirm": confirm})))
 }
 
+#[tauri::command]
+fn policy_options(state: State<'_, AppState>) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("policy.options", json!({})))
+}
+
+/// Named policy lines only. The closed values, and which lines are enforced, come from the Core.
+#[tauri::command]
+fn policy_preview(state: State<'_, AppState>, changes: Value) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("policy.preview", json!({"changes": changes})))
+}
+
+#[tauri::command]
+fn policy_apply(state: State<'_, AppState>, preview_hash: String, confirm: bool) -> Result<Value, String> {
+    with_bridge(&state, |bridge| bridge.call("policy.apply", json!({"previewHash": preview_hash, "confirm": confirm})))
+}
+
 /// One declared gate as §33 displays it: requirements classified, and the two promotion lines.
 #[tauri::command]
 fn gate_report(state: State<'_, AppState>, gate_id: String) -> Result<Value, String> {
@@ -308,7 +324,7 @@ fn main() {
             app.manage(AppState { session: Mutex::new(None), executable });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![select_project, scan_project, wizard_state, recommend_profile, project_status, project_doctor, migration_status, project_documentation, profile_rebind_preview, profile_rebind_apply, profile_rebind_recovery_preview, profile_rebind_recovery_apply, capability_options, capability_preview, capability_apply, gate_report, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
+        .invoke_handler(tauri::generate_handler![select_project, scan_project, wizard_state, recommend_profile, project_status, project_doctor, migration_status, project_documentation, profile_rebind_preview, profile_rebind_apply, profile_rebind_recovery_preview, profile_rebind_recovery_apply, capability_options, capability_preview, capability_apply, policy_options, policy_preview, policy_apply, gate_report, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
         .run(tauri::generate_context!())
         .expect("échec de l’application desktop VERA");
 }

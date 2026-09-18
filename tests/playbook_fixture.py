@@ -33,7 +33,7 @@ _DECLARATIVE_DEFAULTS = {
         "process: {allowed_runners: []}\n"
         "git: {commit: confirm, push: confirm}\n"
         "destructive: {default: confirm}\n"
-        "promotion: {proven_requires: [admissible_pass]}\n"
+        "promotion: {proven_requires: [admissible_pass, technical_validation]}\n"
     ),
 }
 

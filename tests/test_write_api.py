@@ -60,7 +60,7 @@ class WriteApiTests(unittest.TestCase):
             "process: {allowed_runners: []}\n"
             "git: {commit: confirm, push: confirm}\n"
             "destructive: {default: confirm}\n"
-            "promotion: {proven_requires: [admissible_pass]}\n",
+            "promotion: {proven_requires: [admissible_pass, technical_validation]}\n",
             encoding="utf-8",
         )
         return MemoryStore.open(load_profile(profile_path), profile_path)

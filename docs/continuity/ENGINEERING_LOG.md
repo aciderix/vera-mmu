@@ -3839,3 +3839,67 @@ d’abord trancher ce que `proven_requires` a le droit d’assouplir.
 **Preuve.** `tests/test_evidence_classes.py`, douze tests ; `apps/desktop/ui/src/gate.test.ts`,
 sept tests. Suite complète : `856 passed, 69 subtests passed` côté Core et `30 passed` côté
 interface. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent.
+
+## LOG-0299 — Les policies cessent d’être un fichier que personne n’applique
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Le lot annoncé était « un éditeur ». La mesure a montré qu’un éditeur seul aurait été un écran
+qui ment.** `policies.yaml` validait sa **forme** — sept sections, chacune un objet — et presque
+aucune de ses **valeurs**. Un projet pouvait écrire `network: {default: allow}`,
+`destructive: {default: allow}` ou `promotion: {proven_requires: []}` : le chargeur acceptait, le
+Doctor rapportait « Catalogue de policies valide », et rien de tout cela ne voulait dire quoi que
+ce soit. Pire qu’une règle non appliquée : un fichier qui énonce une permission que le moteur
+n’accorde jamais. Éditer cela sans fermer les valeurs aurait rendu le mensonge plus confortable.
+
+**Les valeurs sont donc fermées, dans le Core, sur le fichier lui-même.** `network.default` ne peut
+valoir que `deny` — le Core ne tient aucun chemin réseau et `capability_contract` contraint sa
+policy réseau à `DENY_NETWORK` en SQL, donc offrir `allow` laisserait déclarer une permission que
+rien ne peut accorder. C’est exactement le rappel fail-closed que le registre exigeait pour ce lot,
+et il est tenu par le chargeur plutôt que par un menu grisé. `destructive.default` ne peut pas
+valoir `allow` : une opération destructive qui s’annonce comme silencieusement permise est la seule
+forme que toutes les écritures d’ici refusent.
+
+**`proven_requires` : la question laissée ouverte par B7, tranchée.** Elle ne peut **pas** assouplir.
+La liste enregistre ce que `ProofService.promote` vérifie — une evidence PASS admise **et** une
+validation technique — et le Core refuse une liste qui en déclare moins, parce qu’elle décrirait un
+moteur plus permissif que celui qui tourne : exactement la forme de mensonge que §33 vient de
+fermer à la promotion. Elle refuse aussi une condition qu’il ne vérifie pas. Le champ cesse d’être
+décoratif sans devenir un levier.
+
+**`allowed_runners` était de la décoration pure.** Chaque projet l’expédiait **vide** pendant que
+son catalogue de capabilities déclarait des runners, et rien ne comparait les deux fichiers. Le
+template émet désormais exactement les runners que ses propres capabilities utilisent, et le
+chargeur refuse une capability dont le runner n’y figure pas. Le builder §32 vérifie la même chose
+**dans son preview**, pour refuser avant d’écrire plutôt que de laisser un fichier que le chargeur
+rejettera ensuite.
+
+**Une ligne enforced, une ligne déclarée : la différence est dite.** Chaque ligne porte `ENFORCED`
+avec le module qui la lit, ou `DECLARED_ONLY` disant platement qu’aucun ne la lit — c’est le cas de
+`filesystem.read` et de `destructive.default`. Rapporter `ENFORCED` partout aurait été le même
+mensonge ailleurs ; omettre la distinction aurait laissé qui édite le fichier incapable de
+distinguer une règle d’un vœu.
+
+**Une duplication transformée en veto plutôt que laissée en double déclaration.** `policies.yaml`
+déclarait `git.commit` / `git.push` et `sync-policy.json` décidait seul du comportement réel. Les
+valeurs déclarées deviennent un **veto** : `deny` empêche le commit ou le push, et rien d’autre. Il
+ne peut jamais élargir ce que `sync-policy.json` permet, donc la synchronisation automatique ne
+gagne aucun droit. Et un catalogue illisible ne vétote rien qu’il n’a pas dit : transformer un
+échec sans rapport en arrêt silencieux serait la même faute dans l’autre sens.
+
+**Trois de mes preuves ne prouvaient rien, et le contrôle de mordant les a nommées.** Retirer la
+règle « condition de promotion inconnue » ne faisait tomber aucun test : mon cas portait
+`["admissible_pass", "vibes"]`, que la règle « liste incomplète » refusait déjà. Idem pour le
+runner inconnu, refusé par le croisement avant d’atteindre sa propre règle. Et le veto de `push`
+n’était couvert par rien. Les trois cas sont corrigés pour que la règle examinée soit la **seule**
+cause du refus, et le veto de push a désormais son test sur un dépôt réel.
+
+**Ce que ce dernier test a fait découvrir :** `MemoryStore.open` synchronise déjà la mémoire.
+Mon premier scénario rapportait `NO_CHANGES` parce que l’ouverture du store avait committé
+l’édition avant le sync explicite. Ce n’est pas un défaut, mais c’est un fait que le test doit
+connaître pour prouver quoi que ce soit — il produit maintenant sa modification **après**
+l’ouverture.
+
+**Preuve.** `tests/test_policy_editor.py`, seize tests ; `apps/desktop/ui/src/policy.test.ts`,
+six tests. CLI `policies`, bridge `policy.options` / `policy.preview` / `policy.apply`, commande
+Rust et panneau de console. Suite complète : `873 passed, 69 subtests passed` côté Core et
+`36 passed` côté interface. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent.

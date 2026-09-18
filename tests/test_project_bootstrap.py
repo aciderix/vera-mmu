@@ -71,8 +71,12 @@ class ProjectBootstrapTests(unittest.TestCase):
         gate={"id":"UNIT_TESTS_OK","name":"Unit tests pass","capability_id":"unit-tests","required":True,"expected":{"verdict":"PASS"}}
         with TemporaryDirectory() as directory:
             root=Path(directory);preview=preview_project_initialization(root,template="software",project_id="catalog-app",project_name="Catalog App");apply_project_initialization(root,preview,confirm=True)
+            policies=(root/".vera-mmu"/"policies.yaml");declared=policies.read_text(encoding="utf-8")
             (root/".vera-mmu"/"capabilities.yaml").write_text(json.dumps({"format":"vera-capability-catalog/v1","capabilities":[capability]})+"\n",encoding="utf-8")
             (root/".vera-mmu"/"gates.yaml").write_text(json.dumps({"format":"vera-gate-catalog/v1","gates":[gate]})+"\n",encoding="utf-8")
+            # The template allows only the runners its own capabilities use; this one adds another.
+            with self.assertRaises(ProjectCatalogError):load_project_catalogs(root/".vera-mmu"/"project.yaml")
+            policies.write_text(declared.replace("allowed_runners: [","allowed_runners: [OBSERVED_PROCESS, "),encoding="utf-8")
             catalogs=load_project_catalogs(root/".vera-mmu"/"project.yaml");self.assertEqual(catalogs.gates["gates"][0]["capability_id"],"unit-tests")
             capability["command"]=["sh","-c","whoami"]
             (root/".vera-mmu"/"capabilities.yaml").write_text(json.dumps({"format":"vera-capability-catalog/v1","capabilities":[capability]})+"\n",encoding="utf-8")

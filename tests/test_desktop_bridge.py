@@ -259,6 +259,36 @@ class DesktopBridgeTests(unittest.TestCase):
             self.assertEqual(applied["result"]["identifier"], "lint")  # type: ignore[index]
             self.assertEqual(applied["result"]["materialization"]["status"], "PENDING")  # type: ignore[index]
 
+    def test_i013_policy_editor_reports_enforcement_and_refuses_what_the_core_cannot_honour(self) -> None:
+        """The policy file was declared everywhere and editable by nothing; the bridge reaches it."""
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            bridge = self._bridge(root)
+            init = self._call(bridge, "project.init.preview", {"template": "software", "projectId": "policy-desktop", "projectName": "Policy desktop"})
+            self.assertTrue(self._call(bridge, "project.init.apply", {"previewHash": init["result"]["preview_hash"], "confirm": True})["ok"])  # type: ignore[index]
+            options = self._call(bridge, "policy.options", {})
+            self.assertTrue(options["ok"])
+            enforcement = {f"{item['section']}.{item['key']}": item["enforcement"] for item in options["result"]["lines"]}  # type: ignore[index]
+            self.assertEqual(enforcement["filesystem.write"], "ENFORCED")
+            self.assertEqual(enforcement["filesystem.read"], "DECLARED_ONLY")
+            injected = self._call(bridge, "policy.preview", {"changes": {"filesystem.write": "deny"}, "confirm": True})
+            self.assertFalse(injected["ok"])
+            self.assertEqual(injected["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            empty = self._call(bridge, "policy.preview", {"changes": {}})
+            self.assertFalse(empty["ok"])
+            self.assertEqual(empty["error"]["code"], "INPUT_INVALID")  # type: ignore[index]
+            network = self._call(bridge, "policy.preview", {"changes": {"network.default": "allow"}})
+            self.assertTrue(network["ok"])
+            self.assertEqual(network["result"]["status"], "REFUSED")  # type: ignore[index]
+            preview = self._call(bridge, "policy.preview", {"changes": {"git.push": "deny"}})
+            self.assertTrue(preview["ok"])
+            refused = self._call(bridge, "policy.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": False})  # type: ignore[index]
+            self.assertFalse(refused["ok"])
+            self.assertEqual(refused["error"]["code"], "CONFIRMATION_REQUIRED")  # type: ignore[index]
+            applied = self._call(bridge, "policy.apply", {"previewHash": preview["result"]["preview_hash"], "confirm": True})  # type: ignore[index]
+            self.assertTrue(applied["ok"])
+            self.assertEqual(applied["result"]["status"], "APPLIED")  # type: ignore[index]
+
     def test_m11dd2_gate_structure_builder_requires_cached_preview_and_confirmation(self) -> None:
         from vera_mmu.capabilities import CapabilityService
         from vera_mmu.capability_contracts import CapabilityContractService

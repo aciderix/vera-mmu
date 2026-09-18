@@ -41,6 +41,12 @@ export const desktopApi = {
   }) => invoke<JsonObject>("capability_preview", contract),
   capabilityApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("capability_apply", { previewHash, confirm }),
+  policyOptions: () => invoke<JsonObject>("policy_options"),
+  /** Named policy lines only; which values are declarable is the Core's to say. */
+  policyPreview: (changes: Record<string, string | string[]>) =>
+    invoke<JsonObject>("policy_preview", { changes }),
+  policyApply: (previewHash: string, confirm: boolean) =>
+    invoke<JsonObject>("policy_apply", { previewHash, confirm }),
   /** One declared gate as §33 displays it: classified requirements and the promotion lines. */
   gateReport: (gateId: string) => invoke<JsonObject>("gate_report", { gateId }),
   gatePolicyPreview: (gateId: string, mode: string, minimumAdmissions: number | null) =>

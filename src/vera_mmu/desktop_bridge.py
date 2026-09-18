@@ -38,6 +38,7 @@ from .project_bootstrap import (
 )
 from .project_operations import ProjectOperationError, scan_project
 from .project_recommendation import recommend_profile
+from .policy_editor import PolicyEditPreview, apply_policy_edit, policy_options, preview_policy_edit
 from .profile_taxonomy import TaxonomyPreview, apply_taxonomy_edit, preview_taxonomy_edit
 from .work_graph_config import WorkGraphPreview, apply_work_graph_configuration, preview_work_graph_configuration, read_work_graph_configuration
 from .wizard import wizard_state
@@ -93,6 +94,9 @@ class DesktopBridge:
             "capability.options": self._capability_options,
             "capability.preview": self._capability_preview,
             "capability.apply": self._capability_apply,
+            "policy.options": self._policy_options,
+            "policy.preview": self._policy_preview,
+            "policy.apply": self._policy_apply,
             "gate.report": self._gate_report,
             "gate.policy.preview": self._gate_policy_preview,
             "gate.policy.apply": self._gate_policy_apply,
@@ -366,6 +370,36 @@ class DesktopBridge:
         if cached is None or cached.kind != "capability" or not isinstance(cached.value, CapabilityContractPreview):
             raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de capability inconnue, expirée ou étrangère.")
         result = apply_capability_contract(self._profile_path(), cached.value, confirm=True)
+        del self._previews[preview_hash]
+        return result
+
+    def _policy_options(self, value: dict[str, Any]) -> dict[str, object]:
+        """Report every policy line, its closed set, and what enforces it."""
+        _exact_input(value, set())
+        return policy_options(self._profile_path())
+
+    def _policy_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        """Plan an edit of named policy lines. The closed values are the Core's to judge."""
+        _exact_input(value, {"changes"})
+        changes = value.get("changes")
+        if not isinstance(changes, dict) or not changes or len(changes) > 32:
+            raise _ProtocolError("INPUT_INVALID", "`changes` doit nommer de une à trente-deux lignes de policy.")
+        for name, item in changes.items():
+            if not isinstance(name, str) or not (isinstance(item, str) or (isinstance(item, list) and all(isinstance(entry, str) for entry in item))):
+                raise _ProtocolError("INPUT_INVALID", "Chaque ligne de policy vaut une chaîne ou une liste de chaînes.")
+        preview = preview_policy_edit(self._profile_path(), changes)
+        self._previews[preview.preview_hash] = _CachedPreview("policy", preview)
+        return preview.as_dict()
+
+    def _policy_apply(self, value: dict[str, Any]) -> dict[str, object]:
+        _exact_input(value, {"previewHash", "confirm"})
+        preview_hash = _string(value, "previewHash")
+        if value.get("confirm") is not True:
+            raise _ProtocolError("CONFIRMATION_REQUIRED", "Application refusée sans confirmation explicite.")
+        cached = self._previews.get(preview_hash)
+        if cached is None or cached.kind != "policy" or not isinstance(cached.value, PolicyEditPreview):
+            raise _ProtocolError("PREVIEW_UNKNOWN", "Preview de policies inconnue, expirée ou étrangère.")
+        result = apply_policy_edit(self._profile_path(), cached.value, confirm=True)
         del self._previews[preview_hash]
         return result
 

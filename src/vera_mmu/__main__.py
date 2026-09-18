@@ -27,6 +27,8 @@ from .project_operations import ProjectOperationError, compile_generation_previe
 from .project_recommendation import RecommendationError, recommend_profile
 from .capability_builder import CapabilityBuilderError, apply_capability_contract, capability_contract_options, preview_capability_contract
 from .gate_reports import GateReportError, report_gate
+from .policy_catalog import POLICY_LINES
+from .policy_editor import PolicyEditorError, apply_policy_edit, policy_options, preview_policy_edit
 from .profile_taxonomy import TaxonomyError, apply_taxonomy_edit, preview_taxonomy_edit
 from .work_graph_config import WorkGraphConfigError, apply_work_graph_configuration, preview_work_graph_configuration, read_work_graph_configuration
 from .wizard import WizardError, wizard_state
@@ -47,6 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     work_graph_config=sub.add_parser("work-graph-config",help="Lit le cycle de vie du Core, ou déclare définitivement ses policies de transition.");work_graph_config.add_argument("profile",type=Path,help="Chemin project.yaml.");work_graph_config.add_argument("--start-mode");work_graph_config.add_argument("--completion-mode");work_graph_config.add_argument("--apply",action="store_true");work_graph_config.add_argument("--confirm",action="store_true")
     taxonomy=sub.add_parser("taxonomy",help="Prévisualise ou applique l’édition des types de connaissance, d’entité et de relation.");taxonomy.add_argument("profile",type=Path,help="Chemin project.yaml.");taxonomy.add_argument("--knowledge-type",action="append",dest="knowledge_types");taxonomy.add_argument("--entity-type",action="append",dest="entity_types");taxonomy.add_argument("--relation-type",action="append",dest="relation_types");taxonomy.add_argument("--apply",action="store_true");taxonomy.add_argument("--confirm",action="store_true")
     capability_contract=sub.add_parser("capability-contract",help="Lit les choix ouverts, ou compose le contrat complet d’une capability (§32).");capability_contract.add_argument("profile",type=Path,help="Chemin project.yaml.");capability_contract.add_argument("--id",dest="identifier");capability_contract.add_argument("--name");capability_contract.add_argument("--description");capability_contract.add_argument("--kind");capability_contract.add_argument("--version",default="1.0.0");capability_contract.add_argument("--runner");capability_contract.add_argument("--policy",default="READ_ONLY");capability_contract.add_argument("--timeout-seconds",type=int);capability_contract.add_argument("--input",action="append",dest="inputs");capability_contract.add_argument("--output",action="append",dest="outputs");capability_contract.add_argument("--artifact",action="append",dest="artifacts");capability_contract.add_argument("--validator");capability_contract.add_argument("--confirmation-required",action="store_true");capability_contract.add_argument("--gate-backed",action="store_true");capability_contract.add_argument("--yields-proof",action="store_true",help="Refusé par le Core : aucun runner ne produit de preuve directement.");capability_contract.add_argument("--apply",action="store_true");capability_contract.add_argument("--confirm",action="store_true")
+    policies=sub.add_parser("policies",help="Lit les policies déclarées et ce qui les applique, ou les édite sous preview et confirmation.");policies.add_argument("profile",type=Path,help="Chemin project.yaml.");policies.add_argument("--set",action="append",dest="settings",help="Ligne de policy, au format section.cle=valeur ; une liste se donne séparée par des virgules.");policies.add_argument("--apply",action="store_true");policies.add_argument("--confirm",action="store_true")
     gate_report=sub.add_parser("gate-report",help="Lit une gate déclarée comme §33 l’affiche : exigences classées et lignes de promotion.");gate_report.add_argument("profile",type=Path,help="Chemin project.yaml.");gate_report.add_argument("--gate-id",required=True)
     compile_pkg=sub.add_parser("compile",help="Exécute le pipeline MCP ordonné et produit le package, sans écriture hôte.");compile_pkg.add_argument("profile",type=Path,help="Chemin project.yaml.");compile_pkg.add_argument("--adapter",required=True);compile_pkg.add_argument("--with-outputs",action="store_true",help="Inclut le texte complet des sorties générées.")
     validate=sub.add_parser("validate",help="Valide les fichiers déclaratifs du projet et leurs relations.");validate.add_argument("profile",type=Path,help="Chemin project.yaml.")
@@ -120,6 +123,15 @@ def _pairs(values:Sequence[str],label:str)->dict[str,str]:
     return parsed
 
 
+def _policy_value(name:str,raw:str)->object:
+    """Read one policy value in the shape its line declares; the Core judges what it holds."""
+    section,_,key=name.partition(".")
+    line=POLICY_LINES.get(section,{}).get(key)
+    if line is None:raise WriteApiError(f"Ligne de policy inconnue : {name}.")
+    if line["values"] is not None:return raw
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
 def _doctor(profile_path:Path,name:str)->dict[str,object]:
     adapter=adapter_spec(name);profile=load_profile(profile_path);workspace=resolve_workspace(profile,profile_path);locator=RuntimeLocator.from_workspace(profile,workspace)
     runtime=locator.runtime_dir/"generated"/adapter.runtime;config=workspace.project_root/adapter.config
@@ -162,6 +174,11 @@ def main(argv:Sequence[str]|None=None)->int:
                 declaration={"id":args.identifier,"name":args.name,"description":args.description,"kind":args.kind,"version":args.version,"runner":args.runner,"policy":args.policy,"timeout_seconds":args.timeout_seconds,"inputs":args.inputs or [],"outputs":args.outputs or [],"artifacts":args.artifacts or [],"validator":args.validator,"yields_proof":args.yields_proof,"confirmation_required":args.confirmation_required,"gate_backed":args.gate_backed}
                 preview=preview_capability_contract(args.profile,declaration)
                 payload={"ok":True,"capability":preview.as_dict()} if not args.apply else {"ok":True,"capability":apply_capability_contract(args.profile,preview,confirm=args.confirm)}
+        elif args.command=="policies":
+            if not args.settings:payload={"ok":True,"policies":policy_options(args.profile)}
+            else:
+                preview=preview_policy_edit(args.profile,{name:_policy_value(name,value) for name,value in _pairs(args.settings,"Ligne de policy").items()})
+                payload={"ok":True,"policies":preview.as_dict()} if not args.apply else {"ok":True,"policies":apply_policy_edit(args.profile,preview,confirm=args.confirm)}
         elif args.command=="gate-report":
             with MemoryStore.open(load_profile(args.profile),args.profile) as store:payload={"ok":True,"gate":report_gate(store,args.gate_id)}
         elif args.command=="taxonomy":

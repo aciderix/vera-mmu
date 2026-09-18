@@ -14,6 +14,7 @@ from yaml.resolver import BaseResolver
 from .agent_profiles import AgentProfileError, validate_agent_profile
 from .identity import ProfileError, canonical_json, load_profile
 from .parameter_validation import ParameterValidationError, validate_parameter_schema
+from .policy_catalog import SECTIONS as POLICY_SECTIONS, PolicyCatalogError, validate_policy_values
 from .workspace import Workspace, WorkspaceError, resolve_workspace
 
 
@@ -276,15 +277,34 @@ def _validate_agent_profiles(value: dict[str, Any]) -> dict[str, dict[str, Any]]
 
 
 def _policy_catalog(value: dict[str, Any]) -> dict[str, Any]:
-    allowed = {"format", "filesystem", "network", "process", "git", "destructive", "promotion"}
+    """Validate the shape **and** the values: a policy the Core cannot honour is refused here."""
+    allowed = {"format", *POLICY_SECTIONS}
     if set(value) != allowed or value.get("format") != "vera-policy-catalog/v1":
         raise ProjectCatalogError("Format ou clés du catalogue policies invalides.")
-    for key in allowed - {"format"}:
+    for key in POLICY_SECTIONS:
         _mapping(value.get(key), f"policies.{key}")
-    runners = value["process"].get("allowed_runners")
-    if not isinstance(runners, list) or not all(isinstance(item, str) for item in runners) or len(runners) != len(set(runners)):
-        raise ProjectCatalogError("policies.process.allowed_runners doit être une liste sans doublon de chaînes.")
+    try:
+        validate_policy_values(value, runners=frozenset(RUNNER_PROFILES))
+    except PolicyCatalogError as exc:
+        raise ProjectCatalogError(str(exc)) from exc
     return value
+
+
+def _validate_declared_runners(capabilities: Mapping[str, Any], policies: Mapping[str, Any]) -> None:
+    """Refuse a capability whose runner the project's own process policy does not allow.
+
+    Until now `process.allowed_runners` was decoration: every project shipped it empty while its
+    capabilities declared runners, and nothing compared the two. A policy nobody cross-checks is
+    not a policy.
+    """
+    allowed = set(policies["process"]["allowed_runners"])
+    used = {str(item["runner"]) for item in capabilities["capabilities"]}
+    forbidden = sorted(used - allowed)
+    if forbidden:
+        raise ProjectCatalogError(
+            "policies.process.allowed_runners n’autorise pas le(s) runner(s) déclaré(s) par le catalogue de "
+            f"capabilities : {', '.join(forbidden)}."
+        )
 
 
 def _hash(value: Mapping[str, Any]) -> str:
@@ -319,6 +339,7 @@ def load_project_catalogs(profile_path: str | Path) -> ProjectCatalogs:
         capabilities,
     )
     policies = _policy_catalog(_load_yaml(workspace, profile["policies"]["file"], "policies"))
+    _validate_declared_runners(capabilities, policies)
     agent_profiles_source = _load_yaml(workspace, profile["integrations"]["agent_profiles"], "agent-profiles")
     agent_profiles = _validate_agent_profiles(agent_profiles_source)
     for integration_id in profile["integrations"]["enabled"]:
