@@ -24,6 +24,7 @@ from .documentation_generator import compile_project_documentation
 from .doctor import diagnose_project
 from .gate_policy_builder import GatePolicyDraftPreview, apply_gate_policy_draft, preview_gate_policy_draft
 from .gate_reports import report_gate
+from .mcp_preview import compile_mcp_preview
 from .gate_structure_builder import GateStructureDraftPreview, apply_gate_structure_draft, preview_gate_structure_draft
 from .identity import load_profile
 from .read_api import ReadService
@@ -101,6 +102,7 @@ class DesktopBridge:
             "resume.options": self._resume_options,
             "resume.preview": self._resume_preview,
             "resume.apply": self._resume_apply,
+            "mcp.preview": self._mcp_preview,
             "gate.report": self._gate_report,
             "gate.policy.preview": self._gate_policy_preview,
             "gate.policy.apply": self._gate_policy_apply,
@@ -438,6 +440,13 @@ class DesktopBridge:
         result = apply_resume_edit(self._profile_path(), cached.value, confirm=True)
         del self._previews[preview_hash]
         return result
+
+    def _mcp_preview(self, value: dict[str, Any]) -> dict[str, object]:
+        """Report the §34 figures, hashes and alerts before generation. Writes nothing."""
+        _exact_input(value, {"adapterId"})
+        profile_path = self._profile_path()
+        with MemoryStore.open(load_profile(profile_path), profile_path) as store:
+            return compile_mcp_preview(store, _string(value, "adapterId"))
 
     def _gate_report(self, value: dict[str, Any]) -> dict[str, object]:
         """Report one declared gate as §33 displays it, classes and promotion lines included."""

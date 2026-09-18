@@ -1,15 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
-**Révisé le :** 2026-09-18 — A1, B1 à B9 et C2 clos ; B10 et B11 ouverts.
+**Révisé le :** 2026-09-18 — A1, B1 à B10 et C2 clos ; B11 ouvert.
 **Révisé le :** 2026-09-15 — A1, B1 à B5 et C2 clos ; B6 à B11 ouverts.
 **Révisé le :** 2026-09-14 — décision du propriétaire : le Dashboard configurateur est livré
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `887 passed, 69 subtests passed` côté Core et `44 passed` côté interface. Le décompte
+**Suite :** `899 passed, 69 subtests passed` côté Core et `53 passed` côté interface. Le décompte
 `798 + 10` est attesté sur Linux x64 **et** Windows x64 (run `desktop-packaging.yml` #48) ; les
-ajouts de B4 à B9 restent à attester sur Windows.
+ajouts de B4 à B10 restent à attester sur Windows.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -391,16 +391,28 @@ dernière révision Front quel que soit son profil, donc après une édition le 
 **Preuve :** `tests/test_resume_editor.py`, treize tests ; `apps/desktop/ui/src/resume.test.ts`,
 huit tests. CLI `resume-contract`, bridge `resume.options` / `resume.preview` / `resume.apply`.
 
-### B10 — MCP Preview avec métriques et alertes (§34) — étape 14
+### B10 — MCP Preview avec métriques et alertes (§34) — étape 14 — **FAIT**
 
-**Périmètre :** avant génération, afficher les décomptes de tools Core et projet, lecture seule,
-écriture, sensibles, réseau, gates et capabilities, plus profile hash et policy hash. Puis les
-alertes de §34 : capability sans validator objectif (`ERROR`), gate dépendant d’une capability
-réseau (`WARNING`), chemin de sortie hors périmètre (`ERROR`), PROVEN activé sans secret HMAC
-(`WARNING`).
+**Rien ne classait les outils.** La façade connaissait ses noms et rien d’autre, donc tout décompte
+aurait été inventé à l’écran. `mcp_tool_classes.py` déclare ce que chaque outil fait à l’état
+durable ; `mcp_preview.py` **rend** chiffres, hachages et alertes sans en recalculer aucun.
 
-**Le plus proche de l’existant :** le compilateur produit déjà paquet, hachages et validation
-statique bloquante. Il s’agit de **rendre** ces chiffres, jamais de les recalculer côté interface.
+**Le marqueur évident n’était pas le bon.** `_mutating_call` signifie « rapporte le statut de
+synchronisation », pas « modifie » : `mmu_export_bundle` et `mmu_sync_memory` écrivent sans passer
+par lui. Une classification dérivée de ce marqueur les aurait dits en lecture seule. La table est
+déclarée, et un test épingle la seule relation dérivable — tout outil `_mutating_call` est `WRITE`.
+
+**Une dérive trouvée en comptant :** `mmu_get_documentation` était servi par le serveur et absent de
+`TOOL_NAMES`. Le manifeste annonçait 46 outils pour 47 servis. Corrigé, et les deux ensembles sont
+désormais liés par un test.
+
+**Trois des quatre alertes de §34 ne peuvent plus se déclencher**, fermées à la déclaration par B6
+et B8. Elles sont rapportées `NOT_APPLICABLE` **avec la règle qui les a fermées**, pas à zéro : une
+alerte impossible n’est pas un silence tranquille, c’est une règle qui a bougé. La quatrième —
+validator déclaré mais non enregistré — est atteignable et nomme la capability en cause.
+
+**Preuve :** `tests/test_mcp_preview.py`, douze tests ; `apps/desktop/ui/src/preview.test.ts`, neuf
+tests. CLI `mcp-preview`, bridge `mcp.preview`.
 
 ### B11 — Valider, générer, installer, Doctor (étapes 15 à 18)
 

@@ -3966,3 +3966,59 @@ test chacune.
 tests. CLI `resume-contract`, bridge `resume.options` / `resume.preview` / `resume.apply`, commande
 Rust et panneau de console. Suite complète : `887 passed, 69 subtests passed` côté Core et
 `44 passed` côté interface. `tsc --noEmit`, `vitest run`, `vite build` et `cargo check` passent.
+
+## LOG-0301 — Le MCP Preview de §34, et trois alertes qui ne peuvent plus se déclencher
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Rien ne classait les outils.** §34 demande de compter, avant génération, les outils en lecture
+seule, en écriture, sensibles et réseau. La façade connaissait ses noms d’outils et rien d’autre :
+n’importe quel décompte aurait donc été inventé à l’écran. `mcp_tool_classes.py` déclare ce que
+chaque outil fait à l’état durable, et `mcp_preview.py` rend les chiffres, les hachages et les
+alertes **sans en recalculer aucun** — une seconde mesure serait un second avis, et c’est l’écran
+qui finirait par montrer le mauvais.
+
+**Le marqueur évident n’était pas le bon.** `_mutating_call` ressemble à la réponse et ne l’est
+pas : il signifie « rapporte ensuite le statut de synchronisation mémoire », pas « modifie quelque
+chose ». `mmu_export_bundle` écrit une archive et `mmu_sync_memory` committe dans Git, et **aucun
+des deux** ne passe par lui. Une classification dérivée de ce marqueur les aurait déclarés en
+lecture seule : un décompte rassurant et faux. La table est donc déclarée, et un test épingle la
+relation qui, elle, est dérivable — tout outil passant par `_mutating_call` doit être déclaré
+`WRITE`. La réciproque est fausse, et c’est exactement le constat.
+
+**Une dérive manifeste ↔ serveur, trouvée en comptant.** `mmu_get_documentation` est enregistré par
+le serveur et **absent de `TOOL_NAMES`** : le manifeste annonçait quarante-six outils là où la
+façade en sert quarante-sept. Tout chiffre bâti dessus sous-déclarait la surface. Le nom est ajouté
+et un test lie désormais les deux ensembles, pour que la dérive ne revienne pas silencieusement.
+
+**« Sensible » a une définition, pas une impression.** Un outil est sensible quand il écrit **hors**
+du runtime VERA, remplace la mémoire canonique, ou signe une promotion `PROVEN`. Trois y répondent :
+`mmu_sync_memory`, `mmu_restore`, `mmu_record_proof`. Tout autre choix aurait été une étiquette de
+goût, et un décompte que personne ne peut vérifier. « Réseau » vaut zéro parce que zéro est vrai :
+le Core ne tient aucun chemin réseau.
+
+**Trois des quatre alertes de §34 ne peuvent plus se déclencher, et le preview le dit.** Une
+capability sans validator objectif, une capability `NETWORK` derrière une gate, un chemin de sortie
+hors périmètre : chacune était possible quand §34 a été écrit, et chacune est désormais refusée **à
+la déclaration**, par le Core, sur le fichier déclaratif. Les rapporter à zéro se lirait comme une
+rassurance ; elles sont rapportées `NOT_APPLICABLE` **avec la règle qui les a fermées**. C’est le
+même raisonnement que le graphe de B5 : une alerte qui ne peut pas se déclencher n’est pas un
+silence tranquille, c’est une règle qui a bougé.
+
+**Celle qui reste atteignable l’est vraiment, et vaut la peine.** Le catalogue déclare un type de
+validator, mais c’est `sync-capabilities` qui l’enregistre. Déclarer une capability avec le §32
+builder puis générer sans resynchroniser produit une façade annonçant une capability qu’aucun
+validator ne peut qualifier. L’alerte nomme la capability en cause, et elle est lue au même endroit
+que le Doctor pour le secret HMAC, afin que les deux ne puissent pas se contredire.
+
+**Mon test de décomptes se comparait à lui-même, et le contrôle de mordant l’a montré.** Il
+vérifiait `payload["counts"] == tool_counts()` : remplacer le corps de `tool_counts` par une
+constante faisait bouger les deux côtés ensemble et restait vert. Les figures sont maintenant
+recomptées indépendamment — depuis la table, et depuis les enregistrements du serveur — avec la
+partition épinglée : lecture seule plus écriture égale le nombre d’outils servis. Deux autres
+décomptes passaient sur une coïncidence de valeur ; le test fait maintenant varier gates et
+capabilities en sens opposés dans le même projet.
+
+**Preuve.** `tests/test_mcp_preview.py`, douze tests ; `apps/desktop/ui/src/preview.test.ts`, neuf
+tests. CLI `mcp-preview`, bridge `mcp.preview`, commande Rust et panneau de console. Suite
+complète : `899 passed, 69 subtests passed` côté Core et `53 passed` côté interface. `tsc --noEmit`,
+`vitest run`, `vite build` et `cargo check` passent.

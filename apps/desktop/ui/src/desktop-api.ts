@@ -57,6 +57,8 @@ export const desktopApi = {
   }) => invoke<JsonObject>("resume_preview", edit),
   resumeApply: (previewHash: string, confirm: boolean) =>
     invoke<JsonObject>("resume_apply", { previewHash, confirm }),
+  /** The §34 figures, hashes and alerts, before generation. */
+  mcpPreview: (adapterId: string) => invoke<JsonObject>("mcp_preview", { adapterId }),
   /** One declared gate as §33 displays it: classified requirements and the promotion lines. */
   gateReport: (gateId: string) => invoke<JsonObject>("gate_report", { gateId }),
   gatePolicyPreview: (gateId: string, mode: string, minimumAdmissions: number | null) =>
