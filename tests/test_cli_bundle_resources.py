@@ -119,9 +119,18 @@ class CliBundleResourceTests(unittest.TestCase):
 
         `discover()` refuse un inventaire troué ; le mesurer ici lie la ressource embarquée à la
         règle qui la consomme, plutôt qu'à un simple compte de fichiers.
+
+        **Le répertoire attendu est celui du paquet importé, pas celui du dépôt.** La première
+        version de ce test comparait à `src/vera_mmu/schema`, et passait en local uniquement
+        parce qu'un `pip install -e .` fait coïncider les deux chemins. La CI, qui installe
+        normalement, a rendu `site-packages/…/vera_mmu/schema` et le test est tombé : il était
+        vrai pour une raison accidentelle. Au passage, cet échec prouve que l'emballage pip, lui,
+        embarquait bien les migrations — seul l'emballage PyInstaller les perdait.
         """
+        import vera_mmu
         from vera_mmu.migrations import MigrationRunner
 
+        installed_schema = Path(vera_mmu.__file__).resolve().parent / "schema"
         migrations = MigrationRunner().discover()
         self.assertEqual(migrations[0].version, 1)
         self.assertEqual(
@@ -130,7 +139,7 @@ class CliBundleResourceTests(unittest.TestCase):
         )
         for migration in migrations:
             with self.subTest(migration=migration.path.name):
-                self.assertEqual(migration.path.parent, PACKAGE / "schema")
+                self.assertEqual(migration.path.parent.resolve(), installed_schema)
 
     def test_the_build_command_still_collects_the_python_modules(self) -> None:
         """La correction ajoute des données ; elle ne doit rien retirer de ce qui marchait."""
