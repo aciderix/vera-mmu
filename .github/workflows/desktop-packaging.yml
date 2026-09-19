@@ -61,9 +61,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
       - name: Install VERA sidecar build dependencies
-        run: python -m pip install --upgrade pip pyinstaller pytest .
+        run: python -m pip install --upgrade pip pyinstaller pytest pytest-xdist .
       - name: Run VERA conformance suite
-        run: python -m pytest -q
+        # `--dist loadfile` garde chaque fichier sur un seul worker : les tests d'un même fichier
+        # partagent parfois un module chargé ou une variable d'environnement qu'ils restaurent, et
+        # les garder ensemble retire toute hypothèse d'ordre entre workers. Mesuré : même durée que
+        # la distribution par test, donc c'est le mode conservateur à prix égal.
+        run: python -m pytest -q -n auto --dist loadfile
       - name: Install desktop dependencies
         working-directory: apps/desktop
         run: |

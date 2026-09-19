@@ -1,6 +1,8 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — run #56 sur `e2dbdfb` : les deux runners verts, `1068 + 275` et `78`.
+`C12` attesté ; les 141 tests de parité le sont tous. Suite parallélisée : 261 s → 76 s.
 **Révisé le :** 2026-09-19 — `C12` promu `DONE` : le playbook. Les deux le tiennent hors de la
 mémoire canonique ; le parseur d’ARET écarte en silence un domaine dupliqué ou inventé.
 **Treize couplages clos sur seize.**
@@ -45,10 +47,12 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1068 passed, 275 subtests passed` côté Core et `78 passed` côté interface, mesurés sur
-Linux x64. La dernière attestation **deux plateformes** est `1060 + 256` et `78` au run
-`desktop-packaging.yml` #55 sur `2806468` : elle couvre les 133 tests de parité `C01`–`C06`,
-`C09`–`C11`, `C13`, `C14` et `C16`. Seuls les huit tests de `C12` ajoutés depuis restent à attester.
+**Suite :** `1068 passed, 275 subtests passed` côté Core et `78 passed` côté interface, **attestés
+sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #56 sur `e2dbdfb`, chiffres identiques
+des deux côtés et zéro échec. L’attestation couvre l’intégralité des **141 tests de parité**
+`C01`–`C06` et `C09`–`C16`. Aucune dette Windows ouverte.
+**Durée :** la suite tourne en **76 s** sur quatre cœurs (`-n auto --dist loadfile`) contre 261 s en
+série — mesuré, décomptes identiques, cinq passages successifs stables.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -65,10 +69,15 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ### A1 — Matrice native Windows x64 et Linux x64 — **FAIT**
 
-**Run #55 sur `2806468`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
-identiques — `1060 passed, 256 subtests passed` côté Core (355,00 s sur Linux, 885,66 s sur Windows)
-et `78 passed` côté interface, zéro échec. L’attestation couvre l’intégralité des **133 tests de
-parité** `C01`–`C06`, `C09`–`C11`, `C13`, `C14` et `C16`.
+**Run #56 sur `e2dbdfb`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
+identiques — `1068 passed, 275 subtests passed` côté Core (248,19 s sur Linux, 696,16 s sur Windows)
+et `78 passed` côté interface, zéro échec. L’attestation couvre l’intégralité des **141 tests de
+parité** `C01`–`C06` et `C09`–`C16`. C’est le dernier run mesuré **en série** : la suite est
+parallélisée depuis.
+
+**Historique du #55**, sur `2806468` : les deux runners verts, `1060 passed, 256 subtests passed`
+(355,00 s sur Linux, 885,66 s sur Windows) et `78 passed`. Il couvrait les 133 tests de parité,
+`C12` excepté.
 
 Le run #54, sur `c78a227`, avait porté **un** échec Windows, et il venait du test : une assertion
 comparait `endswith("bench/gauntlet/score.sh")` à un chemin qu’ARET résout et rend sous sa forme
@@ -140,8 +149,8 @@ dans `store.py` ouvre le WAL par une lecture avant de replier, et les trois appe
 tout ce qui n’est pas `busy == 0` **et** `log == 0`.
 
 **Ce que ces runs autorisent désormais à dire :** le README ne porte plus la restriction « décompte
-relevé sur Linux x64 », et plus aucune réserve sur la série de parité. La suite — `1060 passed,
-256 subtests passed` et `78 passed` — est attestée sur les deux plateformes au run #55.
+relevé sur Linux x64 », et plus aucune réserve sur la série de parité. La suite — `1068 passed,
+275 subtests passed` et `78 passed` — est attestée sur les deux plateformes au run #56.
 
 ---
 

@@ -4882,3 +4882,45 @@ règles VERA et trois règles ARET mutées une à une, mordant vérifié. La mut
 sixième section au playbook réel n'a été rattrapée que par le test d'empreinte — c'est exactement
 son rôle, puisque la section ajoutée était un doublon que le parseur écarte en silence. Suite
 complète : `1068 passed, 275 subtests passed`. **Treize couplages sur seize sont désormais clos.**
+
+**Attesté au run #56 sur `e2dbdfb` :** les deux runners verts, `1068 passed, 275 subtests passed`
+côté Core — 248,19 s sur Linux, 696,16 s sur Windows — et `78 passed` côté interface, chiffres
+identiques et zéro échec. L'attestation couvre l'intégralité des **141 tests de parité** `C01`–`C06`
+et `C09`–`C16`.
+
+## LOG-0319 — La suite passe de 261 s à 76 s, sans toucher un seul test
+**Statut : mesuré cinq fois sur Linux x64, décomptes identiques à chaque passage.**
+
+Le run CI atteignait vingt et une minutes, dont onze pour la seule suite de conformité côté Windows.
+La question posée était de gagner du temps **sans casser les tests**, et la première chose à faire
+était de mesurer plutôt que de deviner où il passe.
+
+**Le profil ne montre aucun point chaud.** Les trente tests les plus lents pèsent 110 s sur 261 ;
+le reste est étalé sur plus de mille tests, à 0,24 s de moyenne. Il n'y a donc rien à optimiser au
+cas par cas : le levier est la parallélisation.
+
+**Résultat : 261 s → 76 s sur quatre cœurs, facteur 3,43 pour un idéal de 4.** Cinq passages
+successifs — `-n 4`, `-n auto`, et `--dist loadfile` — rendent tous exactement `1068 passed,
+275 subtests passed`. Aucun test n'a été modifié, aucun n'a été marqué, aucun n'a été retiré.
+
+**Le mode de distribution est choisi, pas subi.** `--dist loadfile` garde tous les tests d'un même
+fichier sur un même worker. Plusieurs de nos fichiers partagent un module chargé une fois
+(`aret_v1_repository_reference`, `aret_v1_pipelines_reference`) ou une variable d'environnement
+qu'ils posent et restaurent (`ARET_PLAYBOOK_PATH`, `ARET_MEMORY_DIR`) ; les garder groupés retire
+toute hypothèse d'ordre entre workers. Mesuré : **même durée** que la distribution test par test —
+74 s contre 76 s. C'est donc le mode conservateur à prix égal, et il n'y avait pas à hésiter.
+
+**Pourquoi les drapeaux sont dans le workflow et pas dans `addopts`.** Mettre `-n auto` dans la
+configuration du projet ferait échouer `pytest` d'un contributeur qui n'a pas `pytest-xdist` — un
+argument inconnu est une erreur dure, pas une dégradation. La suite doit rester exécutable après un
+simple `pip install .`. `pytest-xdist` est donc déclaré dans un extra `test`, installé par la CI,
+et les drapeaux sont écrits à l'étape qui s'en sert. Localement, `python -m pytest -q -n auto
+--dist loadfile` donne le même gain, et `pytest` seul reste lisible pour déboguer.
+
+**Le second levier, mesuré mais pas pris.** Ouvrir un `MemoryStore` coûte **94 ms**, dominés par
+les trente-neuf migrations rejouées à chaque fois ; les tests l'appellent au moins 315 fois, soit
+une trentaine de secondes de la suite en série. Le supprimer demanderait de mettre en cache une base
+déjà migrée et de la recopier — ce qui touche la façon dont **tous** les tests bâtissent leur store,
+et croise directement l'identité de projet que `I011` fait vérifier à l'ouverture. Le gain serait de
+l'ordre de 10 %, le risque porte sur ce que les tests prouvent. Il est consigné ici comme disponible,
+pas appliqué.

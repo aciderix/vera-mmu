@@ -25,6 +25,15 @@ dependencies = [
   "mcp>=2.0,<3.0",
 ]
 
+[project.optional-dependencies]
+# Ce qu'il faut pour exécuter la suite telle que la CI l'exécute. `pytest-xdist` n'est pas un
+# confort : la suite passe de 261 s à 76 s sur quatre cœurs, mesuré, et la CI l'utilise.
+# Les sous-tests sont rendus nativement par pytest 9 ; aucun greffon de plus n'est requis.
+test = [
+  "pytest>=9.0",
+  "pytest-xdist>=3.8",
+]
+
 [project.scripts]
 mmu = "vera_mmu.__main__:main"
 vmmu = "vera_mmu.__main__:main"
