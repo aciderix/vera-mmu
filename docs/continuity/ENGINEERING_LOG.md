@@ -4734,3 +4734,13 @@ SQLite non fermée fait tomber Windows : six fixtures au run #46, une expression
 ici un défaut de la référence elle-même, qu'il faut contourner plutôt que réparer.
 
 Suite complète après correction sur Linux : `1045 passed, 211 subtests passed`.
+
+**Attesté au run #53 sur `76ef275` :** les deux runners verts, `1045 passed, 211 subtests passed`
+côté Core — 290,46 s sur Linux, 587,34 s sur Windows — et `78 passed` côté interface, chiffres
+identiques, zéro échec et **aucune occurrence de `WinError`** dans les deux journaux. Le contournement
+tient. L'attestation deux plateformes couvre désormais l'intégralité des **118 tests de parité**
+`C01`–`C05`, `C09`–`C11`, `C13`, `C14` et `C16`.
+
+Le cycle complet — écrire le lot, le pousser, déclencher l'attestation, corriger et réattester — a
+tenu dans l'heure, parce que le workflow est déclenchable depuis la session. Comparé aux cent-sept
+tests non attestés du run #50, c'est ce que change la permission `Actions: write`.
