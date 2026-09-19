@@ -1,0 +1,209 @@
+{
+  "component_columns": [
+    [
+      "id",
+      "TEXT",
+      true,
+      true,
+      null
+    ],
+    [
+      "title",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "description",
+      "TEXT",
+      true,
+      false,
+      "''"
+    ],
+    [
+      "created_at",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "created_by",
+      "TEXT",
+      true,
+      false,
+      null
+    ]
+  ],
+  "components": [
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Conventions d’appel, esp/ebp, callee-pop et frames.",
+      "id": "ABI",
+      "title": "ABI et modèle de pile"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-references",
+      "description": "Orientations, contraintes et décisions architecturales.",
+      "id": "ARCH",
+      "title": "Architecture ARET"
+    },
+    {
+      "created_at": "2026-08-22T07:49:44Z",
+      "created_by": "aret-mmu-migrator",
+      "description": "Principes généraux, pipelines, règles et état de régression.",
+      "id": "CORE",
+      "title": "Noyau et doctrine ARET"
+    },
+    {
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-trackers",
+      "description": "Sources de binaires, sweeps et murs mesurés.",
+      "id": "CORPUS",
+      "title": "Corpus et mesures"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Binaires et démonstrateurs de validation ARET.",
+      "id": "DEMO",
+      "title": "Démonstrateurs"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "SEH, EH C++ et gestion des exceptions.",
+      "id": "EH",
+      "title": "Exceptions et unwind"
+    },
+    {
+      "created_at": "2026-08-22T07:49:44Z",
+      "created_by": "aret-mmu-migrator",
+      "description": "Architecture de threads coopératifs dans le runtime ARET.",
+      "id": "FIBER",
+      "title": "Fibers et concurrence coopérative"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Sous-systèmes USER/GDI et comportement GUI.",
+      "id": "GUI",
+      "title": "Interface graphique"
+    },
+    {
+      "created_at": "2026-08-22T07:49:44Z",
+      "created_by": "aret-mmu-migrator",
+      "description": "Surface CRT et Win32 modélisée par le runtime ARET.",
+      "id": "HLE",
+      "title": "High-Level Emulation"
+    },
+    {
+      "created_at": "2026-08-22T07:49:44Z",
+      "created_by": "aret-mmu-migrator",
+      "description": "Chantiers d’automatisation pilotés par mesure et oracles.",
+      "id": "INDUS",
+      "title": "Industrialisation"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Conteneur, outils, corpus et exécution.",
+      "id": "INFRA",
+      "title": "Infrastructure et corpus"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Entrées chronologiques migrées depuis le document 71.",
+      "id": "J71",
+      "title": "Journal historique ARET"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Sémantique d’instruction, SSA et émission.",
+      "id": "LIFT",
+      "title": "Lifter et IR"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Chargement, imports, DLL et rebasing.",
+      "id": "LOADER",
+      "title": "Loader PE et modules"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Différentiels, corpus, mesures et portes de régression.",
+      "id": "ORACLE",
+      "title": "Oracles et validation"
+    },
+    {
+      "created_at": "2026-08-22T07:49:44Z",
+      "created_by": "aret-mmu-migrator",
+      "description": "Découverte sound de frontières et de cibles de fonctions.",
+      "id": "RECOV",
+      "title": "Récupération de fonctions"
+    },
+    {
+      "created_at": "2026-08-22T07:49:45Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Pile FPU, arrondi et fallback runtime.",
+      "id": "X87",
+      "title": "x87 et flottants"
+    }
+  ],
+  "function_symbols": {
+    "EH": 3,
+    "HLE": 2,
+    "LIFT": 3,
+    "X87": 1
+  },
+  "knowledge_links": {
+    "ABI": 13,
+    "ARCH": 9,
+    "CORE": 58,
+    "CORPUS": 17,
+    "DEMO": 1,
+    "EH": 43,
+    "FIBER": 1,
+    "GUI": 10,
+    "HLE": 185,
+    "INDUS": 55,
+    "INFRA": 18,
+    "J71": 29,
+    "LIFT": 24,
+    "LOADER": 17,
+    "ORACLE": 13,
+    "RECOV": 24,
+    "X87": 3
+  },
+  "knowledge_orphans": 0,
+  "knowledge_unlinked": 12,
+  "provenance": {
+    "commit": "b9511dccc811b5fc2efaf26a7a3cfc941c0e5754",
+    "memory_bytes": 11280384,
+    "memory_sha256": "85bdf19a5683591a8e3d42571bd4f28285a72f1a96627f392aa0dd0bfdb01cf5",
+    "repository": "aciderix/ARET-MMU",
+    "schema_sha256": {
+      "001_initial.sql": "40c71b7ba3989131686321535f94972df573af3d04ee24560eccb2706aa1ff5c",
+      "002_document_provenance.sql": "f35e34a7cb826a3cb9a6a214807de9709ae6aea7c90e2853e8ce956bdba13fc8",
+      "003_bundle_imports.sql": "833b78e7e93b367f76ca88afd7ada464e28f83c36681c02d248973af76a7d9cd",
+      "004_relation_lifecycle.sql": "c80cfb3c09bc817a6b847ed216be40dcbe9227023852d464daaf74fcccd995de",
+      "005_roadmap_bricks.sql": "b404f791a0b988237ace7eb81c70d5798fe1f1b1daa8a61d82cce11e31051f9c",
+      "006_pipeline_assets.sql": "0f64d08f8b3c4924d7238ad43b77e080b9f8443fe326995a09fea7b440e4eae6"
+    }
+  },
+  "schema_migrations": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ]
+}

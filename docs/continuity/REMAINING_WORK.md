@@ -1,6 +1,8 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — `C03` promu `DONE` : ses six dimensions sont mesurées contre le DDL réel
+d’ARET et les vraies lignes de la baseline. Deux couplages clos sur seize.
 **Révisé le :** 2026-09-18 — `C01` promu `DONE` : première ligne mère du registre de découplage à
 porter un test de parité exécuté. Le diagnostic « blocage matériel » de C1 est corrigé, il était faux
 pour 14 couplages sur 16.
@@ -13,7 +15,7 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `937 passed, 69 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
+**Suite :** `949 passed, 69 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
 Linux x64 et Windows x64** au run `desktop-packaging.yml` #49 sur `9861450`, avec des chiffres
 identiques des deux côtés. Plus aucun écart entre ce qui est affirmé et ce qui est mesuré.
 
@@ -466,7 +468,7 @@ preview, pas seulement dans son refus.
 
 ## C. Ce qui décide de ce que le produit a le droit de dire de lui-même
 
-### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 1/16**
+### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 2/16**
 
 **Le diagnostic précédent était faux, et c’est mesuré.** Ce document affirmait que « le blocage est
 matériel » et qu’il fallait la chaîne d’outils ARET réelle. C’est vrai pour **deux** couplages sur
@@ -482,15 +484,26 @@ installables par apt (`9.0~repack-4build3`, `13.2.0-6ubuntu1+26.1`).
 
 **`C01` est promu `DONE`** par `tests/test_aret_c01_addressing_parity.py`, qui exécute les deux
 implémentations et compare leurs verdicts sur quatre dimensions — écriture, round-trip, corpus réel
-de la baseline, et direction du resserrement. C’est la première ligne mère promue du registre, et le
-gabarit des suivantes.
+de la baseline, et direction du resserrement.
 
-**Ce que la promotion de `C01` ne dit pas :** rien sur les quinze autres couplages. Une parité
-d’adressage n’est pas une parité ARET.
+**`C03` est promu `DONE`** par `tests/test_aret_c03_component_parity.py`, qui bâtit sa source en
+exécutant le DDL réel d’ARET et la peuple des vraies lignes, puis mesure les six dimensions que le
+registre exige — import, unicité, liens de connaissance, intégrité référentielle, bundle, absence de
+`component` dans le Core. Il confronte au passage `aret_v1_schema_manifest()` au DDL qu’il prétend
+décrire, ce qu’aucun test ne faisait.
+
+**Le défaut trouvé en `C03` vaut d’être retenu pour les suivants :** les fixtures écrivaient leur
+propre `CREATE TABLE component`, non `STRICT` et sans `DEFAULT ''`, d’après le contrat qu’elles
+servaient à valider. Une fixture écrite d’après un contrat ne peut pas le réfuter. La règle pour les
+douze couplages restants est donc : **la source de test se construit avec le DDL d’ARET, jamais avec
+un schéma réécrit.**
+
+**Ce que ces promotions ne disent pas :** rien sur les quatorze autres couplages. Une parité
+d’adressage et de composants n’est pas une parité ARET.
 
 **Reste, dans l’ordre du moins cher au plus cher :**
 
-1. **Les treize couplages de nature « données et comportement »** — `C02`–`C06`, `C09`–`C16`. Chacun
+1. **Les douze couplages de nature « données et comportement »** — `C02`, `C04`–`C06`, `C09`–`C16`. Chacun
    suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel issu
    de la baseline, et une parité dirigée. Aucune dépendance externe ; c’est du volume, pas du blocage.
 2. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire

@@ -4215,3 +4215,46 @@ promotion du registre, et gabarit des treize couplages de données qui restent.
 
 **Ce que cette promotion ne dit pas :** rien sur les quinze autres couplages. Une parité d’adressage
 n’est pas une parité ARET, et l’en-tête du registre le dit désormais explicitement.
+
+---
+
+## LOG-0306 — `C03` promu : une fixture écrite d’après un contrat ne peut pas le réfuter
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Le défaut, un cran plus profond qu’en `C01`.** Les tests de composant bâtissaient leur source avec
+un `CREATE TABLE component` **écrit à la main dans la fixture**, et la conformité de schéma se
+vérifiait contre `aret_v1_schema_manifest()` — une déclaration VERA de ce qu’est le schéma ARET que
+rien n’avait jamais comparée au vrai fichier. En `C01`, un module était comparé à ses propres
+attentes ; ici c’est la **fixture** qui est écrite d’après elles. Un contrat faux passerait partout,
+puisque la source de test le satisferait par construction.
+
+**Ce que la fixture ratait, concrètement.** La vraie table `component` est `STRICT` et porte
+`description TEXT NOT NULL DEFAULT ''`. La fixture écrivait une table ni stricte ni pourvue de
+défaut. Le contrat déclaré, lui, était exact — par soin d’écriture, jamais par vérification. La
+différence compte : une colonne ajoutée ou un défaut retiré côté ARET passait inaperçu.
+
+**La source se construit désormais avec le DDL d’ARET.** Les six `schema/*.sql` sont versionnés sous
+`fixtures/aret_v1/schema/` avec leurs SHA-256 épinglés, exécutés dans l’ordre, puis peuplés des
+vraies lignes de la baseline. Si le DDL versionné dérive de l’amont, le test échoue plutôt que de
+valider VERA contre un schéma qu’ARET n’a jamais eu. C’est la règle à retenir pour les douze
+couplages restants.
+
+**Les six dimensions que le registre exige, mesurées.** Import : la chaîne entière — lecture,
+préparation, préflight, projection, contrôle de cible, autorisation, import — pilotée depuis la
+vraie page, `17 composants` devenus entités génériques, `IMPORTED_NO_PROMOTION`, titres et
+descriptions français intacts. Les tests existants fabriquaient préflight et projection à la main
+avec un hash de source inventé (`"a" * 64`) et deux composants imaginaires ; la chaîne n’avait jamais
+été pilotée bout en bout depuis une source réelle. Unicité : clé primaire de la table `STRICT`,
+collision refusée. Liens de connaissance : `520`, toutes cibles déclarées. Intégrité référentielle :
+`0 orphelin`. Bundle : export puis restauration dans un projet neuf, `17 entités identiques`.
+Absence de `component` dans le Core : scan.
+
+**Un écart au passage.** `aret_v1_schema_manifest()` déclare 18 tables applicatives et les migrations
+1 à 6. Confronté au DDL réel : exact, les six tables FTS que SQLite crée pour `knowledge_fts` mises à
+part. Exact, mais jamais vérifié jusqu’ici.
+
+**Preuve.** `tests/test_aret_c03_component_parity.py`, douze tests ; mordant vérifié règle par règle
+(onze mutations, toutes mordent). Suite complète : `949 passed, 69 subtests passed`. `C03` passe de
+`SPLIT` à `DONE` — deuxième promotion du registre.
+
+**Ce que cette promotion ne dit pas :** rien sur les quatorze autres couplages.
