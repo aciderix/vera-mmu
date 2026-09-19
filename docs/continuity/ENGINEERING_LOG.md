@@ -5117,3 +5117,22 @@ mutation : sa troisième mutation inverse exactement la ligne de `PATH`, et la s
 Le fichier restauré porte bien la forme préfixée, et dix exécutions consécutives sont vertes, dont
 deux suites parallèles complètes. Ce n'est pas une certitude sur le mécanisme de la course, c'est
 une conclusion appuyée sur la signature et sur l'état vérifié du fichier.
+
+**Attesté au run #61 sur `2c6e6eb` : les deux runners verts**, `1091 passed, 312 subtests passed`
+côté Core et `78 passed` côté interface, chiffres identiques des deux côtés, zéro échec et aucune
+occurrence de `WinError`. Les **164 tests de parité** sont couverts, `C15` compris. Le correctif
+tient donc sous Windows : les stubs `.bat` sont bien résolus par `shutil.which` à travers `PATHEXT`,
+et exécutés par `CreateProcess` — c'était le seul point du lot que je ne pouvais pas vérifier ici.
+
+**Une mesure que je ne m'explique pas, et qui est écrite comme telle.** L'étape de conformité
+Windows passe de **420 s au #59 à 342 s au #61** alors qu'elle porte **23 tests de plus**, dont un
+qui attend six secondes exprès. La variance de 12 % relevée plus haut ne couvre pas un écart de
+18 %, et elle n'avait été mesurée que sur Linux. Les deux runs tournent sur des machines différentes
+(`runner_id` 1000006361 puis 1000006365) : c'est une piste, pas une cause vérifiée. Le seul effet
+que j'attribue au lot est que les six secondes du stub ne coûtent pas six secondes de mur, `xdist`
+les absorbant dans un worker pendant que les autres avancent — ce qui explique l'absence de coût,
+pas le gain.
+
+Profil complet du #61 : conformité 118 s sur Linux et 342 s sur Windows, bundles 163 s et 152 s,
+jobs complets **7 min 35** et **10 min 38**. Le parcours depuis le début de ce travail : Windows
+21 min → 15 min 33 → 11 min 55 → **10 min 38**.

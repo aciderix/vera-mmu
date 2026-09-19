@@ -1,6 +1,9 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — run #61 sur `2c6e6eb` : les deux runners verts, `1091 + 312` et `78`
+des deux côtés. **`C15` est attesté sur Windows ; les 164 tests de parité le sont tous. Aucune dette
+Windows ouverte.**
 **Révisé le :** 2026-09-19 — `C15` promu `DONE` : la barrière de reprise, et le premier couplage
 dont le test exécute les **hooks** d’ARET. Un état illisible la fait disparaître chez ARET là où
 VERA refuse ; un état acquitté se transplante entre mémoires. **Quatorze couplages clos sur seize**,
@@ -56,20 +59,22 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1091 passed, 312 subtests passed` côté Core et `78 passed` côté interface, **mesurés
-sur Linux x64**. L’**attestation sur les deux plateformes** porte sur `1068 + 275` et `78`, au run
-`desktop-packaging.yml` #59 sur `834ee13`, chiffres identiques des deux côtés et zéro échec ; elle
-couvre l’intégralité des **141 tests de parité** `C01`–`C06` et `C09`–`C14`, `C16`. **`C15` n’y est
-pas encore** : ses 23 tests et 37 sous-tests sont postérieurs au #59. Le run #60 les y a portés et **a échoué** :
-la cause était la sonde de toolchain d’ARET, qui lance `<outil> --version` avec `timeout=5` et sans
-garde, et non un défaut de VERA — voir `LOG-0321`. Corrigé, il reste à réattester. Aucune autre dette Windows ouverte.
+**Suite :** `1091 passed, 312 subtests passed` côté Core et `78 passed` côté interface, **attestés
+sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #61 sur `2c6e6eb`, chiffres identiques
+des deux côtés, zéro échec et aucune occurrence de `WinError`. L’attestation couvre l’intégralité
+des **164 tests de parité** `C01`–`C06` et `C09`–`C16`, `C15` compris. **Aucune dette Windows
+ouverte.**
 **Durée :** en local, **74 s** sur quatre cœurs (`-n auto --dist loadfile`) pour 1091 tests. En CI
-au run #59, caches chauds : conformité **120 s** sur Linux et **420 s** sur Windows ; bundles **162 s**
-et **144 s**, contre 324 s et 336 s à froid au #58 — c’est là que le cache cargo paie. Job complet :
-**7 min 14** sur Linux et **11 min 55** sur Windows, contre 21 min avant parallélisation.
-**Variance à garder en tête :** entre `b91c771` et `834ee13`, la suite n’a pas changé d’une ligne et
-l’étape de conformité varie pourtant de 107 s à 120 s sur Linux — jusqu’à **12 % d’un run à
-l’autre**. Voir `LOG-0319`.
+au run #61, caches chauds : conformité **118 s** sur Linux et **342 s** sur Windows ; bundles 163 s
+et 152 s. Job complet : **7 min 35** sur Linux et **10 min 38** sur Windows, contre 21 min avant
+parallélisation.
+**Variance à garder en tête, et un écart que je n’explique pas.** Entre `b91c771` et `834ee13`, la
+suite n’a pas changé d’une ligne et l’étape de conformité varie pourtant de 107 s à 120 s sur Linux
+— jusqu’à **12 % d’un run à l’autre** (`LOG-0319`). Mais la conformité Windows passe de **420 s au
+#59 à 342 s au #61** alors qu’elle porte **23 tests de plus**, dont un qui attend six secondes
+exprès. Les deux runs tournent sur des machines différentes (`runner_id` 1000006361 puis
+1000006365), ce qui est une piste et non une cause vérifiée. Consigné comme mesure, pas comme effet
+de ce lot.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -86,17 +91,25 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ### A1 — Matrice native Windows x64 et Linux x64 — **FAIT**
 
-**Run #59 sur `834ee13`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
-identiques — `1068 passed, 275 subtests passed` côté Core et `78 passed` côté interface, zéro échec.
-L’attestation couvre l’intégralité des **141 tests de parité** `C01`–`C06`, `C09`–`C14` et `C16`.
-**Elle ne couvre pas `C15`**, écrit après ce run ; c’est la seule dette Windows ouverte. Le run #60
-a tenté de la solder et a échoué — cause dans la sonde de toolchain d’ARET, corrigée côté test,
-voir `LOG-0321`.
+**Run #61 sur `2c6e6eb`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
+identiques — `1091 passed, 312 subtests passed` côté Core et `78 passed` côté interface, zéro échec,
+aucune occurrence de `WinError`. L’attestation couvre l’intégralité des **164 tests de parité**
+`C01`–`C06` et `C09`–`C16`. **Dette Windows soldée, `C15` compris.**
 
-C’est le premier run à **caches chauds**, et le gain tombe exactement là où il était visé : les
-bundles passent de 324 s à **162 s** sur Linux et de 336 s à **144 s** sur Windows. Restaurer le
-cache coûte 10 à 14 s de plus qu’un cache vide, le sauvegarder ne coûte plus rien quand rien n’a
-changé. Jobs complets : **7 min 14** et **11 min 55**, contre 9 min 31 et 15 min 33 au #58.
+Conformité 118 s sur Linux et 342 s sur Windows ; bundles 163 s et 152 s ; jobs complets **7 min 35**
+et **10 min 38**.
+
+**Le run #60, sur `6e48ce8`, avait échoué sur Windows**, et sa cause valait le détour : elle n’était
+ni dans VERA ni dans le test, mais dans la sonde de toolchain d’ARET, qui lance `<outil> --version`
+avec `timeout=5` et sans aucune garde — `clang --version` répond en plus de cinq secondes sur ce
+runner, et le hook entier tombe sans livrer son dossier de reprise. Voir `LOG-0321` ; l’échec est
+devenu la quatrième mesure de `C15`.
+
+**Historique du #59**, sur `834ee13` : les deux runners verts, `1068 + 275` et `78`. Premier run à
+**caches chauds**, et le gain tombe exactement là où il était visé : les bundles passent de 324 s à
+**162 s** sur Linux et de 336 s à **144 s** sur Windows. Restaurer le cache coûte 10 à 14 s de plus
+qu’un cache vide, le sauvegarder ne coûte plus rien quand rien n’a changé. Jobs complets : 7 min 14
+et 11 min 55, contre 9 min 31 et 15 min 33 au #58.
 
 **Historique du #57**, sur `29e49cc` : premier run avec la suite **parallélisée**, les deux runners
 verts, mêmes décomptes. Conformité **85 s** sur Linux contre 248 s au #56, **412 s** sur Windows
