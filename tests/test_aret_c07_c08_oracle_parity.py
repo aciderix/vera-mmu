@@ -1,12 +1,12 @@
 """Parité de `C07` (complète) et de `C08` (partielle) — les oracles d'ARET, exécutés.
 
-**`C07` est couvert en entier ; `C08` ne l'est pas, et la différence est nette.** La preuve exigée
-de `C07` — « confinement de repository/script, absence de commande arbitraire, evidence hashée,
-distinction `SKIPPED`/`PASS`, promotion `PROVEN` et gate réelle » — est mesurée dans ce fichier,
-jusqu'à faire **tourner un vrai oracle** qui rend `PASS` et promeut une connaissance en `PROVEN`.
-`C08` demande en plus « l'exécutabilité mesurée dans une image de référence » : les mesures ici ont
-lieu sur la machine hôte, pas dans l'image `docker/ci-toolchain` épinglée, et cette dimension reste
-donc ouverte.
+**Les deux couplages sont clos ; ce fichier porte tout sauf une dimension.** La preuve exigée de
+`C07` — « confinement de repository/script, absence de commande arbitraire, evidence hashée,
+distinction `SKIPPED`/`PASS`, promotion `PROVEN` et gate réelle » — est mesurée ici, jusqu'à faire
+**tourner un vrai oracle** qui rend `PASS` et promeut une connaissance en `PROVEN`. De `C08`, ce
+fichier porte trois dimensions sur quatre ; la quatrième, « l'exécutabilité mesurée dans une image
+de référence », est dans `tests/test_aret_c08_reference_image_parity.py`, parce que les mesures
+faites ici ont lieu sur la machine hôte et non dans l'image `docker/ci-toolchain` épinglée.
 
 **L'exécution réelle a un prix et des préconditions.** Elle demande `libunicorn` — que ni
 `funcdiff` ni `cpudiff` ne déclarent, voir plus bas —, une compilation Rust de la `--features
@@ -49,6 +49,12 @@ mesuré sur cette machine, la bibliothèque **installée** y est toujours décla
 **Pour `C08`, l'absence de chaîne d'outils est le fixture, pas l'obstacle** : « Core installable
 sans toolchain » et « tests `SKIPPED` explicites » se mesurent précisément parce que `wine` et
 MinGW manquent ici.
+
+**Quels tests ont besoin de quoi.** Ceux qui interrogent le dépôt toolkit ou lancent un oracle
+portent une garde de montage et se sautent en le disant ; ceux qui ne touchent qu'au store ARET
+n'en portent pas, pour qu'ils soient attestés sur les deux plateformes. Deux d'entre eux étaient
+d'abord sur-gardés et se sautaient en CI pour rien — le run #63 l'a montré en rendant sept skips
+là où deux étaient attendus.
 """
 from __future__ import annotations
 
@@ -566,8 +572,9 @@ class C07C08OracleParityTests(unittest.TestCase):
         qu'un test qui observe seulement « la promotion a échoué » ne prouve **aucune** des deux
         couches : il faut distinguer les messages, ce que les deux tests voisins font.
         """
-        toolkit = self._toolkit_with_unicorn()
-        del toolkit
+        # Aucune garde de montage : ce test ne touche ni au dépôt toolkit ni à un oracle,
+        # seulement au store ARET. Le garder derrière la garde le faisait sauter en CI pour
+        # rien, donc sans jamais être attesté sur les deux plateformes.
         with temporary_root() as root:
             store = self._aret_store(root)
             try:
@@ -603,8 +610,7 @@ class C07C08OracleParityTests(unittest.TestCase):
         ne correspond pas au fichier. Une preuve ne peut donc pas désigner un artefact qu'elle ne
         décrit pas.
         """
-        toolkit = self._toolkit_with_unicorn()
-        del toolkit  # la garde de montage suffit ; ce test ne lance aucun oracle
+        # Sans garde de montage non plus : seul le store ARET est en jeu.
         with temporary_root() as root:
             store = self._aret_store(root)
             try:
