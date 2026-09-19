@@ -33,3 +33,15 @@ composant écrivaient leur propre `CREATE TABLE component`, non `STRICT` et sans
 vérifiaient la conformité contre `aret_v1_schema_manifest()` — une déclaration VERA du schéma ARET
 que rien n’avait jamais comparée au schéma réel. Une fixture écrite d’après le contrat qu’elle sert à
 valider ne peut pas le réfuter.
+
+## Ajouts pour `C02`
+
+| Fichier | Origine | Rôle |
+|---|---|---|
+| `source/repository_reference.py` | `aret-memory/core/repository.py`, copie octet pour octet | Source dont `C02` **extrait** les faits par analyse syntaxique : précédence de résolution, lecture de l’environnement, création des répertoires |
+| `source/git_memory_reference.py` | `aret-memory/ops/git_memory.py`, copie octet pour octet | Référence du checkpoint WAL et du confinement Git |
+
+Ces deux fichiers sont volumineux — 148 Ko et 12 Ko — et c’est assumé : ils sont la seule façon de
+vérifier une déclaration de layout autrement qu’en relisant une transcription. `C02` n’en lit aucun
+texte à la main : il parcourt l’arbre syntaxique de `MemoryStore.__init__` pour en tirer les
+constantes et les appels. Une transcription fidèle ne prouverait que la fidélité de la copie.

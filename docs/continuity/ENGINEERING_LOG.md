@@ -4346,3 +4346,39 @@ n’écrirait à la main. La conformité de VERA passe dessus — elle était ju
 **Preuve.** `tests/test_aret_c05_brick_parity.py`, treize tests et trois sous-tests ; mordant vérifié
 règle par règle. Suite complète : `973 passed, 78 subtests passed`. `C05` passe de `SPLIT` à `DONE` —
 quatrième promotion.
+
+---
+
+## LOG-0309 — `C02` promu : trois resserrements prouvés plutôt qu’affirmés
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Les faits ARET sont extraits, pas transcrits.** `legacy_runtime_layout()` déclare cinq chaînes —
+`ARET_MEMORY_DIR`, `.aret-memory`, `aret_memory.sqlite`, `artifacts`, `exports` — et rien ne les
+avait jamais confrontées au code qui les porte. Le test parcourt désormais l’arbre syntaxique de
+`MemoryStore.__init__`, versionné sous `fixtures/aret_v1/source/` avec son SHA-256. Comparer une
+déclaration à une transcription n’aurait prouvé que la fidélité du copier-coller.
+
+**Trois resserrements, et il fallait montrer qu’ils sont délibérés.** ARET résout en lisant
+`os.environ["ARET_MEMORY_DIR"]` : un resolver qui consulte l’environnement global décide d’un chemin
+que l’appelant n’a pas vu passer. VERA exige un mapping fourni, et poser la variable ne déplace rien
+— mesuré en la posant. ARET **crée** ses trois répertoires : un resolver qui crée transforme une
+faute de frappe en projet vide. VERA refuse un runtime absent et ne laisse rien derrière lui.
+
+**Le troisième est une correction, pas un choix de style.** Le checkpoint WAL d’ARET ne contrôle que
+`busy`. Or déclarer `journal_mode=WAL` n’ouvre pas le WAL : tant que la connexion n’a pas lu la base,
+le pager n’en tient aucun et `wal_checkpoint` répond `(0, -1, -1)` — un succès sur rien,
+indiscernable d’un vrai repli pour qui ne regarde que `busy`. VERA lit d’abord, puis exige
+`busy == 0` **et** `log == 0`. Le mode de défaillance avait été mesuré sur un runner Linux au run
+CI #47 ; le test épingle maintenant les deux côtés, la lecture préalable comprise.
+
+**Le multi-repo a deux faces, et n’en épingler qu’une en ferait un défaut.** Mon premier test exigeait
+que deux racines différentes donnent des identités différentes. Il a échoué, et c’est l’assertion qui
+avait tort : `_workspace_hash` hache une topologie **relative à la racine du projet** —
+« portable workspace topology » — délibérément, et c’est cette portabilité qui rend le bundle de
+`C03` restaurable dans un autre checkout. Le test épingle donc les deux : deux projets déclarés
+différemment ne partagent aucune identité, et un même projet déplacé garde la sienne. ARET, lui, liait
+son store à un chemin absolu tiré de l’environnement.
+
+**Preuve.** `tests/test_aret_c02_runtime_parity.py`, douze tests et quatre sous-tests ; mordant
+vérifié règle par règle. Suite complète : `985 passed, 82 subtests passed`. `C02` passe de `SPLIT` à
+`DONE` — cinquième promotion.
