@@ -45,3 +45,13 @@ Ces deux fichiers sont volumineux — 148 Ko et 12 Ko — et c’est assumé : i
 vérifier une déclaration de layout autrement qu’en relisant une transcription. `C02` n’en lit aucun
 texte à la main : il parcourt l’arbre syntaxique de `MemoryStore.__init__` pour en tirer les
 constantes et les appels. Une transcription fidèle ne prouverait que la fidélité de la copie.
+
+## Ajouts pour `C09`, `C10` et `C11`
+
+| Fichier | Origine | Rôle |
+|---|---|---|
+| `source/mcp_server_reference.py` | `aret-memory/aret_mmu_server.py`, copie octet pour octet | Source unique des trois couplages : la doctrine statique, les 44 outils, la racine imposée |
+
+Les trois la citent et aucun ne la transcrit : `tests/aret_v1_server_reference.py` en extrait les
+outils, leurs paramètres et les constantes de module par analyse syntaxique. Une copie par couplage
+aurait divergé ; trois transcriptions de ce qu'elle fait auraient prouvé trois copier-collers.

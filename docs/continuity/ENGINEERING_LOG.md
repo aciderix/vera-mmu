@@ -4420,3 +4420,51 @@ pour une raison qui ne disait rien du test. Reprises en `WHEN 0`, elles mordent.
 **Preuve.** `tests/test_aret_c16_epistemic_parity.py`, treize tests et sept sous-tests ; mordant
 vérifié règle par règle. Suite complète : `998 passed, 89 subtests passed`. `C16` passe de `SPLIT` à
 `DONE` — sixième promotion.
+
+---
+
+## LOG-0311 — `C09`, `C10` et `C11` promus : les trois couplages du serveur MCP
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Une seule source, trois aspects.** `aret_mmu_server.py` porte la doctrine statique, les
+quarante-quatre outils écrits à la main et la racine unique imposée. Le verser une fois et l’analyser
+dans `tests/aret_v1_server_reference.py` évitait trois copies qui divergeraient — et, plus important,
+trois transcriptions de ce qu’il fait. Les outils, leurs paramètres et les constantes de module sont
+extraits par analyse syntaxique.
+
+**`C09` — la différence est de nature, pas de contenu.** `SERVER_INSTRUCTIONS` est une constante de
+module : un texte identique pour tout projet lançant ce serveur. Il ne peut pas mentir sur le projet
+qu’il décrit, parce qu’il ne le décrit pas — et c’est le problème, puisque la reprise s’appuie
+dessus. VERA compile les siennes et en publie le hash. Mesuré dans les deux sens : même projet donne
+le même hash, deux projets différents en donnent deux, et modifier le playbook le déplace. Un hash
+qui ne bouge jamais et un hash qui bouge sans raison sont deux façons de ne rien prouver.
+
+**Le test de `C09` passait d’abord pour la mauvaise raison.** Il cherchait l’identifiant du projet
+« quelque part » dans les instructions. Le contrôle de mordant l’a montré : figer l’identifiant côté
+manifeste laissait le test vert, parce que le playbook le portait aussi. L’identifiant entre par
+**deux routes** — l’en-tête `Project:` et le titre du playbook — et chacune est désormais exigée
+séparément, avec leur nombre épinglé pour qu’une route ajoutée soit revue plutôt qu’absorbée.
+
+**`C10` — le nombre d’outils n’est pas la mesure.** ARET en écrit 44, VERA en sert 47, et comparer
+les deux nombres ne dirait rien : une surface plus large peut être plus sûre si chaque outil y est
+borné. Ce qui se compare est ce que chaque surface sait dire d’elle-même. ARET ne porte aucune table
+d’accès — vérifié en cherchant `READ_ONLY`, `SENSITIVE_TOOLS`, `NETWORK_TOOLS` et `TOOL_ACCESS` dans
+sa source, tous absents ; sa seule borne est l’absence de `*args`/`**kwargs`, mesurée sur les 44.
+VERA classe les 47 de façon exhaustive et partitionnante, chaque outil sensible porte son motif, et
+la classe réseau est vide parce que le Core ne tient aucun chemin réseau.
+
+**`C11` — ne pas avoir le champ est plus fort que valider sa valeur.** ARET expose `repository_path`
+sur trois de ses 44 outils et refuse toute valeur différente de la racine configurée. VERA ne
+l’expose sur aucun des siens : zéro paramètre contenant `path`, `root`, `dir`, `file`, `repository`,
+`command`, `url` ou `cwd` — la seule exception, `direction`, est nommée et justifiée plutôt que
+silencieuse. Un garde qui compare peut être relâché d’une ligne ; un champ qui n’existe pas ne peut
+pas l’être. C’est le raisonnement de I008 déjà appliqué au champ de commande de §32.
+
+**Quatre dimensions de `C11` sont mesurées ailleurs, et citées plutôt que recopiées.** No-Git,
+multi-repo et traversal par `C02`, identité incohérente par `C16`, non-pollution par `C2`. Un test
+vérifie que ces fichiers existent : une dimension dont la preuve aurait disparu redeviendrait une
+affirmation sans support, ce que le registre interdit.
+
+**Preuve.** Trois fichiers, vingt-deux tests et cent-sept sous-tests ; mordant vérifié règle par
+règle, trois mutations invalides reprises. Suite complète : `1020 passed, 196 subtests passed`.
+**Neuf couplages sur seize sont désormais clos.**
