@@ -165,3 +165,25 @@ dans `Automatic-reverse-engineering-toolkit`, et `required_tools` est interrogé
 Ce qui en est sorti est consigné dans `LOG-0322`, dont la mesure principale : ARET dérive ses
 verdicts de la **prose** des scripts par huit expressions régulières, si bien que changer
 `functions` en `function` transforme un `PASS` en `ERROR`.
+
+## `C08` : l'image de référence, versionnée et épinglée
+
+| Fichier | Origine | Rôle |
+|---|---|---|
+| `config/ci_toolchain_reference.Dockerfile` | `docker/ci-toolchain/Dockerfile` du dépôt `Automatic-reverse-engineering-toolkit`, commit `f052541`, copie octet pour octet | L'image de référence que la preuve exigée de `C08` nomme |
+
+C'est la dernière dimension ouverte du registre : « exécutabilité mesurée dans une image de
+référence ». Toutes les mesures d'oracles faites jusqu'ici ont eu lieu sur la machine hôte ; cette
+image, épinglée à `ubuntu:24.04`, est l'environnement dans lequel `C08` demande de les refaire.
+
+Elle mérite d'être lue autant que hachée. Ses commentaires expliquent chaque épinglage plutôt que
+de le subir : `ubuntu:24.04` parce que les constantes Wine mesurées viennent de cette distribution
+et qu'une version plus récente les déplacerait en silence ; `libgd3:i386` demandé **en premier**
+parce que le résolveur apt refuse sinon l'installation de wine entière ; les polices Liberation et
+DejaVu parce qu'une `ubuntu:24.04` nue n'en embarque aucune et que les fixtures de texte
+divergeraient alors pour une raison d'environnement, pas pour un défaut d'ARET.
+
+Et elle se termine par un **smoke check à la construction** — `gcc -m32`, MinGW, `pkg-config
+unicorn`, SDL2 i386, wine, z3, clang, Xvfb. Une image incomplète échoue bruyamment à la
+construction au lieu de sauter des oracles en silence à l'exécution. C'est exactement la discipline
+que `C08` réclame, et c'est à porter au crédit d'ARET.
