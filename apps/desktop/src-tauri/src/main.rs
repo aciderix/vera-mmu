@@ -21,7 +21,7 @@ impl BridgeExecutable {
     fn command(&self) -> Result<Command, String> {
         match self {
             Self::Source(root) => {
-                let mut command = Command::new("python3");
+                let mut command = Command::new(python_executable()?);
                 command.arg("-m").arg("vera_mmu.desktop_bridge").env("PYTHONPATH", root.join("src"));
                 Ok(command)
             }
@@ -33,6 +33,66 @@ impl BridgeExecutable {
             }
         }
     }
+}
+
+/// Interpréteurs essayés pour lancer le bridge en mode développement, dans l’ordre.
+///
+/// `python3` d’abord parce que c’est le nom juste sur Linux et macOS ; `python` ensuite parce que
+/// c’est le seul qui existe sur une installation Windows ordinaire — et que `python3` y est
+/// souvent un alias du Microsoft Store qui se lance puis quitte aussitôt, ce qui ne se distingue
+/// d’un bridge muet que par la sonde ci-dessous.
+const PYTHON_CANDIDATES: [&str; 2] = ["python3", "python"];
+
+/// Variable d’échappement pour désigner un interpréteur précis (venv, build matriciel, CI).
+const PYTHON_VARIABLE: &str = "VERA_PYTHON";
+
+/// Résout, une fois, un interpréteur Python qui répond réellement.
+///
+/// **Le défaut que ceci corrige.** `Command::new("python3")` était codé en dur. Sous Windows
+/// l’exécutable s’appelle `python`, et `python3` y désigne fréquemment l’alias du Microsoft Store :
+/// le processus démarre et meurt sans lire son entrée, si bien que l’appelant reçoit « Lecture
+/// bridge impossible. » — un bridge qui se tait, pas un interpréteur introuvable. Le diagnostic
+/// pointait donc à côté de la cause. Mesuré sur le runner Windows de la CI, où ce chemin n’avait
+/// jamais tourné faute de `cargo test` dans le workflow.
+///
+/// Sonder plutôt que deviner : un nom qui existe dans le PATH ne prouve pas qu’il exécute du
+/// Python, et c’est précisément ce que l’alias Windows rend faux.
+fn python_executable() -> Result<String, String> {
+    use std::sync::OnceLock;
+    static RESOLVED: OnceLock<Option<String>> = OnceLock::new();
+    RESOLVED
+        .get_or_init(|| {
+            let declared = std::env::var(PYTHON_VARIABLE).ok().filter(|value| !value.trim().is_empty());
+            declared
+                .into_iter()
+                .chain(PYTHON_CANDIDATES.iter().map(|item| item.to_string()))
+                .find(|candidate| runs_python(candidate))
+        })
+        .clone()
+        .ok_or_else(|| {
+            format!(
+                "Aucun interpréteur Python utilisable : essayés {}. Poser {PYTHON_VARIABLE} pour en désigner un.",
+                PYTHON_CANDIDATES.join(", ")
+            )
+        })
+}
+
+/// Vérifie qu’un nom exécute bien du Python 3, plutôt que d’exister dans le PATH.
+///
+/// La sonde exige une **sortie** que seul un interpréteur produirait, et non un simple code de
+/// retour nul. Une première version se contentait du code de sortie, et son propre test l’a mise
+/// en défaut : `echo` ignore ses arguments et sort en 0, donc passait pour un interpréteur. Un
+/// alias qui démarre et quitte proprement aurait été accepté de la même manière — c’est-à-dire le
+/// cas même que cette fonction existe pour écarter.
+fn runs_python(candidate: &str) -> bool {
+    Command::new(candidate)
+        .arg("-c")
+        .arg("import sys; sys.stdout.write(str(sys.version_info[0]))")
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .output()
+        .map(|output| output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "3")
+        .unwrap_or(false)
 }
 
 struct BridgeSession {
@@ -676,13 +736,43 @@ mod tests {
         assert_eq!(PROJECT_ROOT_VARIABLE, "VERA_MMU_PROJECT_ROOT");
     }
 
+    /// La résolution de l'interpréteur, mesurée sur ses trois cas.
+    ///
+    /// Sans ce test, le correctif ne serait vérifié que par un runner Windows — c'est-à-dire
+    /// jamais localement, et une fois par run ailleurs.
+    #[test]
+    fn the_bridge_resolves_a_python_that_actually_runs() {
+        // Un interpréteur est trouvé sur cette machine, et il exécute réellement du Python.
+        let resolved = python_executable().expect("un interpréteur Python doit être résolu");
+        assert!(runs_python(&resolved), "l’interpréteur résolu doit exécuter du Python");
+
+        // La sonde distingue « exécute du Python » de « existe dans le PATH » : c'est toute la
+        // différence entre un vrai interpréteur et l'alias Windows qui démarre puis quitte.
+        assert!(!runs_python("vera-interpreteur-inexistant"), "un nom absent ne doit pas passer");
+        assert!(!runs_python("echo"), "un exécutable qui n’est pas Python ne doit pas passer");
+
+        // Et les deux noms essayés restent ceux que les trois plateformes utilisent.
+        // Comparé comme tranche : réduire la liste doit faire tomber une assertion, pas
+        // produire une erreur de type que l'on pourrait prendre pour un simple refus de compiler.
+        assert_eq!(PYTHON_CANDIDATES.as_slice(), ["python3", "python"].as_slice());
+    }
+
     #[test]
     fn debug_bridge_command_is_bound_to_the_vera_core_source() {
         let source = Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(3).expect("VERA root").to_path_buf();
         let command = BridgeExecutable::Source(source).command().expect("debug bridge command");
         #[cfg(debug_assertions)]
         {
-            assert_eq!(command.get_program(), "python3");
+            // L'interpréteur n'est plus épinglé par son nom mais par ce qu'il fait : `python3`
+            // sur Linux et macOS, `python` sur Windows où le premier n'existe pas. Épingler la
+            // chaîne aurait rendu le test vert là où le bridge ne démarre pas, et rouge là où il
+            // démarre — exactement l'inverse de son objet.
+            let program = command.get_program().to_string_lossy().into_owned();
+            assert!(
+                PYTHON_CANDIDATES.contains(&program.as_str()) || std::env::var(PYTHON_VARIABLE).is_ok(),
+                "interpréteur inattendu : {program}"
+            );
+            assert!(runs_python(&program), "l’interpréteur retenu doit exécuter du Python");
             let arguments = command.get_args().map(|item| item.to_string_lossy()).collect::<Vec<_>>();
             assert_eq!(arguments, ["-m", "vera_mmu.desktop_bridge"]);
             let python_path = command
