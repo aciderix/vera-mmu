@@ -157,6 +157,140 @@
       "title": "x87 et flottants"
     }
   ],
+  "function_symbol_columns": [
+    [
+      "id",
+      "TEXT",
+      true,
+      true,
+      null
+    ],
+    [
+      "component_id",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "module",
+      "TEXT",
+      true,
+      false,
+      "''"
+    ],
+    [
+      "symbol",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "calling_convention",
+      "TEXT",
+      true,
+      false,
+      "''"
+    ],
+    [
+      "created_at",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "created_by",
+      "TEXT",
+      true,
+      false,
+      null
+    ]
+  ],
+  "function_symbol_rows": [
+    {
+      "calling_convention": "cdecl",
+      "component_id": "EH",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "EH:msvcrt!_EH_prolog3_GS",
+      "module": "msvcrt",
+      "symbol": "_EH_prolog3_GS"
+    },
+    {
+      "calling_convention": "cdecl",
+      "component_id": "EH",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "EH:msvcrt!__except_handler3",
+      "module": "msvcrt",
+      "symbol": "__except_handler3"
+    },
+    {
+      "calling_convention": "cdecl",
+      "component_id": "EH",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "EH:msvcrt!_except_handler4_common",
+      "module": "msvcrt",
+      "symbol": "_except_handler4_common"
+    },
+    {
+      "calling_convention": "cdecl",
+      "component_id": "HLE",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "HLE:msvcrt!wcscat_s",
+      "module": "msvcrt",
+      "symbol": "wcscat_s"
+    },
+    {
+      "calling_convention": "stdcall",
+      "component_id": "HLE",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "HLE:user32!GetSysColor",
+      "module": "user32",
+      "symbol": "GetSysColor"
+    },
+    {
+      "calling_convention": "unknown",
+      "component_id": "LIFT",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "LIFT:winmerge!sub_470022",
+      "module": "winmerge",
+      "symbol": "sub_470022"
+    },
+    {
+      "calling_convention": "unknown",
+      "component_id": "LIFT",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "LIFT:winmerge!sub_85fd18",
+      "module": "winmerge",
+      "symbol": "sub_85fd18"
+    },
+    {
+      "calling_convention": "unknown",
+      "component_id": "LIFT",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "LIFT:winmerge!sub_867436",
+      "module": "winmerge",
+      "symbol": "sub_867436"
+    },
+    {
+      "calling_convention": "cdecl",
+      "component_id": "X87",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "id": "X87:msvcrt!_ftol2",
+      "module": "msvcrt",
+      "symbol": "_ftol2"
+    }
+  ],
   "function_symbols": {
     "EH": 3,
     "HLE": 2,

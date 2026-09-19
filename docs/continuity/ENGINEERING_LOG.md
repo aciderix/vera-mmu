@@ -4258,3 +4258,48 @@ part. Exact, mais jamais vérifié jusqu’ici.
 `SPLIT` à `DONE` — deuxième promotion du registre.
 
 **Ce que cette promotion ne dit pas :** rien sur les quatorze autres couplages.
+
+---
+
+## LOG-0307 — `C04` promu, et le premier test de parité qui trouve un défaut au lieu de le confirmer
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**L’unicité d’ARET ne franchissait pas la frontière.** Le schéma garantit
+`UNIQUE(component_id, module, symbol)`. La projection fabriquait son identifiant en joignant les
+trois par `-`, or `_SAFE` admet `-` **dans** les composantes. Trois familles de triplets distincts
+produisaient donc le même identifiant VERA : séparateur dans le module contre dans le symbole
+(`("a-b","c")` et `("a","b-c")`), module vide contre module nommé `root`, séparateur dans le
+composant contre dans le module. L’import aurait soit échoué sur une collision, soit écrasé une
+ligne par l’autre.
+
+**Latent, pas théorique.** Aucune des neuf lignes réelles ne le déclenche — pas un tiret, pas un
+module vide. Mais `module` vaut `''` **par défaut dans le schéma ARET lui-même**, ce qui rend la
+deuxième famille inévitable dès qu’une ligne sans module apparaît. C’est le genre de défaut qui
+attend la migration pour se manifester.
+
+**La correction ne déplace que les cas ambigus.** La projection échappe le séparateur en `%2D`. Sur
+le corpus réel les identifiants sont inchangés, et un seul test existant a dû bouger : celui qui
+épinglait `aret-symbol--CMP-001-core-alpha` pour un composant dont l’identifiant contient justement
+le séparateur — l’illustration exacte du défaut.
+
+**Une protection morte, retirée puis remplacée par une règle vivante.** Le premier échappement
+traitait aussi `%`. Le contrôle de mordant l’a trouvé muet : `_SAFE` interdit déjà `%` dans une
+composante, donc cette branche était inatteignable. Plutôt que de la garder pour le principe, elle
+est retirée et la dépendance est épinglée — un test vérifie que `_SAFE` ne peut pas admettre le
+marqueur d’échappement. Élargir `_SAFE` fait désormais tomber une règle au lieu de rouvrir la
+collision en silence.
+
+**Les quatre autres dimensions.** Import exact : la chaîne structurelle entière pilotée depuis la
+source réelle, `9 symboles` écrits après leurs `17 composants` — les tests existants fabriquaient
+préflight, conformité et projection à la main. Relations vers entité : chaque parent projeté est une
+entité déclarée. Lecteur V1 : les neuf lignes rendues à l’identique, pagination terminée. Rollback :
+une collision introduite **après** l’autorisation — ce qu’aucun contrôle préalable ne peut voir —
+annule la page entière ; neuf moins un ne donne pas huit lignes de plus.
+
+**Les fixtures de parité sont désormais partagées.** `tests/aret_v1_baseline.py` porte l’unique
+façon de bâtir une source ARET V1 : exécuter le DDL réel, puis peupler des vraies lignes. Deux
+fixtures divergentes seraient pires qu’une, et c’est exactement le défaut que `C03` a fermé.
+
+**Preuve.** `tests/test_aret_c04_function_symbol_parity.py`, onze tests et six sous-tests ; mordant
+vérifié règle par règle. Suite complète : `960 passed, 75 subtests passed`. `C04` passe de `SPLIT` à
+`DONE` — troisième promotion.

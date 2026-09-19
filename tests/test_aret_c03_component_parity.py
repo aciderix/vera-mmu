@@ -28,140 +28,20 @@ from pathlib import Path
 import sqlite3
 import unittest
 
-from vera_mmu.bundles import BundleService, project_bundle_path, restore_bundle
-from vera_mmu.identity import load_profile
-from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
-from vera_mmu.store import MemoryStore
-from vera_mmu.domain_packs.aret.component_authorized_import import (
-    authorize_aret_v1_component_import,
-    import_authorized_aret_v1_component_entities,
-)
-from vera_mmu.domain_packs.aret.component_entity_projection import project_aret_v1_component_entities
-from vera_mmu.domain_packs.aret.component_import_preflight import component_import_preflight
 from vera_mmu.domain_packs.aret.component_reader import read_aret_v1_component_page
-from vera_mmu.domain_packs.aret.component_target_collision import check_aret_v1_component_target_clear
-from vera_mmu.domain_packs.aret.import_preparation import component_import_preparation
 from vera_mmu.domain_packs.aret.component_schema_conformance import _EXPECTED_COMPONENT_COLUMNS
 from vera_mmu.domain_packs.aret.schema import aret_v1_schema_manifest
-from vera_mmu.domain_packs.aret.sqlite_schema import AretV1SchemaSnapshotInspection
 
-
-FIXTURES = Path(__file__).resolve().parent / "fixtures" / "aret_v1"
-SCHEMA_DIR = FIXTURES / "schema"
-BASELINE = json.loads((FIXTURES / "baseline_components.json").read_text(encoding="utf-8"))
-
-#: Les tables FTS que SQLite crée pour `knowledge_fts`; elles ne sont pas des tables applicatives.
-FTS_MARKER = "_fts"
-
-
-def _build_source(path: Path) -> sqlite3.Connection:
-    """Construire une source ARET V1 en exécutant son propre DDL, jamais un `CREATE TABLE` réécrit.
-
-    C'est la différence qui fait de ce fichier un test de parité : la fixture n'est plus l'idée que
-    VERA se fait du schéma ARET, mais le schéma qu'ARET applique réellement.
-    """
-    connection = sqlite3.connect(path)
-    for migration in sorted(SCHEMA_DIR.glob("*.sql")):
-        connection.executescript(migration.read_text(encoding="utf-8"))
-    connection.executemany(
-        "INSERT INTO component(id, title, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
-        [
-            (item["id"], item["title"], item["description"], item["created_at"], item["created_by"])
-            for item in BASELINE["components"]
-        ],
-    )
-    connection.commit()
-    return connection
-
-
-BUNDLE_ID = "c03-parity-bundle"
-PROJECT_ID = "c03-parity"
-
-
-def _source_root(root: Path) -> Path:
-    """Matérialiser une source ARET V1 complète sous une racine, prête pour le lecteur."""
-    source = (root / "aret-memory").resolve()
-    database = source / ".aret-memory" / "aret_memory.sqlite"
-    database.parent.mkdir(parents=True)
-    _build_source(database).close()
-    return source
-
-
-def _project(root: Path, name: str) -> Path:
-    """Un projet VERA complet : le bundle exige un catalogue de policies, pas un profil minimal."""
-    target = root / name
-    target.mkdir(parents=True, exist_ok=True)
-    preview = preview_project_initialization(
-        target, template="software", project_id=PROJECT_ID, project_name="C03 parity"
-    )
-    apply_project_initialization(target, preview, confirm=True)
-    return target / ".vera-mmu" / "project.yaml"
-
-
-def _entities(store: MemoryStore) -> list[tuple[str, str, str, str]]:
-    return [tuple(row) for row in store.connection.execute(
-        "SELECT id, type_id, title, description FROM entity ORDER BY id"
-    )]
-
-
-def _import_real_components(root: Path):
-    """Piloter la chaîne d'import entière depuis la source réelle, et rendre ce qu'elle a écrit."""
-    source = _source_root(root)
-    database = source / ".aret-memory" / "aret_memory.sqlite"
-    profile_path = _project(root, "project")
-    manifest = aret_v1_schema_manifest()
-    inspection = AretV1SchemaSnapshotInspection(
-        source_path=database,
-        source_snapshot_sha256=sha256(database.read_bytes()).hexdigest(),
-        migration_versions=manifest.migration_versions,
-        application_tables=manifest.application_tables,
-    )
-    with MemoryStore.open(load_profile(profile_path), profile_path) as store:
-        page = read_aret_v1_component_page(
-            source_root=source, schema_inspection=inspection, after_id=None, limit=100
-        )
-        preparation = component_import_preparation(
-            target_identity=store.identity,
-            source_snapshot_sha256=inspection.source_snapshot_sha256,
-            request_id="c03-parity-request",
-            requested_by="parity",
-        )
-        preflight = component_import_preflight(
-            preparation=preparation,
-            schema_inspection=inspection,
-            source_page=page,
-            preflight_id="c03-parity-page",
-            confirmed_by="parity",
-        )
-        projection = project_aret_v1_component_entities(preflight=preflight, source_page=page)
-        clear = check_aret_v1_component_target_clear(projection=projection, target_store=store)
-        authorization = authorize_aret_v1_component_import(
-            preflight=preflight,
-            projection=projection,
-            target_clear_check=clear,
-            authorization_id="c03-parity-auth",
-            authorized_by="parity",
-        )
-        result = import_authorized_aret_v1_component_entities(
-            authorization=authorization,
-            preflight=preflight,
-            projection=projection,
-            target_clear_check=clear,
-            target_store=store,
-        )
-        return _entities(store), result
-
-
-def _bundle_round_trip(root: Path) -> list[tuple[str, str, str, str]]:
-    """Exporter la mémoire importée, la restaurer ailleurs, et rendre ce qui a survécu."""
-    profile_path = root / "project" / ".vera-mmu" / "project.yaml"
-    with MemoryStore.open(load_profile(profile_path), profile_path) as store:
-        BundleService(store).export(BUNDLE_ID, confirm=True)
-        bundle_path = project_bundle_path(store, BUNDLE_ID)
-    restored_profile = _project(root, "restored")
-    restore_bundle(bundle_path, restored_profile, confirm=True)
-    with MemoryStore.open(load_profile(restored_profile), restored_profile) as store:
-        return _entities(store)
+from tests.aret_v1_baseline import (
+    BASELINE,
+    schema_inspection,
+    FIXTURES,
+    SCHEMA_DIR,
+    FTS_MARKER,
+    build_source,
+    bundle_round_trip,
+    import_real_components,
+)
 
 
 class AretC03ComponentParityTests(unittest.TestCase):
@@ -234,7 +114,7 @@ class AretC03ComponentParityTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "aret_memory.sqlite"
-            connection = _build_source(path)
+            connection = build_source(path)
             try:
                 rows = [
                     dict(zip(("id", "title", "description", "created_at", "created_by"), row))
@@ -255,7 +135,7 @@ class AretC03ComponentParityTests(unittest.TestCase):
         self.assertEqual(len(identifiers), len(set(identifiers)))
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "aret_memory.sqlite"
-            connection = _build_source(path)
+            connection = build_source(path)
             try:
                 first = BASELINE["components"][0]
                 with self.assertRaises(sqlite3.IntegrityError):
@@ -294,15 +174,9 @@ class AretC03ComponentParityTests(unittest.TestCase):
             root = (Path(directory) / "aret-memory").resolve()
             path = root / ".aret-memory" / "aret_memory.sqlite"
             path.parent.mkdir(parents=True)
-            _build_source(path).close()
+            build_source(path).close()
 
-            manifest = aret_v1_schema_manifest()
-            inspection = AretV1SchemaSnapshotInspection(
-                source_path=path,
-                source_snapshot_sha256=sha256(path.read_bytes()).hexdigest(),
-                migration_versions=manifest.migration_versions,
-                application_tables=manifest.application_tables,
-            )
+            inspection = schema_inspection(path)
             collected: list[str] = []
             cursor: str | None = None
             for _ in range(20):  # borne de sûreté : une pagination qui boucle doit échouer, pas tourner
@@ -329,7 +203,7 @@ class AretC03ComponentParityTests(unittest.TestCase):
         import tempfile
 
         with tempfile.TemporaryDirectory() as directory:
-            entities, result = _import_real_components(Path(directory))
+            entities, result = import_real_components(Path(directory))
 
         self.assertEqual(result.imported_entity_count, 17)
         self.assertEqual(result.import_state, "IMPORTED_NO_PROMOTION")
@@ -338,7 +212,7 @@ class AretC03ComponentParityTests(unittest.TestCase):
         self.assertEqual([(row[0], row[2], row[3]) for row in entities], expected)
         self.assertEqual({row[1] for row in entities}, {"component"})
 
-    def test_imported_components_survive_a_bundle_round_trip(self) -> None:
+    def test_imported_components_survive_abundle_round_trip(self) -> None:
         """Sixième dimension exigée par le registre : export puis import de bundle.
 
         Une mémoire qui perdrait ses entités importées au passage d'un bundle rendrait l'import
@@ -348,8 +222,8 @@ class AretC03ComponentParityTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            before, _ = _import_real_components(root)
-            after = _bundle_round_trip(root)
+            before, _ = import_real_components(root)
+            after = bundle_round_trip(root)
 
         self.assertEqual(len(after), 17)
         self.assertEqual(before, after)

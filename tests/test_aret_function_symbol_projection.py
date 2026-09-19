@@ -26,7 +26,10 @@ def test_function_symbol_projection_is_deterministic_and_preserves_source_fields
         request_id="m4-b-symbol-projection",
     )
     draft = result.drafts[0]
-    assert draft.target_identifier == "aret-symbol--CMP-001-core-alpha"
+    # `CMP-001` porte le séparateur du triplet. L'identifiant l'échappe, sans quoi ce composant
+    # serait indistinguable d'un `CMP` dont le module commencerait par `001-` : voir
+    # `tests/test_aret_c04_function_symbol_parity.py`, qui épingle les trois familles de collision.
+    assert draft.target_identifier == "aret-symbol--CMP%2D001-core-alpha"
     assert draft.owner_entity_id == "aret-component--CMP-001"
     assert draft.kind == "FUNCTION"
     assert draft.path == "core"

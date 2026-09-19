@@ -1,6 +1,8 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — `C04` promu `DONE`, après correction d’un défaut d’unicité qu’il a
+révélé : la projection de symbole perdait la garantie `UNIQUE` d’ARET. Trois couplages clos sur seize.
 **Révisé le :** 2026-09-19 — `C03` promu `DONE` : ses six dimensions sont mesurées contre le DDL réel
 d’ARET et les vraies lignes de la baseline. Deux couplages clos sur seize.
 **Révisé le :** 2026-09-18 — `C01` promu `DONE` : première ligne mère du registre de découplage à
@@ -15,7 +17,7 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `949 passed, 69 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
+**Suite :** `960 passed, 75 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
 Linux x64 et Windows x64** au run `desktop-packaging.yml` #49 sur `9861450`, avec des chiffres
 identiques des deux côtés. Plus aucun écart entre ce qui est affirmé et ce qui est mesuré.
 
@@ -468,7 +470,7 @@ preview, pas seulement dans son refus.
 
 ## C. Ce qui décide de ce que le produit a le droit de dire de lui-même
 
-### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 2/16**
+### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 3/16**
 
 **Le diagnostic précédent était faux, et c’est mesuré.** Ce document affirmait que « le blocage est
 matériel » et qu’il fallait la chaîne d’outils ARET réelle. C’est vrai pour **deux** couplages sur
@@ -498,12 +500,19 @@ servaient à valider. Une fixture écrite d’après un contrat ne peut pas le r
 douze couplages restants est donc : **la source de test se construit avec le DDL d’ARET, jamais avec
 un schéma réécrit.**
 
-**Ce que ces promotions ne disent pas :** rien sur les quatorze autres couplages. Une parité
-d’adressage et de composants n’est pas une parité ARET.
+**`C04` est promu `DONE`**, et c’est le premier couplage dont le test de parité a **trouvé un
+défaut au lieu de confirmer une conformité**. ARET garantit `UNIQUE(component_id, module, symbol)` ;
+la projection joignait les trois par `-`, admis dans les composantes, donc trois familles de triplets
+distincts produisaient le même identifiant VERA. Latent — aucune des neuf lignes réelles ne le
+déclenche — mais `module` vaut `''` par défaut dans le schéma ARET. La projection échappe désormais
+le séparateur, et les identifiants du corpus réel sont inchangés.
+
+**Ce que ces promotions ne disent pas :** rien sur les treize autres couplages. Une parité
+d’adressage, de composants et de symboles n’est pas une parité ARET.
 
 **Reste, dans l’ordre du moins cher au plus cher :**
 
-1. **Les douze couplages de nature « données et comportement »** — `C02`, `C04`–`C06`, `C09`–`C16`. Chacun
+1. **Les onze couplages de nature « données et comportement »** — `C02`, `C05`, `C06`, `C09`–`C16`. Chacun
    suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel issu
    de la baseline, et une parité dirigée. Aucune dépendance externe ; c’est du volume, pas du blocage.
 2. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire
