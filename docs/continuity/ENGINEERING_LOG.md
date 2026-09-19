@@ -4829,3 +4829,56 @@ côté Core — 355,00 s sur Linux, 885,66 s sur Windows — et `78 passed` côt
 identiques et zéro échec dans les deux journaux. `C06` est attesté sur les deux plateformes, et
 l’attestation couvre désormais l’intégralité des **133 tests de parité** `C01`–`C06`, `C09`–`C11`,
 `C13`, `C14` et `C16`.
+
+## LOG-0318 — `C12` promu : le playbook, et ce qu'on apprend quand une règle n'arrive nulle part
+**Statut : PASS mesuré sur Linux x64. À attester au prochain run.**
+
+Quatrième couplage à exécuter ARET. Son playbook réel est versé sous
+`fixtures/aret_v1/config/playbook.md`, et le chemin par défaut qu'ARET calcule —
+`Path(__file__).parents[1] / "config" / "playbook.md"` depuis `source/repository_reference.py` —
+désigne exactement cette copie. Le chargeur tourne donc sur le vrai fichier, ses cinq sections
+réelles et leurs 8 019 octets de contenu.
+
+**Le point d'accord d'abord, parce que c'est ce que `C12` protège.** Les deux moteurs tiennent le
+playbook **hors** de la mémoire canonique. Chez ARET c'est écrit dans le fichier lui-même — « il
+n'est jamais ingéré dans SQLite » — et chez VERA c'est la même règle. Les deux sont vérifiés en
+éditant le playbook puis en rehachant la base : inchangée des deux côtés. Un fichier autoré qu'on
+édite librement ne peut pas faire dériver la mémoire vivante, et c'est un bon dessin.
+
+**Premier écart : ce qui arrive quand le playbook manque.** Le chargeur d'ARET rend une liste vide ;
+le contrat de dossier signalera ensuite chaque domaine absent. VERA refuse à la compilation, et son
+module dit pourquoi : un refus « plutôt qu'une section vide », parce que les instructions générées
+ne doivent jamais laisser tomber en silence les règles qu'un projet a choisi d'imposer (I014). Les
+deux réponses se défendent ; elles ne se ressemblent pas, et le registre demandait de le mesurer.
+
+**Second écart, et c'est le plus coûteux à l'usage : le parseur d'ARET écarte en silence.** Mesuré
+en l'exécutant sur trois fichiers construits pour l'occasion — un domaine **dupliqué** voit sa
+seconde occurrence disparaître sans un mot, un titre `## PLAYBOOK_INVENTE` disparaît de même, et un
+fichier absent rend `[]`. Un auteur de playbook ne peut donc pas savoir qu'une règle qu'il vient
+d'écrire n'est arrivée nulle part. Une règle qui n'arrive nulle part n'est pas une règle.
+
+**Troisième écart : les deux bornent, mais pas au même bout.** ARET borne le **dossier assemblé** à
+12 500 octets, contrôlé après assemblage. Son fichier de playbook, lui, n'a aucune borne : la
+mention « ≤ 12 500 octets » de son en-tête est un budget adressé à l'auteur, et le chargeur ne
+mesure jamais la taille du fichier — vérifié sur le corps de la fonction, qui ne contient ni
+`MAX_BYTES`, ni `len(text)`, ni `stat()`. VERA borne le **fichier** à 65 536 octets, refusé à la
+lecture. Borner l'entrée dit quel fichier est fautif ; borner la sortie dit seulement que le total
+déborde. Relevé au passage : le contenu réel des cinq sections occupe déjà plus de la moitié du
+budget de dossier avant qu'un seul handoff n'y entre.
+
+**Quatrième écart : les empreintes ne répondent pas à la même question.** ARET hache **chaque
+section** — cinq empreintes distinctes, vérifiées — et n'expose aucune empreinte du fichier entier.
+VERA hache le fichier entier et n'a pas d'empreinte par section, n'ayant pas de sections. « Cette
+section a-t-elle changé ? » contre « ce playbook est-il celui que j'ai compilé ? » : aucune des deux
+ne remplace l'autre, et le test épingle aussi l'absence de celle que chacun n'a pas.
+
+**Injection de reprise.** ARET adresse ses sections par `playbook.md#<DOMAIN>`, ce qui permet de
+désigner une loi sans la recopier. VERA cite son playbook **verbatim** dans les instructions
+compilées — vérifié sur une ligne distinctive ajoutée exprès — et y énonce en plus ses huit lois
+Core, toutes présentes.
+
+**Preuve.** `tests/test_aret_c12_playbook_parity.py`, huit tests et dix-neuf sous-tests ; quatre
+règles VERA et trois règles ARET mutées une à une, mordant vérifié. La mutation qui ajoutait une
+sixième section au playbook réel n'a été rattrapée que par le test d'empreinte — c'est exactement
+son rôle, puisque la section ajoutée était un doublon que le parseur écarte en silence. Suite
+complète : `1068 passed, 275 subtests passed`. **Treize couplages sur seize sont désormais clos.**

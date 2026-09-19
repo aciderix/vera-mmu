@@ -96,3 +96,14 @@ Il importe `core.repository`, satisfait par la référence de dépôt déjà cha
 tourne donc contre son vrai `MemoryStore` et son vrai DDL. `PROJECT_ROOT` y est déclaré et n'est
 utilisé nulle part — vérifié sur la source entière — donc le déplacement du fichier ne change rien
 à son comportement.
+
+## `C12` : le playbook autoré
+
+| Fichier | Origine | Rôle |
+|---|---|---|
+| `config/playbook.md` | `aret-memory/config/playbook.md`, copie octet pour octet | Les cinq domaines réels, chargés et analysés par `C12` |
+
+Il est placé sous `config/` et non sous `source/` parce que c'est là qu'ARET le cherche :
+`_playbook_path` retombe sur `Path(__file__).parents[1] / "config" / "playbook.md"`, ce qui, depuis
+`source/repository_reference.py`, désigne exactement ce fichier. Le chargeur tourne donc sur le vrai
+playbook sans qu'une seule ligne d'ARET soit adaptée.
