@@ -426,7 +426,11 @@ class AretC06CapabilityParityTests(unittest.TestCase):
 
         self.assertTrue(plan["dry_run"])
         self.assertEqual(plan["command"][0], "bash")
-        self.assertTrue(plan["command"][1].endswith("bench/gauntlet/score.sh"))
+        # Le chemin est comparé par ses **composants**, pas par une chaîne. ARET résout un `Path`
+        # et `str()` en rend la forme native : sur Windows, `…\bench\gauntlet\score.sh`, et un
+        # `endswith("bench/gauntlet/score.sh")` y est faux. Mesuré au run #54 — c'était le
+        # séparateur codé en dur dans ce test, pas un comportement d'ARET.
+        self.assertEqual(Path(plan["command"][1]).parts[-3:], ("bench", "gauntlet", "score.sh"))
 
         from pathlib import Path as _Path
 

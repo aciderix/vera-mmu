@@ -4804,3 +4804,22 @@ d'auto-arête était doublé par un `CHECK`.
 six règles VERA et trois règles ARET mutées une à une, mordant vérifié, et le test d'empreinte est
 tombé avec chaque mutation de la référence. Suite complète : `1060 passed, 256 subtests passed`.
 **Douze couplages sur seize sont désormais clos.**
+
+**Run #54 : un échec Windows, et il venait du test.** `1 failed, 1059 passed`. L'assertion sur le
+script du plan comparait une chaîne — `endswith("bench/gauntlet/score.sh")` — à un chemin qu'ARET
+résout en `Path` et rend sous sa forme native. Sur Windows c'est `…\bench\gauntlet\score.sh`, et
+la comparaison est fausse. Ni ARET ni VERA n'ont de défaut ici : le séparateur codé en dur était
+dans le test.
+
+*Corrigé* par une comparaison sur les **composants** du chemin — `Path(...).parts[-3:]` — qui est
+indépendante de la plateforme et plus précise que l'ancienne, puisqu'elle épingle trois segments
+plutôt qu'un suffixe. Vérifié dans les deux sens : `PurePosixPath` et `PureWindowsPath` rendent les
+mêmes composants, là où l'ancienne assertion rendait `False` sur la forme Windows.
+
+Le reste des tests de parité a été balayé pour la même classe d'erreur. Les autres occurrences de
+séparateur littéral — `ARET://` en `C01`, `schema/` et `runtime/artifacts/` en `C14` — portent sur
+un schéma d'adresse et sur des noms de membres ZIP, qui sont POSIX par contrat. Elles sont justes.
+
+C'est la deuxième fois que ce projet écrit un séparateur natif là où un format portable était
+attendu : au run #46 c'était le journal de migration, ici c'est un test. La leçon se répète, et
+elle est consignée aux deux endroits.
