@@ -5192,3 +5192,23 @@ côté VERA était mesuré sur une `execution` inexistante : le refus venait de 
 Corrigé en vérifiant le message, et en montrant que le même appel avec un verdict admis échoue plus
 loin et pour une autre raison. *Une propriété satisfaite par plus d'un chemin n'en prouve aucun* —
 quatrième lot où elle se présente.
+
+**Attesté au run #62 sur `ca8a2f3` : les deux runners verts**, `1105 passed, 1 skipped, 365 subtests
+passed` côté Core et `78 passed` côté interface, chiffres identiques des deux côtés, zéro échec et
+aucune occurrence de `WinError`. Les **179 tests de parité** sont couverts.
+
+**Le test sauté est attendu, et le vérifier valait mieux que le supposer.** Le check-in que j'avais
+armé demandait de consigner `1106 + 374` ; ce chiffre aurait été faux.
+`test_i013_a_missing_toolchain_yields_skipped_without_running_anything` interroge `required_tools`
+contre le vrai dépôt `Automatic-reverse-engineering-toolkit`, qui n'est pas monté sur les runners
+CI. Il porte un `skipTest` explicite pour ce cas et se saute proprement, emportant ses neuf
+sous-tests — `374 − 9 = 365`, exactement les neuf oracles. Un test qui ne peut pas mesurer ce qu'il
+annonce se saute **en le disant** ; il ne passe pas en silence.
+
+**Une mesure de durée qui doit changer la façon de lire toutes les autres.** Côté Linux l'étape de
+conformité tient entre 107 s et 120 s sur cinq runs. Côté Windows, à code de test quasi identique,
+elle donne **409 s (#58), 420 s (#59), 342 s (#61) puis 643 s (#62)** — un rapport de **1,9 entre
+les extrêmes**, avec un runner différent à chaque fois. Le `LOG-0319` parlait de 12 % de variance ;
+c'était une mesure Linux, et elle ne vaut pas pour Windows. Aucune conclusion de durée ne doit être
+tirée d'un seul run Windows, et les comparaisons Windows des entrées précédentes doivent se lire
+avec cette réserve. Les quatre mesures sont consignées telles quelles, sans cause attribuée.
