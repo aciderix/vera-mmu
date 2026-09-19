@@ -4382,3 +4382,41 @@ son store à un chemin absolu tiré de l’environnement.
 **Preuve.** `tests/test_aret_c02_runtime_parity.py`, douze tests et quatre sous-tests ; mordant
 vérifié règle par règle. Suite complète : `985 passed, 82 subtests passed`. `C02` passe de `SPLIT` à
 `DONE` — cinquième promotion.
+
+---
+
+## LOG-0310 — `C16` promu : la baseline montre I004 en train de tenir
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Le fait le plus intéressant n’est pas un défaut, c’est une confirmation.** La mémoire réelle porte
+quatre preuves, toutes `PASS` et toutes `exit_code=0`. Aucune n’est admissible, aucune ne porte de
+reçu HMAC. `KN-0011` est liée à trois d’entre elles — et n’est pas `PROVEN`. Cinq cent trente-deux
+connaissances, zéro promotion. I004 n’est donc pas une intention de conception : c’est un
+comportement observable dans des données de production, et le test part de cette situation exacte
+pour exiger que VERA la refuse pareillement.
+
+**Les deux moteurs ne placent pas la règle au même endroit, et l’exiger aurait été inventer un
+défaut.** ARET garde une colonne `knowledge.status` et la protège par `reject_unproven_insert` et
+`reject_unproven_promotion`. VERA n’a pas de statut à faire basculer : une promotion **est** une
+ligne de `knowledge_proof`, table dont le `CHECK` n’admet que `PROVEN` et que deux triggers rendent
+append-only. La vraie parité est le refus sans preuve admissible, pas la forme qu’il prend.
+
+**L’append-only d’ARET est plus étroit qu’il n’en a l’air, et c’est mesuré en exécutant son propre
+DDL.** Refusés : l’insertion directe en `PROVEN`, la promotion sans preuve admissible, la réécriture
+du contenu. **Acceptés :** la mise à jour du seul statut — par conception, c’est ainsi que
+`ACTIVE`/`SUPERSEDED` se déplacent — **et la suppression d’une connaissance**. ARET protège le
+contenu, pas l’existence ; il n’a aucun trigger de suppression. VERA refuse toute mise à jour et
+toute suppression.
+
+**Un refus arrive une couche plus tôt chez VERA.** Une evidence `FAIL` n’atteint jamais le seuil de
+promotion : `AdmissionService` n’admet qu’une evidence `PASS`, là où ARET laisse la preuve entrer en
+table et la barre au moment de promouvoir. Les deux refusent ; VERA laisse moins d’états
+intermédiaires à raisonner. Le test nomme les deux étages plutôt que de contourner la différence.
+
+**Deux mutations de contrôle invalides, corrigées.** Renommer un trigger ne le désactive pas — il
+continue de se déclencher — donc mes deux premières neutralisations d’append-only étaient muettes
+pour une raison qui ne disait rien du test. Reprises en `WHEN 0`, elles mordent.
+
+**Preuve.** `tests/test_aret_c16_epistemic_parity.py`, treize tests et sept sous-tests ; mordant
+vérifié règle par règle. Suite complète : `998 passed, 89 subtests passed`. `C16` passe de `SPLIT` à
+`DONE` — sixième promotion.

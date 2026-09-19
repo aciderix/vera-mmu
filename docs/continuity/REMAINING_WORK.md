@@ -1,6 +1,9 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — `C16` promu `DONE` : le noyau épistémique. La baseline montre I004 en
+train de tenir — quatre preuves `PASS`, aucune admissible, zéro promotion sur 532 connaissances.
+Six couplages clos sur seize.
 **Révisé le :** 2026-09-19 — `C02` promu `DONE` : trois resserrements délibérés prouvés plutôt
 qu’affirmés, dont le checkpoint WAL dont le mode de défaillance avait été mesuré au run CI #47.
 Cinq couplages clos sur seize.
@@ -22,7 +25,7 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `985 passed, 82 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
+**Suite :** `998 passed, 89 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
 Linux x64 et Windows x64** au run `desktop-packaging.yml` #49 sur `9861450`, avec des chiffres
 identiques des deux côtés. Plus aucun écart entre ce qui est affirmé et ce qui est mesuré.
 
@@ -475,7 +478,7 @@ preview, pas seulement dans son refus.
 
 ## C. Ce qui décide de ce que le produit a le droit de dire de lui-même
 
-### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 5/16**
+### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 6/16**
 
 **Le diagnostic précédent était faux, et c’est mesuré.** Ce document affirmait que « le blocage est
 matériel » et qu’il fallait la chaîne d’outils ARET réelle. C’est vrai pour **deux** couplages sur
@@ -524,12 +527,19 @@ l’état ARET est conservé sans perte, et le cycle de vie de VERA tourne sur u
 le checkpoint WAL d’ARET ne contrôle que `busy`, VERA lit d’abord puis exige aussi `log == 0`. Ce
 dernier n’est pas un choix de style — le mode de défaillance a été mesuré au run CI #47.
 
-**Ce que ces promotions ne disent pas :** rien sur les onze autres couplages. Une parité
+**`C16` est promu `DONE`**, et c'est le couplage qui portait le plus de risque : `PROVEN`, HMAC,
+append-only, audit. La baseline montre la règle **en train de tenir** — quatre preuves `PASS` et
+`exit_code=0`, toutes `admissible=0`, `KN-0011` liée à trois d'entre elles et jamais promue, zéro
+`PROVEN` sur 532 connaissances. I004 n'est donc pas une intention de conception mais un comportement
+observable en production. Mesuré au passage, en exécutant le DDL d'ARET : son append-only protège le
+**contenu** mais laisse passer la suppression d'une connaissance ; VERA refuse les deux.
+
+**Ce que ces promotions ne disent pas :** rien sur les dix autres couplages. Une parité
 d’adressage, de store, de composants, de symboles et de briques n’est pas une parité ARET.
 
 **Reste, dans l’ordre du moins cher au plus cher :**
 
-1. **Les neuf couplages de nature « données et comportement »** — `C06`, `C09`–`C16`. Chacun
+1. **Les huit couplages de nature « données et comportement »** — `C06`, `C09`–`C15`. Chacun
    suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel issu
    de la baseline, et une parité dirigée. Aucune dépendance externe ; c’est du volume, pas du blocage.
 2. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire

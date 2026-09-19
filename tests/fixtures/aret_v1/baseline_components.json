@@ -1,4 +1,23 @@
 {
+  "audit_operations": {
+    "ADD_RELATION": 47,
+    "APPEND_KNOWLEDGE": 532,
+    "ATTACH_DOCUMENT_SOURCE": 517,
+    "ATTACH_PROOF": 4,
+    "FINISH_MIGRATION_BATCH": 4,
+    "PREPARE_HANDOFF": 12,
+    "REBUILD_FTS": 4,
+    "RECORD_PROOF": 4,
+    "REGISTER_BRICK": 13,
+    "REGISTER_COMPONENT": 17,
+    "REGISTER_FUNCTION": 9,
+    "REPLACE_FRONT": 1,
+    "START_MIGRATION_BATCH": 4,
+    "SUPERSEDE_KNOWLEDGE": 1,
+    "UPDATE_BRICK": 14,
+    "UPDATE_FRONT": 10
+  },
+  "audit_total": 1193,
   "brick_columns": [
     [
       "id",
@@ -571,7 +590,83 @@
     "X87": 3
   },
   "knowledge_orphans": 0,
+  "knowledge_statuses": {
+    "ACTIVE": 50,
+    "OBSERVED": 481,
+    "SUPERSEDED": 1
+  },
+  "knowledge_total": 532,
+  "knowledge_types": {
+    "ARCHITECTURE": 10,
+    "DECISION": 4,
+    "DISCOVERY": 8,
+    "FORENSIC": 310,
+    "MEASUREMENT": 103,
+    "OBSERVATION": 66,
+    "RULE": 11,
+    "STATE": 20
+  },
   "knowledge_unlinked": 12,
+  "proof_links": [
+    {
+      "knowledge_id": "KN-0011",
+      "proof_id": "P-0002"
+    },
+    {
+      "knowledge_id": "KN-0011",
+      "proof_id": "P-0003"
+    },
+    {
+      "knowledge_id": "KN-0011",
+      "proof_id": "P-0004"
+    }
+  ],
+  "proofs": [
+    {
+      "admissible": 0,
+      "artifact_hash": "de1fa31f693f6483b71301e9228fee38d7dd31bb974b9a7d0dd34d9592508bfe",
+      "created_by": "aret-lift-fix-2026-08-24",
+      "exit_code": 0,
+      "id": "P-0001",
+      "kind": "TRANSPILEDIFF",
+      "payload_hash": "e7576ab6cb2edf403060b85b7fb0f3ba91c5ec73646ac02e450007f012f789d3",
+      "receipt_hmac": "",
+      "result": "PASS"
+    },
+    {
+      "admissible": 0,
+      "artifact_hash": "116600f53479a7c16453c26603e1bb24796dca7983bccfff79ad83ee9fcabebe",
+      "created_by": "aret-lift-fix-2026-08-24",
+      "exit_code": 0,
+      "id": "P-0002",
+      "kind": "TRANSPILEDIFF",
+      "payload_hash": "098a81f952fe2d976e6ee2e966f5cf2773dc5e6be02b6f544237b63f856b765b",
+      "receipt_hmac": "",
+      "result": "PASS"
+    },
+    {
+      "admissible": 0,
+      "artifact_hash": "9b7ab21663355ed3a5b34261434043ecac9b77e32cc54cdb19b4a44b5e7af879",
+      "created_by": "aret-lift-fix-2026-08-24",
+      "exit_code": 0,
+      "id": "P-0003",
+      "kind": "DIFFTEST",
+      "payload_hash": "a86a396514944d3853272975e6078978b15cb5c5330469c7fa7b8f9bb9411d23",
+      "receipt_hmac": "",
+      "result": "PASS"
+    },
+    {
+      "admissible": 0,
+      "artifact_hash": "159a493ce4be54889ff9940ce424127a17b5b4c41b6c3138904eddc1d44a862a",
+      "created_by": "aret-lift-fix-2026-08-24",
+      "exit_code": 0,
+      "id": "P-0004",
+      "kind": "FUNCDIFF",
+      "payload_hash": "aa371120645cf274a257a10250402583a634d3cc0d87e8194233a6cd72f8eab0",
+      "receipt_hmac": "",
+      "result": "PASS"
+    }
+  ],
   "provenance": {
     "commit": "b9511dccc811b5fc2efaf26a7a3cfc941c0e5754",
     "memory_bytes": 11280384,
@@ -586,6 +681,15 @@
       "006_pipeline_assets.sql": "0f64d08f8b3c4924d7238ad43b77e080b9f8443fe326995a09fea7b440e4eae6"
     }
   },
+  "relation_statuses": {
+    "ACTIVE": 47
+  },
+  "relation_types": {
+    "CONCERNS": 34,
+    "DERIVED_FROM": 6,
+    "SUPERSEDES": 4,
+    "VERIFIED_BY": 3
+  },
   "schema_migrations": [
     1,
     2,
@@ -593,5 +697,19 @@
     4,
     5,
     6
+  ],
+  "supersession_chain": [
+    {
+      "id": "KN-0010",
+      "status": "SUPERSEDED",
+      "supersedes_id": null,
+      "version": 1
+    },
+    {
+      "id": "KN-0011",
+      "status": "ACTIVE",
+      "supersedes_id": "KN-0010",
+      "version": 2
+    }
   ]
 }
