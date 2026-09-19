@@ -90,15 +90,20 @@ jobs:
       - name: Run desktop interface tests
         working-directory: apps/desktop
         run: pnpm test
+      - name: Build native VERA sidecar
+        run: python scripts/build_desktop_sidecar.py ${{ matrix.target }}
       # `pnpm test` ne couvre que le WebView. Le backend Tauri — qui valide la racine du projet et
       # parle au bridge — avait ses propres tests que rien n’exécutait : l’un d’eux attendait
       # encore `vera-scan-report/v1` et échouait depuis que le scanner est passé en `v2`. Un test
       # que rien ne lance ne garde rien.
+      #
+      # **Après le sidecar, pas avant.** `tauri_build` résout les ressources déclarées dès le
+      # script de build, et `binaries/vmmu-desktop-bridge-<triple>` n’existe qu’une fois le
+      # sidecar construit. Placée plus haut, l’étape échouait sur un runner neuf tout en passant
+      # en local, où un `binaries/` déjà peuplé masquait la dépendance.
       - name: Run desktop backend tests
         working-directory: apps/desktop/src-tauri
         run: cargo test --locked
-      - name: Build native VERA sidecar
-        run: python scripts/build_desktop_sidecar.py ${{ matrix.target }}
       - name: Build standalone VERA CLI archive
         run: python scripts/build_cli_bundle.py ${{ matrix.target }}
       - name: Build desktop bundles
