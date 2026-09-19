@@ -112,8 +112,22 @@ def _checkpoint(store: MemoryStore) -> dict[str, int | bool]:
 
 
 def _current_branch(repository: Path) -> str:
-    branch = _run(repository, "symbolic-ref", "--quiet", "--short", "HEAD")
-    if not branch:
+    """Resolve the branch to push, and name the one case where there is none.
+
+    `symbolic-ref --quiet` *exits* non-zero on a detached HEAD rather than printing nothing, so
+    routing it through `_run` raised a generic "Git refused symbolic-ref" and left the refusal
+    below unreachable. The call is made directly here so the diagnosis is the one that fires.
+    """
+    completed = subprocess.run(
+        ["git", "-C", str(repository), "symbolic-ref", "--quiet", "--short", "HEAD"],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=15,
+    )
+    branch = completed.stdout.strip()
+    if completed.returncode != 0 or not branch:
         raise MemorySyncError("HEAD détachée : aucune branche mémoire à pousser.")
     return branch
 

@@ -4468,3 +4468,91 @@ affirmation sans support, ce que le registre interdit.
 **Preuve.** Trois fichiers, vingt-deux tests et cent-sept sous-tests ; mordant vérifié règle par
 règle, trois mutations invalides reprises. Suite complète : `1020 passed, 196 subtests passed`.
 **Neuf couplages sur seize sont désormais clos.**
+
+## LOG-0312 — `C13` promu : la première fois que la référence ARET est **exécutée**
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Un changement de méthode, imposé par la question posée.** Les douze couplages promus avant
+celui-ci tiraient leurs faits ARET d’un arbre syntaxique : c’est la bonne lecture pour une
+constante de module, un DDL ou une signature d’outil. `C13` demande autre chose — *que fait ce code
+devant un dépôt Git réel* — et aucune lecture ne répond à cette question. `git_memory_reference.py`
+est donc chargé comme module par `tests/aret_v1_git_reference.py` et ses fonctions tournent sur de
+vrais dépôts montés pour l’occasion, à côté de celles de VERA sur les leurs. La copie versionnée
+reste la seule source : la mesure doit porter sur le fichier dont le hash est épinglé.
+
+**Le défaut trouvé dans ARET V1.** `invoke()` termine par `completed.stdout.strip()`. Appliqué à la
+sortie de `git status --porcelain=v1`, ce `.strip()` retire l’espace de tête de la **première**
+ligne quand celle-ci décrit une modification non indexée — la forme ` M chemin`. `changes()` découpe
+ensuite à position fixe (`line[3:]`), et rend un chemin amputé de son premier caractère, avec les
+deux caractères d’état décalés par-dessus le marché. `validate_scope` compare ce chemin au préfixe
+du Memory Store, ne le reconnaît pas, et conclut qu’un fichier **situé dans** la mémoire est **hors**
+de la mémoire.
+
+Le cas où cela se produit n’est pas un cas limite : c’est le cas ordinaire, la base mémoire modifiée
+en place et rien d’autre à côté. Mesuré sur un dépôt propre :
+
+- `automatic_sync` rend `refused: True`, motif « Des changements hors du Memory Store sont
+  présents : ret-memory/.aret-memory/aret_memory.sqlite » — en citant comme intrus un fichier de la
+  mémoire, privé de son `a` initial. Aucun commit n’est fait.
+- `sync_memory_only`, le point de persistance de fin de tour, filtre son périmètre avec le même
+  parseur, ne trouve donc aucun changement mémoire, et rend « Aucun changement .aret-memory/ à
+  committer » **sans erreur** pendant que la base est modifiée sur le disque. Le tour se termine sur
+  un succès apparent et une mémoire non versionnée.
+
+Le symptôme disparaît dès qu’une ligne indexée — qui commence par une lettre — passe en tête du tri :
+`.strip()` n’a plus rien à retirer et toutes les lignes se découpent correctement. Un test écrit
+avec un `git add` préalable passe donc, et ne dit rien du cas ordinaire. C’est vérifié ici aussi,
+parce qu’une explication de pourquoi personne ne l’a vu vaut mieux qu’une supposition.
+
+**Le défaut n’est pas corrigé.** La référence est une copie octet pour octet dont le hash est
+épinglé ; la réparer reviendrait à mesurer autre chose qu’ARET. Il est consigné, et le mordant des
+trois tests qui le constatent a été vérifié en le réparant temporairement : les trois tombent, et le
+test de hash tombe avec eux.
+
+**Pourquoi VERA y échappe, et ce n’est pas la chance.** Elle ne réimplémente pas le format de sortie
+de Git. Elle passe le périmètre à Git sous forme de pathspec — `git status --porcelain=v1 -- <spec>`
+— et ne lit de la réponse que son caractère vide ou non. Il n’y a pas de chemin à découper, donc pas
+de découpe à rater. Le test épingle les deux faces : le comportement (la mémoire est bien committée
+dans la situation exacte qui fait échouer ARET) et la raison (`return bool(changed)`, aucun
+`splitlines()`, aucun `line[3:]` dans la source).
+
+**La règle morte trouvée dans VERA, et corrigée.** En écrivant le cas de la HEAD détachée, le refus
+attendu est bien arrivé — avec le mauvais motif. `symbolic-ref --quiet` ne rend pas une sortie vide
+sur une HEAD détachée : il **sort en erreur**. Le refus passait donc par le gestionnaire générique
+de `_run`, et le diagnostic dédié écrit juste en dessous — « HEAD détachée : aucune branche mémoire
+à pousser » — n’était atteignable par aucun chemin. La sûreté était intacte, la lisibilité non : un
+mainteneur lisant ce code croyait à une branche qui ne s’exécutait jamais. L’appel est désormais
+fait directement et le motif exigé par le test est le diagnostic. Quatrième règle morte trouvée par
+mutation dans cette série, après les deux de `B11` et la garde de `C04`.
+
+**Les sept dimensions du registre, et ce que chacune a donné.**
+
+| Dimension | ARET, exécuté | VERA, exécuté |
+|---|---|---|
+| NoVCS | `GitMemoryError` remontée de Git lui-même | `NO_VCS` observé sans lancer de commande ; sync `REFUSED` non fatal, la mutation SQLite survit |
+| Git nominal | refuse (le défaut ci-dessus) | `COMMITTED`, périmètre `.vera-mmu` seul |
+| Hors scope | refus **global** : un fichier de code en cours suffit à ne pas persister la mémoire | commit de la mémoire, travail en cours intact — suivi **et** non suivi |
+| WAL occupé | lève, l’exception traverse `automatic_sync` | `REFUSED` dans la valeur de retour |
+| HEAD détachée | `automatic_sync` ne consulte **jamais** HEAD : il pousse le nom écrit dans le fichier de policy | aucun nom à pousser, `CURRENT` seul admis, refus nommé |
+| Refus de push | garde sur `--yes`, mais remote et branche viennent de `argv` | pas de destination à recevoir : hors `origin`/`CURRENT`, la policy est refusée avant tout commit |
+| Policy invalide | clef inconnue **silencieusement retirée**, policy acceptée | contrat fermé, `REFUSED` |
+
+Les deux points d’accord sont dits aussi — JSON illisible et `auto_push` sans `auto_commit` sont
+refusés des deux côtés — parce qu’une parité qui ne relèverait que les divergences serait un
+réquisitoire, pas une mesure.
+
+**Deux mutations invalides, reprises.** Router le diagnostic de HEAD détachée autrement laissait le
+test vert, parce que la sortie est vide dans les deux cas : la mutation juste est le retour au code
+d’avant. Et `commit -a` ne stage pas les fichiers non suivis, si bien que le test du périmètre
+passait encore ; le scénario porte désormais un fichier **suivi et modifié**, et la mutation mord.
+
+**Une mesure pour le mauvais motif, resserrée.** Le test du remote imposé cherchait le mot
+« origin » dans le motif de refus. Mesuré : le refus faute de remote contient ce mot lui aussi, donc
+le test passait sans que la policy ait rien refusé. Le scénario monte maintenant un vrai remote, et
+l’assertion porte sur la phrase de la policy et sur le fait que le dépôt distant n’a rien reçu.
+Même classe de défaut que `C09` : une propriété satisfaite par plus d’une route ne prouve aucune
+des deux.
+
+**Preuve.** `tests/test_aret_c13_git_sync_parity.py`, quatorze tests ; sept règles VERA mutées une à
+une, mordant vérifié ; le défaut ARET muté aussi. Suite complète : `1034 passed, 196 subtests
+passed`. **Dix couplages sur seize sont désormais clos.**

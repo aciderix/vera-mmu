@@ -39,7 +39,7 @@ valider ne peut pas le réfuter.
 | Fichier | Origine | Rôle |
 |---|---|---|
 | `source/repository_reference.py` | `aret-memory/core/repository.py`, copie octet pour octet | Source dont `C02` **extrait** les faits par analyse syntaxique : précédence de résolution, lecture de l’environnement, création des répertoires |
-| `source/git_memory_reference.py` | `aret-memory/ops/git_memory.py`, copie octet pour octet | Référence du checkpoint WAL et du confinement Git |
+| `source/git_memory_reference.py` | `aret-memory/ops/git_memory.py`, copie octet pour octet | Référence du checkpoint WAL et du confinement Git ; **exécutée** par `C13`, voir plus bas |
 
 Ces deux fichiers sont volumineux — 148 Ko et 12 Ko — et c’est assumé : ils sont la seule façon de
 vérifier une déclaration de layout autrement qu’en relisant une transcription. `C02` n’en lit aucun
@@ -55,3 +55,17 @@ constantes et les appels. Une transcription fidèle ne prouverait que la fidéli
 Les trois la citent et aucun ne la transcrit : `tests/aret_v1_server_reference.py` en extrait les
 outils, leurs paramètres et les constantes de module par analyse syntaxique. Une copie par couplage
 aurait divergé ; trois transcriptions de ce qu'elle fait auraient prouvé trois copier-collers.
+
+## `C13` : la même source, mais exécutée
+
+`source/git_memory_reference.py` sert deux couplages de deux façons. `C02` en lit l'arbre syntaxique
+pour épingler ce que son checkpoint WAL contrôle. `C13` le **charge comme module** — par
+`tests/aret_v1_git_reference.py` — et fait tourner ses fonctions sur de vrais dépôts Git montés pour
+l'occasion. La question de `C13` porte sur un comportement devant un dépôt réel, et aucune lecture
+de code n'y répond.
+
+C'est ce qui a fait tomber le défaut consigné dans `LOG-0312` : `invoke()` applique `.strip()` à la
+sortie entière de `git status --porcelain=v1`, `changes()` découpe ensuite à position fixe, et un
+fichier de la mémoire est déclaré hors de la mémoire. **Ce fichier ne doit pas être corrigé.** Une
+référence réparée mesurerait autre chose qu'ARET ; le test de hash tombe si on y touche, et c'est
+voulu.

@@ -1,8 +1,11 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — `C13` promu `DONE` : la synchronisation Git, et le premier couplage
+dont le test **exécute** la source ARET au lieu de la lire. Il a trouvé un défaut dans ARET V1 et
+une règle morte dans VERA. **Dix couplages clos sur seize.**
 **Révisé le :** 2026-09-19 — `C09`, `C10` et `C11` promus `DONE` : les trois couplages du serveur
-MCP d’ARET, largement préparés par la section B. **Neuf couplages clos sur seize.**
+MCP d’ARET, largement préparés par la section B. Neuf couplages clos sur seize.
 **Révisé le :** 2026-09-19 — `C16` promu `DONE` : le noyau épistémique. La baseline montre I004 en
 train de tenir — quatre preuves `PASS`, aucune admissible, zéro promotion sur 532 connaissances.
 Six couplages clos sur seize.
@@ -545,14 +548,39 @@ d’accès ; VERA en classe 47 de façon exhaustive et partitionnante. `C11` : A
 siens — ne pas avoir le champ est le refus le plus fort, il ne dépend d’aucune comparaison
 qu’on pourrait relâcher.
 
-**Ce que ces promotions ne disent pas :** rien sur les sept autres couplages. Une parité
-d’adressage, de store, de composants, de symboles et de briques n’est pas une parité ARET.
+**`C13` est promu `DONE`**, et il change la méthode. Les douze couplages précédents extrayaient
+leurs faits ARET d’un arbre syntaxique : c’était juste pour une constante, une table ou une
+signature. `C13` porte sur un **comportement** — que fait ce code devant un dépôt réel — et une
+lecture n’y répond pas. La référence versionnée est donc chargée comme module et ses fonctions
+tournent sur de vrais dépôts Git, à côté de celles de VERA.
+
+Ce que l’exécution a trouvé : **`invoke()` applique `.strip()` à la sortie entière de
+`git status --porcelain=v1`**. L’espace de tête de la première ligne disparaît, `changes()` découpe
+à position fixe, et le chemin perd son premier caractère. `validate_scope` conclut alors qu’un
+fichier **de** la mémoire est **hors** de la mémoire — dans le cas ordinaire, celui où la base est
+modifiée en place et rien d’autre. Conséquence mesurée : `automatic_sync` refuse une mémoire
+parfaitement propre, et `sync_memory_only` ne commite rien tout en annonçant « aucun changement ».
+Un `git add` préalable fait disparaître le symptôme, ce qui explique qu’aucun test ARET ne l’ait vu.
+Le défaut n’est **pas corrigé** : la référence est une copie dont le hash est épinglé, et la réparer
+reviendrait à mesurer autre chose qu’ARET. VERA y échappe par construction — elle ne réimplémente
+pas le format de sortie de Git, elle lui passe un pathspec et ne lit que le vide de la réponse.
+
+Le même test a trouvé une **règle morte dans VERA**, corrigée : `symbolic-ref --quiet` *sort en
+erreur* sur une HEAD détachée au lieu de rendre une sortie vide, si bien que le diagnostic dédié
+écrit juste en dessous n’était atteignable par aucun chemin. Le refus avait lieu ; il ne disait
+simplement pas ce qui s’était passé. C’est la quatrième règle morte trouvée par mutation dans cette
+série, après les deux de `B11` et la garde de `C04`.
+
+**Ce que ces promotions ne disent pas :** rien sur les six autres couplages. Une parité
+d’adressage, de store, de composants, de symboles, de briques et de Git n’est pas une parité ARET.
 
 **Reste, dans l’ordre du moins cher au plus cher :**
 
-1. **Les cinq couplages de nature « données et comportement »** — `C06`, `C12`–`C15`. Chacun
-   suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel issu
-   de la baseline, et une parité dirigée. Aucune dépendance externe ; c’est du volume, pas du blocage.
+1. **Les quatre couplages de nature « données et comportement »** — `C06`, `C12`, `C14`, `C15`.
+   Chacun suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel
+   issu de la baseline, et une parité dirigée. `C13` ajoute une variante au gabarit : quand la
+   question porte sur un comportement, la référence s’exécute. Aucune dépendance externe ; c’est du
+   volume, pas du blocage.
 2. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire
    `target/release/aret`, rejouer le corpus. C’est là que `MEM-WALL-001` mord vraiment, et le
    registre y note déjà `255/264` sur le corpus Wine historique.
