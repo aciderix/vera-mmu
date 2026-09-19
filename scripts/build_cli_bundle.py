@@ -12,6 +12,7 @@ import argparse
 from dataclasses import dataclass
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import platform
 import re
@@ -146,13 +147,33 @@ def canonical_json(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
 
 
-def build_binary(spec: TargetSpec, staging: Path) -> Path:
-    """Construit le seul exécutable CLI autorisé dans une zone temporaire fixe."""
+def package_data_dirs() -> tuple[Path, ...]:
+    """Énumère les répertoires de ressources non-Python que `vera_mmu` lit à l’exécution.
 
-    dist_dir = staging / "binary"
-    work_dir = ROOT / ".build" / "cli-release-work" / spec.triple
-    shutil.rmtree(work_dir, ignore_errors=True)
-    command = [
+    `--collect-submodules` ne collecte que des modules : un `.sql` n’est pas un module, et rien
+    dans la chaîne de build ne l’aurait signalé. C’est ce qui a rendu la CLI livrée inutilisable
+    dès qu’elle touchait SQLite — `init` compris, donc la remédiation que `doctor` proposait.
+    Énumérer plutôt qu’épingler une liste : un futur répertoire de ressources est embarqué sans
+    que personne ait à y penser, et le test de parité le constate.
+    """
+    package = ROOT / "src" / "vera_mmu"
+    directories = {
+        path.parent
+        for path in package.rglob("*")
+        if path.is_file() and path.suffix != ".py" and "__pycache__" not in path.parts
+    }
+    return tuple(sorted(directories))
+
+
+def pyinstaller_command(spec: TargetSpec, dist_dir: Path, work_dir: Path) -> list[str]:
+    """Compose la commande de build, séparée de son exécution pour rester mesurable."""
+
+    package = ROOT / "src" / "vera_mmu"
+    data_arguments: list[str] = []
+    for directory in package_data_dirs():
+        destination = Path("vera_mmu") / directory.relative_to(package)
+        data_arguments += ["--add-data", f"{directory}{os.pathsep}{destination.as_posix()}"]
+    return [
         sys.executable,
         "-m",
         "PyInstaller",
@@ -165,6 +186,7 @@ def build_binary(spec: TargetSpec, staging: Path) -> Path:
         str(ROOT / "src"),
         "--collect-submodules",
         "vera_mmu",
+        *data_arguments,
         "--distpath",
         str(dist_dir),
         "--workpath",
@@ -173,7 +195,15 @@ def build_binary(spec: TargetSpec, staging: Path) -> Path:
         str(work_dir / "spec"),
         str(ROOT / "scripts" / "cli_entry.py"),
     ]
-    subprocess.run(command, check=True, cwd=ROOT)
+
+
+def build_binary(spec: TargetSpec, staging: Path) -> Path:
+    """Construit le seul exécutable CLI autorisé dans une zone temporaire fixe."""
+
+    dist_dir = staging / "binary"
+    work_dir = ROOT / ".build" / "cli-release-work" / spec.triple
+    shutil.rmtree(work_dir, ignore_errors=True)
+    subprocess.run(pyinstaller_command(spec, dist_dir, work_dir), check=True, cwd=ROOT)
     binary = dist_dir / spec.binary_name
     if not binary.is_file() or binary.is_symlink():
         raise ReleaseBundleError(f"CLI native attendue absente ou ambiguë : {binary}")

@@ -648,6 +648,142 @@ def _load_installed_plan(store: MemoryStore) -> ClaudeCodeLocalPlan:
     return plan
 
 
+#: Le runner auquel `mcp_compiler` lie cet adapter ; le staging et la configuration doivent
+#: compiler le manifeste sur la même liaison, sinon le plan produit ne serait pas celui que
+#: `compile` atteste.
+CLAUDE_CODE_LOCAL_BINDING = "claude-code-local-deny-v1"
+
+
+def _local_snapshots(store: MemoryStore) -> tuple[
+    MCPManifest, MCPInstructions, MCPIntegration, MCPHookPlan, ClaudeCodeIntegrationPlan, LifecycleAdapterPlan, ClaudeCodeLocalPlan
+]:
+    """Recompile the whole attested chain the local plan is bound to, from the store alone."""
+    rows = store.connection.execute(
+        "SELECT capability_id FROM capability_policy WHERE decision = 'ALLOW' ORDER BY capability_id"
+    ).fetchall()
+    bindings = {str(row["capability_id"]): CLAUDE_CODE_LOCAL_BINDING for row in rows}
+    if not bindings:
+        raise ClaudeCodeLocalError("Aucune capability ALLOW à exposer pour Claude local.")
+    manifest = compile_mcp_manifest(store, adapter_bindings=bindings)
+    instructions = compile_mcp_instructions(store, manifest)
+    integration = compile_mcp_integration(store, manifest, instructions)
+    hooks = compile_mcp_hook_plan(store, manifest, instructions, integration)
+    review = compile_claude_code_integration_plan(store, manifest, instructions, integration, hooks)
+    lifecycle = compile_lifecycle_adapter_plan(
+        store,
+        manifest,
+        adapter_id=CLAUDE_CODE_LOCAL_ADAPTER_ID,
+        adapter_version=CLAUDE_CODE_LOCAL_ADAPTER_VERSION,
+        maximum_guard_mode=CLAUDE_CODE_LOCAL_MAXIMUM_GUARD_MODE,
+    )
+    plan = compile_claude_code_local_plan(store, manifest, instructions, integration, hooks, review, lifecycle)
+    return manifest, instructions, integration, hooks, review, lifecycle, plan
+
+
+def stage_claude_code_local_runtime(
+    store: MemoryStore, plan: ClaudeCodeLocalPlan, *, confirm: bool
+) -> ClaudeCodeLocalInstallResult:
+    """Write only the local lifecycle state, never the host settings, after confirmation.
+
+    Le staging est la moitié réversible de l’installation : il fige le plan attesté sous
+    `.vera-mmu/`, sans jamais toucher `.claude/settings.json` ni `.mcp.json`. `install` lit
+    ensuite cet état et refuse s’il diverge, si bien que stager puis installer reste cohérent.
+    """
+    if confirm is not True:
+        raise ClaudeCodeLocalError("Staging Claude local refusé sans confirmation explicite.")
+    if plan != _local_snapshots(store)[-1]:
+        raise ClaudeCodeLocalError("Plan Claude local périmé, altéré ou étranger.")
+    state_path = _installation_state_path(store)
+    existing = _read_optional_text(state_path)
+    if existing is not None and existing != plan.json_text:
+        raise ClaudeCodeLocalError("État d’installation lifecycle local divergent : refus sans écriture.")
+    if existing == plan.json_text:
+        return ClaudeCodeLocalInstallResult(
+            "UNCHANGED", _settings_target(store, create=False), _mcp_target(store), state_path, plan.plan_hash
+        )
+    _atomic_write(state_path, plan.json_text, ".vera-claude-state-")
+    return ClaudeCodeLocalInstallResult(
+        "STAGED", _settings_target(store, create=False), _mcp_target(store), state_path, plan.plan_hash
+    )
+
+
+def claude_code_local_config_main(argv: Sequence[str] | None = None) -> int:
+    """Preview, then on `--apply-project --confirm` install, the project-local Claude host config.
+
+    C’est l’entry point que `ADAPTER_CATALOG` nommait depuis le début et que personne n’avait
+    écrit : `vmmu install --adapter claude-code-local` et `vmmu configure` le routent tous deux.
+    Le contrat d’arguments est celui que `__main__` envoie — `--profile`, puis `--apply-project`
+    et `--confirm` — et il est identique aux cinq autres adapters.
+    """
+    parser = argparse.ArgumentParser(description="Configuration hôte Claude Code local VERA-MMU")
+    parser.add_argument("--profile", type=Path, required=True)
+    parser.add_argument("--apply-project", action="store_true")
+    parser.add_argument("--confirm", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        from .identity import load_profile
+
+        with MemoryStore.open(load_profile(args.profile), args.profile) as store:
+            manifest, instructions, integration, hooks, review, lifecycle, plan = _local_snapshots(store)
+            if args.apply_project:
+                result = install_claude_code_local(
+                    store, manifest, instructions, integration, hooks, review, lifecycle, plan, confirm=args.confirm
+                )
+                payload = {
+                    "ok": True,
+                    "coverage": CLAUDE_CODE_LOCAL_MAXIMUM_GUARD_MODE,
+                    "mcpPath": str(result.mcp_path),
+                    "planHash": result.plan_hash,
+                    "settingsPath": str(result.settings_path),
+                    "statePath": str(result.state_path),
+                    "status": result.status,
+                }
+            else:
+                report = inspect_claude_code_local(
+                    store, manifest, instructions, integration, hooks, review, lifecycle, plan
+                )
+                payload = {
+                    "ok": True,
+                    "checks": [{"name": name, "status": status} for name, status in report.checks],
+                    "coverage": CLAUDE_CODE_LOCAL_MAXIMUM_GUARD_MODE,
+                    "mcpPath": str(_mcp_target(store)),
+                    "planHash": plan.plan_hash,
+                    "settingsPath": str(_settings_target(store, create=False)),
+                    "statePath": str(_installation_state_path(store, create=False)),
+                    "status": "PREVIEW",
+                    "installedStatus": report.status,
+                }
+    except StoreError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, sort_keys=True))
+        return 2
+    print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    return 0
+
+
+def claude_code_local_stage_main(argv: Sequence[str] | None = None) -> int:
+    """Stage the attested local lifecycle runtime after confirmation, touching no host file."""
+    parser = argparse.ArgumentParser(description="Staging runtime Claude Code local VERA-MMU")
+    parser.add_argument("--profile", type=Path, required=True)
+    parser.add_argument("--confirm", action="store_true")
+    args = parser.parse_args(argv)
+    try:
+        from .identity import load_profile
+
+        with MemoryStore.open(load_profile(args.profile), args.profile) as store:
+            result = stage_claude_code_local_runtime(store, _local_snapshots(store)[-1], confirm=args.confirm)
+    except StoreError as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False, sort_keys=True))
+        return 2
+    print(
+        json.dumps(
+            {"ok": True, "planHash": result.plan_hash, "statePath": str(result.state_path), "status": result.status},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
 def claude_code_local_hook_main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Hook lifecycle Claude Code local VERA-MMU")
     parser.add_argument("--profile", type=Path, required=True)

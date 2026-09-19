@@ -36,12 +36,32 @@ def adapter_spec(adapter: str) -> AdapterSpec:
     return value
 
 
-def call_adapter(entry: str, args: list[str]) -> int:
+def resolve_adapter_entry(entry: str) -> object:
+    """Resolve one catalog entry point, turning every resolution failure into a StoreError.
+
+    Le catalogue ne tient que des chaînes `module:fonction`, résolues au moment de l’appel. Tant
+    que `getattr` remontait tel quel, une entrée pointant sur un nom inexistant sortait en
+    `AttributeError` — hors du tuple que `__main__` intercepte, donc en traceback brut au lieu du
+    contrat JSON `{"ok": false, "error": …}`. Une barrière qui se plante au lieu de refuser ne
+    refuse rien : c’est le cas exact mesuré sur `claude-code-local`, dont les deux entrées
+    nommaient des fonctions jamais écrites.
+    """
     module_name, function_name = entry.split(":", 1)
-    module = __import__(module_name, fromlist=[function_name])
-    function = getattr(module, function_name)
+    try:
+        module = __import__(module_name, fromlist=[function_name])
+    except ImportError as exc:
+        raise StoreError(f"Module d’adapter introuvable : {module_name}.") from exc
+    try:
+        function = getattr(module, function_name)
+    except AttributeError as exc:
+        raise StoreError(f"Entry point d’adapter absent : {entry}.") from exc
     if not callable(function):
         raise StoreError("Entry point d’adapter invalide.")
+    return function
+
+
+def call_adapter(entry: str, args: list[str]) -> int:
+    function = resolve_adapter_entry(entry)
     return int(function(args))
 
 
