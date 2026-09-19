@@ -107,3 +107,27 @@ Il est placé sous `config/` et non sous `source/` parce que c'est là qu'ARET l
 `_playbook_path` retombe sur `Path(__file__).parents[1] / "config" / "playbook.md"`, ce qui, depuis
 `source/repository_reference.py`, désigne exactement ce fichier. Le chargeur tourne donc sur le vrai
 playbook sans qu'une seule ligne d'ARET soit adaptée.
+
+## `C15` : les hooks eux-mêmes, exécutés
+
+| Fichier | Origine | Rôle |
+|---|---|---|
+| `hooks/resume_guard.py` | `aret-memory/hooks/resume_guard.py`, copie octet pour octet | La machine à états de la barrière de reprise, exécutée par `C15` |
+| `hooks/common.py` | `aret-memory/hooks/common.py`, copie octet pour octet | Transport : dégradation du dossier et contexte injecté |
+| `hooks/session_start.py` | `aret-memory/hooks/session_start.py`, copie octet pour octet | L'entrée qui arme la barrière à l'ouverture d'une session |
+| `hooks/post_compact.py` | `aret-memory/hooks/post_compact.py`, copie octet pour octet | Celle qui la réarme après une perte de contexte |
+
+`C15` porte sur des transitions, pas sur des déclarations : une barrière s'arme, refuse une action,
+se lève sur un acquittement, se réarme. Rien de cela ne se lit dans le code — chaque transition
+dépend d'un fichier d'état réel, d'un payload réel et d'un environnement réel. `tests/aret_v1_hooks_reference.py`
+charge les quatre fichiers sous leurs vrais noms d'import ; `session_start.handler` tourne alors sur
+un vrai `MemoryStore` ARET et écrit un vrai fichier d'état, que le test relit.
+
+Les dépendances se résolvent avec ce qui est déjà versionné : `common.py` importe `core.repository`,
+satisfait par la référence de `C14`, et `session_start.py` importe `evidence.adapters.pipelines`,
+satisfait par celle de `C06`. Seules des coquilles de paquet vides portent les noms intermédiaires
+`core`, `evidence` et `evidence.adapters` ; aucun code ARET n'est remplacé.
+
+Ce qui en est sorti est consigné dans `LOG-0320`. En particulier : sur une mémoire ARET **vierge**,
+le vrai `SessionStart` produit un dossier dégradé et arme en mode soft — donc un ARET fraîchement
+installé ne bloque pas dur, ce qui ne se lit nulle part.

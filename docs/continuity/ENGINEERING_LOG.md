@@ -4958,3 +4958,106 @@ pas comme fait.
 Profil Windows restant après parallélisation : conformité 412 s, bundles 341 s, installation pip
 46 s, sidecar 42 s, archive CLI 30 s. Les deux premiers postes pèsent désormais autant l'un que
 l'autre, ce qui est précisément ce que les caches ajoutés au commit suivant visent.
+
+**Le gain des caches, mesuré au run #59 contre le run #58 qui les a peuplés.** Il est réel et il
+est important, et c'est sur les bundles qu'il tombe, exactement là où il était visé :
+
+| Étape | Linux #58 (froid) | Linux #59 (chaud) | Windows #58 (froid) | Windows #59 (chaud) |
+|---|---|---|---|---|
+| Restauration `rust-cache` | 2 s | 12 s | 3 s | 17 s |
+| Installation pip | 12 s | 10 s | 29 s | 23 s |
+| Suite de conformité | 107 s | 120 s | 409 s | 420 s |
+| **Bundles desktop** | **324 s** | **162 s** | **336 s** | **144 s** |
+| Sauvegarde `rust-cache` | 9 s | 0 s | 41 s | 0 s |
+| **Job complet** | **9 min 31** | **7 min 14** | **15 min 33** | **11 min 55** |
+
+Les bundles tombent de **moitié sur Linux** et de **57 % sur Windows**. Ce que le cache coûte se lit
+aussi : sa restauration prend 10 s de plus qu'un cache vide, et sa sauvegarde ne coûte plus rien
+quand rien n'a changé. Net : −2 min 17 côté Linux, −3 min 38 côté Windows.
+
+**Une mesure incidente, et elle vaut d'être retenue pour la suite.** Entre `b91c771` et `834ee13` la
+suite n'a pas changé d'une ligne — le second commit ne touche qu'un document. Son étape de
+conformité passe pourtant de 107 s à 120 s sur Linux et de 409 s à 420 s sur Windows, soit jusqu'à
+**12 % de variation d'un run à l'autre à code identique**. Toute comparaison de durée entre deux
+runs doit s'en souvenir avant de conclure à un effet.
+
+Le parcours complet depuis le début de ce travail : Windows 21 min → 15 min 33 → **11 min 55** ;
+Linux ~13 min → 9 min 31 → **7 min 14**.
+
+## LOG-0320 — `C15` : une barrière de reprise qui disparaît quand elle est en défaut
+
+**Statut : `C15` promu `DONE`. 22 tests et 37 sous-tests, exécutés ; 18 mutations vérifiées mordantes.**
+
+Cinquième couplage à **exécuter** ARET plutôt qu'à le lire, et le premier à exécuter ses *hooks* :
+`resume_guard.py`, `common.py`, `session_start.py` et `post_compact.py` sont versionnés sous
+`tests/fixtures/aret_v1/hooks/`, épinglés par leurs empreintes, et tournent ici sur un vrai
+`MemoryStore` ARET. `session_start.handler` écrit un vrai fichier d'état, que le test relit.
+
+Le registre demandait sept dimensions — session neuve, PostCompact, mode dégradé, acquittement
+périmé, identité absente, kill-switch, Stop one-shot. Elles sont toutes couvertes, chacune posée
+aux deux moteurs sur la même situation.
+
+**Ce qu'ARET fait bien, et il faut le dire avant le reste.** Cinq choses, toutes mesurées, toutes
+reprises par VERA sans rien y retrancher :
+
+1. *Le kill-switch existe.* Son propre commentaire dit pourquoi : « une barrière ne doit jamais
+   pouvoir s'armer sans issue », et il vient d'un deadlock réellement vécu. VERA honore même le nom
+   de variable d'ARET, pour qu'un opérateur qui connaît l'un débloque l'autre.
+2. *Le mode dégradé ne bloque pas dur.* Sur une mémoire cassée, un rituel rigide sans voie de sortie
+   enferme l'agent. ARET arme quand même, injecte un contexte bruyant, et laisse passer.
+3. *L'armement a lieu dans tous les cas.* Mesuré en exécutant le vrai `SessionStart` : sur une
+   mémoire ARET vierge, le dossier est **dégradé** et la barrière s'arme malgré tout, en mode soft.
+   Un ARET fraîchement installé ne bloque donc pas dur — ce qui ne se lit nulle part dans le code.
+4. *`resume` préserve l'acquittement.* En session web ou asynchrone, `SessionStart` se redéclenche à
+   chaque tour ; réarmer rebloquerait un agent vivant à chaque échange. Les deux distinguent ce cas.
+5. *L'état reste éphémère et local.* Vérifié des deux côtés en réhachant la base après un armement
+   et un acquittement : elle ne bouge pas d'un octet.
+
+**La divergence porte sur ce qui arrive quand la barrière elle-même est en défaut**, et c'est
+exactement ce que `I014` nomme. Trois mesures du même genre :
+
+*Un état illisible désarme ARET.* `load_state` rend `None` sur un JSON corrompu comme sur un état de
+version 2, et `decision` rend alors `None` : aucune décision, donc aucun blocage. La barrière
+disparaît précisément là où elle devait tenir. `_read_existing` de VERA lève, et `precheck` refuse.
+
+*Un état acquitté se transplante entre mémoires ARET.* Sa clef est `sha256(identité)[:24]`, sans
+aucune identité de projet : le même fichier, copié dans une autre mémoire, y est **lu, accepté et
+acquitté**. Le test le vérifie sur le contenu relu, pas seulement sur la décision — un état rejeté
+y laisserait aussi passer l'action, et la distinction compte. Côté VERA, quatre couches (nom de
+fichier, `sessionStateKey`, `projectId`/`projectHash`, `profileHash`) sont isolées **en réparant
+toutes les autres**, si bien qu'aucune n'est créditée du travail d'une voisine.
+
+*L'emplacement de l'état suit le payload.* Les wrappers d'ARET lisent `payload["memory_dir"]` avant
+l'environnement : un payload nommant un autre répertoire ne trouve pas d'état, et la barrière laisse
+passer. Celui de VERA se dérive du store déjà lié au projet (`I008`). Le payload d'un hook vient du
+hôte et non du client : ceci mesure un chemin d'entrée, pas un exploit constaté, et c'est écrit ainsi.
+
+**Trois écarts de plus, plus petits mais nets.** ARET tronque un récapitulatif à 4000 caractères et
+enregistre l'acquittement comme complet — l'agent croit avoir déposé ce qu'il a écrit ; VERA refuse.
+Les six volets d'ARET et leurs minimums sont des constantes de module ; le contrat de VERA est
+déclaré par le projet et **inclus dans l'empreinte du dossier**, donc changer un minimum invalide
+l'acquittement précédent sans toucher au moteur. Enfin ARET ne laisse aucune trace durable de son
+rituel, là où VERA écrit deux lignes d'audit.
+
+**Un accord qui n'est pas gratuit, et qui vaut pour les deux.** `resume` / `RESUME` préserve
+l'acquittement *et adopte le nouveau hash de contrat* : un acquittement du contrat A vaut donc pour
+le contrat B. Mesuré des deux côtés. Cela n'oppose pas les moteurs et ce n'est pas un défaut de
+l'un d'eux, mais ce n'est pas rien, et le test l'épingle plutôt que de le passer sous silence.
+
+**Un défaut de VERA trouvé par ce lot, et corrigé.** `precheck` consultait le kill-switch **après**
+avoir lu l'état : sur un état illisible, la voie de sortie documentée ne fonctionnait plus — le cas
+où l'opérateur en a le plus besoin. Le kill-switch est désormais consulté en premier, comme chez
+ARET, et l'issue reste tracée (`ALLOW_WITH_NOTICE` porte sa raison, ce n'est jamais un laisser-passer
+muet). Aucun test existant ne couvrait ce croisement ; c'est la comparaison qui l'a trouvé.
+
+**Trois mutations sont d'abord revenues inertes, et chacune disait la même chose.** Un test qui
+passe pour une autre raison que celle qu'il annonce. (1) L'isolation des couches de VERA réparait en
+cascade : retirer la liaison de projet laissait la couche « profil » refuser à sa place — corrigé en
+réparant toutes les autres couches et en laissant une seule étrangère. (2) La sentinelle symlinkée
+pointait vers un fichier absent, donc `exists()` suffisait à la refuser : la mauvaise règle était
+prouvée — corrigé en la faisant pointer vers un fichier bien réel. (3) La transplantation ARET
+n'observait que la décision, or un état rejeté y laisse passer autant qu'un état accepté — corrigé
+en observant l'état relu. C'est la même classe de défaut que `C09`, `C14` et `C06` avaient déjà
+rencontrée : *une propriété satisfaite par plus d'un chemin n'en prouve aucun.*
+
+Suite : `1090 passed, 312 subtests passed`. Quatorze couplages sur seize sont clos.

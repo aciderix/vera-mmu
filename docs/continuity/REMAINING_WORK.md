@@ -1,6 +1,13 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — `C15` promu `DONE` : la barrière de reprise, et le premier couplage
+dont le test exécute les **hooks** d’ARET. Un état illisible la fait disparaître chez ARET là où
+VERA refuse ; un état acquitté se transplante entre mémoires. **Quatorze couplages clos sur seize**,
+et il ne reste que `C07`/`C08`, bloqués sur une chaîne d’outils absente.
+**Révisé le :** 2026-09-19 — run #59 sur `834ee13` : les deux runners verts, caches chauds. Les
+bundles tombent de 324 s à 162 s sur Linux et de 336 s à 144 s sur Windows. Job complet : 7 min 14
+et 11 min 55.
 **Révisé le :** 2026-09-19 — run #57 sur `29e49cc` : premier run parallélisé, les deux runners
 verts. Conformité 248 s → 85 s sur Linux, 696 s → 412 s sur Windows.
 **Révisé le :** 2026-09-19 — run #56 sur `e2dbdfb` : les deux runners verts, `1068 + 275` et `78`.
@@ -49,14 +56,19 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1068 passed, 275 subtests passed` côté Core et `78 passed` côté interface, **attestés
-sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #57 sur `29e49cc`, chiffres identiques
-des deux côtés et zéro échec. L’attestation couvre l’intégralité des **141 tests de parité**
-`C01`–`C06` et `C09`–`C16`. Aucune dette Windows ouverte.
-**Durée :** en local, **76 s** sur quatre cœurs (`-n auto --dist loadfile`) contre 261 s en série —
-décomptes identiques, cinq passages stables. En CI au run #57 : **85 s** sur Linux contre 248 s, et
-**412 s** sur Windows contre 696 s. Le gain est donc de 2,9× d’un côté et de 1,69× de l’autre, et
-cet écart n’est pas expliqué par le nombre de cœurs, qui est le même — voir `LOG-0319`.
+**Suite :** `1090 passed, 312 subtests passed` côté Core et `78 passed` côté interface, **mesurés
+sur Linux x64**. L’**attestation sur les deux plateformes** porte sur `1068 + 275` et `78`, au run
+`desktop-packaging.yml` #59 sur `834ee13`, chiffres identiques des deux côtés et zéro échec ; elle
+couvre l’intégralité des **141 tests de parité** `C01`–`C06` et `C09`–`C14`, `C16`. **`C15` n’y est
+pas encore** : ses 22 tests et 37 sous-tests sont postérieurs au #59 et le prochain run les portera
+sur Windows. Aucune autre dette Windows ouverte.
+**Durée :** en local, **77 s** sur quatre cœurs (`-n auto --dist loadfile`) pour 1090 tests. En CI
+au run #59, caches chauds : conformité **120 s** sur Linux et **420 s** sur Windows ; bundles **162 s**
+et **144 s**, contre 324 s et 336 s à froid au #58 — c’est là que le cache cargo paie. Job complet :
+**7 min 14** sur Linux et **11 min 55** sur Windows, contre 21 min avant parallélisation.
+**Variance à garder en tête :** entre `b91c771` et `834ee13`, la suite n’a pas changé d’une ligne et
+l’étape de conformité varie pourtant de 107 s à 120 s sur Linux — jusqu’à **12 % d’un run à
+l’autre**. Voir `LOG-0319`.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -73,14 +85,20 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ### A1 — Matrice native Windows x64 et Linux x64 — **FAIT**
 
-**Run #57 sur `29e49cc`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
+**Run #59 sur `834ee13`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
 identiques — `1068 passed, 275 subtests passed` côté Core et `78 passed` côté interface, zéro échec.
-L’attestation couvre l’intégralité des **141 tests de parité** `C01`–`C06` et `C09`–`C16`.
+L’attestation couvre l’intégralité des **141 tests de parité** `C01`–`C06`, `C09`–`C14` et `C16`.
+**Elle ne couvre pas `C15`**, écrit après ce run ; c’est la seule dette Windows ouverte, et le
+prochain run la solde.
 
-C’est le premier run avec la suite **parallélisée**, et le gain se lit sur l’étape de conformité :
-**85 s** sur Linux contre 248 s au #56, **412 s** sur Windows contre 696 s. Les jobs complets passent
-de ~13 min à ~8 min et de ~21 min à **15 min 14**. Les caches pip et cargo ajoutés ensuite visent le
-poste qui devient dominant — les bundles, 341 s côté Windows.
+C’est le premier run à **caches chauds**, et le gain tombe exactement là où il était visé : les
+bundles passent de 324 s à **162 s** sur Linux et de 336 s à **144 s** sur Windows. Restaurer le
+cache coûte 10 à 14 s de plus qu’un cache vide, le sauvegarder ne coûte plus rien quand rien n’a
+changé. Jobs complets : **7 min 14** et **11 min 55**, contre 9 min 31 et 15 min 33 au #58.
+
+**Historique du #57**, sur `29e49cc` : premier run avec la suite **parallélisée**, les deux runners
+verts, mêmes décomptes. Conformité **85 s** sur Linux contre 248 s au #56, **412 s** sur Windows
+contre 696 s ; jobs complets ~8 min et 15 min 14.
 
 **Historique du #56**, sur `e2dbdfb` : les deux runners verts, mêmes décomptes, mesurés **en série**
 — 248,19 s sur Linux et 696,16 s sur Windows. C’est le dernier run avant parallélisation, et c’est
@@ -637,19 +655,24 @@ erreur* sur une HEAD détachée au lieu de rendre une sortie vide, si bien que l
 simplement pas ce qui s’était passé. C’est la quatrième règle morte trouvée par mutation dans cette
 série, après les deux de `B11` et la garde de `C04`.
 
-**Ce que ces promotions ne disent pas :** rien sur les trois autres couplages. Une parité
-d’adressage, de store, de composants, de symboles, de briques, de Git, de bundle, de catalogue et de playbook n’est pas une parité ARET.
+**Ce que ces promotions ne disent pas :** rien sur les deux couplages restants. Une parité
+d’adressage, de store, de composants, de symboles, de briques, de Git, de bundle, de catalogue, de
+playbook et de barrière de reprise n’est pas une parité ARET.
 
-**Reste, dans l’ordre du moins cher au plus cher :**
+**Reste, et il ne reste qu’une chose :**
 
-1. **Le dernier couplage de nature « données et comportement »** — `C15`.
-   Chacun suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel
-   issu de la baseline, et une parité dirigée. `C13` ajoute une variante au gabarit : quand la
-   question porte sur un comportement, la référence s’exécute. Aucune dépendance externe ; c’est du
-   volume, pas du blocage.
-2. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire
+1. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire
    `target/release/aret`, rejouer le corpus. C’est là que `MEM-WALL-001` mord vraiment, et le
-   registre y note déjà `255/264` sur le corpus Wine historique.
+   registre y note déjà `255/264` sur le corpus Wine historique. **Vérifié absent de ce conteneur :**
+   `wine`, `i686-w64-mingw32-gcc`, `z3` ; `target/release/aret` n’a jamais été construit et aucun
+   corpus d’artefacts ARET n’est disponible. `cargo`, `rustc`, `gcc` et `clang` sont présents. Cette
+   ligne demande donc une décision du propriétaire — fournir la chaîne d’outils, ou acter que la
+   parité d’exécution ne se mesure pas ici — plutôt qu’une tentative non bornée.
+
+**Tous les couplages de nature « données et comportement » sont clos** depuis `C15`. Le gabarit,
+posé par `C01` et étendu par `C13`, aura tenu jusqu’au bout : une référence ARET versionnée avec son
+empreinte, un corpus réel, une parité dirigée — et, quand la question porte sur un comportement, une
+référence qui **s’exécute** plutôt qu’elle ne se lit.
 
 *Critère de sortie inchangé :* chaque ligne `DONE` porte son test de parité **exécuté** et son
 artefact de comparaison daté. Aucune promotion par lecture de code.

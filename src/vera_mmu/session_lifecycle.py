@@ -347,6 +347,12 @@ class ResumeGuardService:
         return self.acknowledge(session_identity, adapter_id, state.resume_contract_hash, sections)
 
     def precheck(self, session_identity: str, adapter_id: str, tool_name: str | None = None) -> GuardOutcome:
+        # Le kill-switch est consulté avant tout le reste, et l'ordre n'est pas cosmétique : une
+        # barrière dont la voie de sortie ne fonctionne que sur un état sain laisse l'opérateur
+        # enfermé exactement quand il en a besoin — état illisible, identité absente, adapter cassé.
+        # L'issue reste tracée (ALLOW_WITH_NOTICE porte sa raison), jamais un laisser-passer muet.
+        if barrier_disabled(self.store.locator.runtime_dir):
+            return GuardOutcome(GuardDecision.ALLOW_WITH_NOTICE, "resume guard: emergency barrier override active")
         if not _is_session_identity(session_identity):
             return GuardOutcome(GuardDecision.DENY, "resume guard: session identity missing")
         if not _ADAPTER_ID_RE.fullmatch(adapter_id):
@@ -355,8 +361,6 @@ class ResumeGuardService:
             state = self._read_existing(self.state_path(session_identity, adapter_id), session_identity, adapter_id)
         except LifecycleError:
             return GuardOutcome(GuardDecision.DENY, "resume guard: state integrity failure")
-        if barrier_disabled(self.store.locator.runtime_dir):
-            return GuardOutcome(GuardDecision.ALLOW_WITH_NOTICE, "resume guard: emergency barrier override active")
         if state is None or state.status == "ACKNOWLEDGED":
             return GuardOutcome(GuardDecision.ALLOW, "resume guard: no active acknowledgement required")
         if tool_allowed_during_guard(tool_name):
