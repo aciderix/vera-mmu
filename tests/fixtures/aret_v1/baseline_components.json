@@ -1,4 +1,254 @@
 {
+  "brick_columns": [
+    [
+      "id",
+      "TEXT",
+      true,
+      true,
+      null
+    ],
+    [
+      "component_id",
+      "TEXT",
+      false,
+      false,
+      null
+    ],
+    [
+      "title",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "state",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "description",
+      "TEXT",
+      true,
+      false,
+      "''"
+    ],
+    [
+      "created_at",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "created_by",
+      "TEXT",
+      true,
+      false,
+      null
+    ],
+    [
+      "milestone",
+      "TEXT",
+      false,
+      false,
+      null
+    ],
+    [
+      "target_platform",
+      "TEXT",
+      false,
+      false,
+      null
+    ],
+    [
+      "priority",
+      "INTEGER",
+      true,
+      false,
+      "3"
+    ]
+  ],
+  "brick_roadmap_order": [
+    "RECOV-SPIRVCROSS-0X0",
+    "M7-GUI",
+    "AUTO-LIFT-02",
+    "FIBERS-01",
+    "FIBERS-02",
+    "FIBERS-03",
+    "FIBERS-04",
+    "FIBERS-05",
+    "MIGRATION-J71-01",
+    "MIGRATION-PILOT-01",
+    "PHASE-A",
+    "PHASE-B",
+    "PHASE-C"
+  ],
+  "brick_rows": [
+    {
+      "component_id": "LIFT",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Brique de travail active du Front ARET pour le lifting de bibliothèques applicatives.",
+      "id": "AUTO-LIFT-02",
+      "milestone": "M7",
+      "priority": 3,
+      "state": "PLANNED",
+      "target_platform": "x86-pe32",
+      "title": "Pré-lift et driver déterministe de DLL applicative"
+    },
+    {
+      "component_id": "CORE",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon FIBERS-01 enregistré à la demande de l’audit de production.",
+      "id": "FIBERS-01",
+      "milestone": "M8",
+      "priority": 2,
+      "state": "PLANNED",
+      "target_platform": "x86-pe32",
+      "title": "Fibers — fondation"
+    },
+    {
+      "component_id": "CORE",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon FIBERS-02 enregistré à la demande de l’audit de production.",
+      "id": "FIBERS-02",
+      "milestone": "M8",
+      "priority": 3,
+      "state": "PLANNED",
+      "target_platform": "x86-pe32",
+      "title": "Fibers — continuité"
+    },
+    {
+      "component_id": "CORE",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon FIBERS-03 enregistré à la demande de l’audit de production.",
+      "id": "FIBERS-03",
+      "milestone": "M8",
+      "priority": 3,
+      "state": "PLANNED",
+      "target_platform": "x86-pe32",
+      "title": "Fibers — propagation"
+    },
+    {
+      "component_id": "CORE",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon FIBERS-04 enregistré à la demande de l’audit de production.",
+      "id": "FIBERS-04",
+      "milestone": "M8",
+      "priority": 4,
+      "state": "PLANNED",
+      "target_platform": "x86-pe32",
+      "title": "Fibers — intégration"
+    },
+    {
+      "component_id": "CORE",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon FIBERS-05 enregistré à la demande de l’audit de production.",
+      "id": "FIBERS-05",
+      "milestone": "M8",
+      "priority": 4,
+      "state": "PLANNED",
+      "target_platform": "x86-pe32",
+      "title": "Fibers — validation"
+    },
+    {
+      "component_id": "LIFT",
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon M7-GUI : lifting et exécution de DLL MFC/GUI multi-modules.",
+      "id": "M7-GUI",
+      "milestone": "M7",
+      "priority": 2,
+      "state": "PLANNED",
+      "target_platform": "x86-pe32",
+      "title": "Endgame GUI multi-modules MFC"
+    },
+    {
+      "component_id": null,
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-journal71",
+      "description": "Brique technique temporaire du Front pendant la migration complète du journal historique 71.",
+      "id": "MIGRATION-J71-01",
+      "milestone": "MIGRATION",
+      "priority": 1,
+      "state": "DONE",
+      "target_platform": null,
+      "title": "Migration exhaustive du journal 71"
+    },
+    {
+      "component_id": null,
+      "created_at": "2026-08-22T07:49:44Z",
+      "created_by": "aret-mmu-migrator",
+      "description": "Brique technique temporaire du Front pendant la migration pilote ARET-MMU.",
+      "id": "MIGRATION-PILOT-01",
+      "milestone": "MIGRATION",
+      "priority": 1,
+      "state": "DONE",
+      "target_platform": null,
+      "title": "Migration pilote documentaire"
+    },
+    {
+      "component_id": null,
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon de phase enregistré à la demande de l’audit de production.",
+      "id": "PHASE-A",
+      "milestone": "PHASE-A",
+      "priority": 3,
+      "state": "PLANNED",
+      "target_platform": null,
+      "title": "Phase A d’industrialisation"
+    },
+    {
+      "component_id": null,
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon de phase enregistré à la demande de l’audit de production.",
+      "id": "PHASE-B",
+      "milestone": "PHASE-B",
+      "priority": 4,
+      "state": "PLANNED",
+      "target_platform": null,
+      "title": "Phase B d’industrialisation"
+    },
+    {
+      "component_id": null,
+      "created_at": "2026-08-22T07:49:47Z",
+      "created_by": "aret-mmu-graph-bootstrap",
+      "description": "Jalon de phase enregistré à la demande de l’audit de production.",
+      "id": "PHASE-C",
+      "milestone": "PHASE-C",
+      "priority": 5,
+      "state": "PLANNED",
+      "target_platform": null,
+      "title": "Phase C d’industrialisation"
+    },
+    {
+      "component_id": "LIFT",
+      "created_at": "2026-08-22T18:26:56Z",
+      "created_by": "mcp-agent",
+      "description": "Front de travail actif réel (option (a) RECOMMANDÉE, doc 71 2026-08-21, commit doc 35cb01a). Après le fix général du chain-builder (commit a0c5ca8, deux passes, behavior-preserving, hash 19acad982194bf07 inchangé, funcdiff 0-div), spirv-cross transpile désormais JUSQU'AU BOUT ; le mur runtime suivant est un appel indirect NULL (0x0) sur le VRAI chemin SPIR-V→GLSL (pas --help). Objectif : instrumenter (relay I11 ARET<->Wine et/ou traceur I1) pour trancher entre (i) trou de récupération PROUVABLE (une cible constante que la récup rate) et (ii) divergence amont (un global/champ valant 0 sous ARET mais pas sous Wine). Discipline §0 : rester dans la boucle « piloter un vrai binaire -> la donnée désigne le mur ». RIEN n'était engagé avant cet audit de continuité (2026-08-22).",
+      "id": "RECOV-SPIRVCROSS-0X0",
+      "milestone": "M7",
+      "priority": 1,
+      "state": "ACTIVE",
+      "target_platform": "x86-pe32",
+      "title": "Mur d'appel indirect NULL (0x0) de spirv-cross — chemin réel SPIR-V→GLSL"
+    }
+  ],
+  "brick_states_present": {
+    "ACTIVE": 1,
+    "DONE": 2,
+    "PLANNED": 10
+  },
   "component_columns": [
     [
       "id",
@@ -157,6 +407,10 @@
       "title": "x87 et flottants"
     }
   ],
+  "front_state": {
+    "brick": "RECOV-SPIRVCROSS-0X0",
+    "subsystem": "Lifting / Récupération (RECOV) — vrais binaires tiers C++"
+  },
   "function_symbol_columns": [
     [
       "id",

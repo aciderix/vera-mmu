@@ -1,6 +1,8 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — `C05` promu `DONE` : cycle de vie, Front actif, ordre roadmap, liens,
+dépendances et import V1, mesurés sur les treize briques réelles. Quatre couplages clos sur seize.
 **Révisé le :** 2026-09-19 — `C04` promu `DONE`, après correction d’un défaut d’unicité qu’il a
 révélé : la projection de symbole perdait la garantie `UNIQUE` d’ARET. Trois couplages clos sur seize.
 **Révisé le :** 2026-09-19 — `C03` promu `DONE` : ses six dimensions sont mesurées contre le DDL réel
@@ -17,7 +19,7 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `960 passed, 75 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
+**Suite :** `973 passed, 78 subtests passed` côté Core et `78 passed` côté interface, **attestés sur
 Linux x64 et Windows x64** au run `desktop-packaging.yml` #49 sur `9861450`, avec des chiffres
 identiques des deux côtés. Plus aucun écart entre ce qui est affirmé et ce qui est mesuré.
 
@@ -470,7 +472,7 @@ preview, pas seulement dans son refus.
 
 ## C. Ce qui décide de ce que le produit a le droit de dire de lui-même
 
-### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 3/16**
+### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 4/16**
 
 **Le diagnostic précédent était faux, et c’est mesuré.** Ce document affirmait que « le blocage est
 matériel » et qu’il fallait la chaîne d’outils ARET réelle. C’est vrai pour **deux** couplages sur
@@ -507,12 +509,19 @@ distincts produisaient le même identifiant VERA. Latent — aucune des neuf lig
 déclenche — mais `module` vaut `''` par défaut dans le schéma ARET. La projection échappe désormais
 le séparateur, et les identifiants du corpus réel sont inchangés.
 
-**Ce que ces promotions ne disent pas :** rien sur les treize autres couplages. Une parité
-d’adressage, de composants et de symboles n’est pas une parité ARET.
+**`C05` est promu `DONE`**, et il illustre le piège inverse de `C04` : `brick.state` est contraint
+par un `CHECK` à cinq valeurs, et exiger que le `work_item` importé le porte aurait été **inventer un
+défaut**. Le registre énonce l’inverse — métadonnée sous namespace ARET, le Core ne décide pas de la
+sémantique legacy — et `work_item.status` est d’ailleurs fixé à `PLANNED` par son propre `CHECK` : le
+cycle de vie VERA est événementiel. La parité tient donc en deux claims séparés, tous deux mesurés :
+l’état ARET est conservé sans perte, et le cycle de vie de VERA tourne sur un item importé.
+
+**Ce que ces promotions ne disent pas :** rien sur les douze autres couplages. Une parité
+d’adressage, de composants, de symboles et de briques n’est pas une parité ARET.
 
 **Reste, dans l’ordre du moins cher au plus cher :**
 
-1. **Les onze couplages de nature « données et comportement »** — `C02`, `C05`, `C06`, `C09`–`C16`. Chacun
+1. **Les dix couplages de nature « données et comportement »** — `C02`, `C06`, `C09`–`C16`. Chacun
    suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel issu
    de la baseline, et une parité dirigée. Aucune dépendance externe ; c’est du volume, pas du blocage.
 2. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire

@@ -4303,3 +4303,46 @@ fixtures divergentes seraient pires qu’une, et c’est exactement le défaut q
 **Preuve.** `tests/test_aret_c04_function_symbol_parity.py`, onze tests et six sous-tests ; mordant
 vérifié règle par règle. Suite complète : `960 passed, 75 subtests passed`. `C04` passe de `SPLIT` à
 `DONE` — troisième promotion.
+
+---
+
+## LOG-0308 — `C05` promu, et le piège inverse de `C04`
+**Statut : PASS mesuré sur Linux x64. Les ajouts restent à attester sur Windows.**
+
+**Là où `C04` avait un défaut, `C05` avait un piège.** `brick.state` est contraint par un `CHECK` à
+cinq valeurs, et il était tentant d’exiger que le `work_item` importé porte cet état. Ce serait
+contredire le dessin que le registre énonce lui-même — « importer les briques avec leur métadonnée
+sous namespace ARET », « le Core peut enregistrer un batch générique `WORK_ITEM` sans décider de la
+sémantique legacy ». Le registre `work_item` fixe d’ailleurs `status = 'PLANNED'` par son propre
+`CHECK` : le cycle de vie VERA est **événementiel**, porté par `work_lifecycle_event`, pas par une
+colonne. Exiger la colonne aurait été inventer un défaut, ce qui coûte autant qu’en rater un.
+
+**La parité tient donc en deux claims séparés, et les mélanger était l’erreur à éviter.** L’état
+ARET est conservé sans perte — `PLANNED 10, ACTIVE 1, DONE 2`, jalons, plateformes et lien composant
+compris. Et le cycle de vie de VERA tourne sur un item importé : `PLANNED → ACTIVE → COMPLETED`, avec
+refus de la transition hors séquence. Les deux sont mesurés, séparément.
+
+**Le Front sert de fil.** `RECOV-SPIRVCROSS-0X0` est la seule des treize briques à l’état `ACTIVE`,
+et c’est bien elle que le `front_state` d’ARET désigne. C’est elle qu’on importe, qu’on démarre et
+qu’on nomme dans le Front de VERA : une parité qui perdrait ce fil rendrait la reprise muette sur ce
+que le projet était en train de faire.
+
+**Les quatre autres dimensions.** Ordre roadmap : l’ordre de `idx_brick_roadmap` reste calculable
+hors SQLite, et la brique active y arrive en tête. Liens : `component_id` est **nullable** —
+contrairement à `function_symbol` — avec `8 liées / 5 non liées / 0 orpheline`, et l’absence de lien
+survit à l’import. Dépendance/cycle : arête acceptée, boucle et auto-arête refusées, aucune arête
+laissée derrière. Import V1 : `13 work items` exacts.
+
+**Une seconde ceinture, nommée plutôt que supposée.** Le contrôle de mordant a montré que retirer la
+garde Python contre l’auto-dépendance laissait le test vert : le schéma porte aussi
+`CHECK(dependent_id != prerequisite_id)`, et SQLite prenait le relais. Plutôt que de resserrer sur un
+message d’erreur — fragile —, le test nomme désormais **les deux couches**, comme `C01` nomme celle
+qui refuse une adresse non canonique. Retirer l’une d’elles fait maintenant tomber une règle.
+
+**La conformité de schéma a vu le vrai DDL pour la première fois.** Le `brick` réel naît de `001`
+**plus** l’`ALTER TABLE` de la migration `005`, et SQLite stocke alors un texte que personne
+n’écrirait à la main. La conformité de VERA passe dessus — elle était juste, mais jamais éprouvée.
+
+**Preuve.** `tests/test_aret_c05_brick_parity.py`, treize tests et trois sous-tests ; mordant vérifié
+règle par règle. Suite complète : `973 passed, 78 subtests passed`. `C05` passe de `SPLIT` à `DONE` —
+quatrième promotion.

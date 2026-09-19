@@ -170,6 +170,89 @@ def bundle_round_trip(root: Path) -> list[tuple[str, str, str, str]]:
 FTS_MARKER = "_fts"
 
 
+def insert_real_bricks(database: Path) -> None:
+    """Ajouter les treize briques réelles à une source dont les composants existent déjà."""
+    connection = sqlite3.connect(database)
+    try:
+        connection.executemany(
+            "INSERT INTO brick(id, component_id, title, state, description, created_at, created_by, "
+            "milestone, target_platform, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    row["id"], row["component_id"], row["title"], row["state"], row["description"],
+                    row["created_at"], row["created_by"], row["milestone"], row["target_platform"],
+                    row["priority"],
+                )
+                for row in BASELINE["brick_rows"]
+            ],
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def import_real_bricks(store: MemoryStore, database: Path, source: Path):
+    """Piloter la chaîne d'import structurel des treize briques depuis la source réelle."""
+    from vera_mmu.domain_packs.aret.authorized_structural_import import (
+        import_authorized_aret_v1_structural_page,
+    )
+    from vera_mmu.domain_packs.aret.brick_projection import project_aret_v1_brick_page
+    from vera_mmu.domain_packs.aret.brick_reader import read_aret_v1_brick_page
+    from vera_mmu.domain_packs.aret.structural_import_authorization import (
+        authorize_aret_v1_structural_import,
+    )
+    from vera_mmu.domain_packs.aret.structural_import_preflight import structural_import_preflight
+    from vera_mmu.domain_packs.aret.structural_import_preparation import structural_import_preparation
+    from vera_mmu.domain_packs.aret.structural_schema_conformance import inspect_aret_v1_brick_schema
+    from vera_mmu.domain_packs.aret.structural_target_collision import (
+        check_aret_v1_structural_target_clear,
+    )
+
+    inspection = schema_inspection(database)
+    conformance = inspect_aret_v1_brick_schema(inspection=inspection)
+    page = read_aret_v1_brick_page(
+        source_root=source, schema_inspection=inspection, after_id=None, limit=100
+    )
+    projection = project_aret_v1_brick_page(
+        target_identity=store.identity, source_page=page, request_id="aret-brick-request"
+    )
+    preparation = structural_import_preparation(
+        target_identity=store.identity,
+        source_snapshot_sha256=inspection.source_snapshot_sha256,
+        request_id="aret-brick-request",
+        requested_by="parity",
+        legacy_table="brick",
+    )
+    preflight = structural_import_preflight(
+        preparation=preparation,
+        schema_inspection=inspection,
+        schema_conformance=conformance,
+        source_page=page,
+        preflight_id="aret-brick-page",
+        confirmed_by="parity",
+    )
+    clear = check_aret_v1_structural_target_clear(
+        preflight=preflight, projection=projection, target_store=store
+    )
+    authorization = authorize_aret_v1_structural_import(
+        preflight=preflight,
+        projection=projection,
+        clear_check=clear,
+        target_store=store,
+        authorization_id="aret-brick-auth",
+        authorized_by="parity",
+    )
+    return import_authorized_aret_v1_structural_page(
+        preflight=preflight, projection=projection, authorization=authorization, target_store=store
+    )
+
+
+def work_items(store: MemoryStore) -> list[tuple[str, str, str, int]]:
+    return [tuple(row) for row in store.connection.execute(
+        "SELECT id, type, title, priority FROM work_item ORDER BY id"
+    )]
+
+
 def import_real_symbols(root: Path, store: MemoryStore, database: Path, source: Path):
     """Piloter la chaîne d'import structurel des neuf symboles depuis la source réelle.
 
