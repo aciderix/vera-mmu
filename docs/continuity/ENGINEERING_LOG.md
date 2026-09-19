@@ -4744,3 +4744,63 @@ tient. L'attestation deux plateformes couvre désormais l'intégralité des **11
 Le cycle complet — écrire le lot, le pousser, déclencher l'attestation, corriger et réattester — a
 tenu dans l'heure, parce que le workflow est déclenchable depuis la session. Comparé aux cent-sept
 tests non attestés du run #50, c'est ce que change la permission `Actions: write`.
+
+## LOG-0317 — `C06` promu : le catalogue d'ARET est fermé, son contrat de paramètres ne l'est pas
+**Statut : PASS mesuré sur Linux x64. À attester au prochain run.**
+
+Troisième couplage à exécuter ARET plutôt qu'à le lire. `evidence/adapters/pipelines.py` est versé
+sous `fixtures/aret_v1/source/` avec son empreinte, chargé par
+`tests/aret_v1_pipelines_reference.py`, et tourne contre le vrai `MemoryStore` d'ARET — l'import
+`core.repository` est satisfait par la référence déjà chargeable de `C14`. `PROJECT_ROOT` y est
+déclaré et n'est utilisé nulle part, vérifié sur la source entière, donc le déplacement du fichier
+ne change rien à son comportement.
+
+Les mesures se font en **dry-run**, et c'est le bon périmètre : `C06` porte sur ce qui se décide
+avant l'exécution — le nom, les paramètres, le timeout, la policy. L'exécution réelle est
+`C07`/`C08`, qui demandent Wine et MinGW.
+
+**Ce qu'ARET fait bien, et il faut le dire avant le reste.** Son catalogue est une liste fermée de
+**27 pipelines** nommés — 15 `READ_ONLY`, 9 `GENERATE`, 2 `NETWORK`, 1 `SENSITIVE` — comptés sur le
+catalogue exécuté. Aucun client ne fournit de commande ; l'argv est construit par le moteur depuis
+des chemins bornés au dépôt. Un nom inconnu est refusé, un timeout hors borne est refusé, et les
+trois policies non triviales exigent chacune une confirmation **nommée** : `confirm_apply`,
+`confirm_network`, `confirm_sensitive`. C'est un dessin sérieux.
+
+**La divergence est structurelle et porte sur les paramètres.** Le catalogue déclare un nom, un
+type, une description, des dépendances, un timeout et un runner. Il ne déclare **jamais** de schéma
+de paramètres — vérifié sur les vingt-sept entrées et sur les huit champs de `PipelineSpec`. Les
+paramètres sont un `dict` libre, validé au coup par coup à l'intérieur de chaque runner.
+
+Mesuré en l'exécutant : `{"intrus": "valeur inventee", "rm": "-rf /"}` traverse la validation,
+arrive dans le plan et y est rendu tel quel à l'appelant.
+
+**Ce n'est pas une injection de commande, et le test l'épingle pour ne pas laisser croire à une
+faille qui n'existe pas :** l'argv reste fermé — `["bash", "…/bench/regression.sh"]`, deux éléments
+— et aucune de ces valeurs n'y entre. Le défaut est ailleurs, et il est plus insidieux : rien ne dit
+quels paramètres un pipeline lit réellement. Mesuré aussi — un `binary_pathh` mal orthographié et un
+`binary_path` absent rendent la **même** erreur, « Asset introuvable :  », avec un chemin vide.
+L'appelant ne peut pas distinguer « tu as mal tapé la clef » de « tu as oublié la clef ». C'est
+exactement ce qu'un schéma déclaré empêche, et c'est ce que `C06` demandait d'ajouter.
+
+VERA déclare `parameter_schema` dans le contrat, le valide contre un sous-ensemble fermé de JSON
+Schema — clefs racine limitées, racine `object`, `required` référençant une propriété déclarée — et
+refuse à l'exécution un paramètre non déclaré, mal typé ou requis-absent. Son catalogue rend en plus
+`command` sous la forme `{"status": "NOT_APPLICABLE", "reason": "…aucun champ de commande… (I008)"}` :
+une case vide dans un formulaire se lit « à remplir », un `NOT_APPLICABLE` motivé se lit « il n'y en
+a pas, et voici pourquoi ».
+
+**Une nuance d'ARET est dite plutôt que tue.** Ses confirmations gardent l'**exécution**, pas la
+consultation : `dry_run` est la valeur par défaut, et le plan d'un pipeline `SENSITIVE` se rend sans
+confirmation, argv complet et `pid` inclus. C'est cohérent — on ne confirme que ce qu'on lance — mais
+cela signifie qu'un argv sensible est lisible avant toute autorisation.
+
+**Deux bornes de timeout, et une couche qui masquait l'autre.** Relâcher la garde Python de VERA
+laissait le test vert : le `CHECK (timeout_seconds BETWEEN 1 AND 3600)` du DDL refuse la ligne de
+toute façon. Le test nomme désormais les deux couches — motif exigé côté garde, `CHECK` épinglé
+côté schéma — et neutraliser l'une ou l'autre se voit. Même discipline qu'en `C05`, où le garde
+d'auto-arête était doublé par un `CHECK`.
+
+**Preuve.** `tests/test_aret_c06_capability_parity.py`, quinze tests et quarante-cinq sous-tests ;
+six règles VERA et trois règles ARET mutées une à une, mordant vérifié, et le test d'empreinte est
+tombé avec chaque mutation de la référence. Suite complète : `1060 passed, 256 subtests passed`.
+**Douze couplages sur seize sont désormais clos.**

@@ -85,3 +85,14 @@ adressage ferait tourner un ARET qui n'est pas celui qu'on croit mesurer.
 Ce qui en est sorti est consigné dans `LOG-0315` : la chaîne d'intégrité d'ARET tient sur huit
 altérations, mais son manifeste ne porte aucune identité de projet, et le `source_device_id` qu'il
 écrit n'est relu nulle part.
+
+## `C06` : l'adaptateur de pipelines
+
+| Fichier | Origine | Rôle |
+|---|---|---|
+| `source/pipelines_reference.py` | `aret-memory/evidence/adapters/pipelines.py`, copie octet pour octet | Catalogue de 27 pipelines, exécuté en dry-run par `C06` |
+
+Il importe `core.repository`, satisfait par la référence de dépôt déjà chargeable pour `C14` : ARET
+tourne donc contre son vrai `MemoryStore` et son vrai DDL. `PROJECT_ROOT` y est déclaré et n'est
+utilisé nulle part — vérifié sur la source entière — donc le déplacement du fichier ne change rien
+à son comportement.
