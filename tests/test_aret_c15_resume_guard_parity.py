@@ -43,6 +43,16 @@ couches sont isolées une à une plus bas.
 l'environnement : un payload qui nomme un autre répertoire ne trouve pas d'état, et la barrière
 laisse passer. Celui de VERA vient du store déjà lié, jamais d'une entrée (`I008`).
 
+**Un quatrième écart, trouvé par la CI et non par une lecture.** Le run #60 est tombé sur Windows
+parce que `clang --version` y répond en plus de cinq secondes. `toolchain_status` sonde neuf outils
+avec `timeout=5` et **sans aucune garde** ; le `TimeoutExpired` traverse tout le handler et l'hôte
+ne reçoit **ni `result` ni `hookSpecificOutput`** — le dossier de reprise, raison d'être du hook,
+n'est pas livré, et l'erreur rendue nomme une sonde `--version`, pas une reprise perdue. La
+compilation du dossier de VERA ne lance aucun processus. C'est un échec de CI devenu la mesure
+`test_a_slow_toolchain_probe_costs_the_entire_injected_resume_context`, et c'est la seule raison
+pour laquelle les tests de hook posent désormais leurs propres stubs de toolchain : sans cela, ils
+dépendraient de la vitesse de la machine qui les exécute.
+
 **Un défaut de VERA trouvé par ce lot, et corrigé.** `precheck` consultait le kill-switch *après*
 avoir lu l'état : avec un état illisible, la voie de sortie documentée ne fonctionnait plus — le
 cas où l'opérateur en a le plus besoin. Le kill-switch est désormais consulté en premier, comme
@@ -54,10 +64,15 @@ situations.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager, redirect_stdout
 from hashlib import sha256
+import io
 import json
 import os
+import shutil
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -148,6 +163,50 @@ def acknowledgement(payload: dict[str, object], recap: dict[str, str], **extra: 
     return {**payload, "tool_name": "mcp__aret_mmu__aret_acknowledge_resume", "tool_input": recap, **extra}
 
 
+#: Les outils que `toolchain_status` d'ARET cherche par `shutil.which`, donc sonde s'il les trouve.
+PROBED_TOOLS = (
+    "wine", "i686-w64-mingw32-gcc", "i686-w64-mingw32-g++", "cargo", "rustc", "clang", "z3",
+    "libunicorn", "winegcc",
+)
+
+
+@contextmanager
+def probed_toolchain(directory: Path, *, delay_seconds: float = 0.0) -> Iterator[Path]:
+    """Poser en tête du `PATH` un stub pour chaque outil qu'ARET sonde, et contrôler sa latence.
+
+    Rien d'ARET n'est modifié : c'est l'**environnement** que le hook interroge qui est posé, et
+    c'est précisément ce qu'un hôte fournit à un hook. Sans cela, ces tests dépendraient de la
+    vitesse à laquelle le `clang` de la machine répond — c'est exactement ce qui a fait tomber le
+    run #60 côté Windows, et `test_a_slow_toolchain_probe_costs_the_entire_injected_resume_context`
+    transforme cette dépendance en mesure plutôt que de la subir.
+
+    Le `PATH` est **préfixé**, jamais remplacé : `_repository_revision` appelle `git` sans timeout
+    et sans garde, et un `git` introuvable ferait tomber le hook pour une seconde raison.
+    """
+    stubs = directory / "toolchain-stubs"
+    stubs.mkdir(parents=True, exist_ok=True)
+    script = stubs / "_stub.py"
+    script.write_text(
+        f"import time\ntime.sleep({float(delay_seconds)!r})\nprint('stub 1.0')\n", encoding="utf-8"
+    )
+    for tool in PROBED_TOOLS:
+        if os.name == "nt":
+            launcher = stubs / f"{tool}.bat"
+            launcher.write_text(f'@echo off\r\n"{sys.executable}" "{script}" %*\r\n', encoding="utf-8")
+        else:
+            launcher = stubs / tool
+            launcher.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n', encoding="utf-8")
+            launcher.chmod(0o755)
+    with patch.dict(os.environ, {"PATH": f"{stubs}{os.pathsep}{os.environ.get('PATH', '')}"}, clear=False):
+        # Le mécanisme est vérifié ici plutôt que supposé : sous Windows la résolution passe par
+        # `PATHEXT`, et si elle échouait, le test suivant tomberait six lignes plus loin sur une
+        # cause obscure au lieu de dire que le stub n'a pas pris.
+        resolved = shutil.which("clang")
+        if resolved is None or Path(resolved).parent != stubs:
+            raise AssertionError(f"Les stubs de toolchain n’ont pas pris le pas sur le PATH : {resolved}")
+        yield stubs
+
+
 class C15ResumeGuardParityTests(unittest.TestCase):
     """Sept dimensions, deux moteurs, la même situation posée aux deux."""
 
@@ -236,7 +295,7 @@ class C15ResumeGuardParityTests(unittest.TestCase):
         """
         guard = aret_resume_guard()
         common = aret_hook_common()
-        with temporary_root() as root:
+        with temporary_root() as root, probed_toolchain(root):
             store = memory_store(root / ".aret-memory")
             try:
                 context, degraded = common.resume_context_or_degraded(store)
@@ -259,6 +318,72 @@ class C15ResumeGuardParityTests(unittest.TestCase):
                 self.assertLessEqual(len(injected.encode("utf-8")), common.HOOK_CONTEXT_MAX_BYTES)
             finally:
                 del store
+
+    def test_a_slow_toolchain_probe_costs_the_entire_injected_resume_context(self) -> None:
+        """Un seul outil lent sur le `PATH`, et le dossier de reprise n'est pas livré du tout.
+
+        `toolchain_status` cherche neuf outils par `shutil.which`, puis lance `<outil> --version`
+        avec `timeout=5` et **sans aucune garde** — ni `try`, ni `except`, ni valeur de repli. Le
+        `TimeoutExpired` traverse `session_start.handler` et n'est rattrapé que par le
+        `except Exception` de `run()`, qui émet `ok:false`.
+
+        Ce n'est pas une hypothèse : le run CI #60 est tombé exactement là, sur un runner Windows
+        où `clang --version` met plus de cinq secondes à répondre. Le test le reproduit sur
+        n'importe quelle plateforme, avec un stub posé à 6 secondes — juste au-delà du `timeout=5`
+        gravé dans ARET — et mesure trois conséquences plutôt que de les supposer :
+
+        1. L'hôte ne reçoit **ni `result` ni `hookSpecificOutput`** : le dossier de reprise, qui
+           est toute la raison d'être du hook, n'est pas injecté.
+        2. L'erreur rendue est un `INTERNAL_ERROR` nommant une sonde `--version` expirée. Elle ne
+           dit rien d'une reprise perdue, et `TimeoutExpired` n'est pas dans le tuple d'exceptions
+           nommées de `run()` — d'où le code générique.
+        3. L'état de barrière, lui, **survit** : `arm()` s'exécute plus tôt dans le handler que
+           `toolchain_status`. C'est un ordre heureux, pas un repli conçu — rien dans le handler ne
+           protège l'armement de ce qui le suit.
+
+        Côté VERA, la question ne se pose pas : la compilation du dossier ne lance aucun processus,
+        et le module Core n'importe même pas `subprocess`.
+        """
+        guard = aret_resume_guard()
+        common = aret_hook_common()
+        session_start = aret_session_start()
+        with temporary_root() as root, probed_toolchain(root, delay_seconds=6.0):
+            store = memory_store(root / ".aret-memory")
+            try:
+                payload = {"session_id": "sess-slow", "source": "startup"}
+                emitted = self._run_hook(common, session_start.handler, store, payload)
+
+                self.assertFalse(emitted["ok"])
+                self.assertNotIn("hookSpecificOutput", emitted)
+                self.assertNotIn("result", emitted)
+                self.assertEqual(emitted["error"]["code"], "INTERNAL_ERROR")
+                self.assertIn("timed out after 5 seconds", emitted["error"]["message"])
+                self.assertIn("--version", emitted["error"]["message"])
+
+                survived = guard.load_state(store.memory_dir, payload)
+                self.assertIsNotNone(survived)
+                self.assertEqual(survived["status"], "awaiting_recap")
+            finally:
+                del store
+
+        core = (Path(__file__).resolve().parents[1] / "src" / "vera_mmu" / "session_lifecycle.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("subprocess", core)
+        self.assertNotIn("shutil", core)
+
+    @staticmethod
+    def _run_hook(common, handler, store, payload: dict[str, object]) -> dict[str, object]:
+        """Exécuter l'enveloppe `run()` d'ARET telle quelle : payload sur stdin, réponse sur stdout."""
+        stdin = sys.stdin
+        sys.stdin = io.StringIO(json.dumps({**payload, "memory_dir": str(store.memory_dir)}))
+        captured = io.StringIO()
+        try:
+            with redirect_stdout(captured):
+                common.run("SessionStart", handler)
+        finally:
+            sys.stdin = stdin
+        return json.loads(captured.getvalue())
 
     # ------------------------------------------------------------ 2. PostCompact
 
@@ -295,7 +420,7 @@ class C15ResumeGuardParityTests(unittest.TestCase):
     def test_the_real_postcompact_hook_rearms_with_its_own_reason(self) -> None:
         """Le hook PostCompact réel, exécuté sur la même mémoire qu'un `SessionStart` déjà armé."""
         guard = aret_resume_guard()
-        with temporary_root() as root:
+        with temporary_root() as root, probed_toolchain(root):
             store = memory_store(root / ".aret-memory")
             try:
                 payload = {"session_id": "sess-compact-hook"}

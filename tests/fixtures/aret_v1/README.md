@@ -131,3 +131,12 @@ satisfait par celle de `C06`. Seules des coquilles de paquet vides portent les n
 Ce qui en est sorti est consigné dans `LOG-0320`. En particulier : sur une mémoire ARET **vierge**,
 le vrai `SessionStart` produit un dossier dégradé et arme en mode soft — donc un ARET fraîchement
 installé ne bloque pas dur, ce qui ne se lit nulle part.
+
+**Ces hooks sondent la machine, et le test doit donc poser l'environnement qu'ils interrogent.**
+`session_start.handler` appelle `toolchain_status`, qui cherche neuf outils par `shutil.which` puis
+lance `<outil> --version` avec `timeout=5` et sans aucune garde. Le run CI #60 est tombé exactement
+là, sur un runner Windows où `clang --version` répond en plus de cinq secondes. Le test pose donc
+ses propres stubs en tête du `PATH` — rien d'ARET n'est modifié, c'est l'environnement qui est posé,
+et c'est précisément ce qu'un hôte fournit à un hook. Le `PATH` est préfixé et jamais remplacé :
+`_repository_revision` appelle `git` sans timeout ni garde, et un `git` introuvable ferait tomber le
+hook pour une seconde raison. Voir `LOG-0321`.

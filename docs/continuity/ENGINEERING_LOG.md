@@ -5061,3 +5061,59 @@ en observant l'état relu. C'est la même classe de défaut que `C09`, `C14` et 
 rencontrée : *une propriété satisfaite par plus d'un chemin n'en prouve aucun.*
 
 Suite : `1090 passed, 312 subtests passed`. Quatorze couplages sur seize sont clos.
+
+## LOG-0321 — Le run #60 tombe sur Windows, et l'échec devient la meilleure mesure du lot
+
+**Statut : cause trouvée, mesurée et transformée en test. Suite `1091 + 312`.**
+
+Le run #60 sur `6e48ce8` : Linux vert, **Windows rouge**, `2 failed, 1088 passed, 312 subtests` en
+537 s. Les deux échecs sont les deux tests de `C15` qui exécutent les vrais hooks, et la cause n'est
+aucune des trois causes Windows déjà connues, ni aucune des deux surfaces que j'avais nommées comme
+suspectes (liens symboliques, variables d'environnement). Elle est dans ARET :
+
+```
+subprocess.TimeoutExpired: Command '['C:\Program Files\LLVM\bin\clang.EXE', '--version']'
+timed out after 5 seconds
+```
+
+`toolchain_status` cherche neuf outils par `shutil.which`, puis lance `<outil> --version` avec
+`timeout=5` et **sans aucune garde** — ni `try`, ni `except`, ni valeur de repli. Sur ce runner,
+`clang --version` met plus de cinq secondes à répondre.
+
+**Ce que ça coûte, mesuré en exécutant l'enveloppe `run()` d'ARET telle quelle**, avec un stub posé
+à 6 secondes sur le `PATH` — la même panne, reproduite sur n'importe quelle plateforme :
+
+* L'hôte ne reçoit **ni `result` ni `hookSpecificOutput`**. Le dossier de reprise, qui est toute la
+  raison d'être du hook, n'est pas injecté du tout.
+* L'erreur rendue est `INTERNAL_ERROR`, parce que `TimeoutExpired` n'est pas dans le tuple
+  d'exceptions nommées de `run()`. Elle nomme une sonde `--version` expirée, pas une reprise perdue.
+* L'état de barrière, lui, **survit** — `arm()` s'exécute plus tôt dans le handler que
+  `toolchain_status`. C'est un ordre heureux, pas un repli conçu : rien dans le handler ne protège
+  l'armement de ce qui le suit.
+
+**Ma première assertion était fausse et le test me l'a dit.** J'avais écrit que la barrière ne
+s'armait pas du tout ; le fichier d'état existait. `arm()` est à la ligne 27 du handler,
+`toolchain_status` à la 46. La mesure a corrigé la lecture, ce qui est exactement l'ordre voulu.
+
+**Côté VERA la question ne se pose pas**, et c'est vérifié plutôt qu'affirmé : la compilation du
+dossier ne lance aucun processus, et `session_lifecycle.py` n'importe ni `subprocess` ni `shutil`.
+
+**Les tests de hook posent désormais leurs propres stubs de toolchain.** Rien d'ARET n'est modifié :
+c'est l'**environnement** que le hook interroge qui est posé, et c'est précisément ce qu'un hôte
+fournit à un hook. Le `PATH` est préfixé et jamais remplacé, parce que `_repository_revision` appelle
+`git` sans timeout ni garde et qu'un `git` introuvable ferait tomber le hook pour une seconde raison.
+Le helper vérifie **son propre mécanisme** — `shutil.which("clang")` doit résoudre dans le répertoire
+de stubs — plutôt que de le supposer : sous Windows la résolution passe par `PATHEXT`, et sans cette
+vérification un échec de stub se lirait six lignes plus loin comme une cause obscure.
+
+Trois mutations de plus, toutes mordantes : stub rendu rapide, `subprocess` réintroduit dans le Core,
+et stubs placés en queue de `PATH` — cette dernière prouve que la vérification de mécanisme porte.
+Vingt et une mutations vérifiées sur le lot.
+
+**Une fausse piste, tracée pour ce qu'elle vaut.** Une exécution locale a rendu trois échecs sur ces
+mêmes tests, et j'ai d'abord cru à une dépendance à l'ordre ou à `xdist`. C'était le harnais de
+mutation : sa troisième mutation inverse exactement la ligne de `PATH`, et la signature de l'échec
+— les trois seuls utilisateurs de `probed_toolchain`, ni plus ni moins — la désigne sans ambiguïté.
+Le fichier restauré porte bien la forme préfixée, et dix exécutions consécutives sont vertes, dont
+deux suites parallèles complètes. Ce n'est pas une certitude sur le mécanisme de la course, c'est
+une conclusion appuyée sur la signature et sur l'état vérifié du fichier.

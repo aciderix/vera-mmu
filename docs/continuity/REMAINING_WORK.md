@@ -56,13 +56,14 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1090 passed, 312 subtests passed` côté Core et `78 passed` côté interface, **mesurés
+**Suite :** `1091 passed, 312 subtests passed` côté Core et `78 passed` côté interface, **mesurés
 sur Linux x64**. L’**attestation sur les deux plateformes** porte sur `1068 + 275` et `78`, au run
 `desktop-packaging.yml` #59 sur `834ee13`, chiffres identiques des deux côtés et zéro échec ; elle
 couvre l’intégralité des **141 tests de parité** `C01`–`C06` et `C09`–`C14`, `C16`. **`C15` n’y est
-pas encore** : ses 22 tests et 37 sous-tests sont postérieurs au #59 et le prochain run les portera
-sur Windows. Aucune autre dette Windows ouverte.
-**Durée :** en local, **77 s** sur quatre cœurs (`-n auto --dist loadfile`) pour 1090 tests. En CI
+pas encore** : ses 23 tests et 37 sous-tests sont postérieurs au #59. Le run #60 les y a portés et **a échoué** :
+la cause était la sonde de toolchain d’ARET, qui lance `<outil> --version` avec `timeout=5` et sans
+garde, et non un défaut de VERA — voir `LOG-0321`. Corrigé, il reste à réattester. Aucune autre dette Windows ouverte.
+**Durée :** en local, **74 s** sur quatre cœurs (`-n auto --dist loadfile`) pour 1091 tests. En CI
 au run #59, caches chauds : conformité **120 s** sur Linux et **420 s** sur Windows ; bundles **162 s**
 et **144 s**, contre 324 s et 336 s à froid au #58 — c’est là que le cache cargo paie. Job complet :
 **7 min 14** sur Linux et **11 min 55** sur Windows, contre 21 min avant parallélisation.
@@ -88,8 +89,9 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 **Run #59 sur `834ee13`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
 identiques — `1068 passed, 275 subtests passed` côté Core et `78 passed` côté interface, zéro échec.
 L’attestation couvre l’intégralité des **141 tests de parité** `C01`–`C06`, `C09`–`C14` et `C16`.
-**Elle ne couvre pas `C15`**, écrit après ce run ; c’est la seule dette Windows ouverte, et le
-prochain run la solde.
+**Elle ne couvre pas `C15`**, écrit après ce run ; c’est la seule dette Windows ouverte. Le run #60
+a tenté de la solder et a échoué — cause dans la sonde de toolchain d’ARET, corrigée côté test,
+voir `LOG-0321`.
 
 C’est le premier run à **caches chauds**, et le gain tombe exactement là où il était visé : les
 bundles passent de 324 s à **162 s** sur Linux et de 336 s à **144 s** sur Windows. Restaurer le
