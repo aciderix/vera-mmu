@@ -1,6 +1,9 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — `C14` promu `DONE` : le bundle, avec le `MemoryStore` entier d’ARET
+exécuté sur son propre DDL. Sa chaîne d’intégrité tient ; son manifeste ne porte aucune identité de
+projet. **Onze couplages clos sur seize.**
 **Révisé le :** 2026-09-19 — run #51 sur `c014dbf` : les deux runners verts, `1034 + 196` et `78`
 des deux côtés. Les 107 tests de parité sont attestés sur Windows pour la première fois, après
 trois causes trouvées au run #50 et corrigées. Dette Windows soldée.
@@ -33,10 +36,12 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1034 passed, 196 subtests passed` côté Core et `78 passed` côté interface, **attestés
-sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #51 sur `c014dbf`, chiffres identiques
-des deux côtés et zéro échec. C’est la première attestation deux plateformes à couvrir les **107
-tests de parité** `C01`–`C05`, `C09`–`C11`, `C13` et `C16` : la dette Windows est soldée.
+**Suite :** `1045 passed, 211 subtests passed` côté Core et `78 passed` côté interface, mesurés sur
+Linux x64. La dernière attestation **deux plateformes** est `1034 + 196` et `78` au run
+`desktop-packaging.yml` #51 sur `c014dbf`, chiffres identiques des deux côtés et zéro échec : elle
+couvre les 107 tests de parité `C01`–`C05`, `C09`–`C11`, `C13` et `C16`, et solde la dette Windows.
+Seuls les onze tests de `C14` ajoutés depuis restent à attester, et le workflow peut désormais être
+déclenché dans la foulée d’un commit.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -498,7 +503,7 @@ preview, pas seulement dans son refus.
 
 ## C. Ce qui décide de ce que le produit a le droit de dire de lui-même
 
-### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 10/16**
+### C1 — Parité ARET : mesurer ou renoncer explicitement — **EN COURS, 11/16**
 
 **Le diagnostic précédent était faux, et c’est mesuré.** Ce document affirmait que « le blocage est
 matériel » et qu’il fallait la chaîne d’outils ARET réelle. C’est vrai pour **deux** couplages sur
@@ -586,12 +591,12 @@ erreur* sur une HEAD détachée au lieu de rendre une sortie vide, si bien que l
 simplement pas ce qui s’était passé. C’est la quatrième règle morte trouvée par mutation dans cette
 série, après les deux de `B11` et la garde de `C04`.
 
-**Ce que ces promotions ne disent pas :** rien sur les six autres couplages. Une parité
-d’adressage, de store, de composants, de symboles, de briques et de Git n’est pas une parité ARET.
+**Ce que ces promotions ne disent pas :** rien sur les cinq autres couplages. Une parité
+d’adressage, de store, de composants, de symboles, de briques, de Git et de bundle n’est pas une parité ARET.
 
 **Reste, dans l’ordre du moins cher au plus cher :**
 
-1. **Les quatre couplages de nature « données et comportement »** — `C06`, `C12`, `C14`, `C15`.
+1. **Les trois couplages de nature « données et comportement »** — `C06`, `C12`, `C15`.
    Chacun suit le gabarit de `C01` : une référence ARET versionnée avec son empreinte, un corpus réel
    issu de la baseline, et une parité dirigée. `C13` ajoute une variante au gabarit : quand la
    question porte sur un comportement, la référence s’exécute. Aucune dépendance externe ; c’est du
@@ -648,8 +653,8 @@ seule écriture user-scope.
 6. ~~**B10 puis B11**~~ faits : le MCP Preview, puis la conclusion du parcours.
 7. ~~**B12**~~ fait : les étapes 5 à 8 sont raccordées au parent natif, avec le test de parité qui
    empêchera la prochaine dérive de ce type. **La section B est terminée.**
-8. **C1** — poursuivre la parité ARET : dix couplages sont clos, quatre de données restent faisables
-   ici — `C06`, `C12`, `C14`, `C15` — et `C07`/`C08` demandent Wine et MinGW.
+8. **C1** — poursuivre la parité ARET : onze couplages sont clos, trois de données restent faisables
+   ici — `C06`, `C12`, `C15` — et `C07`/`C08` demandent Wine et MinGW.
 9. **C3** — étudier l’abstraction VCS avant d’écrire une ligne.
 10. **D1 et D2** — observations hôtes, au fil des occasions réelles, et après chaque lot B.
 

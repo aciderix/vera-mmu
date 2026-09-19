@@ -4646,3 +4646,63 @@ lui, déclarait `workflow_dispatch` depuis toujours — il n’était pas en cau
 `Actions: write` ayant été accordée, un lot peut désormais être attesté sur les deux plateformes
 dans la foulée de son commit, au lieu d’attendre. C’est précisément la boucle qui avait laissé
 cent-sept tests non attestés et dix-huit d’entre eux faux.
+
+## LOG-0315 — `C14` promu : le bundle d'ARET exécuté, et ce qu'il ne sait pas dire
+**Statut : PASS mesuré sur Linux x64. À attester sur Windows au prochain run.**
+
+`C13` avait inauguré l'exécution de la référence ARET. `C14` la pousse plus loin : ce n'est plus une
+fonction isolée qui tourne, c'est le `MemoryStore` entier, migré sur son propre DDL. Le layout
+versionné le permet sans rien modifier — `_migrate` et `_bundle_migrations` cherchent leur schéma à
+`Path(__file__).parents[1] / "schema"`, ce qui, depuis `fixtures/aret_v1/source/`, désigne
+exactement `fixtures/aret_v1/schema/` et ses six migrations réelles. La seule dépendance externe,
+`core.addressing`, est la référence déjà versionnée pour `C01`, présentée sous ce nom avec son
+empreinte épinglée : charger un autre adressage ferait tourner un ARET qu'on ne mesure pas.
+
+**Ce qu'ARET fait bien, dit en premier.** Huit altérations, huit refus : snapshot modifié, artefact
+substitué, migration allongée, artefact retiré, champ du manifeste changé, snapshot retiré, chemin
+d'évasion `../`, manifeste vidé. Les comparaisons passent par `hmac.compare_digest`, et la chaîne
+tient sur trois hashes — `db_hash` sur le JSON canonique du snapshot, `snapshot_sha256` sur ses
+octets, `manifest_hash` sur le manifeste privé de lui-même — plus une empreinte par migration et
+par artefact. `C14` n'est pas un couplage où VERA serait simplement meilleur, et un registre qui ne
+relèverait que les divergences serait un réquisitoire, pas une mesure.
+
+**Premier écart : l'identité, et il est structurel.** Le manifeste d'ARET n'en contient aucune. Le
+mot « project » est absent de ses 2677 lignes, et le `source_device_id` qu'il écrit apparaît **une
+seule fois** dans toute la source — à l'écriture. Il n'est comparé nulle part. Mesuré en
+l'exécutant : un bundle exporté d'une mémoire s'importe sans une objection dans une mémoire qui n'a
+rien à voir, et les dix-sept composants réels de la baseline y arrivent intacts. La seule garde est
+« la cible doit être vide », et une cible vide est précisément le cas normal d'une restauration.
+C'est I011 qui n'a pas de prise : rien ne lie cette mémoire à son projet.
+
+**Second écart : ce que le mot « idempotent » recouvre.** ARET consigne le bundle importé dans
+`bundle_import` et répond d'après cette entrée. Mesuré : après un import suivi d'une mutation, le
+ré-import rend encore `idempotent: True` alors que la mémoire porte désormais une ligne que le
+bundle ne contient pas. La réponse est exacte sur le registre — « j'ai déjà vu ce bundle » — et
+trompeuse sur l'état. VERA n'accorde `ALREADY_RESTORED` que si l'empreinte de la mémoire **et** la
+configuration cible correspondent, et refuse sinon plutôt que d'annoncer une équivalence fausse.
+
+**Ce sur quoi les deux s'accordent :** ni l'un ni l'autre ne fusionne un bundle dans une mémoire
+qui porte déjà quelque chose. ARET lève, VERA lève, et le motif de fond est le même — une fusion
+que personne n'a demandée produirait un état dont aucun des deux ne répond.
+
+**Restauration du corpus réel.** Les dix-sept composants de la mémoire baseline sont insérés dans un
+store ARET réel, exportés par son propre `export_bundle`, et relus après import : identiques, avec
+l'artefact joint. C'est la dimension « restauration du bundle M0.1 », faite sur des données de
+production et par le bundle d'ARET, pas sur un échantillon écrit pour l'occasion.
+
+**Deux mesures passaient d'abord par une seconde route, et ont été isolées.** Altérer la mémoire
+d'un bundle VERA restait refusé même en retirant la vérification d'inventaire, parce que le hash de
+mémoire est contrôlé une **seconde** fois par sa propre règle ; l'altération porte désormais aussi
+sur un artefact, que seul l'inventaire couvre. Et le contrat fermé du manifeste est une règle **de
+lecture** : un test qui n'inspecte que le manifeste produit à l'export ne la touche jamais. En
+écrivant ce cas, une garde plus forte est apparue — VERA exige les octets **canoniques** du
+manifeste, donc toute édition est refusée quel qu'en soit le contenu, ce qui masquait les règles
+suivantes. Elle est désormais nommée séparément, et les cas qui visent le contrat fermé, la
+bijectivité de l'inventaire et le hash de profil redondant sérialisent canoniquement pour
+l'atteindre. Même classe de défaut qu'en `C09` : une propriété satisfaite par plus d'une route n'en
+prouve aucune.
+
+**Preuve.** `tests/test_aret_c14_bundle_parity.py`, onze tests et quinze sous-tests ; sept règles
+VERA mutées une à une et trois règles ARET, mordant vérifié — et le test d'empreinte est tombé avec
+les mutations de la référence, comme il doit. Suite complète : `1045 passed, 211 subtests passed`.
+**Onze couplages sur seize sont désormais clos.**

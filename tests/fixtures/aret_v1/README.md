@@ -69,3 +69,19 @@ sortie entière de `git status --porcelain=v1`, `changes()` découpe ensuite à 
 fichier de la mémoire est déclaré hors de la mémoire. **Ce fichier ne doit pas être corrigé.** Une
 référence réparée mesurerait autre chose qu'ARET ; le test de hash tombe si on y touche, et c'est
 voulu.
+
+## `C14` : le `MemoryStore` entier, exécuté
+
+`C14` va un cran plus loin que `C13`. Ce n'est plus une fonction isolée qui tourne, c'est le
+`MemoryStore` d'ARET au complet, chargé par `tests/aret_v1_repository_reference.py` et migré sur son
+propre DDL. Le layout versionné le permet sans rien modifier : `_migrate` et `_bundle_migrations`
+cherchent leur schéma à `Path(__file__).parents[1] / "schema"`, ce qui, depuis `source/`, désigne
+exactement le `schema/` voisin et ses six migrations réelles.
+
+La seule dépendance externe du dépôt est `core.addressing`. La référence d'adressage versionnée pour
+`C01` est présentée sous ce nom, **avec son empreinte épinglée elle aussi** : charger un autre
+adressage ferait tourner un ARET qui n'est pas celui qu'on croit mesurer.
+
+Ce qui en est sorti est consigné dans `LOG-0315` : la chaîne d'intégrité d'ARET tient sur huit
+altérations, mais son manifeste ne porte aucune identité de projet, et le `source_device_id` qu'il
+écrit n'est relu nulle part.
