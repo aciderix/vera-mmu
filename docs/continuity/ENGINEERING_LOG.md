@@ -4943,3 +4943,18 @@ entre temps de boucle et surface de vérification, pas un oubli.
 
 **Le premier run après cet ajout ne sera pas plus rapide** — il peuple les caches. Le gain se lit au
 suivant, et c'est lui qu'il faudra mesurer avant d'annoncer un chiffre.
+
+**Mesuré au run #57, et le gain est inégal entre les plateformes.** L'étape de conformité passe de
+248 s à **85 s** sur Linux — facteur 2,9, cohérent avec les 76 s locaux, donc le runner a bien quatre
+cœurs. Mais sur Windows elle ne passe que de 696 s à **412 s**, facteur **1,69**. Le job complet
+tombe de ~13 min à ~8 min côté Linux, et de ~21 min à **15 min 14** côté Windows.
+
+L'écart n'est pas expliqué par le nombre de cœurs, qui est le même. L'hypothèse la plus probable est
+le coût de création de processus sous Windows : chaque worker xdist est un processus Python, et
+surtout une partie de la suite — transports MCP en stdio, hooks, adaptateurs — lance de **vrais
+sous-processus**, bien plus chers là-bas. Ce n'est pas vérifié, et c'est écrit ici comme hypothèse,
+pas comme fait.
+
+Profil Windows restant après parallélisation : conformité 412 s, bundles 341 s, installation pip
+46 s, sidecar 42 s, archive CLI 30 s. Les deux premiers postes pèsent désormais autant l'un que
+l'autre, ce qui est précisément ce que les caches ajoutés au commit suivant visent.
