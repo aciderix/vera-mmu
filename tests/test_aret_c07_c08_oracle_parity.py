@@ -382,6 +382,82 @@ class C07C08OracleParityTests(unittest.TestCase):
             self.assertIn(spec.script, missing)
             self.assertIn("target/release/aret", missing)
 
+    def test_i013_the_declared_dependencies_under_declare_what_the_scripts_need(self) -> None:
+        """Le préflight d'ARET annonce « rien ne manque » pour deux oracles qui ne peuvent pas tourner.
+
+        `funcdiff` déclare `('bash', 'cargo')` et `cpudiff` déclare `('cargo',)`. Mais le script de
+        l'un et la commande de l'autre exigent tous deux `--features unpack`, c'est-à-dire la
+        **libunicorn système** — qui n'est déclarée dans aucune des deux specs. `required_tools`
+        rend donc `[]` : prêt à lancer.
+
+        Le script, lui, le découvre à l'exécution et dégrade proprement : il imprime
+        `SKIP (unpack build unavailable — is libunicorn installed?)` et sort en 0, ce que
+        `normalise_result` traduit en `SKIPPED`. La chaîne ne ment donc pas sur le **résultat** ;
+        elle ment sur la **disponibilité**, et seulement après avoir payé une compilation Rust
+        complète qui ne peut pas se lier.
+
+        C'est exactement ce que `C08` vise : un préflight doit dire ce qui manque **avant**, pas
+        après. Un catalogue de dépendances qui n'énumère pas ce dont le script a besoin n'est pas
+        un préflight, c'est une liste d'intentions.
+        """
+        oracles = aret_oracles()
+        toolkit = Path("/home/user/Automatic-reverse-engineering-toolkit")
+        if not toolkit.is_dir():
+            self.skipTest("Le dépôt toolkit de référence n’est pas monté dans ce conteneur")
+
+        self.assertEqual(oracles.ORACLES["funcdiff"].dependencies, ("bash", "cargo"))
+        self.assertEqual(oracles.ORACLES["cpudiff"].dependencies, ("cargo",))
+        for name in ("funcdiff", "cpudiff"):
+            with self.subTest(oracle=name):
+                self.assertNotIn("libunicorn", oracles.ORACLES[name].dependencies)
+                self.assertEqual(oracles.required_tools(oracles.ORACLES[name], toolkit), [])
+
+        # Ce que les deux exigent réellement, relevé sur le script et sur la commande.
+        script = (toolkit / "bench" / "funcdiff.sh").read_text(encoding="utf-8")
+        self.assertIn("--features unpack", script)
+        self.assertIn("libunicorn", script)
+        self.assertIn("unpack", " ".join(oracles.ORACLES["cpudiff"].command))
+
+    def test_i014_the_shared_library_probe_cannot_report_available(self) -> None:
+        """Une sonde qui ne peut pas réussir, et les deux vues d'ARET qui se contredisent.
+
+        `toolchain_status` cherche `unicorn` par `shutil.which("libunicorn")` — une fonction qui
+        parcourt le `PATH` à la recherche d'un **exécutable**. Une bibliothèque partagée s'installe
+        en `libunicorn.so.N` sous `/usr/lib`, jamais sur le `PATH` et jamais exécutable. La sonde
+        rend donc `available: False` sur une machine où la bibliothèque est correctement installée
+        comme sur une machine où elle manque : elle ne distingue rien.
+
+        Et les deux vues d'ARET se contredisent dans le même dépôt : `toolchain_status` annonce
+        `unicorn` indisponible, pendant que `required_tools` annonce `funcdiff` prêt. Le préflight
+        qui garde l'exécution ne consulte pas l'inventaire que le dossier de reprise publie.
+
+        VERA n'a pas cette surface : son `doctor` ne sonde aucun outil externe, et son runner fermé
+        refuse sur le **contrat** — une assertion qu'il peut tenir — plutôt que sur une présence
+        devinée.
+        """
+        import shutil as _shutil
+
+        from tests.aret_v1_pipelines_reference import aret_pipelines
+
+        oracles = aret_oracles()
+        toolkit = Path("/home/user/Automatic-reverse-engineering-toolkit")
+        if not toolkit.is_dir():
+            self.skipTest("Le dépôt toolkit de référence n’est pas monté dans ce conteneur")
+
+        self.assertIsNone(_shutil.which("libunicorn"))
+        status = aret_pipelines().toolchain_status(toolkit)
+        self.assertFalse(status["tools"]["unicorn"]["available"])
+
+        # La contradiction, mesurée : indisponible d'un côté, « rien ne manque » de l'autre.
+        self.assertEqual(oracles.required_tools(oracles.ORACLES["funcdiff"], toolkit), [])
+
+        # Côté VERA, le doctor ne prétend rien sur une chaîne d'outils, parce qu'il n'en sonde pas.
+        doctor = (Path(__file__).resolve().parents[1] / "src" / "vera_mmu" / "doctor.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("libunicorn", doctor)
+        self.assertNotIn("shutil.which", doctor)
+
     def test_i006_the_vera_core_names_no_external_executable_and_needs_none(self) -> None:
         """Dimension « Core installable sans toolchain » : mesurée, pas supposée.
 

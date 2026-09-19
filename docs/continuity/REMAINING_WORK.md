@@ -62,11 +62,13 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1105 passed, 1 skipped, 365 subtests passed` côté Core et `78 passed` côté interface,
-**attestés sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #62 sur `ca8a2f3` :
-chiffres identiques des deux côtés, zéro échec, aucune occurrence de `WinError`. L’attestation
-couvre l’intégralité des **179 tests de parité** `C01`–`C16`, `C07`/`C08` inclus pour leurs
-dimensions sans chaîne d’outils. **Aucune dette Windows ouverte.**
+**Suite :** `1108 passed, 376 subtests passed` en local sur Linux. L’attestation **sur les deux
+plateformes** porte sur `1105 passed, 1 skipped, 365 subtests passed` côté Core et `78 passed` côté
+interface, au run `desktop-packaging.yml` #62 sur `ca8a2f3` : chiffres identiques des deux côtés,
+zéro échec, aucune occurrence de `WinError`, et l’intégralité des **179 tests de parité**
+`C01`–`C16` couverte, `C07`/`C08` inclus pour leurs dimensions sans chaîne d’outils. Les 2 tests
+ajoutés depuis (`LOG-0323`) lui sont postérieurs et attendent le prochain run. **Aucune dette
+Windows ouverte.**
 
 **Le test sauté est attendu et il est le bon.** `test_i013_a_missing_toolchain_yields_skipped_...`
 interroge `required_tools` contre le vrai dépôt `Automatic-reverse-engineering-toolkit`, qui n’est
@@ -699,10 +701,16 @@ playbook et de barrière de reprise n’est pas une parité ARET.
    **`docker`** lui-même, plus `cargo`, `rustc`, `gcc`, `clang` et `bash`. Mesuré sur le vrai dépôt
    toolkit : `cpudiff` et `funcdiff` n’ont **aucune dépendance manquante** ici.
 
-   Trois chemins restent donc ouverts, par coût croissant : construire `target/release/aret` avec
-   `cargo` et tenter les deux oracles satisfaits ; construire l’image de référence avec `docker`
-   pour obtenir Wine et MinGW ; ou acter que la parité d’exécution ne se mesure pas ici. Le choix
-   revient au propriétaire ; aucune tentative non bornée ne sera lancée sans lui.
+   **Le chemin le moins cher que j’avais recommandé n’existe pas, et `LOG-0323` dit pourquoi.**
+   `cpudiff` et `funcdiff` n’ont pas besoin du binaire `aret` — leur `requires_aret_binary` vaut
+   `False` —, mais tous deux exigent `--features unpack`, donc la **libunicorn système**, absente
+   ici et déclarée dans aucune des deux specs. Une compilation ne contourne pas cette dépendance.
+
+   Deux chemins restent donc, et un seul est bon marché : fournir `libunicorn` (et alors les deux
+   oracles deviennent réellement lançables), ou construire l’image de référence avec `docker` pour
+   obtenir Wine, MinGW et libunicorn d’un coup. Le troisième reste d’acter que la parité
+   d’exécution ne se mesure pas ici. Le choix revient au propriétaire ; aucune tentative non bornée
+   ne sera lancée sans lui.
 
 **Tous les couplages de nature « données et comportement » sont clos** depuis `C15`. Le gabarit,
 posé par `C01` et étendu par `C13`, aura tenu jusqu’au bout : une référence ARET versionnée avec son

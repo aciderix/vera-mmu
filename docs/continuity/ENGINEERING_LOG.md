@@ -5212,3 +5212,52 @@ les extrêmes**, avec un runner différent à chaque fois. Le `LOG-0319` parlait
 c'était une mesure Linux, et elle ne vaut pas pour Windows. Aucune conclusion de durée ne doit être
 tirée d'un seul run Windows, et les comparaisons Windows des entrées précédentes doivent se lire
 avec cette réserve. Les quatre mesures sont consignées telles quelles, sans cause attribuée.
+
+## LOG-0323 — Le chemin le moins cher n'existait pas, et l'enquête a trouvé mieux
+
+**Statut : `C07`/`C08` restent `IN_PROGRESS`. 17 tests, 64 sous-tests, 11 mutations mordantes.
+Suite `1108 + 376`.**
+
+J'avais recommandé, mesures à l'appui, de construire `target/release/aret` avec `cargo` pour lancer
+`cpudiff` et `funcdiff`, les deux oracles dont `required_tools` rend `[]`. **Cette recommandation
+était fausse sur deux points, et il faut le dire avant le reste.**
+
+*Premier point.* Ni `funcdiff` ni `cpudiff` n'a besoin de ce binaire : leur `requires_aret_binary`
+vaut `False`. Construire `target/release/aret` ne les aurait pas rapprochés d'une exécution.
+
+*Second point, et c'est lui qui ferme le chemin.* Les deux exigent `--features unpack`, c'est-à-dire
+la **libunicorn système**, absente de cette machine. `funcdiff.sh` le découvre après avoir lancé
+`cargo test --release --features unpack`, constate qu'aucune ligne `test result:` n'est sortie, et
+imprime `SKIP (unpack build unavailable — is libunicorn installed?)` avant de sortir en 0. Le
+verdict serait donc `SKIPPED`, au prix d'une compilation Rust complète qui ne peut pas se lier.
+
+**Ce que l'enquête a trouvé à la place vaut mieux que ce qu'elle cherchait, et c'est exactement ce
+que `C08` vise.**
+
+*Le catalogue sous-déclare.* `funcdiff` déclare `('bash', 'cargo')`, `cpudiff` déclare `('cargo',)`.
+Aucun des deux ne nomme libunicorn, que leurs scripts exigent pourtant. `required_tools` rend donc
+`[]` — « rien ne manque, prêt à lancer » — pour deux oracles qui ne peuvent pas tourner ici. Un
+catalogue de dépendances qui n'énumère pas ce dont le script a besoin n'est pas un préflight, c'est
+une liste d'intentions. La chaîne ne ment pas sur le **résultat** : elle dégrade proprement en
+`SKIPPED`. Elle ment sur la **disponibilité**, et seulement après avoir payé la compilation.
+
+*Une sonde structurellement incapable de réussir.* `toolchain_status` cherche `unicorn` par
+`shutil.which("libunicorn")` — une fonction qui parcourt le `PATH` à la recherche d'un
+**exécutable**. Une bibliothèque partagée s'installe en `libunicorn.so.N` sous `/usr/lib`, jamais
+sur le `PATH` et jamais exécutable. Cette sonde rend donc `available: False` sur une machine où la
+bibliothèque est correctement installée comme sur une machine où elle manque : elle ne distingue
+rien. C'est la cinquième règle morte trouvée par mutation dans cette série.
+
+*Et les deux vues d'ARET se contredisent dans le même dépôt.* `toolchain_status` annonce `unicorn`
+indisponible ; `required_tools` annonce `funcdiff` prêt. Le préflight qui garde l'exécution ne
+consulte pas l'inventaire que le dossier de reprise publie à l'agent.
+
+**Côté VERA, la surface n'existe pas.** Son `doctor` diagnostique le profil, le runtime, la base,
+le magasin d'artefacts, la reprise, le transport MCP, le VCS, la non-pollution, les catalogues,
+l'HMAC et les hooks — et **aucun outil externe**. Il ne prétend donc jamais qu'une chaîne d'outils
+est prête. Son runner fermé refuse sur le **contrat** déclaré et la policy `ALLOW`, une assertion
+qu'il peut tenir, plutôt que sur une présence devinée.
+
+**Ce que cela change pour la suite.** L'exécution réelle d'un oracle demande `libunicorn` — pas
+seulement Wine et MinGW comme le registre le disait, ni le binaire `aret` comme je l'avais dit.
+C'est une dépendance de plus à fournir, et elle ne se contourne pas par une compilation.
