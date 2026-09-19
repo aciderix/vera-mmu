@@ -25,6 +25,7 @@ from .doctor import diagnose_project
 from .gate_policy_builder import GatePolicyDraftPreview, apply_gate_policy_draft, preview_gate_policy_draft
 from .gate_reports import report_gate
 from .mcp_preview import compile_mcp_preview
+from .migrations import MigrationError
 from .gate_structure_builder import GateStructureDraftPreview, apply_gate_structure_draft, preview_gate_structure_draft
 from .identity import load_profile
 from .read_api import ReadService
@@ -138,7 +139,11 @@ class DesktopBridge:
             payload = self._request(request)
         except _ProtocolError as exc:
             return _error(request_id, exc.code, exc.message)
-        except (ProjectBootstrapError, ProjectOperationError, StoreError, ValueError) as exc:
+        except (MigrationError, ProjectBootstrapError, ProjectOperationError, StoreError, ValueError) as exc:
+            # `MigrationError` dérive de `RuntimeError`, pas de `StoreError` : `__main__` la
+            # rattrape nommément, le bridge ne le faisait pas. Un inventaire de migrations
+            # illisible tuait donc le processus au lieu de refuser, et emportait la session
+            # desktop avec lui — une barrière qui se plante au lieu de refuser ne refuse rien.
             return _error(request_id, "OPERATION_REFUSED", str(exc))
         return json.dumps({"format": BRIDGE_FORMAT, "id": payload["id"], "ok": True, "result": payload["result"]}, ensure_ascii=False, sort_keys=True)
 

@@ -9,6 +9,9 @@ import subprocess
 import sys
 
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pyinstaller_resources import add_data_arguments  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 SUPPORTED_TARGETS = {"x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"}
 
@@ -21,6 +24,37 @@ def host_tuple() -> str:
         text=True,
     )
     return completed.stdout.strip()
+
+
+def pyinstaller_command(binary_name: str, binary_dir: Path, work_dir: Path) -> list[str]:
+    """Compose la commande du sidecar, séparée de son exécution pour rester mesurable.
+
+    Le sidecar est un second emballage, construit indépendamment de la CLI : c'est pourquoi le
+    même oubli de ressources y a été livré aussi. `add_data_arguments` est la définition
+    partagée, et `tests/test_cli_bundle_resources.py` compare les deux commandes côte à côte.
+    """
+    return [
+        sys.executable,
+        "-m",
+        "PyInstaller",
+        "--noconfirm",
+        "--clean",
+        "--onefile",
+        "--name",
+        binary_name,
+        "--paths",
+        str(ROOT / "src"),
+        "--collect-submodules",
+        "vera_mmu",
+        *add_data_arguments(),
+        "--distpath",
+        str(binary_dir),
+        "--workpath",
+        str(work_dir / "work"),
+        "--specpath",
+        str(work_dir / "spec"),
+        str(ROOT / "scripts" / "desktop_bridge_entry.py"),
+    ]
 
 
 def main() -> int:
@@ -41,28 +75,7 @@ def main() -> int:
     shutil.rmtree(work_dir, ignore_errors=True)
     binary_dir.mkdir(parents=True, exist_ok=True)
 
-    command = [
-        sys.executable,
-        "-m",
-        "PyInstaller",
-        "--noconfirm",
-        "--clean",
-        "--onefile",
-        "--name",
-        binary_name,
-        "--paths",
-        str(ROOT / "src"),
-        "--collect-submodules",
-        "vera_mmu",
-        "--distpath",
-        str(binary_dir),
-        "--workpath",
-        str(work_dir / "work"),
-        "--specpath",
-        str(work_dir / "spec"),
-        str(ROOT / "scripts" / "desktop_bridge_entry.py"),
-    ]
-    subprocess.run(command, check=True, cwd=ROOT)
+    subprocess.run(pyinstaller_command(binary_name, binary_dir, work_dir), check=True, cwd=ROOT)
     if not expected.is_file() or expected.is_symlink():
         raise RuntimeError(f"Sidecar attendu absent ou ambigu : {expected}")
     print(f"Built {expected}")

@@ -12,7 +12,6 @@ import argparse
 from dataclasses import dataclass
 from hashlib import sha256
 import json
-import os
 from pathlib import Path
 import platform
 import re
@@ -23,6 +22,9 @@ import tarfile
 import tomllib
 import zipfile
 
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pyinstaller_resources import add_data_arguments  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMAT = "vera-release-manifest/v1"
@@ -147,32 +149,9 @@ def canonical_json(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
 
 
-def package_data_dirs() -> tuple[Path, ...]:
-    """Énumère les répertoires de ressources non-Python que `vera_mmu` lit à l’exécution.
-
-    `--collect-submodules` ne collecte que des modules : un `.sql` n’est pas un module, et rien
-    dans la chaîne de build ne l’aurait signalé. C’est ce qui a rendu la CLI livrée inutilisable
-    dès qu’elle touchait SQLite — `init` compris, donc la remédiation que `doctor` proposait.
-    Énumérer plutôt qu’épingler une liste : un futur répertoire de ressources est embarqué sans
-    que personne ait à y penser, et le test de parité le constate.
-    """
-    package = ROOT / "src" / "vera_mmu"
-    directories = {
-        path.parent
-        for path in package.rglob("*")
-        if path.is_file() and path.suffix != ".py" and "__pycache__" not in path.parts
-    }
-    return tuple(sorted(directories))
-
-
 def pyinstaller_command(spec: TargetSpec, dist_dir: Path, work_dir: Path) -> list[str]:
     """Compose la commande de build, séparée de son exécution pour rester mesurable."""
 
-    package = ROOT / "src" / "vera_mmu"
-    data_arguments: list[str] = []
-    for directory in package_data_dirs():
-        destination = Path("vera_mmu") / directory.relative_to(package)
-        data_arguments += ["--add-data", f"{directory}{os.pathsep}{destination.as_posix()}"]
     return [
         sys.executable,
         "-m",
@@ -186,7 +165,7 @@ def pyinstaller_command(spec: TargetSpec, dist_dir: Path, work_dir: Path) -> lis
         str(ROOT / "src"),
         "--collect-submodules",
         "vera_mmu",
-        *data_arguments,
+        *add_data_arguments(),
         "--distpath",
         str(dist_dir),
         "--workpath",
