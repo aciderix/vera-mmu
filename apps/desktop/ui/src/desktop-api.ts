@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 export type JsonObject = Record<string, unknown>;
 
 export const desktopApi = {
+  preselectedProject: () => invoke<JsonObject>("preselected_project"),
   selectProject: () => invoke<JsonObject>("select_project"),
   scanProject: () => invoke<JsonObject>("scan_project"),
   wizardState: () => invoke<JsonObject>("wizard_state"),

@@ -90,6 +90,13 @@ jobs:
       - name: Run desktop interface tests
         working-directory: apps/desktop
         run: pnpm test
+      # `pnpm test` ne couvre que le WebView. Le backend Tauri — qui valide la racine du projet et
+      # parle au bridge — avait ses propres tests que rien n’exécutait : l’un d’eux attendait
+      # encore `vera-scan-report/v1` et échouait depuis que le scanner est passé en `v2`. Un test
+      # que rien ne lance ne garde rien.
+      - name: Run desktop backend tests
+        working-directory: apps/desktop/src-tauri
+        run: cargo test --locked
       - name: Build native VERA sidecar
         run: python scripts/build_desktop_sidecar.py ${{ matrix.target }}
       - name: Build standalone VERA CLI archive

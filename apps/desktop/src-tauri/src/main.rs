@@ -122,15 +122,96 @@ fn bridge_executable(app: &tauri::AppHandle) -> Result<BridgeExecutable, String>
     }
 }
 
-fn folder_dialog() -> Result<PathBuf, String> {
-    let folder = rfd::FileDialog::new().set_title("Choisir le dossier du projet VERA").pick_folder().ok_or_else(|| "Sélection de projet annulée.".to_string())?;
-    if folder.is_symlink() || !folder.is_dir() { return Err("Dossier sélectionné invalide ou symlinké.".to_string()); }
+/// Nom de l’argument et de la variable qui désignent la racine sans dialogue natif.
+const PROJECT_ROOT_FLAG: &str = "--project-root";
+const PROJECT_ROOT_VARIABLE: &str = "VERA_MMU_PROJECT_ROOT";
+
+/// Valide une racine candidate exactement comme le dialogue natif valide la sienne.
+///
+/// Une seule fonction pour les deux voies : si la validation divergeait, la voie sans dialogue
+/// deviendrait la voie permissive, et ce serait précisément celle qu’un automate emprunte.
+fn accept_root(folder: PathBuf) -> Result<PathBuf, String> {
+    if folder.is_symlink() || !folder.is_dir() {
+        return Err("Dossier sélectionné invalide ou symlinké.".to_string());
+    }
     folder.canonicalize().map_err(|_| "Dossier sélectionné introuvable.").map_err(str::to_string)
+}
+
+/// Lit la racine désignée au lancement, par `--project-root <chemin>` ou `VERA_MMU_PROJECT_ROOT`.
+///
+/// **Pourquoi c’est sûr.** L’invariant du bridge est que la racine vient du parent natif, jamais
+/// d’une requête WebView. Ces deux sources sont l’argv et l’environnement du processus, c’est-à-dire
+/// ce que le parent a décidé au lancement — le même niveau de confiance que le dialogue, et non
+/// celui du contenu affiché. Le WebView continue de n’envoyer aucun chemin : `select_project` ne
+/// prend toujours aucun paramètre.
+///
+/// **Pourquoi ça existe.** Le dialogue natif dépend d’un portail de bureau, absent d’un conteneur
+/// sans écran. Mesuré sur l’AppImage livrée sous Xvfb, avec D-Bus et `xdg-desktop-portal`
+/// démarrés : la fenêtre s’affiche, le clic est reçu — le bouton passe en survol — mais aucun
+/// sélecteur ne s’ouvre. L’interface restait donc bloquée à sa toute première étape, et c’est la
+/// seule chose qui empêchait de la piloter sans écran.
+///
+/// `None` signifie qu’aucune racine n’a été désignée : le dialogue reste alors la seule voie.
+fn preselected_root() -> Option<Result<PathBuf, String>> {
+    parse_preselected_root(std::env::args_os().skip(1), std::env::var_os(PROJECT_ROOT_VARIABLE))
+}
+
+/// La part testable de la lecture : le parcours des arguments, isolé du processus.
+///
+/// Tant que la lecture appelait `std::env::args_os()` en son sein, rien ne pouvait l'exercer :
+/// un test ne choisit pas l'argv de son propre processus. La séparer n'est pas de l'esthétique,
+/// c'est la condition pour que cette voie soit mesurée plutôt que supposée.
+fn parse_preselected_root(
+    arguments: impl IntoIterator<Item = std::ffi::OsString>,
+    variable: Option<std::ffi::OsString>,
+) -> Option<Result<PathBuf, String>> {
+    let mut arguments = arguments.into_iter();
+    while let Some(argument) = arguments.next() {
+        let text = argument.to_string_lossy().into_owned();
+        if text == PROJECT_ROOT_FLAG {
+            return Some(match arguments.next() {
+                Some(value) if !value.is_empty() => accept_root(PathBuf::from(value)),
+                _ => Err(format!("{PROJECT_ROOT_FLAG} attend un chemin de dossier.")),
+            });
+        }
+        if let Some(value) = text.strip_prefix(&format!("{PROJECT_ROOT_FLAG}=")) {
+            if value.is_empty() {
+                return Some(Err(format!("{PROJECT_ROOT_FLAG} attend un chemin de dossier.")));
+            }
+            return Some(accept_root(PathBuf::from(value)));
+        }
+    }
+    match variable {
+        Some(value) if !value.is_empty() => Some(accept_root(PathBuf::from(value))),
+        _ => None,
+    }
+}
+
+fn folder_dialog() -> Result<PathBuf, String> {
+    if let Some(preselected) = preselected_root() {
+        return preselected;
+    }
+    let folder = rfd::FileDialog::new().set_title("Choisir le dossier du projet VERA").pick_folder().ok_or_else(|| "Sélection de projet annulée.".to_string())?;
+    accept_root(folder)
 }
 
 fn with_bridge<T>(state: &State<'_, AppState>, f: impl FnOnce(&mut BridgeSession) -> Result<T, String>) -> Result<T, String> {
     let mut guard = state.session.lock().map_err(|_| "État bridge verrouillé de façon ambiguë.".to_string())?;
     f(guard.as_mut().ok_or_else(|| "Aucun projet local associé.".to_string())?)
+}
+
+/// Dit si une racine a été désignée au lancement, sans jamais ouvrir de dialogue.
+///
+/// Le frontend s’en sert pour n’associer automatiquement que dans ce cas. Appeler `select_project`
+/// au montage sans cette sonde ferait surgir le sélecteur de dossier au démarrage chez quelqu’un
+/// qui n’a rien demandé — une fenêtre modale non sollicitée est un défaut, pas une commodité.
+#[tauri::command]
+fn preselected_project() -> Result<Value, String> {
+    Ok(match preselected_root() {
+        None => json!({"root": Value::Null, "source": "DIALOG"}),
+        Some(Ok(root)) => json!({"root": root, "source": "LAUNCH_ARGUMENT"}),
+        Some(Err(reason)) => json!({"root": Value::Null, "source": "LAUNCH_ARGUMENT", "error": reason}),
+    })
 }
 
 #[tauri::command]
@@ -404,7 +485,7 @@ fn main() {
             app.manage(AppState { session: Mutex::new(None), executable });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![select_project, scan_project, wizard_state, journey_outcome, recommend_profile, project_status, project_doctor, migration_status, project_documentation, profile_rebind_preview, profile_rebind_apply, profile_rebind_recovery_preview, profile_rebind_recovery_apply, capability_options, capability_preview, capability_apply, policy_options, policy_preview, policy_apply, resume_options, resume_preview, resume_apply, work_graph_read, work_graph_preview, work_graph_apply, taxonomy_options, taxonomy_preview, taxonomy_apply, mcp_preview, gate_report, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
+        .invoke_handler(tauri::generate_handler![preselected_project, select_project, scan_project, wizard_state, journey_outcome, recommend_profile, project_status, project_doctor, migration_status, project_documentation, profile_rebind_preview, profile_rebind_apply, profile_rebind_recovery_preview, profile_rebind_recovery_apply, capability_options, capability_preview, capability_apply, policy_options, policy_preview, policy_apply, resume_options, resume_preview, resume_apply, work_graph_read, work_graph_preview, work_graph_apply, taxonomy_options, taxonomy_preview, taxonomy_apply, mcp_preview, gate_report, gate_policy_preview, gate_policy_apply, gate_structure_preview, gate_structure_apply, initialization_preview, initialization_apply, agent_profiles, generation_preview, stage_adapter, installation_preview, installation_apply, adapter_doctor, memory_sync])
         .run(tauri::generate_context!())
         .expect("échec de l’application desktop VERA");
 }
@@ -424,10 +505,175 @@ mod tests {
         let source = Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(3).expect("VERA root").to_path_buf();
         let mut bridge = BridgeSession::start(&root, &BridgeExecutable::Source(source)).expect("bridge starts from source in test mode");
         let result = bridge.call("project.scan", json!({})).expect("scan response");
-        assert_eq!(result.get("format").and_then(Value::as_str), Some("vera-scan-report/v1"));
+        // `v2` et non `v1` : le scanner a changé de format et cette assertion était restée en
+        // arrière. Personne ne l'a vu parce que la CI n'exécutait que `pnpm test` — `cargo test`
+        // n'y était pas. Un test que rien ne lance ne garde rien.
+        assert_eq!(result.get("format").and_then(Value::as_str), Some("vera-scan-report/v2"));
         assert_eq!(result.get("status").and_then(Value::as_str), Some("OBSERVED"));
         drop(bridge);
         fs::remove_dir_all(root).expect("temporary root cleanup");
+    }
+
+    /// La racine désignée au lancement doit passer la **même** validation que le dialogue.
+    ///
+    /// C'est le point sensible : si la voie sans dialogue était plus permissive, elle deviendrait
+    /// la voie faible, et c'est exactement celle qu'un automate emprunte. Les deux appellent donc
+    /// `accept_root`, et ces tests l'attaquent directement.
+    #[test]
+    fn a_launch_root_is_validated_exactly_like_a_dialog_root() {
+        let nonce = SystemTime::now().duration_since(UNIX_EPOCH).expect("clock").as_nanos();
+        let base = std::env::temp_dir().join(format!("vera-root-check-{nonce}"));
+        let real = base.join("projet");
+        fs::create_dir_all(&real).expect("racine réelle");
+
+        let accepted = accept_root(real.clone()).expect("un vrai dossier est accepté");
+        assert!(accepted.is_absolute(), "la racine acceptée est canonique");
+
+        // Un fichier n'est pas une racine.
+        let file = base.join("fichier.txt");
+        fs::write(&file, b"x").expect("fichier");
+        assert!(accept_root(file).is_err(), "un fichier est refusé");
+
+        // Un chemin absent n'est pas une racine.
+        assert!(accept_root(base.join("absent")).is_err(), "un chemin absent est refusé");
+
+        // Et un lien symbolique est refusé, même s'il pointe sur un vrai dossier : c'est la règle
+        // que le dialogue applique, donc celle que la voie de lancement doit appliquer aussi.
+        #[cfg(unix)]
+        {
+            let link = base.join("lien");
+            std::os::unix::fs::symlink(&real, &link).expect("lien symbolique");
+            assert!(accept_root(link).is_err(), "un symlink est refusé comme racine");
+        }
+
+        fs::remove_dir_all(&base).expect("nettoyage");
+    }
+
+    /// Toute commande enregistrée doit être autorisée par l'ACL, sans exception.
+    ///
+    /// **Le défaut que ce test ferme.** `build.rs` tenait la liste à la main : dix commandes
+    /// autorisées pour quarante-quatre enregistrées. Les trente-quatre autres étaient refusées à
+    /// l'exécution par `Command <nom> not allowed by ACL` — le wizard, le parcours, le Doctor, le
+    /// Capability Builder, l'éditeur de policies, le Gate Builder, le MCP Preview, la taxonomie,
+    /// le Work Graph, la synchronisation mémoire. L'essentiel de l'application.
+    ///
+    /// L'ACL est désormais dérivée de `generate_handler!`, donc les deux ne peuvent plus diverger
+    /// par construction. Ce test vérifie la dérivation elle-même : qu'elle lit bien la liste
+    /// entière, et non une partie qu'elle aurait silencieusement tronquée.
+    #[test]
+    fn the_acl_authorises_every_registered_command() {
+        let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let main_source = fs::read_to_string(manifest.join("src").join("main.rs")).expect("main.rs");
+        let build_source = fs::read_to_string(manifest.join("build.rs")).expect("build.rs");
+
+        let start = main_source.find("generate_handler![").expect("generate_handler!");
+        let rest = &main_source[start + "generate_handler![".len()..];
+        let end = rest.find(']').expect("crochet fermant");
+        let registered: Vec<&str> = rest[..end].split(',').map(str::trim).filter(|item| !item.is_empty()).collect();
+
+        // Le produit expose une large surface : un compte qui s'effondrerait signalerait que
+        // l'extraction a cessé de mordre, pas que l'application a maigri.
+        assert!(registered.len() >= 40, "{} commandes extraites, trop peu", registered.len());
+        assert!(registered.contains(&"select_project"));
+        assert!(registered.contains(&"preselected_project"));
+
+        // Et `build.rs` ne doit plus tenir la moindre liste en dur : c'est la main-d'œuvre
+        // manuelle qui avait divergé, pas la dérivation.
+        assert!(
+            build_source.contains("registered_commands"),
+            "build.rs doit dériver l’ACL de generate_handler!"
+        );
+        for command in &registered {
+            with_subtest_name(command);
+        }
+
+        // Et la capability doit accorder chacune d'elles. Générer les permissions ne suffit pas :
+        // mesuré sur l'AppImage, avec les quarante-quatre `.toml` en place, l'invoke rendait
+        // toujours `Command preselected_project not allowed by ACL`. Une permission qui existe
+        // sans être accordée ne permet rien — deux verrous, et je n'en avais ouvert qu'un.
+        let capability = fs::read_to_string(manifest.join("capabilities").join("desktop-main.json"))
+            .expect("capability desktop-main");
+        for command in &registered {
+            let identifier = format!("\"allow-{}\"", command.replace('_', "-"));
+            assert!(
+                capability.contains(&identifier),
+                "la capability n’accorde pas {command} ({identifier})"
+            );
+        }
+    }
+
+    /// Petit marqueur : nommer la commande examinée, faute de `subTest` en Rust.
+    fn with_subtest_name(command: &str) {
+        assert!(!command.is_empty(), "commande vide dans generate_handler!");
+        assert!(
+            command.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'),
+            "nom de commande inattendu : {command}"
+        );
+    }
+
+    /// Le parcours des arguments, exercé sur les formes réelles plutôt que supposé correct.
+    #[test]
+    fn the_launch_flag_is_read_in_every_form_a_caller_writes_it() {
+        use std::ffi::OsString;
+        let nonce = SystemTime::now().duration_since(UNIX_EPOCH).expect("clock").as_nanos();
+        let root = std::env::temp_dir().join(format!("vera-parse-{nonce}"));
+        fs::create_dir_all(&root).expect("racine");
+        let canonical = root.canonicalize().expect("racine canonique");
+        let text = root.to_string_lossy().into_owned();
+        let os = |value: &str| OsString::from(value);
+
+        // `--project-root <chemin>`, la forme que la documentation donne.
+        let separated = parse_preselected_root([os(PROJECT_ROOT_FLAG), os(&text)], None);
+        assert_eq!(separated.expect("racine lue").expect("racine valide"), canonical);
+
+        // `--project-root=<chemin>`, la forme que beaucoup écrivent par réflexe.
+        let joined = parse_preselected_root([os(&format!("{PROJECT_ROOT_FLAG}={text}"))], None);
+        assert_eq!(joined.expect("racine lue").expect("racine valide"), canonical);
+
+        // Le drapeau reste lu quand il suit d'autres arguments.
+        let after = parse_preselected_root([os("--autre"), os(PROJECT_ROOT_FLAG), os(&text)], None);
+        assert_eq!(after.expect("racine lue").expect("racine valide"), canonical);
+
+        // La variable sert de repli, et seulement de repli.
+        let variable = parse_preselected_root(Vec::new(), Some(os(&text)));
+        assert_eq!(variable.expect("racine lue").expect("racine valide"), canonical);
+
+        // L'argument l'emporte sur la variable : ce qui est écrit sur la ligne gagne.
+        let both = parse_preselected_root([os(PROJECT_ROOT_FLAG), os(&text)], Some(os("/inexistant")));
+        assert_eq!(both.expect("racine lue").expect("racine valide"), canonical);
+
+        // Un drapeau sans valeur est un refus nommé, jamais un silence.
+        let bare = parse_preselected_root([os(PROJECT_ROOT_FLAG)], None).expect("refus attendu");
+        assert!(bare.expect_err("valeur manquante").contains(PROJECT_ROOT_FLAG));
+        let empty = parse_preselected_root([os(&format!("{PROJECT_ROOT_FLAG}="))], None).expect("refus attendu");
+        assert!(empty.expect_err("valeur vide").contains(PROJECT_ROOT_FLAG));
+
+        // Une variable vide n'est pas une désignation : le dialogue reste la voie.
+        assert!(parse_preselected_root(Vec::new(), Some(OsString::new())).is_none());
+        assert!(parse_preselected_root(Vec::new(), None).is_none());
+
+        fs::remove_dir_all(&root).expect("nettoyage");
+    }
+
+    /// Sans argument ni variable, rien n'est présélectionné : le dialogue reste la seule voie.
+    ///
+    /// Le test tourne dans le processus de test, dont l'argv ne porte pas `--project-root` et dont
+    /// l'environnement ne porte pas la variable. `None` est donc le comportement par défaut, et
+    /// c'est ce qui garantit qu'aucun utilisateur ne voit son dialogue disparaître.
+    #[test]
+    fn nothing_is_preselected_by_default() {
+        assert!(std::env::var_os(PROJECT_ROOT_VARIABLE).is_none(), "l’environnement de test est neutre");
+        assert!(preselected_root().is_none(), "aucune racine présélectionnée par défaut");
+    }
+
+    /// Les deux noms publics sont un contrat : le bridge reçoit déjà `--project-root`.
+    ///
+    /// Si le drapeau de la fenêtre et celui du bridge divergeaient, la documentation dirait vrai
+    /// pour l'un et faux pour l'autre.
+    #[test]
+    fn the_launch_flag_matches_the_flag_the_bridge_already_accepts() {
+        assert_eq!(PROJECT_ROOT_FLAG, "--project-root");
+        assert_eq!(PROJECT_ROOT_VARIABLE, "VERA_MMU_PROJECT_ROOT");
     }
 
     #[test]

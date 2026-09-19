@@ -1,5 +1,5 @@
 /** Console de contrôle VERA : encre calme, verdigris pour les signaux contrôlés, étapes asymétriques et refus visibles. */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { desktopApi, type JsonObject } from "./desktop-api";
 import { asChoices, asList, asRefusals, isConfirmable } from "./contract";
 import { countByClass, readPromotion, readRequirements } from "./gate";
@@ -34,8 +34,23 @@ function getHash(value: JsonObject | null, key = "preview_hash"): string | null 
   return value && typeof value[key] === "string" ? value[key] : null;
 }
 
+/** Rend la raison réelle d'un refus, y compris quand Tauri rejette avec une chaîne nue.
+ *
+ * Une commande Tauri qui rend `Err(String)` fait rejeter `invoke` avec **cette chaîne**, pas avec
+ * un `Error`. Le test `instanceof Error` échouait donc toujours, et les quarante-quatre commandes
+ * affichaient « Opération locale refusée. » à la place de leur motif. Mesuré en cliquant
+ * « Choisir le dossier du projet » : le backend nommait précisément ce qui n'allait pas, et la
+ * fenêtre n'en montrait rien.
+ *
+ * Le Core met un soin particulier à ce que chaque refus dise pourquoi ; les effacer au dernier
+ * mètre annulait ce travail. La phrase générique ne reste que pour ce qui n'est ni une chaîne ni
+ * un `Error`.
+ */
 function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : "Opération locale refusée.";
+  if (typeof error === "string" && error.trim()) return error;
+  if (error instanceof Error && error.message.trim()) return error.message;
+  const message = getHash(error as JsonObject | null, "message");
+  return message ?? "Opération locale refusée.";
 }
 
 /** A panel whose journey step is blocked shows the Core's reason instead of its controls. */
@@ -193,6 +208,41 @@ export function DesktopConsole() {
     setStageConfirmed(false);
     setInstallConfirmed(false);
   });
+
+  // Association automatique quand la racine a été désignée au lancement.
+  //
+  // Le dialogue natif dépend d'un portail de bureau : dans un conteneur sans écran il ne s'ouvre
+  // jamais, et l'interface restait bloquée à sa première étape. La sonde `preselectedProject`
+  // n'ouvre aucun dialogue — sans elle, appeler `selectProject` au montage ferait surgir le
+  // sélecteur de dossier au démarrage chez quelqu'un qui n'a rien demandé.
+  //
+  // **Un seul garde, délibérément.** La première version en avait deux : un `ref` pour n'associer
+  // qu'une fois, et un drapeau `cancelled` posé par le nettoyage. Chacun était correct isolément ;
+  // ensemble ils ne faisaient rien. `StrictMode` monte l'effet deux fois : le premier passage pose
+  // le `ref` et démarre, le nettoyage immédiat met `cancelled` à vrai, le second passage sort sur
+  // le `ref`, et la suite asynchrone du premier s'annule sur `cancelled`. Résultat mesuré sur
+  // l'AppImage : aucune association, aucune erreur, aucune trace. Le `ref` suffit à garantir le
+  // tir unique ; annuler en plus ne protégeait de rien et supprimait le seul tir.
+  const associated = useRef(false);
+  useEffect(() => {
+    if (associated.current) return;
+    associated.current = true;
+    void (async () => {
+      try {
+        const probe = await desktopApi.preselectedProject();
+        if (typeof probe.error === "string" && probe.error) {
+          setNotice({ tone: "error", title: "Racine de lancement refusée", detail: probe.error });
+          return;
+        }
+        if (typeof probe.root !== "string" || !probe.root) return;
+        selectProject();
+      } catch (error) {
+        // Un échec silencieux laisserait l'opérateur devant « Aucun projet associé » sans raison.
+        setNotice({ tone: "error", title: "Racine de lancement illisible", detail: errorText(error) });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const scanProject = () => action("Scan mis à jour", async () => setScan(await desktopApi.scanProject()));
   const refreshJourney = () => action("Parcours relu", async () => setJourney(await desktopApi.wizardState()));
