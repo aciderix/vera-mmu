@@ -320,7 +320,7 @@ def main(argv:Sequence[str]|None=None)->int:
             transport="streamable-http" if args.streamable_http else "stdio"
             if args.describe:
                 with MemoryStore.open(profile,args.profile) as store:
-                    payload={"ok":True,"serve":{"format":"vera-serve//v1","project_id":store.identity.project_id,"transport":transport,"status":"DESCRIBED","tools":len(TOOL_NAMES)}}
+                    payload={"ok":True,"serve":{"format":"vera-serve/v1","project_id":store.identity.project_id,"transport":transport,"status":"DESCRIBED","tools":len(TOOL_NAMES)}}
             else:
                 serve_args=["--profile",str(args.profile)]+(["--streamable-http","--host",args.host,"--port",str(args.port)] if args.streamable_http else [])
                 mcp_server_main(serve_args);return 0

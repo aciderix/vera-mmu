@@ -27,7 +27,12 @@ class ProofPolicyService:
 
     def declare(self, algorithm: str, *, hmac_required: bool, actor: str = "system") -> ProofPolicy:
         if algorithm != HMAC_ALGORITHM:
-            raise ProofPolicyError("Algorithme de policy de preuve hors catalogue fermé.")
+            # Le catalogue fermé n’a qu’une valeur : la taire coûte un aller-retour dans le code
+            # à qui écrit `HMAC-SHA256` là où le Core attend `HMAC_SHA256`.
+            raise ProofPolicyError(
+                f"Algorithme de policy de preuve hors catalogue fermé : {algorithm}. "
+                f"Seul `{HMAC_ALGORITHM}` est enregistré."
+            )
         if not isinstance(hmac_required, bool):
             raise ProofPolicyError("hmac_required doit être booléen.")
         if not isinstance(actor, str) or not actor or actor != actor.strip() or len(actor) > 256:

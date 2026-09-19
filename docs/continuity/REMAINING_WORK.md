@@ -1,6 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — **l'application livrée a été mesurée telle que livrée, et trois
+défauts en sont sortis que la source ne pouvait pas montrer.** La CLI `vmmu` et le sidecar du
+bureau n'embarquaient pas les trente-neuf migrations SQL : vingt et une sous-commandes de la CLI
+étaient mortes, `init` compris — donc la remédiation que `doctor` prescrivait lui-même — et le
+bridge du bureau *mourait* au lieu de refuser. Deux entry points d'adapter, ceux de
+`claude-code-local`, étaient nommés par le catalogue mais n'avaient jamais été écrits ; aucun test
+ne mentionnait `adapter_catalog`. Corrigés, dix mutations passées dont aucune inerte, et la chaîne
+complète re-vérifiée sur l'artefact reconstruit (`a04c51be`, `c3920778…`, `vera_mmu` désinstallé) :
+`conclude` rend « Les 18 étapes sont franchies », code 0. Voir `LOG-0326`.
 **Révisé le :** 2026-09-19 — run #64 sur `c79690b` : les deux runners verts, `1108 + 9 sautés + 381`
 et `78` des deux côtés. **Le registre complet est attesté sur Linux x64 et Windows x64.**
 **Révisé le :** 2026-09-19 — **`C08` promu `DONE` : le registre est complet, seize sur seize.**

@@ -152,6 +152,20 @@ def capability_contract_options(profile_path: str | Path) -> dict[str, object]:
         ],
         "allowed_runners": sorted(_allowed_runners(path)),
         "validators": sorted(VALIDATORS),
+        # `consumes_validator` dit quel runner *se sert* du validator à l’exécution ; il ne dit
+        # pas si en déclarer un est obligatoire. Les deux étant distincts, lire `NOOP` avec
+        # `required_validator: null` laissait croire qu’on pouvait s’en passer — alors que la
+        # voie d’écriture refuse tout contrat sans validator, quel que soit le runner. Mesuré :
+        # une déclaration `NOOP` sans `--validator` sort en `PLACEHOLDER_VALIDATOR`.
+        "validator": {
+            "required": True,
+            "available": sorted(VALIDATORS),
+            "reason": (
+                "Tout contrat déclare un validator, y compris avec un runner qui ne le consomme "
+                "pas : c’est lui qui qualifie l’evidence, et sans lui aucune promotion ne serait "
+                "admissible (I004)."
+            ),
+        },
         "network_policy": {"value": FIXED_NETWORK_POLICY, "editable": False, "available": sorted(NETWORK_POLICIES)},
         "command": {
             "status": "NOT_APPLICABLE",

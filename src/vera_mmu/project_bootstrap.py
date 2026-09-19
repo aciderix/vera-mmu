@@ -55,8 +55,10 @@ class ProjectInitializationResult:
     def as_dict(self)->dict[str,object]:return {"status":self.status,"root":self.root,"files":list(self.files),"preview_hash":self.preview_hash}
 def preview_project_initialization(root:str|Path,*,template:str,project_id:str,project_name:str)->ProjectInitializationPreview:
     target=_root(root)
-    if template not in TEMPLATE_IDS:raise ProjectBootstrapError("Template de projet inconnu.")
-    if not isinstance(project_id,str) or PROJECT_ID_RE.fullmatch(project_id) is None:raise ProjectBootstrapError("project_id invalide.")
+    # Nommer le catalogue fermé plutôt que de laisser deviner : un refus qui tait ses valeurs
+    # admissibles oblige à lire le code pour s’en servir.
+    if template not in TEMPLATE_IDS:raise ProjectBootstrapError("Template de projet inconnu : {0}. Templates déclarés : {1}.".format(template, ", ".join(sorted(TEMPLATE_IDS))))
+    if not isinstance(project_id,str) or PROJECT_ID_RE.fullmatch(project_id) is None:raise ProjectBootstrapError("project_id invalide : {0!r}. Attendu : 2 à 64 caractères, minuscules, chiffres et « - », commençant par une lettre ou un chiffre.".format(project_id))
     if not isinstance(project_name,str) or not project_name.strip() or len(project_name)>160:raise ProjectBootstrapError("project_name invalide.")
     files=(
         _file(".vera-mmu/.gitignore",_ignore_rules()),

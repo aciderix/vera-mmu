@@ -5370,3 +5370,117 @@ n'en prouve aucun* — cette phrase aura servi à chaque lot de la série.
 ARET, son vrai DDL, sa vraie mémoire baseline, ses vraies fonctions, ses vrais hooks, ses vrais
 oracles et son image de référence. Ce que cela autorise à dire reste borné et doit le rester :
 c'est une parité **mesurée sur seize surfaces nommées**, pas une parité ARET globale.
+
+---
+
+## LOG-0326 — Mesurer l'application livrée, pas le dépôt : trois défauts que la source ne pouvait pas montrer
+
+**Ce qui a déclenché ce lot.** Une question de vérification : le launcher permet-il réellement de
+paramétrer et de générer un MCP pour un projet, neuf ou existant, et le pipeline tourne-t-il
+ensuite pour de vrai ? Puis une correction de méthode, en cours de route : *« Pour l'utilisation
+faut être sûr que c'est bien l'app que tu utilises pour faire. »*
+
+Cette correction est la raison d'être du lot. Le registre de découplage était complet, la suite
+verte, et rien de tout cela ne disait quoi que ce soit sur l'artefact que quelqu'un télécharge.
+
+**La discipline adoptée.** Artefact du run CI #66 téléchargé, zip `4d8c5960…` conforme à
+l'empreinte GitHub, `SHA256SUMS` vérifié, `release-manifest.json` déclarant
+`"sha256": "6c75e49b…"` et `"source_revision": "4a24b800…"`, binaire extrait dont l'empreinte
+recalculée égale la déclarée. Puis `python -m pip uninstall -y vera-mmu`, pour que
+`import vera_mmu` lève `ModuleNotFoundError` : rien de ce qui suit ne pouvait retomber sur le
+dépôt. Toute mesure présentée ici vient de l'exécutable.
+
+### Défaut 1 — le bundle n'embarquait aucune ressource
+
+```
+$ ./vmmu init neuf/.vera-mmu/project.yaml
+{"error": "Répertoire de migrations introuvable : /tmp/_MEI…/vera_mmu/schema", "ok": false}
+```
+
+Vingt et une sous-commandes rendaient cette erreur. **`init` en faisait partie** — c'est-à-dire la
+remédiation que `doctor` proposait lui-même pour réparer les contrôles SQLite en échec. La boucle
+était fermée sur elle-même : le diagnostic nommait correctement le mal et prescrivait un remède
+que le même binaire ne pouvait pas administrer. Mémoire, executions, evidences, preuves,
+promotion, `serve` et donc le serveur MCP entier : toute la moitié runtime était inatteignable.
+
+**Le Core n'était pas en cause.** `MigrationRunner` localise ses migrations par
+`Path(__file__).with_name("schema")`, ce qui résout correctement y compris sous PyInstaller. La
+cause était dans l'emballage : `--collect-submodules vera_mmu` collecte des **modules**, et un
+`.sql` n'en est pas un. Les trente-neuf migrations n'étaient tout simplement pas dans le binaire,
+et aucune étape de build ne pouvait le signaler — il se construisait et se lançait très bien.
+
+**Pourquoi mille cent tests verts ne le voyaient pas.** Ils s'exécutent contre l'arborescence
+source, où `src/vera_mmu/schema/` existe. Le défaut ne vivait que dans l'emballage. Seul un test
+qui regarde l'emballage pouvait le voir, et aucun ne le faisait.
+
+### Défaut 2 — deux entry points d'adapter nommés mais jamais écrits
+
+```
+$ ./vmmu install neuf/.vera-mmu/project.yaml --adapter claude-code-local
+AttributeError: module 'vera_mmu.claude_code_local' has no attribute
+'claude_code_local_config_main'. Did you mean: 'claude_code_local_hook_main'?
+```
+
+`ADAPTER_CATALOG` tient douze entrées sous forme de chaînes `module:fonction`, résolues au moment
+de l'appel. Deux d'entre elles — les deux de `claude-code-local`, l'adapter phare — nommaient des
+fonctions qui n'ont jamais existé. La machinerie, elle, était complète et testée :
+`compile_claude_code_local_plan`, `install_claude_code_local`, `inspect_claude_code_local`. Seuls
+les deux wrappers CLI manquaient, et rien ne les appelait dans les tests.
+
+**Aucun fichier de `tests/` ne mentionnait `adapter_catalog`.** Le module entier était hors
+mesure. C'est la raison précise pour laquelle un registre de découplage complet ne pouvait rien
+en dire : *une capacité que personne n'exerce n'est pas une capacité attestée*. Les seize
+couplages portaient sur la parité ARET, pas sur le catalogue d'adapters, et la couverture d'un
+domaine ne s'étend jamais par contiguïté à un domaine voisin.
+
+Corrigé en écrivant les deux fonctions sur le modèle des cinq autres adapters, et en ajoutant
+`resolve_adapter_entry`, qui transforme tout échec de résolution en `StoreError`. `AttributeError`
+ne figurait pas dans le tuple que `__main__` intercepte : la CLI sortait donc de son propre
+contrat JSON. Une barrière qui se plante au lieu de refuser ne refuse rien (I014).
+
+### Défaut 3 — le même oubli de ressources, livré une seconde fois, en pire
+
+Le premier correctif ne fermait que la CLI. Le sidecar du bureau est un **second** emballage,
+construit par un script séparé qui appelait lui aussi `--collect-submodules vera_mmu` et rien
+d'autre. Mesuré sur `VERA-MMU_0.1.0-4_amd64.AppImage`, bridge extrait et interrogé directement :
+
+* `project.scan` — qui ne touche pas SQLite — répondait normalement ;
+* `project.doctor` ne rendait **aucune réponse**. Le processus mourait sur `MigrationError`,
+  emportant la session desktop.
+
+Deux causes superposées, corrigées séparément. L'emballage tire désormais d'une définition
+partagée, `scripts/pyinstaller_resources.py`, et les deux commandes sont composées par des
+fonctions pures que le test compare côte à côte. Et `MigrationError`, qui dérive de `RuntimeError`
+et non de `StoreError`, est maintenant rattrapée par `handle_line` : `__main__` la nommait
+explicitement, le bridge l'ignorait. Même règle que pour le défaut 2, appliquée au même endroit
+logique.
+
+Le launcher graphique **paraissait donc fonctionner** jusqu'à la première opération lisant la
+mémoire. C'est la forme la plus coûteuse d'un défaut : celle qui laisse croire que ça marche.
+
+### Ce que la correction attestée couvre
+
+Dix mutations passées, **aucune inerte** — pour la première fois de la série. Retrait des
+`--add-data`, destination approchante (`schema` au lieu de `vera_mmu/schema`, qui embarquerait les
+fichiers sans les rendre trouvables), réintroduction de `__pycache__`, renommage de
+`config_main`, `getattr` brut, liaison locale divergente, entry point sans argument positionnel,
+sidecar privé de ses `--add-data`, bridge privé de `MigrationError`, et sidecar tirant d'une copie
+locale plutôt que de la définition partagée — cette dernière parce qu'un correctif dupliqué se
+désynchronise, ce que ce lot venait précisément de mesurer.
+
+**Vérifié ensuite sur l'artefact reconstruit**, `source_revision` `a04c51be`, empreinte
+`c3920778…` conforme à son manifest, `vera_mmu` de nouveau désinstallé : la chaîne complète passe
+— `init-project`, `init` (39 migrations), `sync-capabilities`, `sync-knowledge-types`, `validate`,
+`compile` (16 étapes PASS), `install`, `resume-contract` — et `conclude` rend
+« Les 18 étapes sont franchies : surface déclarative VALID et Doctor PASS », code de sortie 0. Le
+bridge du bureau reconstruit répond aux sept opérations interrogées et sort en 0.
+
+### La leçon de méthode, qui dépasse ces trois défauts
+
+Une suite verte atteste ce qu'elle exécute, et elle exécutait la source. L'artefact livré est un
+**autre objet** : un emballage, avec ses propres règles d'inclusion, que rien ne vérifiait. Les
+trois défauts vivaient tous dans cet écart, et aucun n'était subtil — ils tombaient à la première
+commande utile. Il suffisait de lancer l'application.
+
+C'est la correction reçue en cours de route qui a rendu cet écart mesurable, et elle vaut d'être
+retenue comme règle : **ce qui est livré doit être mesuré tel que livré.**
