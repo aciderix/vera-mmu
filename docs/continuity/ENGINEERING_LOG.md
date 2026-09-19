@@ -5484,3 +5484,101 @@ commande utile. Il suffisait de lancer l'application.
 
 C'est la correction reçue en cours de route qui a rendu cet écart mesurable, et elle vaut d'être
 retenue comme règle : **ce qui est livré doit être mesuré tel que livré.**
+
+---
+
+## LOG-0327 — L'application desktop : une interface dont les trois quarts des commandes étaient refusées
+
+**Ce qui a déclenché ce lot.** Une question simple : une IA dans un conteneur sans écran peut-elle
+conduire l'application desktop ? Pour y répondre il fallait pouvoir désigner la racine du projet
+sans dialogue natif. Le changement visé tenait en un argument de ligne de commande.
+
+Il a fallu en trouver et en corriger bien davantage, parce que chaque défaut masquait le suivant.
+
+### Le premier diagnostic était faux, et la mesure l'a dit
+
+L'AppImage lancée sous Xvfb s'affiche parfaitement et se laisse lire par capture d'écran. Un clic
+synthétique sur « Choisir le dossier du projet » faisait passer le bouton en survol — 8063 pixels
+changés, exactement sa surface — mais aucun sélecteur ne s'ouvrait. J'en ai conclu que le dialogue
+natif ne pouvait pas s'ouvrir faute de portail de bureau, et je l'ai écrit.
+
+**C'était faux.** Le survol est du CSS pur, que X délivre sans JavaScript : rien dans cette
+observation ne prouvait que le clic atteignait le WebView. Vérifié ensuite en cliquant dans un
+champ de saisie et en y tapant du texte : le champ prend le focus et reçoit les caractères. Clic et
+clavier passent donc parfaitement. Le dialogue n'était jamais atteint parce que la commande était
+refusée avant.
+
+*Une observation compatible avec deux causes n'en désigne aucune* — la même règle que la série
+ARET a rencontrée six fois, rencontrée ici une septième, et cette fois c'est moi qui l'ai enfreinte.
+
+### Trente-quatre commandes sur quarante-quatre étaient refusées
+
+`build.rs` tenait à la main la liste des commandes autorisées par l'ACL Tauri : dix.
+`generate_handler!` en enregistre quarante-quatre. Toutes les autres rendaient
+`Command <nom> not allowed by ACL` à l'exécution : le wizard, le parcours, le Doctor, le
+Capability Builder, l'éditeur de policies, le Gate Builder, le MCP Preview, la taxonomie, le Work
+Graph, la synchronisation mémoire. **L'essentiel de l'application.**
+
+Et il y avait deux verrous, pas un. Générer les quarante-quatre fichiers de permission ne suffit
+pas : la capability doit aussi les accorder, et elle n'accordait que `core:default`. Le premier
+correctif — dériver l'ACL de `generate_handler!` — n'a rien changé au comportement mesuré, ce qui
+a permis de trouver le second.
+
+L'ACL est désormais dérivée de la seule liste qui fasse autorité, et la capability accorde chaque
+commande nommément. *Deux listes à tenir d'accord sont deux listes qui divergeront.*
+
+### Pourquoi personne ne l'avait vu : trois silences superposés
+
+1. **`errorText` effaçait la cause.** Une commande Tauri qui rend `Err(String)` fait rejeter
+   `invoke` avec cette chaîne nue ; le test `instanceof Error` échouait donc toujours, et les
+   quarante-quatre commandes affichaient « Opération locale refusée. » Le diagnostic exact
+   existait, nommait précisément le problème, et n'atteignait personne. Pour un produit dont
+   toute la discipline consiste à dire pourquoi il refuse, l'effacer au dernier mètre annulait
+   ce travail.
+2. **Aucun test n'exerçait l'interface contre son backend.**
+3. **`cargo test` ne tournait pas en CI** — seulement `pnpm test`, qui ne couvre que le WebView.
+   Un test du backend échouait d'ailleurs depuis que le scanner est passé en `vera-scan-report/v2`,
+   sans que personne le voie.
+
+C'est le même angle mort que `adapter_catalog` dans le Core, constaté dans le même lot de travail :
+*un test que rien ne lance ne garde rien.*
+
+### Deux conditions locales plus permissives que celles de la CI
+
+Deux défauts ont été livrés parce que ma machine était plus indulgente qu'un runner neuf :
+
+* un test comparait un chemin à `src/vera_mmu/schema`, ce qu'un `pip install -e .` rend vrai par
+  coïncidence ;
+* l'étape `cargo test` était placée avant la construction du sidecar, ce qu'un `binaries/` déjà
+  peuplé masquait.
+
+Les deux ont été corrigés **après reproduction de la condition CI** — venv non-editable pour l'un,
+`binaries/` vidé pour l'autre — et non après raisonnement. La règle qui se dégage complète celle
+de `LOG-0326` : *ce qui est livré doit être mesuré tel que livré, et dans les conditions où il
+est construit.*
+
+### Un interpréteur supposé plutôt que résolu
+
+Le bridge en mode développement était lancé par `Command::new("python3")`. Sous Windows
+l'exécutable s'appelle `python`, et `python3` y désigne souvent l'alias du Microsoft Store, qui
+démarre puis quitte sans lire son entrée — d'où un « Lecture bridge impossible. » qui décrit un
+bridge muet et non la cause réelle. Ce chemin n'avait jamais tourné sous Windows, faute de
+`cargo test` en CI.
+
+L'interpréteur est maintenant sondé, et **la sonde a été durcie par son propre test** : sa
+première version ne vérifiait que le code de sortie, si bien que `echo` passait pour un
+interpréteur — elle aurait donc accepté exactement l'alias qu'elle sert à écarter. Elle exige
+désormais une sortie que seul Python produit.
+
+### Ce qui est attesté
+
+Sur l'artefact construit par la CI, empreintes vérifiées de bout en bout et `vera_mmu` désinstallé :
+la chaîne complète passe sur un projet neuf **et** sur un projet existant réel — `conclude` rend
+« Les 18 étapes sont franchies », code de sortie 0, Doctor 20/20, et aucun fichier du projet
+existant n'est touché. Le serveur MCP expose ses 47 outils et l'oracle déclaré pour le projet.
+L'AppImage lancée avec `--project-root` s'associe seule, sans écran : « BRIDGE · READY »,
+« RACINE VALIDÉE », « SCAN · OBSERVED » — et « Relire le parcours », l'une des trente-quatre
+commandes autrefois refusées, répond.
+
+**Ce que cela n'atteste pas** doit être dit aussi : la mesure sans écran a été faite sur Linux
+seulement, et une seule fois. Elle n'est pas une attestation deux plateformes.

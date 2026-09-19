@@ -1,6 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-20 — **l'application desktop refusait trente-quatre de ses quarante-quatre
+commandes.** `build.rs` tenait l'ACL Tauri à la main : dix autorisées, quarante-quatre
+enregistrées. Le wizard, le parcours, le Doctor, le Capability Builder, l'éditeur de policies, le
+Gate Builder, le MCP Preview, la taxonomie, le Work Graph, la synchronisation mémoire étaient
+inatteignables. Trois silences l'ont masqué : `errorText` effaçait la cause de tout refus backend,
+aucun test n'exerçait l'interface contre son backend, et `cargo test` ne tournait pas en CI. L'ACL
+est désormais dérivée de `generate_handler!`, la capability accorde chaque commande, et un test
+interdit la divergence. L'interface accepte aussi `--project-root` / `VERA_MMU_PROJECT_ROOT`, ce
+qui la rend conduisible sans écran. Voir `LOG-0327`.
 **Révisé le :** 2026-09-19 — **l'application livrée a été mesurée telle que livrée, et trois
 défauts en sont sortis que la source ne pouvait pas montrer.** La CLI `vmmu` et le sidecar du
 bureau n'embarquaient pas les trente-neuf migrations SQL : vingt et une sous-commandes de la CLI
