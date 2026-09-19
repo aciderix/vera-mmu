@@ -5261,3 +5261,57 @@ qu'il peut tenir, plutôt que sur une présence devinée.
 **Ce que cela change pour la suite.** L'exécution réelle d'un oracle demande `libunicorn` — pas
 seulement Wine et MinGW comme le registre le disait, ni le binaire `aret` comme je l'avais dit.
 C'est une dépendance de plus à fournir, et elle ne se contourne pas par une compilation.
+
+## LOG-0324 — `C07` clos : un vrai oracle a tourné, et la gate a tenu
+
+**Statut : `C07` promu `DONE`. Quinze couplages clos sur seize. 20 tests, 64 sous-tests,
+14 mutations vérifiées mordantes. Suite `1111 + 1 sauté + 376`.**
+
+`LOG-0323` avait fermé le chemin que j'avais recommandé. Il restait une dépendance nommée :
+`libunicorn`. Elle est disponible dans `noble/universe`, elle a été installée
+(`libunicorn-dev 2.0.1.post1-4.1build1`), la `--features unpack` compile et se lie, et l'oracle a
+tourné.
+
+**La première mesure que l'installation a permise est une confirmation, pas une infirmation.** Avec
+`libunicorn.so.2` réellement présente sous `/lib/x86_64-linux-gnu/`, `toolchain_status` d'ARET
+déclare toujours `unicorn` **indisponible**. Ce que `LOG-0323` avançait sur la forme de
+`shutil.which` est donc désormais observé : la sonde ne distingue pas une machine équipée d'une
+machine qui ne l'est pas.
+
+**L'exécution réelle, mesurée.** `cpudiff` tourne en **180 s** via `run_oracle`, sur le vrai dépôt
+toolkit, avec l'environnement fermé d'ARET (`PATH`, `LC_ALL`, `TZ`, `ARET` — et `cargo` s'en
+accommode, vérifié). Verdict `PASS`, `exit_code 0`, aucune dépendance manquante. L'artefact fait
+22 850 octets, au format `aret-oracle-artifact/v1` ; son empreinte annoncée égale celle recalculée
+sur le fichier. La preuve porte `artifact_hash`, `payload_hash` et `receipt_hmac`, avec
+`admissible=1`. La connaissance liée passe à **`PROVEN`**.
+
+**Les deux moitiés de la gate sont isolées, et il a fallu s'y reprendre.** Le contrôle négatif
+naturel — `winediff` sans ses dépendances, `SKIPPED`, promotion refusée — ne prouve que la moitié
+« `result == PASS` ». La seconde moitié se mesure en enregistrant une preuve **`PASS` au reçu HMAC
+faux** : `admissible` tombe à `0` et la promotion est refusée malgré le `PASS`. C'est exactement
+l'état de la baseline consignée en `C16`, et cela explique enfin pourquoi rien n'y était
+promouvable : quatre preuves `PASS`, toutes `admissible=0` faute de secret HMAC configuré.
+
+**Un détail qui change la lecture de « admissible ».** La preuve `SKIPPED` de `winediff` est elle
+aussi `admissible=1`. L'admissibilité d'ARET ne porte **que** sur l'authenticité du reçu, jamais
+sur le résultat. C'est la conjonction des deux termes qui garde la promotion.
+
+**Deux mutations sont d'abord revenues inertes, et pour la cinquième fois la même cause.** Neutraliser
+la garde Python de `attach_proof` ne rouvrait pas la gate : **SQLite refuse aussi**, par les triggers
+`reject_unproven_insert` et `reject_unproven_promotion`, avec son propre message — « PROVEN requires
+a linked admissible PASS proof ». Mon test créditait donc la garde Python du travail du trigger.
+Corrigé en distinguant les messages — le français de la garde Python, l'anglais du trigger — et en
+ajoutant un test qui attaque la couche SQL directement par un `UPDATE`. C'est de la défense en
+profondeur et c'est à porter au crédit d'ARET ; mais une propriété satisfaite par deux chemins n'en
+prouve toujours aucun tant qu'on ne les sépare pas.
+
+**Le coût et son traitement.** L'exécution réelle demande `libunicorn`, une compilation Rust et
+180 secondes — disproportionné pour une suite qui tourne en 75 s. Le test ne s'exécute donc que si
+`VERA_C07_RUN_REAL_ORACLE=1` est posé, et **se saute en le disant** sinon. Il a été exécuté le
+19 septembre 2026 ; les registres portent la date, la durée et les empreintes plutôt qu'une
+affirmation.
+
+**Ce qui reste, et c'est tout.** `C08` garde une seule de ses quatre dimensions ouverte :
+l'exécutabilité mesurée **dans l'image de référence** `docker/ci-toolchain`, épinglée à
+`ubuntu:24.04`. Les mesures de ce lot ont eu lieu sur la machine hôte. `docker` est présent ; la
+tenter est le dernier geste du registre.

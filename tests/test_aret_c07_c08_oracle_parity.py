@@ -1,54 +1,59 @@
-"""Parité partielle de `C07` et `C08` — ce qui se mesure sans chaîne d'outils.
+"""Parité de `C07` (complète) et de `C08` (partielle) — les oracles d'ARET, exécutés.
 
-**Ce fichier ne promeut ni `C07` ni `C08`,** et c'est délibéré. Leurs preuves exigées comportent
-chacune une dimension qui demande d'exécuter un vrai oracle — « evidence hashée, promotion `PROVEN`
-et gate réelle » pour `C07`, « exécutabilité mesurée dans une image de référence » pour `C08` —, et
-cela réclame Wine, MinGW et un binaire `target/release/aret` construit. Aucun test ici ne les
-couvre, et aucune ligne du registre ne passe à `DONE` de ce fait.
+**`C07` est couvert en entier ; `C08` ne l'est pas, et la différence est nette.** La preuve exigée
+de `C07` — « confinement de repository/script, absence de commande arbitraire, evidence hashée,
+distinction `SKIPPED`/`PASS`, promotion `PROVEN` et gate réelle » — est mesurée dans ce fichier,
+jusqu'à faire **tourner un vrai oracle** qui rend `PASS` et promeut une connaissance en `PROVEN`.
+`C08` demande en plus « l'exécutabilité mesurée dans une image de référence » : les mesures ici ont
+lieu sur la machine hôte, pas dans l'image `docker/ci-toolchain` épinglée, et cette dimension reste
+donc ouverte.
 
-Ce qui **est** couvert est tout le reste, et ce n'est pas mince : ce qui se décide **avant** qu'un
-processus démarre, et ce qui arrive quand les préconditions manquent.
+**L'exécution réelle a un prix et des préconditions.** Elle demande `libunicorn` — que ni
+`funcdiff` ni `cpudiff` ne déclarent, voir plus bas —, une compilation Rust de la `--features
+unpack`, et 180 secondes. Le test correspondant ne tourne que si `VERA_C07_RUN_REAL_ORACLE=1` est
+posé, et se saute en le disant sinon. Il a été exécuté le 19 septembre 2026 sur cette machine.
 
-**Trois fonctions d'ARET portent l'essentiel et aucune ne lance quoi que ce soit.**
-`normalise_result` est une fonction **pure** de `(spec, exit_code, stdout, stderr, missing,
-timed_out)` ; `_repository_file` est de la résolution de chemin ; `safe_fixture` est une expression
-régulière. `ORACLES` est un dictionnaire fermé de neuf specs. La méthode est celle de `C06`, `C12`,
-`C14` et `C15` : la référence est versionnée, épinglée et **exécutée**.
+**Trois fonctions portent tout ce qui se décide avant qu'un processus démarre**, et aucune ne lance
+quoi que ce soit : `normalise_result` est une fonction **pure**, `_repository_file` est de la
+résolution de chemin, `safe_fixture` est une expression régulière. `ORACLES` est un dictionnaire
+fermé de neuf specs.
 
 **Ce qu'ARET fait bien, et il faut le dire d'abord.**
 
-1. *La précédence de normalisation est juste.* Une dépendance manquante l'emporte sur tout —
-   y compris sur un `timed_out` et sur une sortie qui ressemble à un succès. On ne déclare pas
-   un verdict sur une exécution qui n'a pas eu lieu.
-2. *Un code de sortie non nul reste un `FAIL` même avec une ligne `SKIP` dans la sortie.* Le
-   commentaire du code le dit et la mesure le confirme : un échec global n'est jamais masqué par
-   un SKIP partiel.
-3. *Un corpus vide n'est pas un succès.* Les regexes exigent `int(groupe2) > 0` : `0 / 0` rend
-   `ERROR`, pas `PASS`. Mesuré.
-4. *`winehash` rend `UNKNOWN` même quand il réussit*, et son commentaire dit pourquoi : « c'est une
-   mesure Wine à comparer au runner Windows, pas un gate de conformité ». Refuser de transformer
-   une mesure en verdict est exactement la discipline que `I004` demande.
-5. *Le confinement tient.* `../`, `../../etc/passwd`, un chemin absolu et un lien symbolique
-   sortant sont tous refusés — les quatre mesurés.
+1. *La précédence de normalisation est juste.* Une dépendance manquante l'emporte sur tout — sur un
+   `timed_out`, sur un échec, et sur une sortie qui ressemble à un succès. On ne rend pas de verdict
+   sur une exécution qui n'a pas eu lieu.
+2. *Un code de sortie non nul reste un `FAIL`* même avec une ligne `SKIP` dans la sortie.
+3. *Un corpus vide n'est pas un succès.* `0 / 0` rend `ERROR` : les regexes exigent `> 0`.
+4. *`winehash` rend `UNKNOWN` même quand il réussit*, sa sortie étant une mesure et non un gate.
+   Refuser de transformer une mesure en verdict est exactement ce que `I004` demande.
+5. *Le confinement tient* sur les quatre évasions posées, lien symbolique sortant compris.
+6. *La gate de promotion est tenue à **deux couches indépendantes*** : la garde Python de
+   `attach_proof` et deux triggers SQLite. Neutraliser l'une laisse l'autre refuser — c'est de la
+   défense en profondeur, et les tests ci-dessous distinguent leurs messages pour qu'aucune ne soit
+   créditée du travail de l'autre.
 
-**La divergence, et elle porte sur une seule question : d'où vient le verdict.**
+**La divergence porte sur une seule question : d'où vient le verdict.**
 
-ARET le **dérive de la prose** du script, par huit expressions régulières sur des lignes de
-résumé lisibles par un humain (`differential equivalence: 272 / 272 functions`). VERA le fait
-calculer par un validateur fermé, comme une **comparaison d'empreintes** — `PASS` si l'observé
-égale l'attendu, `FAIL` sinon —, et son module de validation n'importe même pas `subprocess`.
+ARET le **dérive de la prose** du script, par huit expressions régulières sur des lignes de résumé
+lisibles par un humain. VERA le fait calculer par un validateur fermé, comme une comparaison
+d'empreintes, et son module de validation n'importe même pas `subprocess`. Mesuré : changer
+`functions` en `function` — un caractère — transforme un `PASS` en `ERROR`.
 
-La conséquence est mesurée plus bas et elle n'est pas théorique : changer `functions` en
-`function` dans la sortie — un mot, un caractère — transforme un `PASS` en `ERROR`. Le script n'a
-pas changé de comportement, seulement de formulation. Une comparaison d'empreintes n'a pas ce
-mode de défaillance.
+**Et le préflight d'ARET annonce « prêt » pour deux oracles qui ne peuvent pas tourner.** `funcdiff`
+déclare `('bash', 'cargo')`, `cpudiff` déclare `('cargo',)` ; aucun ne nomme `libunicorn`, que leurs
+scripts exigent. Pire, la sonde correspondante ne peut pas réussir : `toolchain_status` cherche
+`unicorn` par `shutil.which("libunicorn")`, qui parcourt le `PATH` à la recherche d'un exécutable —
+mesuré sur cette machine, la bibliothèque **installée** y est toujours déclarée indisponible.
 
-**Pour `C08`, l'absence de chaîne d'outils est le fixture, pas l'obstacle.** Sa preuve exigée
-demande « Core installable sans toolchain » et « tests `SKIPPED` explicites » : les deux se
-mesurent précisément parce que `wine` et MinGW manquent de cette machine.
+**Pour `C08`, l'absence de chaîne d'outils est le fixture, pas l'obstacle** : « Core installable
+sans toolchain » et « tests `SKIPPED` explicites » se mesurent précisément parce que `wine` et
+MinGW manquent ici.
 """
 from __future__ import annotations
 
+from hashlib import sha256
+import os
 from pathlib import Path
 import re
 from tempfile import TemporaryDirectory
@@ -59,6 +64,7 @@ from vera_mmu.executions import ExecutionError, ExecutionService
 from vera_mmu.identity import load_profile
 from vera_mmu.store import MemoryStore
 
+from tests.aret_v1_baseline import temporary_root
 from tests.aret_v1_oracles_reference import (
     CAPTURE_SHA256,
     REFERENCE_SHA256,
@@ -448,6 +454,22 @@ class C07C08OracleParityTests(unittest.TestCase):
         status = aret_pipelines().toolchain_status(toolkit)
         self.assertFalse(status["tools"]["unicorn"]["available"])
 
+        # Sur une machine où la bibliothèque est **réellement installée**, la sonde rend toujours
+        # « indisponible ». Ce n'est alors plus un argument sur la forme de `which`, c'est une
+        # mesure : la sonde ne distingue pas une machine équipée d'une machine qui ne l'est pas.
+        installed = [
+            candidate
+            for candidate in (
+                Path("/usr/lib/x86_64-linux-gnu/libunicorn.so.2"),
+                Path("/usr/lib/libunicorn.so.2"),
+                Path("/lib/x86_64-linux-gnu/libunicorn.so.2"),
+            )
+            if candidate.is_file()
+        ]
+        if installed:
+            self.assertFalse(status["tools"]["unicorn"]["available"])
+            self.assertEqual(status["tools"]["unicorn"]["path"], "")
+
         # La contradiction, mesurée : indisponible d'un côté, « rien ne manque » de l'autre.
         self.assertEqual(oracles.required_tools(oracles.ORACLES["funcdiff"], toolkit), [])
 
@@ -457,6 +479,212 @@ class C07C08OracleParityTests(unittest.TestCase):
         )
         self.assertNotIn("libunicorn", doctor)
         self.assertNotIn("shutil.which", doctor)
+
+    # -------------------------------- C07 : l'exécution réelle, la gate et la promotion
+
+    def _toolkit_with_unicorn(self) -> Path:
+        """La seule configuration où un oracle ARET peut réellement tourner ici."""
+        toolkit = Path("/home/user/Automatic-reverse-engineering-toolkit")
+        if not toolkit.is_dir():
+            self.skipTest("Le dépôt toolkit de référence n’est pas monté dans ce conteneur")
+        return toolkit
+
+    def _aret_store(self, root: Path):
+        from tests.aret_v1_repository_reference import memory_store
+
+        return memory_store(root / ".aret-memory")
+
+    @staticmethod
+    def _knowledge(store, title: str) -> str:
+        return store.append_knowledge(
+            knowledge_type="OBSERVATION", status=None, title=title,
+            content="Contenu de mesure de parité C07.", component_id=None, function_id=None,
+            brick_id=None, tags=None, proof_ids=None, supersedes_id=None, actor="c07-parity",
+        )["id"]
+
+    def test_i004_a_skipped_oracle_is_hashed_recorded_and_refused_for_promotion(self) -> None:
+        """La gate d'ARET, mesurée en exécutant `run_oracle` — et elle tient.
+
+        `winediff` n'a pas ses dépendances : aucun processus n'est lancé, le verdict est `SKIPPED`,
+        et la preuve est **tout de même enregistrée** avec son artefact et son empreinte. Demander
+        la promotion sur cette preuve est refusé, et la connaissance reste `OBSERVED`.
+
+        **Le détail qui compte : `admissible` vaut `1` sur cette preuve `SKIPPED`.** L'admissibilité
+        d'ARET ne porte que sur l'authenticité du reçu HMAC, pas sur le résultat. C'est la
+        conjonction `result == 'PASS' ET admissible` qui garde la promotion. La nuance explique la
+        baseline consignée en `C16` : ses quatre preuves y étaient `admissible=0` faute de secret
+        HMAC configuré, si bien que **rien** n'y était promouvable, quel que soit le résultat.
+        """
+        toolkit = self._toolkit_with_unicorn()
+        oracles = aret_oracles()
+        with temporary_root() as root:
+            store = self._aret_store(root)
+            try:
+                identifier = self._knowledge(store, "Connaissance à ne pas promouvoir")
+                outcome = oracles.run_oracle(store, toolkit, "winediff", timeout_seconds=60)
+                proof = outcome["proof"]
+
+                self.assertEqual(outcome["execution"]["result"], "SKIPPED")
+                self.assertIsNone(outcome["execution"]["exit_code"])
+                self.assertTrue(set(outcome["execution"]["missing_dependencies"]))
+
+                # L'artefact existe et son empreinte est celle de son contenu.
+                artifact = Path(store.artifacts_dir) / outcome["artifact"]["path"]
+                self.assertTrue(artifact.is_file())
+                self.assertEqual(
+                    sha256(artifact.read_bytes()).hexdigest(), outcome["artifact"]["sha256"]
+                )
+                self.assertEqual(proof["artifact_hash"], outcome["artifact"]["sha256"])
+                self.assertEqual(len(proof["payload_hash"]), 64)
+                self.assertEqual(len(proof["receipt_hmac"]), 64)
+                # Admissible, et pourtant non promouvable : les deux conditions sont distinctes.
+                self.assertEqual(int(proof["admissible"]), 1)
+
+                # Le message est celui de la **garde Python**, en français, et pas celui du
+                # trigger SQL, en anglais. La distinction n'est pas cosmétique : la règle est
+                # tenue à deux couches indépendantes, et sans ce contrôle l'une serait créditée
+                # du travail de l'autre — une mutation l'a montré.
+                with self.assertRaises(Exception) as raised:
+                    store.attach_proof(identifier, proof["id"], "c07-parity", promote=True)
+                self.assertIn("Promotion refusée", str(raised.exception))
+                with store._connection() as connection:
+                    status = connection.execute(
+                        "SELECT status FROM knowledge WHERE id=?", (identifier,)
+                    ).fetchone()["status"]
+                self.assertEqual(status, "OBSERVED")
+            finally:
+                del store
+
+    def test_i004_the_promotion_rule_is_held_again_by_sqlite_itself(self) -> None:
+        """La seconde couche, isolée : même en contournant le Python, SQLite refuse.
+
+        ARET garde `knowledge.status` par deux triggers — `reject_unproven_insert` et
+        `reject_unproven_promotion`. Un `UPDATE` direct vers `PROVEN` sur une connaissance sans
+        preuve liée est refusé par la base elle-même, avec son propre message.
+
+        C'est une défense en profondeur, et c'est à mettre au crédit d'ARET. Mais cela veut dire
+        qu'un test qui observe seulement « la promotion a échoué » ne prouve **aucune** des deux
+        couches : il faut distinguer les messages, ce que les deux tests voisins font.
+        """
+        toolkit = self._toolkit_with_unicorn()
+        del toolkit
+        with temporary_root() as root:
+            store = self._aret_store(root)
+            try:
+                identifier = self._knowledge(store, "Connaissance sans aucune preuve")
+                with store._connection() as connection:
+                    triggers = {
+                        row["name"]
+                        for row in connection.execute(
+                            "SELECT name FROM sqlite_master WHERE type='trigger' AND sql LIKE '%PROVEN%'"
+                        )
+                    }
+                    self.assertEqual(triggers, {"reject_unproven_insert", "reject_unproven_promotion"})
+                    with self.assertRaises(Exception) as raised:
+                        connection.execute(
+                            "UPDATE knowledge SET status='PROVEN' WHERE id=?", (identifier,)
+                        )
+                    self.assertIn("PROVEN requires a linked admissible PASS proof", str(raised.exception))
+            finally:
+                del store
+
+    def test_i004_a_passing_proof_with_an_unauthentic_receipt_is_still_refused(self) -> None:
+        """L'autre moitié de la gate, isolée — et c'est la condition de la baseline de `C16`.
+
+        Le test précédent prouve la moitié « `result == PASS` » ; celui-ci prouve la moitié
+        « `admissible` », en enregistrant une preuve **`PASS`** dont le reçu HMAC est faux.
+        `admissible` tombe alors à `0` et la promotion est refusée malgré le `PASS`. Sans les deux
+        cas, l'un des deux termes de la conjonction serait crédité du travail de l'autre.
+
+        C'est exactement l'état de la mémoire baseline consignée en `C16` : quatre preuves `PASS`,
+        toutes `admissible=0`, zéro promotion sur 532 connaissances.
+
+        Mesuré au passage, une garde de plus : `record_proof` refuse une empreinte d'artefact qui
+        ne correspond pas au fichier. Une preuve ne peut donc pas désigner un artefact qu'elle ne
+        décrit pas.
+        """
+        toolkit = self._toolkit_with_unicorn()
+        del toolkit  # la garde de montage suffit ; ce test ne lance aucun oracle
+        with temporary_root() as root:
+            store = self._aret_store(root)
+            try:
+                identifier = self._knowledge(store, "Connaissance à preuve non authentique")
+                artifact = Path(store.artifacts_dir) / "parity-probe.json"
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.write_text('{"mesure": "C07"}', encoding="utf-8")
+                digest = sha256(artifact.read_bytes()).hexdigest()
+
+                common = {
+                    "kind": "CPUDIFF", "command": "cargo test", "result": "PASS", "exit_code": 0,
+                    "artifact_path": "parity-probe.json", "environment": {},
+                    "started_at": "2026-01-01T00:00:00Z", "finished_at": "2026-01-01T00:00:01Z",
+                    "stdout_ref": "parity-probe.json", "stderr_ref": "parity-probe.json",
+                    "actor": "c07-parity",
+                }
+                # Une empreinte qui ne décrit pas l'artefact est refusée d'emblée.
+                with self.assertRaises(Exception) as mismatched:
+                    store.record_proof(**common, artifact_hash="0" * 64, receipt_hmac="f" * 64)
+                self.assertIn("ne correspond pas", str(mismatched.exception))
+
+                proof = store.record_proof(**common, artifact_hash=digest, receipt_hmac="f" * 64)
+                self.assertEqual(proof["result"], "PASS")
+                self.assertEqual(int(proof["admissible"]), 0)
+
+                with self.assertRaises(Exception) as raised:
+                    store.attach_proof(identifier, proof["id"], "c07-parity", promote=True)
+                self.assertIn("Promotion refusée", str(raised.exception))
+                with store._connection() as connection:
+                    status = connection.execute(
+                        "SELECT status FROM knowledge WHERE id=?", (identifier,)
+                    ).fetchone()["status"]
+                self.assertEqual(status, "OBSERVED")
+            finally:
+                del store
+
+    def test_i004_a_real_passing_oracle_is_promoted_to_proven(self) -> None:
+        """L'autre versant, et il coûte une vraie exécution : `cpudiff` tourne pour de bon.
+
+        C'est la dimension que `C07` réclamait et qu'aucun test n'avait couverte. Elle demande
+        `libunicorn` — que ni `funcdiff` ni `cpudiff` ne déclarent — et une compilation Rust de la
+        `--features unpack`. Le test se saute explicitement quand ces préconditions manquent
+        plutôt que de prétendre les couvrir.
+
+        Mesuré le 19 septembre 2026 sur cette machine, libunicorn 2.0.1 installée : verdict `PASS`,
+        `admissible=1`, artefact de 22 850 octets dont l'empreinte annoncée égale celle recalculée,
+        et la connaissance liée passe à `PROVEN`. Durée : 180 s.
+        """
+        if os.environ.get("VERA_C07_RUN_REAL_ORACLE", "").strip() != "1":
+            self.skipTest(
+                "Exécution réelle d’oracle non demandée : poser VERA_C07_RUN_REAL_ORACLE=1 "
+                "(compte ~180 s et exige libunicorn)"
+            )
+        toolkit = self._toolkit_with_unicorn()
+        oracles = aret_oracles()
+        with temporary_root() as root:
+            store = self._aret_store(root)
+            try:
+                identifier = self._knowledge(store, "Connaissance promouvable par preuve PASS")
+                outcome = oracles.run_oracle(
+                    store, toolkit, "cpudiff", timeout_seconds=1500,
+                    knowledge_id=identifier, promote=True,
+                )
+                proof = outcome["proof"]
+
+                self.assertEqual(outcome["execution"]["result"], "PASS")
+                self.assertEqual(outcome["execution"]["exit_code"], 0)
+                self.assertEqual(outcome["execution"]["missing_dependencies"], [])
+                self.assertFalse(outcome["execution"]["timed_out"])
+                self.assertEqual(int(proof["admissible"]), 1)
+
+                artifact = Path(store.artifacts_dir) / outcome["artifact"]["path"]
+                self.assertEqual(
+                    sha256(artifact.read_bytes()).hexdigest(), outcome["artifact"]["sha256"]
+                )
+                self.assertTrue(outcome["attachment"]["linked"])
+                self.assertTrue(outcome["attachment"]["promoted"])
+                self.assertEqual(outcome["attachment"]["knowledge"]["status"], "PROVEN")
+            finally:
+                del store
 
     def test_i006_the_vera_core_names_no_external_executable_and_needs_none(self) -> None:
         """Dimension « Core installable sans toolchain » : mesurée, pas supposée.

@@ -1,6 +1,10 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — **`C07` promu `DONE`** : ses six dimensions sont mesurées, jusqu’à
+faire tourner un vrai oracle qui rend `PASS` et promeut une connaissance en `PROVEN`. La gate est
+tenue à deux couches indépendantes. **Quinze couplages clos sur seize** ; seul `C08` reste ouvert,
+et sur une seule de ses quatre dimensions. Voir `LOG-0324`.
 **Révisé le :** 2026-09-19 — `C07`/`C08` : parité partielle mesurée **sans chaîne d’outils**, les
 deux lignes restant `IN_PROGRESS`. Le blocage était plus étroit qu’annoncé — les neuf scripts
 d’oracle et l’image de référence existent déjà. Voir `LOG-0322`.
@@ -62,7 +66,7 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1108 passed, 376 subtests passed` en local sur Linux. L’attestation **sur les deux
+**Suite :** `1111 passed, 1 skipped, 376 subtests passed` en local sur Linux. L’attestation **sur les deux
 plateformes** porte sur `1105 passed, 1 skipped, 365 subtests passed` côté Core et `78 passed` côté
 interface, au run `desktop-packaging.yml` #62 sur `ca8a2f3` : chiffres identiques des deux côtés,
 zéro échec, aucune occurrence de `WinError`, et l’intégralité des **179 tests de parité**
@@ -701,16 +705,15 @@ playbook et de barrière de reprise n’est pas une parité ARET.
    **`docker`** lui-même, plus `cargo`, `rustc`, `gcc`, `clang` et `bash`. Mesuré sur le vrai dépôt
    toolkit : `cpudiff` et `funcdiff` n’ont **aucune dépendance manquante** ici.
 
-   **Le chemin le moins cher que j’avais recommandé n’existe pas, et `LOG-0323` dit pourquoi.**
-   `cpudiff` et `funcdiff` n’ont pas besoin du binaire `aret` — leur `requires_aret_binary` vaut
-   `False` —, mais tous deux exigent `--features unpack`, donc la **libunicorn système**, absente
-   ici et déclarée dans aucune des deux specs. Une compilation ne contourne pas cette dépendance.
+   **`C07` est clos** : `libunicorn` a été installée, la `--features unpack` compilée, et `cpudiff`
+   a réellement tourné — `PASS` en 180 s, artefact hashé, preuve admissible, connaissance promue en
+   `PROVEN`. Voir `LOG-0324`.
 
-   Deux chemins restent donc, et un seul est bon marché : fournir `libunicorn` (et alors les deux
-   oracles deviennent réellement lançables), ou construire l’image de référence avec `docker` pour
-   obtenir Wine, MinGW et libunicorn d’un coup. Le troisième reste d’acter que la parité
-   d’exécution ne se mesure pas ici. Le choix revient au propriétaire ; aucune tentative non bornée
-   ne sera lancée sans lui.
+   **Il ne reste donc que `C08`, sur une seule de ses quatre dimensions** : « exécutabilité mesurée
+   dans une image de référence ». Les mesures ont eu lieu sur la machine hôte, pas dans l’image
+   `docker/ci-toolchain` épinglée à `ubuntu:24.04`. La fermer demande de construire cette image —
+   `docker` est présent ici — puis d’y rejouer les oracles, y compris ceux qui exigent Wine et
+   MinGW. C’est la dernière ligne du registre, et le choix de la tenter revient au propriétaire.
 
 **Tous les couplages de nature « données et comportement » sont clos** depuis `C15`. Le gabarit,
 posé par `C01` et étendu par `C13`, aura tenu jusqu’au bout : une référence ARET versionnée avec son
