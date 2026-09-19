@@ -5136,3 +5136,59 @@ pas le gain.
 Profil complet du #61 : conformité 118 s sur Linux et 342 s sur Windows, bundles 163 s et 152 s,
 jobs complets **7 min 35** et **10 min 38**. Le parcours depuis le début de ce travail : Windows
 21 min → 15 min 33 → 11 min 55 → **10 min 38**.
+
+## LOG-0322 — `C07`/`C08` : le blocage était plus étroit qu'annoncé
+
+**Statut : les deux lignes restent `IN_PROGRESS`, et c'est délibéré. 15 tests, 62 sous-tests,
+9 mutations vérifiées mordantes. Suite `1106 + 374`.**
+
+Le registre décrivait `C07` et `C08` comme bloqués sur Wine et MinGW. En vérifiant l'état réel du
+conteneur plutôt qu'en reprenant cette ligne, trois faits sont apparus :
+
+1. **Les neuf scripts d'oracle existent** — `bench/difftest.sh`, `winediff.sh`, `ehdiff.sh` et les
+   autres —, mais dans `Automatic-reverse-engineering-toolkit`, pas dans `ARET-MMU`. Le clone
+   d'`ARET-MMU` ne contient que `README.md` et `aret-memory/`.
+2. **L'image de référence que `C08` exige existe déjà** : `docker/ci-toolchain/Dockerfile`, épinglée
+   à `ubuntu:24.04`, avec ses raisons écrites (les constantes Wine mesurées viennent de cette
+   distribution ; une version plus récente les déplacerait en silence).
+3. **`docker` est présent** dans ce conteneur.
+
+Mesuré ensuite sur le vrai dépôt toolkit : `cpudiff` et `funcdiff` n'ont **aucune dépendance
+manquante** ici. Deux des neuf oracles sont satisfaits sur cette machine. C'est consigné comme
+fait, pas exploité : le propriétaire a choisi le lot sans chaîne d'outils.
+
+**Ce qui a été fait.** `oracles.py` et `evidence/capture.py` sont versionnés et épinglés, puis
+**exécutés** — cinquième et sixième sources ARET traitées ainsi. Trois de leurs fonctions portent
+l'essentiel et aucune ne lance de processus : `normalise_result` est une fonction **pure**,
+`_repository_file` est de la résolution de chemin, `safe_fixture` est une expression régulière.
+
+**Ce qu'ARET fait bien, mesuré avant tout le reste.** La précédence de normalisation est juste : une
+dépendance manquante l'emporte sur un timeout, sur un échec et sur une sortie qui ressemble à un
+succès — on ne rend pas de verdict sur une exécution qui n'a pas eu lieu. Un code de sortie non nul
+reste un `FAIL` même avec une ligne `SKIP` dans la sortie. Un corpus vide n'est jamais un succès :
+`0 / 0` rend `ERROR`, les regexes exigeant `> 0`. Le confinement tient sur les quatre évasions
+posées, lien symbolique sortant compris. Et `winehash` rend `UNKNOWN` **même quand il réussit**,
+parce que sa sortie est une mesure à comparer au runner Windows et non un gate — refuser de
+transformer une mesure en verdict est exactement ce que `I004` demande.
+
+**La divergence porte sur une seule question : d'où vient le verdict.** ARET le **dérive de la
+prose** du script, par huit expressions régulières sur des lignes de résumé lisibles par un humain.
+VERA le fait calculer par un validateur fermé, comme une comparaison d'empreintes, et son module de
+validation n'importe même pas `subprocess`. La conséquence est mesurée : changer `functions` en
+`function` — un caractère — transforme un `PASS` en `ERROR`. Le script n'a pas changé de
+comportement, seulement de formulation.
+
+**Deux écarts mineurs.** Le refus d'oracle inconnu ne nomme que quatre des neuf oracles : un message
+devenu faux à mesure que le catalogue grandissait. Et un succès non reconnu retombe sur `ERROR`, pas
+sur `UNKNOWN` — défendable, mais il fallait savoir lequel.
+
+**Pourquoi rien n'est promu.** La preuve exigée de `C07` demande « evidence hashée, promotion
+`PROVEN` et gate réelle » et celle de `C08` « exécutabilité mesurée dans une image de référence ».
+Ces dimensions-là demandent d'exécuter un vrai oracle. Aucun test de ce lot ne les couvre, et aucune
+ligne ne passe à `DONE` de ce fait. Le registre gagne des dimensions mesurées, pas une promotion.
+
+**Une mutation est revenue inerte, et c'était encore la même classe de défaut.** Le refus de verdict
+côté VERA était mesuré sur une `execution` inexistante : le refus venait de là, pas du verdict.
+Corrigé en vérifiant le message, et en montrant que le même appel avec un verdict admis échoue plus
+loin et pour une autre raison. *Une propriété satisfaite par plus d'un chemin n'en prouve aucun* —
+quatrième lot où elle se présente.

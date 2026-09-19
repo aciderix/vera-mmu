@@ -140,3 +140,28 @@ ses propres stubs en tête du `PATH` — rien d'ARET n'est modifié, c'est l'env
 et c'est précisément ce qu'un hôte fournit à un hook. Le `PATH` est préfixé et jamais remplacé :
 `_repository_revision` appelle `git` sans timeout ni garde, et un `git` introuvable ferait tomber le
 hook pour une seconde raison. Voir `LOG-0321`.
+
+## `C07` et `C08` : l'adaptateur d'oracles, exécuté sans chaîne d'outils
+
+| Fichier | Origine | Rôle |
+|---|---|---|
+| `source/oracles_reference.py` | `aret-memory/evidence/adapters/oracles.py`, copie octet pour octet | Les neuf oracles fermés et leur normaliseur de verdict |
+| `source/capture_reference.py` | `aret-memory/evidence/capture.py`, copie octet pour octet | Sa seule dépendance hors `core.repository` : les reçus HMAC |
+
+Ces deux couplages paraissaient bloqués sur Wine et MinGW. Ils le sont pour **une** de leurs
+dimensions — l'exécution réelle d'un oracle —, pas pour les autres. Trois fonctions d'ARET portent
+l'essentiel et aucune ne lance de processus : `normalise_result` est une fonction **pure** de
+`(spec, exit_code, stdout, stderr, missing, timed_out)`, `_repository_file` est de la résolution de
+chemin, `safe_fixture` est une expression régulière. `ORACLES` est un dictionnaire fermé.
+
+`tests/test_aret_c07_c08_oracle_parity.py` les exécute, et **ne promeut ni `C07` ni `C08`** : ce qui
+reste non couvert est nommé dans son en-tête plutôt que masqué.
+
+Pour `C08`, l'absence de chaîne d'outils sur cette machine est le **fixture** et non l'obstacle :
+« Core installable sans toolchain » et « tests `SKIPPED` explicites » se mesurent précisément parce
+que `wine` et MinGW manquent. Les scripts d'oracle eux-mêmes ne sont pas versionnés ici — ils vivent
+dans `Automatic-reverse-engineering-toolkit`, et `required_tools` est interrogé contre ce dépôt réel.
+
+Ce qui en est sorti est consigné dans `LOG-0322`, dont la mesure principale : ARET dérive ses
+verdicts de la **prose** des scripts par huit expressions régulières, si bien que changer
+`functions` en `function` transforme un `PASS` en `ERROR`.

@@ -1,13 +1,16 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — `C07`/`C08` : parité partielle mesurée **sans chaîne d’outils**, les
+deux lignes restant `IN_PROGRESS`. Le blocage était plus étroit qu’annoncé — les neuf scripts
+d’oracle et l’image de référence existent déjà. Voir `LOG-0322`.
 **Révisé le :** 2026-09-19 — run #61 sur `2c6e6eb` : les deux runners verts, `1091 + 312` et `78`
 des deux côtés. **`C15` est attesté sur Windows ; les 164 tests de parité le sont tous. Aucune dette
 Windows ouverte.**
 **Révisé le :** 2026-09-19 — `C15` promu `DONE` : la barrière de reprise, et le premier couplage
 dont le test exécute les **hooks** d’ARET. Un état illisible la fait disparaître chez ARET là où
 VERA refuse ; un état acquitté se transplante entre mémoires. **Quatorze couplages clos sur seize**,
-et il ne reste que `C07`/`C08`, bloqués sur une chaîne d’outils absente.
+et il ne reste que `C07`/`C08`.
 **Révisé le :** 2026-09-19 — run #59 sur `834ee13` : les deux runners verts, caches chauds. Les
 bundles tombent de 324 s à 162 s sur Linux et de 336 s à 144 s sur Windows. Job complet : 7 min 14
 et 11 min 55.
@@ -59,12 +62,14 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1091 passed, 312 subtests passed` côté Core et `78 passed` côté interface, **attestés
-sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #61 sur `2c6e6eb`, chiffres identiques
-des deux côtés, zéro échec et aucune occurrence de `WinError`. L’attestation couvre l’intégralité
-des **164 tests de parité** `C01`–`C06` et `C09`–`C16`, `C15` compris. **Aucune dette Windows
+**Suite :** `1106 passed, 374 subtests passed` côté Core, **mesurés sur Linux**. L’attestation la
+plus récente **sur les deux plateformes** porte sur `1091 + 312` et `78`, au run
+`desktop-packaging.yml` #61 sur `2c6e6eb` : chiffres identiques des deux côtés, zéro échec, aucune
+occurrence de `WinError`, et l’intégralité des **164 tests de parité** `C01`–`C06` et `C09`–`C16`
+couverte, `C15` compris. Les 15 tests et 62 sous-tests de `C07`/`C08` lui sont postérieurs et
+attendent le prochain run ; aucun d’eux ne dépend d’une chaîne d’outils. **Aucune dette Windows
 ouverte.**
-**Durée :** en local, **74 s** sur quatre cœurs (`-n auto --dist loadfile`) pour 1091 tests. En CI
+**Durée :** en local, **75 s** sur quatre cœurs (`-n auto --dist loadfile`) pour 1106 tests. En CI
 au run #61, caches chauds : conformité **118 s** sur Linux et **342 s** sur Windows ; bundles 163 s
 et 152 s. Job complet : **7 min 35** sur Linux et **10 min 38** sur Windows, contre 21 min avant
 parallélisation.
@@ -676,13 +681,23 @@ playbook et de barrière de reprise n’est pas une parité ARET.
 
 **Reste, et il ne reste qu’une chose :**
 
-1. **`C07` et `C08`** — la parité d’exécution réelle. Installer Wine et MinGW, construire
-   `target/release/aret`, rejouer le corpus. C’est là que `MEM-WALL-001` mord vraiment, et le
-   registre y note déjà `255/264` sur le corpus Wine historique. **Vérifié absent de ce conteneur :**
-   `wine`, `i686-w64-mingw32-gcc`, `z3` ; `target/release/aret` n’a jamais été construit et aucun
-   corpus d’artefacts ARET n’est disponible. `cargo`, `rustc`, `gcc` et `clang` sont présents. Cette
-   ligne demande donc une décision du propriétaire — fournir la chaîne d’outils, ou acter que la
-   parité d’exécution ne se mesure pas ici — plutôt qu’une tentative non bornée.
+1. **`C07` et `C08`** — la seule dimension restante est l’**exécution réelle** d’un oracle :
+   evidence hashée, promotion `PROVEN`, gate réelle, et exécutabilité mesurée dans l’image de
+   référence. Tout le reste de ces deux lignes est désormais mesuré, sans chaîne d’outils, par
+   `tests/test_aret_c07_c08_oracle_parity.py` — voir `LOG-0322`.
+
+   **L’état réel du conteneur, vérifié et non repris d’un registre.** Absents : `wine`,
+   `i686-w64-mingw32-gcc`, `i686-w64-mingw32-nm`, `winegcc`, `z3` ; `target/release/aret` n’est pas
+   construit. Présents, et c’est ce que le registre ne disait pas : **les neuf scripts d’oracle**
+   (`bench/*.sh`, `src/cpudiff.rs`, dans `Automatic-reverse-engineering-toolkit` et non dans
+   `ARET-MMU`), **l’image de référence** `docker/ci-toolchain/Dockerfile` épinglée à `ubuntu:24.04`,
+   **`docker`** lui-même, plus `cargo`, `rustc`, `gcc`, `clang` et `bash`. Mesuré sur le vrai dépôt
+   toolkit : `cpudiff` et `funcdiff` n’ont **aucune dépendance manquante** ici.
+
+   Trois chemins restent donc ouverts, par coût croissant : construire `target/release/aret` avec
+   `cargo` et tenter les deux oracles satisfaits ; construire l’image de référence avec `docker`
+   pour obtenir Wine et MinGW ; ou acter que la parité d’exécution ne se mesure pas ici. Le choix
+   revient au propriétaire ; aucune tentative non bornée ne sera lancée sans lui.
 
 **Tous les couplages de nature « données et comportement » sont clos** depuis `C15`. Le gabarit,
 posé par `C01` et étendu par `C13`, aura tenu jusqu’au bout : une référence ARET versionnée avec son
