@@ -4615,3 +4615,34 @@ celui-ci, et dix-huit d'entre eux étaient faux sans que rien ne le signale.
 
 Suite complète après correction sur Linux : `1034 passed, 196 subtests passed`. Le décompte Windows
 reste à établir au prochain run.
+
+## LOG-0314 — Run #51 : la dette Windows est soldée, et les trois corrections tiennent
+**Statut : PASS attesté sur Linux x64 et Windows x64, décomptes identiques, zéro échec.**
+
+Run #51 sur `c014dbf`, le 19 septembre 2026. Les deux runners sont verts de bout en bout et rendent
+**les mêmes chiffres** :
+
+| | Linux x64 | Windows x64 |
+|---|---|---|
+| Suite de conformité | `1034 passed, 196 subtests passed` en 238,25 s | `1034 passed, 196 subtests passed` en 628,06 s |
+| Tests d’interface | `78 passed` | `78 passed` |
+| Sidecar natif, archive CLI | verts | verts |
+| Bundles | AppImage, `.deb` | NSIS, MSI |
+
+C’est la première attestation deux plateformes à couvrir les **107 tests de parité** `C01`–`C05`,
+`C09`–`C11`, `C13` et `C16`. La restriction que le README portait depuis `C01` — « attestés
+seulement sur Linux x64 » — tombe.
+
+**Les trois corrections du run #50 sont vérifiées par le runner, pas par raisonnement.** Le
+`.gitattributes` empêche Git de réécrire les références épinglées, donc les empreintes SHA-256
+tiennent des deux côtés ; `temporary_root()` rend aux lecteurs ARET une racine canonique malgré le
+nom court 8.3 du chemin temporaire Windows ; la connexion fermée laisse Windows effacer ses
+répertoires. Zéro occurrence de `FAILED` dans les deux journaux.
+
+**Une note de procédure, parce qu’elle change la cadence de travail.** Jusqu’ici le workflow ne
+pouvait être déclenché que par le propriétaire : le jeton de la GitHub App était en lecture seule
+sur Actions, et une tentative rendait `403 Resource not accessible by integration`. Le workflow,
+lui, déclarait `workflow_dispatch` depuis toujours — il n’était pas en cause. La permission
+`Actions: write` ayant été accordée, un lot peut désormais être attesté sur les deux plateformes
+dans la foulée de son commit, au lieu d’attendre. C’est précisément la boucle qui avait laissé
+cent-sept tests non attestés et dix-huit d’entre eux faux.

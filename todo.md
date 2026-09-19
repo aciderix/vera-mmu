@@ -83,7 +83,7 @@
 - [x] Compléter le Doctor face à §45 : lignes `hmac` et `hooks`, catalogues dégroupés, rendu humain `vmmu doctor --human`.
 - [x] Livrer les six outils §24 restants : `mmu_restore`, `mmu_get_resume_brief`, `mmu_get_resume_status`, `mmu_attach_proof`, `mmu_export`, `mmu_import_bundle`. L’API §24 est à `30/30`.
 - [ ] Clore les couplages de `DECOUPLING_MATRIX.md` : `0 DONE sur 16`, dont 2 `IN_PROGRESS`. Le registre est tenu à jour en observations mais aucune ligne mère n’a jamais passé son test de parité ; aucune parité ARET ne peut être affirmée avant.
-- [ ] Rejouer la suite complète sur la matrice native Windows x64 ; le décompte actuel de 686 tests n’est attesté que sur Linux x64.
+- [x] Rejouer la suite complète sur la matrice native Windows x64 — fait au run #51 sur `c014dbf` : `1034 passed, 196 subtests passed` et `78 passed`, chiffres identiques sur Linux x64 et Windows x64, zéro échec, les 107 tests de parité inclus. Le run #50 avait trouvé trois causes Windows, toutes dans les tests ; voir `LOG-0313` et `LOG-0314`.
 - [x] Certifier le front Tauri au-delà de la compilation : `tauri build --bundles deb` PASS, paquet contenant application et sidecar, démarrage natif sous affichage virtuel, et sidecar empaqueté prouvé en stdio avec refus de nonce et de confirmation.
 - [ ] Observer sur une machine réelle le dialogue WebView ↔ Rust ↔ sidecar déclenché par la sélection humaine d’un dossier : le parent Rust ne démarre le sidecar qu’à cette action, non simulable en conteneur.
 

@@ -1,6 +1,9 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — run #51 sur `c014dbf` : les deux runners verts, `1034 + 196` et `78`
+des deux côtés. Les 107 tests de parité sont attestés sur Windows pour la première fois, après
+trois causes trouvées au run #50 et corrigées. Dette Windows soldée.
 **Révisé le :** 2026-09-19 — `C13` promu `DONE` : la synchronisation Git, et le premier couplage
 dont le test **exécute** la source ARET au lieu de la lire. Il a trouvé un défaut dans ARET V1 et
 une règle morte dans VERA. **Dix couplages clos sur seize.**
@@ -30,10 +33,10 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1034 passed, 196 subtests passed` côté Core et `78 passed` côté interface, mesurés sur
-Linux x64. La dernière attestation **deux plateformes** est `927 + 78` au run `desktop-packaging.yml`
-#49 sur `9861450` : les **107 tests de parité** `C01`–`C05`, `C09`–`C11`, `C13` et `C16` ajoutés
-depuis n’ont encore jamais tourné sur Windows. Aucun test n’est conditionné à une plateforme.
+**Suite :** `1034 passed, 196 subtests passed` côté Core et `78 passed` côté interface, **attestés
+sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #51 sur `c014dbf`, chiffres identiques
+des deux côtés et zéro échec. C’est la première attestation deux plateformes à couvrir les **107
+tests de parité** `C01`–`C05`, `C09`–`C11`, `C13` et `C16` : la dette Windows est soldée.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -50,11 +53,22 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ### A1 — Matrice native Windows x64 et Linux x64 — **FAIT**
 
-**Run #49 sur `9861450`, le 18 septembre 2026 : les deux runners sont verts**, quinze étapes chacun,
-et les décomptes sont identiques — `927 passed, 69 subtests passed` côté Core (220,79 s sur Linux,
-515,88 s sur Windows) et `78 passed` sur huit fichiers côté interface. C’est la première attestation
-couvrant B4 à B12 : le run #48 datait de `14706d92`, et dix commits — 63 fichiers, 8327 lignes
-ajoutées — n’avaient jamais tourné sur Windows.
+**Run #51 sur `c014dbf`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
+identiques — `1034 passed, 196 subtests passed` côté Core (238,25 s sur Linux, 628,06 s sur Windows)
+et `78 passed` côté interface, zéro échec. C’est la première attestation deux plateformes à couvrir
+les **107 tests de parité** `C01`–`C05`, `C09`–`C11`, `C13` et `C16`.
+
+Elle a coûté un run rouge. Le #50, sur `700e011`, portait dix-huit échecs Windows en trois causes,
+toutes dans les tests et toutes invisibles sur Linux — Git réécrivait les références épinglées en
+CRLF, une racine temporaire restait non canonique derrière un nom court 8.3, et une connexion SQLite
+sans nom n’était jamais fermée. Voir `LOG-0313`. La leçon tient en une phrase : cent-sept tests
+avaient été écrits entre le #49 et le #50, et dix-huit étaient faux sans que rien ne le signale.
+
+**Historique du #49**, sur `9861450`, le 18 septembre 2026 : les deux runners verts, quinze étapes
+chacun, décomptes identiques — `927 passed, 69 subtests passed` côté Core (220,79 s sur Linux,
+515,88 s sur Windows) et `78 passed` sur huit fichiers côté interface. C’était la première
+attestation couvrant B4 à B12 : le run #48 datait de `14706d92`, et dix commits — 63 fichiers,
+8327 lignes ajoutées — n’avaient jamais tourné sur Windows.
 
 L’audit mené avant le run n’a rien trouvé des trois causes racines de septembre : les cinq `fsync`
 ajoutés portent tous sur une poignée d’écriture, les deux seules occurrences de barre inverse sont
@@ -94,9 +108,9 @@ verdict faux en silence, ce qui est pire qu’un rouge. *Corrigé :* un `checkpo
 dans `store.py` ouvre le WAL par une lecture avant de replier, et les trois appelants refusent
 tout ce qui n’est pas `busy == 0` **et** `log == 0`.
 
-**Ce que ce run autorise désormais à dire :** le README ne porte plus la restriction « décompte
-relevé sur Linux x64 ». La suite — `750 passed, 55 subtests passed` — est attestée sur les deux
-plateformes.
+**Ce que ces runs autorisent désormais à dire :** le README ne porte plus la restriction « décompte
+relevé sur Linux x64 », et plus aucune réserve sur la série de parité. La suite — `1034 passed,
+196 subtests passed` et `78 passed` — est attestée sur les deux plateformes au run #51.
 
 ---
 
