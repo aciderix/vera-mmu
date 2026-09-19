@@ -4924,3 +4924,22 @@ déjà migrée et de la recopier — ce qui touche la façon dont **tous** les t
 et croise directement l'identité de projet que `I011` fait vérifier à l'ouverture. Le gain serait de
 l'ordre de 10 %, le risque porte sur ce que les tests prouvent. Il est consigné ici comme disponible,
 pas appliqué.
+
+**Le troisième levier, pris celui-là : le workflow retéléchargeait ses dépendances à chaque run.**
+Relevé sur les étapes du run #55, une fois la suite parallélisée le premier poste n'est plus la
+suite mais la **construction des bundles** — 295 s côté Linux, 380 s côté Windows — parce que Tauri
+recompilait ses **490 caisses** à chaque passage. Venaient ensuite l'installation pip (33 s sur
+Windows, 11 s sur Linux) et l'`apt` Linux (45 s). Seul pnpm était déjà mis en cache.
+
+Deux caches ajoutés : `cache: pip` sur `setup-python`, dont la clef dérive de `pyproject.toml`, et
+`Swatinem/rust-cache` sur l'espace de travail `apps/desktop/src-tauri`, dont la clef dérive de
+`Cargo.lock` et de la version de rustc. L'`apt` est laissé tel quel : le mettre en cache proprement
+coûte plus de complexité que les 45 s qu'il rendrait.
+
+**Une contrepartie est assumée et doit être dite :** avec un cache cargo, ce workflow ne vérifie
+plus une construction entièrement à froid à chaque passage. Elle reste vérifiée dès que `Cargo.lock`
+change, puisque la clef en dépend et que le cache est alors invalidé. C'est un échange délibéré
+entre temps de boucle et surface de vérification, pas un oubli.
+
+**Le premier run après cet ajout ne sera pas plus rapide** — il peuple les caches. Le gain se lit au
+suivant, et c'est lui qu'il faudra mesurer avant d'annoncer un chiffre.
