@@ -1,6 +1,8 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — run #57 sur `29e49cc` : premier run parallélisé, les deux runners
+verts. Conformité 248 s → 85 s sur Linux, 696 s → 412 s sur Windows.
 **Révisé le :** 2026-09-19 — run #56 sur `e2dbdfb` : les deux runners verts, `1068 + 275` et `78`.
 `C12` attesté ; les 141 tests de parité le sont tous. Suite parallélisée : 261 s → 76 s.
 **Révisé le :** 2026-09-19 — `C12` promu `DONE` : le playbook. Les deux le tiennent hors de la
@@ -48,11 +50,13 @@ entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
 **Suite :** `1068 passed, 275 subtests passed` côté Core et `78 passed` côté interface, **attestés
-sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #56 sur `e2dbdfb`, chiffres identiques
+sur Linux x64 et Windows x64** au run `desktop-packaging.yml` #57 sur `29e49cc`, chiffres identiques
 des deux côtés et zéro échec. L’attestation couvre l’intégralité des **141 tests de parité**
 `C01`–`C06` et `C09`–`C16`. Aucune dette Windows ouverte.
-**Durée :** la suite tourne en **76 s** sur quatre cœurs (`-n auto --dist loadfile`) contre 261 s en
-série — mesuré, décomptes identiques, cinq passages successifs stables.
+**Durée :** en local, **76 s** sur quatre cœurs (`-n auto --dist loadfile`) contre 261 s en série —
+décomptes identiques, cinq passages stables. En CI au run #57 : **85 s** sur Linux contre 248 s, et
+**412 s** sur Windows contre 696 s. Le gain est donc de 2,9× d’un côté et de 1,69× de l’autre, et
+cet écart n’est pas expliqué par le nombre de cœurs, qui est le même — voir `LOG-0319`.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -69,11 +73,18 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ### A1 — Matrice native Windows x64 et Linux x64 — **FAIT**
 
-**Run #56 sur `e2dbdfb`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
-identiques — `1068 passed, 275 subtests passed` côté Core (248,19 s sur Linux, 696,16 s sur Windows)
-et `78 passed` côté interface, zéro échec. L’attestation couvre l’intégralité des **141 tests de
-parité** `C01`–`C06` et `C09`–`C16`. C’est le dernier run mesuré **en série** : la suite est
-parallélisée depuis.
+**Run #57 sur `29e49cc`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
+identiques — `1068 passed, 275 subtests passed` côté Core et `78 passed` côté interface, zéro échec.
+L’attestation couvre l’intégralité des **141 tests de parité** `C01`–`C06` et `C09`–`C16`.
+
+C’est le premier run avec la suite **parallélisée**, et le gain se lit sur l’étape de conformité :
+**85 s** sur Linux contre 248 s au #56, **412 s** sur Windows contre 696 s. Les jobs complets passent
+de ~13 min à ~8 min et de ~21 min à **15 min 14**. Les caches pip et cargo ajoutés ensuite visent le
+poste qui devient dominant — les bundles, 341 s côté Windows.
+
+**Historique du #56**, sur `e2dbdfb` : les deux runners verts, mêmes décomptes, mesurés **en série**
+— 248,19 s sur Linux et 696,16 s sur Windows. C’est le dernier run avant parallélisation, et c’est
+lui qui sert de référence à toute comparaison de durée.
 
 **Historique du #55**, sur `2806468` : les deux runners verts, `1060 passed, 256 subtests passed`
 (355,00 s sur Linux, 885,66 s sur Windows) et `78 passed`. Il couvrait les 133 tests de parité,
