@@ -4823,3 +4823,9 @@ un schéma d'adresse et sur des noms de membres ZIP, qui sont POSIX par contrat.
 C'est la deuxième fois que ce projet écrit un séparateur natif là où un format portable était
 attendu : au run #46 c'était le journal de migration, ici c'est un test. La leçon se répète, et
 elle est consignée aux deux endroits.
+
+**Attesté au run #55 sur `2806468` :** les deux runners verts, `1060 passed, 256 subtests passed`
+côté Core — 355,00 s sur Linux, 885,66 s sur Windows — et `78 passed` côté interface, chiffres
+identiques et zéro échec dans les deux journaux. `C06` est attesté sur les deux plateformes, et
+l’attestation couvre désormais l’intégralité des **133 tests de parité** `C01`–`C06`, `C09`–`C11`,
+`C13`, `C14` et `C16`.
