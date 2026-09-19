@@ -1,6 +1,8 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — run #64 sur `c79690b` : les deux runners verts, `1108 + 9 sautés + 381`
+et `78` des deux côtés. **Le registre complet est attesté sur Linux x64 et Windows x64.**
 **Révisé le :** 2026-09-19 — **`C08` promu `DONE` : le registre est complet, seize sur seize.**
 L’image de référence a été construite et un oracle y a réellement tourné — `winehash`, 135 s, sous
 Wine et MinGW. Voir `LOG-0325`.
@@ -69,28 +71,33 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1114 passed, 3 skipped, 392 subtests passed` en local sur Linux. L’attestation **sur les deux
-plateformes** porte sur `1105 passed, 1 skipped, 365 subtests passed` côté Core et `78 passed` côté
-interface, au run `desktop-packaging.yml` #62 sur `ca8a2f3` : chiffres identiques des deux côtés,
-zéro échec, aucune occurrence de `WinError`, et l’intégralité des **179 tests de parité**
-`C01`–`C16` couverte, `C07`/`C08` inclus pour leurs dimensions sans chaîne d’outils. Les 2 tests
-ajoutés depuis (`LOG-0323`) lui sont postérieurs et attendent le prochain run. **Aucune dette
-Windows ouverte.**
+**Suite :** `1114 passed, 3 skipped, 392 subtests passed` en local sur Linux. L’attestation **sur
+les deux plateformes** porte sur `1108 passed, 9 skipped, 381 subtests passed` côté Core et
+`78 passed` côté interface, au run `desktop-packaging.yml` #64 sur `c79690b` : chiffres identiques
+des deux côtés, zéro échec, aucune occurrence de `WinError`. Elle couvre **les seize couplages** et
+leurs **190 tests de parité**.
 
-**Le test sauté est attendu et il est le bon.** `test_i013_a_missing_toolchain_yields_skipped_...`
-interroge `required_tools` contre le vrai dépôt `Automatic-reverse-engineering-toolkit`, qui n’est
-pas monté sur les runners CI ; il porte un `skipTest` explicite pour ce cas et se saute proprement,
-emportant ses 9 sous-tests — d’où `365` en CI contre `374` en local. Un test qui ne peut pas
-mesurer ce qu’il annonce se saute en le disant, il ne se contente pas de passer.
-**Durée :** en local, **75 s** sur quatre cœurs (`-n auto --dist loadfile`) pour 1106 tests. En CI
-au run #62 : conformité **116 s** sur Linux et **643 s** sur Windows ; job complet **7 min 10** et
-**16 min 37**.
+**Ce que l’attestation ne couvre pas, et il faut le dire.** Neuf tests se sautent en CI, tous par
+une garde explicite : six interrogent le dépôt toolkit, absent des runners ; un lance un vrai
+oracle (`VERA_C07_RUN_REAL_ORACLE=1`) ; deux mesurent dans l’image de référence
+(`VERA_C08_RUN_REFERENCE_IMAGE=1`). Ces trois dernières mesures ont été **exécutées une fois, le
+19 septembre 2026, sur cette machine**, et les registres en portent la date, la durée et les
+empreintes. Elles ne sont pas attestées sur deux plateformes et ne doivent pas être présentées
+comme telles.
+
+**Le head de branche n’est pas celui de l’attestation.** `5991ce5` dégarde deux tests qui n’avaient
+pas besoin du dépôt toolkit ; il est postérieur au #64 et attend son propre run.
+
+**Durée :** en local, **78 s** sur quatre cœurs (`-n auto --dist loadfile`) pour 1114 tests. En CI
+au run #64 : conformité **127 s** sur Linux et **480 s** sur Windows ; jobs complets **7 min 20** et
+**13 min 02**.
 **Variance : Linux est stable, Windows ne l’est pas, et aucune explication n’est vérifiée.** Côté
-Linux, l’étape de conformité tient entre 107 s et 120 s sur cinq runs — les ~12 % relevés en
-`LOG-0319`. Côté Windows, la même suite à quelques tests près donne **409 s (#58), 420 s (#59),
-342 s (#61) puis 643 s (#62)** : un rapport de **1,9 entre les extrêmes**, sur un code de test
-quasi identique et un runner différent à chaque fois. Aucune conclusion de durée ne doit être tirée
-d’un seul run Windows ; ces quatre mesures sont consignées telles quelles, sans cause attribuée.
+Linux, l’étape de conformité tient entre 107 s et 127 s sur sept runs. Côté Windows, la même suite
+à quelques tests près donne **409 s (#58), 420 s (#59), 342 s (#61), 643 s (#62), 422 s (#63) puis
+480 s (#64)** : un rapport de **1,9 entre les extrêmes**, sur un code de test quasi identique et un
+runner différent à chaque fois. Aucune conclusion de durée ne doit être tirée d’un seul run
+Windows ; ces six mesures sont consignées telles quelles, sans cause attribuée — et le `LOG-0319`,
+qui parlait de 12 % de variance, décrivait Linux seul.
 
 Ce document énumère ce qui reste, dans l’ordre où je le ferais, avec pour chaque tâche son
 périmètre exact, son critère de sortie vérifiable et ce qui la bloque s’il y a lieu. Il ne
@@ -107,22 +114,24 @@ partiellement faite reste ouverte avec une note ; elle ne devient jamais « fait
 
 ### A1 — Matrice native Windows x64 et Linux x64 — **FAIT**
 
-**Run #62 sur `ca8a2f3`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes sont
-identiques — `1105 passed, 1 skipped, 365 subtests passed` côté Core et `78 passed` côté interface,
-zéro échec, aucune occurrence de `WinError`. L’attestation couvre l’intégralité des **179 tests de
-parité** `C01`–`C16`. **Aucune dette Windows ouverte.** Le seul test sauté l’est par conception :
-il interroge le dépôt toolkit, absent des runners, et le dit au lieu de passer en silence.
+**Run #64 sur `c79690b`, le 19 septembre 2026 : les deux runners sont verts**, et les décomptes
+sont identiques — `1108 passed, 9 skipped, 381 subtests passed` côté Core et `78 passed` côté
+interface, zéro échec, aucune occurrence de `WinError`. **L’attestation couvre les seize couplages
+du registre et leurs 190 tests de parité.** Conformité 127 s sur Linux et 480 s sur Windows ; jobs
+complets 7 min 20 et 13 min 02.
 
-Conformité 116 s sur Linux et 643 s sur Windows ; jobs complets **7 min 10** et **16 min 37**.
+**Les neuf skips sont tous gardés explicitement**, et leur périmètre doit être lu avant d’en
+conclure quoi que ce soit : six tests interrogent le dépôt `Automatic-reverse-engineering-toolkit`,
+absent des runners CI ; un lance un vrai oracle ARET ; deux mesurent dans l’image de référence. Ces
+trois dernières mesures ont été exécutées **une fois, sur une seule machine**, et ne sont donc pas
+attestées sur deux plateformes.
 
-**Historique du #61**, sur `2c6e6eb` : les deux runners verts, `1091 + 312` et `78`, 164 tests de
-parité couverts — le run qui a soldé la dette Windows de `C15`. Conformité 118 s et 342 s.
+**Historique du #63**, sur `848a284` : les deux runners verts, `1105 + 7 sautés + 365` et `78`.
+C’est lui qui a révélé que deux tests étaient sur-gardés — ils appelaient la garde de montage puis
+jetaient la valeur — et se sautaient en CI pour rien ; `5991ce5` les dégarde.
 
-**Le run #60, sur `6e48ce8`, avait échoué sur Windows**, et sa cause valait le détour : elle n’était
-ni dans VERA ni dans le test, mais dans la sonde de toolchain d’ARET, qui lance `<outil> --version`
-avec `timeout=5` et sans aucune garde — `clang --version` répond en plus de cinq secondes sur ce
-runner, et le hook entier tombe sans livrer son dossier de reprise. Voir `LOG-0321` ; l’échec est
-devenu la quatrième mesure de `C15`.
+**Historique du #62**, sur `ca8a2f3` : les deux runners verts, `1105 + 1 sauté + 365` et `78`,
+179 tests de parité couverts.
 
 **Historique du #59**, sur `834ee13` : les deux runners verts, `1068 + 275` et `78`. Premier run à
 **caches chauds**, et le gain tombe exactement là où il était visé : les bundles passent de 324 s à
