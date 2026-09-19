@@ -46,6 +46,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          # Met en cache les roues téléchargées, pas l'installation : le pip du runner repartait
+          # du réseau à chaque run — 33 s côté Windows, 11 s côté Linux au run #55.
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - uses: pnpm/action-setup@v4
         with:
           version: "10"
@@ -55,6 +59,17 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/desktop/pnpm-lock.yaml
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Le bundle Tauri recompilait toute son arborescence de caisses à chaque run : 295 s côté
+          # Linux et 380 s côté Windows au run #55, soit le premier poste une fois la suite
+          # parallélisée. La clef dérive de `Cargo.lock` et de la version de rustc, donc un
+          # changement de dépendance force la reconstruction ; l'empreinte de cargo tranche le
+          # reste. **Contrepartie assumée et dite :** ce workflow ne vérifie plus une construction
+          # entièrement à froid à chaque passage. Elle reste vérifiée dès que `Cargo.lock` bouge,
+          # et le cache est invalidé par la même occasion.
+          workspaces: apps/desktop/src-tauri
+          key: ${{ matrix.target }}
       - name: Install Linux bundle prerequisites
         if: runner.os == 'Linux'
         run: |
