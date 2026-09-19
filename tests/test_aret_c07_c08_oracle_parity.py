@@ -58,6 +58,7 @@ là où deux étaient attendus.
 """
 from __future__ import annotations
 
+from contextlib import closing
 from hashlib import sha256
 import os
 from pathlib import Path
@@ -553,7 +554,7 @@ class C07C08OracleParityTests(unittest.TestCase):
                 with self.assertRaises(Exception) as raised:
                     store.attach_proof(identifier, proof["id"], "c07-parity", promote=True)
                 self.assertIn("Promotion refusée", str(raised.exception))
-                with store._connection() as connection:
+                with closing(store._connection()) as connection:
                     status = connection.execute(
                         "SELECT status FROM knowledge WHERE id=?", (identifier,)
                     ).fetchone()["status"]
@@ -579,7 +580,7 @@ class C07C08OracleParityTests(unittest.TestCase):
             store = self._aret_store(root)
             try:
                 identifier = self._knowledge(store, "Connaissance sans aucune preuve")
-                with store._connection() as connection:
+                with closing(store._connection()) as connection:
                     triggers = {
                         row["name"]
                         for row in connection.execute(
@@ -639,7 +640,7 @@ class C07C08OracleParityTests(unittest.TestCase):
                 with self.assertRaises(Exception) as raised:
                     store.attach_proof(identifier, proof["id"], "c07-parity", promote=True)
                 self.assertIn("Promotion refusée", str(raised.exception))
-                with store._connection() as connection:
+                with closing(store._connection()) as connection:
                     status = connection.execute(
                         "SELECT status FROM knowledge WHERE id=?", (identifier,)
                     ).fetchone()["status"]
