@@ -4706,3 +4706,31 @@ prouve aucune.
 VERA mutées une à une et trois règles ARET, mordant vérifié — et le test d'empreinte est tombé avec
 les mutations de la référence, comme il doit. Suite complète : `1045 passed, 211 subtests passed`.
 **Onze couplages sur seize sont désormais clos.**
+
+## LOG-0316 — Run #52 : ARET laisse trois poignées ouvertes, et seul Windows le dit
+**Statut : Linux vert. Windows rouge à 7 échecs, tous dans `C14`. Corrigé ; à ré-attester.**
+
+Le run #52 sur `7c03ddf`, premier à porter les onze tests de `C14`, est tombé sur Windows :
+`7 failed, 1038 passed`. Les sept sont exactement les sept tests qui construisent un `MemoryStore`
+ARET, et tous échouent de la même façon — `PermissionError: [WinError 32]` sur
+`…\\aret_memory.sqlite` pendant l'effacement du répertoire temporaire. Linux passait.
+
+**La cause est dans ARET, et elle ne peut pas y être corrigée.** `_migrate` ouvre sa connexion avec
+`with self._connection() as conn` : ce `with` ouvre une **transaction**, il ne ferme pas la
+connexion. Les deux gestionnaires de contexte du dépôt — `_transaction` et `_read_connection` —
+ferment bien en `finally`, et `checkpoint_wal` aussi ; `_migrate` est le seul site brut, et il
+tourne à chaque construction de store. La connexion finit dans un cycle que seul un passage du
+ramasse-miettes défait.
+
+**Mesuré sur Linux avant toute correction**, et c'est ce qui a évité de conclure par ressemblance :
+après la seule construction d'un store, `/proc/self/fd` porte **trois** descripteurs ouverts — la
+base, son `-wal` et son `-shm`. Un `gc.collect()` les ramène à zéro. Linux efface sans broncher un
+fichier ouvert, donc la fuite était invisible ici ; Windows refuse, et c'est tout l'écart.
+
+*Corrigé :* `temporary_root()` appelle `gc.collect()` **avant** `cleanup()`, donc avant
+l'effacement et non après. La référence ARET n'est pas touchée — son empreinte est épinglée, et la
+réparer ferait mesurer autre chose qu'ARET. C'est la troisième fois de la série qu'une poignée
+SQLite non fermée fait tomber Windows : six fixtures au run #46, une expression sans nom au #50, et
+ici un défaut de la référence elle-même, qu'il faut contourner plutôt que réparer.
+
+Suite complète après correction sur Linux : `1045 passed, 211 subtests passed`.

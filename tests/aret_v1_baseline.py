@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+import gc
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -98,9 +99,22 @@ def temporary_root() -> Iterator[Path]:
     racine résolue avant la création de ses répertoires restait donc non canonique, et onze tests
     de parité tombaient sur le refus. Résoudre le répertoire lui-même, qui existe, tranche sur
     toutes les plateformes ; sous Linux c'est un non-événement.
+
+    **Le `gc.collect()` final n'est pas une précaution de style.** Mesuré au run #52 : la seule
+    construction d'un `MemoryStore` ARET laisse **trois** descripteurs ouverts — la base et ses
+    deux fichiers WAL. `_migrate` y ouvre une connexion avec `with self._connection() as conn`,
+    et ce `with` ouvre une transaction, il ne ferme pas ; la connexion finit dans un cycle que
+    seul un passage du ramasse-miettes défait. Linux efface sans broncher un fichier ouvert, donc
+    rien ne se voyait ; Windows refuse, et sept tests de `C14` tombaient en `WinError 32`. La
+    référence ARET ne peut pas être corrigée — son empreinte est épinglée — donc c'est ici que les
+    poignées doivent être libérées, avant l'effacement et non après.
     """
-    with tempfile.TemporaryDirectory() as directory:
-        yield Path(directory).resolve(strict=True)
+    directory = tempfile.TemporaryDirectory()
+    try:
+        yield Path(directory.name).resolve(strict=True)
+    finally:
+        gc.collect()
+        directory.cleanup()
 
 
 def source_root(root: Path, *, with_symbols: bool = False) -> Path:
