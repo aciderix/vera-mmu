@@ -25,7 +25,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import sqlite3
-import tempfile
 import unittest
 
 from vera_mmu.admission import AdmissionError, AdmissionService
@@ -41,7 +40,7 @@ from vera_mmu.proof_policies import ProofPolicyService
 from vera_mmu.proofs import ProofError, ProofService
 from vera_mmu.store import MemoryStore, StoreIdentityError
 
-from tests.aret_v1_baseline import BASELINE, SCHEMA_DIR
+from tests.aret_v1_baseline import BASELINE, SCHEMA_DIR, temporary_root
 
 
 #: Les trois triggers par lesquels ARET tient ses règles épistémiques.
@@ -79,9 +78,10 @@ def _accepts(connection: sqlite3.Connection, statement: str) -> bool:
 
 class AretC16EpistemicParityTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.directory = tempfile.TemporaryDirectory()
-        self.addCleanup(self.directory.cleanup)
-        runtime = Path(self.directory.name) / ".vera-mmu"
+        # `temporary_root` est un gestionnaire de contexte, pas l'objet `TemporaryDirectory` :
+        # `enter_context` le tient ouvert pour la durée du test et le referme au démontage.
+        self.root = self.enterContext(temporary_root())
+        runtime = self.root / ".vera-mmu"
         runtime.mkdir()
         self.profile_path = runtime / "project.yaml"
         self.profile_path.write_text(
@@ -160,7 +160,7 @@ class AretC16EpistemicParityTests(unittest.TestCase):
 
     def test_arets_append_only_protects_content_but_not_existence(self) -> None:
         """Mesuré en exécutant sur son propre DDL, pas déduit de la lecture des triggers."""
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             connection = _aret_database(Path(directory) / "aret.sqlite")
             try:
                 refused = {
@@ -300,7 +300,7 @@ class AretC16EpistemicParityTests(unittest.TestCase):
             KnowledgeService(store).register_type("fact", "Fact")
             database = store.workspace.runtime_dir / "memory.sqlite"
 
-        other = Path(self.directory.name) / "autre" / ".vera-mmu"
+        other = self.root / "autre" / ".vera-mmu"
         other.mkdir(parents=True)
         other_profile = other / "project.yaml"
         other_profile.write_text(

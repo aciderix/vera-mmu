@@ -28,7 +28,6 @@ from hashlib import sha256
 import os
 from pathlib import Path
 import sqlite3
-import tempfile
 import unittest
 
 from vera_mmu.doctor import diagnose_project
@@ -42,7 +41,7 @@ from vera_mmu.domain_packs.aret.runtime_resolution import (
 
 from vera_mmu.project_bootstrap import apply_project_initialization, preview_project_initialization
 
-from tests.aret_v1_baseline import build_source
+from tests.aret_v1_baseline import build_source, temporary_root
 
 
 def _named_project(root: Path, project_id: str) -> Path:
@@ -115,7 +114,7 @@ class AretC02RuntimeParityTests(unittest.TestCase):
         self.assertNotIn("os.environ", Path(resolve_aret_v1_runtime.__globals__["__file__"]).read_text(encoding="utf-8"))
 
     def test_setting_the_environment_variable_does_not_move_veras_resolution(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source = root / "aret-memory"
             runtime = source / ".aret-memory"
@@ -140,7 +139,7 @@ class AretC02RuntimeParityTests(unittest.TestCase):
 
     def test_the_override_is_honoured_only_when_supplied_explicitly(self) -> None:
         """« Override borné » : le mapping fourni décide, et lui seul."""
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source = root / "aret-memory"
             (source / ".aret-memory").mkdir(parents=True)
@@ -172,7 +171,7 @@ class AretC02RuntimeParityTests(unittest.TestCase):
         ]
         self.assertGreaterEqual(len(creates), 3, "la référence ARET ne crée plus ses répertoires")
 
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             source = Path(directory) / "aret-memory"
             source.mkdir()
             with self.assertRaises(AretRuntimeResolutionError):
@@ -182,7 +181,7 @@ class AretC02RuntimeParityTests(unittest.TestCase):
     # --- traversal et liens --------------------------------------------------
 
     def test_a_traversing_or_symlinked_root_is_refused(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source = root / "aret-memory"
             (source / ".aret-memory").mkdir(parents=True)
@@ -210,7 +209,7 @@ class AretC02RuntimeParityTests(unittest.TestCase):
         self.assertIn("if busy:", body, "la référence ARET ne contrôle plus busy")
         self.assertNotIn("log_frames ==", body, "la référence ARET contrôle désormais aussi le journal")
 
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             database = Path(directory) / "memory.sqlite"
             connection = sqlite3.connect(database)
             try:
@@ -243,7 +242,7 @@ class AretC02RuntimeParityTests(unittest.TestCase):
 
     def test_a_project_without_git_is_valid_and_the_doctor_says_so(self) -> None:
         """« No-Git » : l'absence de dépôt est une configuration, pas une panne."""
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             profile_path = _named_project(Path(directory) / "sans-git", "sans-git")
             with MemoryStore.open(load_profile(profile_path), profile_path):
                 pass
@@ -258,7 +257,7 @@ class AretC02RuntimeParityTests(unittest.TestCase):
 
     def test_two_distinct_projects_never_share_an_identity(self) -> None:
         """« Multi-repo » : deux projets déclarés différemment restent distincts."""
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             first = _named_project(root / "un", "projet-un")
             second = _named_project(root / "deux", "projet-deux")
@@ -284,7 +283,7 @@ class AretC02RuntimeParityTests(unittest.TestCase):
         portabilité un défaut, et un qui n'exigerait que la portabilité laisserait deux projets se
         confondre.
         """
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             here = _named_project(root / "ici", "projet-mobile")
             there = _named_project(root / "la-bas", "projet-mobile")

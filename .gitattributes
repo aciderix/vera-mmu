@@ -1,0 +1,8 @@
+# Les références ARET versionnées sont épinglées par leur SHA-256. Git ne doit
+# jamais réécrire leurs octets : une copie normalisée au checkout n'est plus la
+# copie dont le hash est épinglé, et c'est tout le fondement des tests de parité.
+#
+# Mesuré au run #50 : le runner Windows convertissait ces fichiers en CRLF, et
+# les quatre empreintes tombaient — `ebd735…` lu `9f1ccd…`, etc. Les hashes CRLF
+# reproduisent exactement ceux observés, la cause ne laisse aucun doute.
+tests/fixtures/aret_v1/** -text

@@ -4556,3 +4556,62 @@ des deux.
 **Preuve.** `tests/test_aret_c13_git_sync_parity.py`, quatorze tests ; sept règles VERA mutées une à
 une, mordant vérifié ; le défaut ARET muté aussi. Suite complète : `1034 passed, 196 subtests
 passed`. **Dix couplages sur seize sont désormais clos.**
+
+## LOG-0313 — Run #50 : trois causes Windows, dont une qui attaquait le fondement de la parité
+**Statut : Linux vert (`1016 passed`), Windows rouge à 18 échecs. Corrigé ; à ré-attester.**
+
+Le run #50 sur `700e011` est la première attestation deux plateformes depuis que la série de parité
+existe. Elle a trouvé trois défauts, tous propres à Windows, tous dans les tests plutôt que dans le
+moteur — et le premier mettait en cause la prémisse même du programme de parité.
+
+### 1. Git réécrivait les références épinglées (huit échecs)
+
+Les fixtures ARET sont versionnées comme des **copies octet pour octet**, et leur SHA-256 est
+épinglé : c'est ce qui rend la mesure opposable. Le runner Windows les sortait du dépôt converties
+en CRLF, parce qu'aucune règle ne l'en empêchait. Une copie normalisée au checkout n'est plus la
+copie dont le hash est épinglé — le fondement du raisonnement tombait, sans que rien ne le dise
+ailleurs que par un test rouge.
+
+La cause a été confirmée par le calcul avant d'être corrigée : le SHA-256 de chaque fichier converti
+en CRLF **reproduit exactement** l'empreinte observée sur le runner, sur les quatre fichiers.
+
+*Corrigé :* un `.gitattributes` marque `tests/fixtures/aret_v1/** -text`. Vérifié par un checkout
+Windows simulé — un clone sous `core.autocrlf=true` — dans les deux sens : avec la règle, les quatre
+empreintes sont justes et aucun CRLF n'apparaît ; sans elle, le fichier sort en CRLF avec le hash
+`1ae8243d…`, celui-là même que Windows a rapporté.
+
+### 2. Une racine temporaire non canonique (dix échecs)
+
+Les lecteurs ARET refusent une racine non canonique, et ils ont raison : un chemin qui a deux
+écritures est ambigu, et c'est exactement ce qu'un import ne doit pas avaler. Mais les tests leur
+remettaient le chemin brut de `TemporaryDirectory`, qui n'est canonique que par accident. Sur
+Windows il porte un nom court 8.3 — `C:\Users\RUNNER~1\…` — et `resolve()` ne l'étend que pour un
+chemin **existant**, faute de poignée à ouvrir. `source_root()` résolvait avant de créer : la racine
+restait non canonique, et le garde refusait.
+
+C'était un défaut latent des tests, pas du moteur, et Linux ne pouvait pas le montrer : `/tmp/xxx`
+y est canonique. La condition a néanmoins été reproduite ici avant correction, en remettant au
+lecteur une racine non canonique atteinte par un lien : même refus, même message, et la résolution
+le lève.
+
+*Corrigé :* `temporary_root()` dans `tests/aret_v1_baseline.py` rend un répertoire temporaire déjà
+canonique, et `source_root()` résout **après** la création. Les trente-et-un sites des cinq fichiers
+concernés passent par ce socle.
+
+### 3. Une connexion SQLite jamais fermée (un échec)
+
+`sqlite3.connect(database).execute(...)` en une expression : la connexion n'a pas de nom, donc
+personne ne la ferme, et Windows refuse ensuite d'effacer le répertoire temporaire — `WinError 32`.
+Même classe que les six fixtures corrigées au run #46, où le motif était `with sqlite3.connect(...)`
+qui valide mais ne ferme pas. *Corrigé :* `closing()`. Le reste des fichiers de parité a été
+balayé : c'était la seule occurrence.
+
+### Ce que ce run dit de la méthode
+
+Les trois causes sont des défauts de **test**, pas de moteur, et les trois étaient invisibles sur
+Linux. C'est l'argument pour la matrice deux plateformes, et c'est aussi la raison pour laquelle la
+dette Windows ne doit pas s'accumuler : cent-sept tests avaient été écrits entre le run #49 et
+celui-ci, et dix-huit d'entre eux étaient faux sans que rien ne le signale.
+
+Suite complète après correction sur Linux : `1034 passed, 196 subtests passed`. Le décompte Windows
+reste à établir au prochain run.

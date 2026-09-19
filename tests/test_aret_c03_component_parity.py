@@ -41,6 +41,7 @@ from tests.aret_v1_baseline import (
     build_source,
     bundle_round_trip,
     import_real_components,
+    temporary_root,
 )
 
 
@@ -110,9 +111,8 @@ class AretC03ComponentParityTests(unittest.TestCase):
     # --- la source réelle, lue par VERA ------------------------------------
 
     def test_the_real_components_are_read_back_exactly(self) -> None:
-        import tempfile
 
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             path = Path(directory) / "aret_memory.sqlite"
             connection = build_source(path)
             try:
@@ -129,11 +129,10 @@ class AretC03ComponentParityTests(unittest.TestCase):
 
     def test_component_identifiers_are_unique_and_the_real_schema_enforces_it(self) -> None:
         """Unicité : le registre l'exige, et c'est la clé primaire d'ARET qui la tient."""
-        import tempfile
 
         identifiers = [item["id"] for item in BASELINE["components"]]
         self.assertEqual(len(identifiers), len(set(identifiers)))
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             path = Path(directory) / "aret_memory.sqlite"
             connection = build_source(path)
             try:
@@ -168,9 +167,8 @@ class AretC03ComponentParityTests(unittest.TestCase):
         lecteur de VERA parcourt une source bâtie par le DDL d'ARET et peuplée de ses vraies lignes,
         et doit rendre les dix-sept, dans l'ordre, sans en perdre ni en inventer.
         """
-        import tempfile
 
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = (Path(directory) / "aret-memory").resolve()
             path = root / ".aret-memory" / "aret_memory.sqlite"
             path.parent.mkdir(parents=True)
@@ -200,9 +198,8 @@ class AretC03ComponentParityTests(unittest.TestCase):
         n'avait donc jamais été pilotée bout en bout depuis une vraie page lue. Ici elle l'est :
         lecture, préparation, préflight, projection, contrôle de cible, autorisation, import.
         """
-        import tempfile
 
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             entities, result = import_real_components(Path(directory))
 
         self.assertEqual(result.imported_entity_count, 17)
@@ -218,9 +215,8 @@ class AretC03ComponentParityTests(unittest.TestCase):
         Une mémoire qui perdrait ses entités importées au passage d'un bundle rendrait l'import
         réversible par accident — et l'identité du projet le garantit, pas l'espoir.
         """
-        import tempfile
 
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             before, _ = import_real_components(root)
             after = bundle_round_trip(root)

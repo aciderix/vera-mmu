@@ -21,10 +21,10 @@ Comme en `C03` et `C04`, la source est bâtie en exécutant le DDL réel d'ARET.
 """
 from __future__ import annotations
 
+from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
-import tempfile
 import unittest
 
 from vera_mmu.front import FrontService
@@ -46,6 +46,7 @@ from tests.aret_v1_baseline import (
     import_real_components,
     insert_real_bricks,
     schema_inspection,
+    temporary_root,
     work_items,
 )
 
@@ -94,12 +95,16 @@ class AretC05BrickParityTests(unittest.TestCase):
         La différence n'est pas cosmétique : le `brick` réel naît de `001` **plus** un `ALTER TABLE`
         de la migration `005`, et SQLite stocke alors un texte que personne n'écrirait à la main.
         """
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             _, database, _ = _prepared(root)
-            stored = sqlite3.connect(database).execute(
-                "SELECT sql FROM sqlite_master WHERE name='brick'"
-            ).fetchone()[0]
+            # La connexion se ferme : `sqlite3.connect(...).execute(...)` en laisse une ouverte, et
+            # Windows refuse alors d'effacer le répertoire temporaire — `WinError 32` au run #50.
+            # Même classe que les six fixtures corrigées au run #46.
+            with closing(sqlite3.connect(database)) as connection:
+                stored = connection.execute(
+                    "SELECT sql FROM sqlite_master WHERE name='brick'"
+                ).fetchone()[0]
             conformance = inspect_aret_v1_brick_schema(inspection=schema_inspection(database))
 
         self.assertIn(", milestone TEXT, target_platform TEXT", stored, "l’ALTER n’a pas été appliqué")
@@ -120,7 +125,7 @@ class AretC05BrickParityTests(unittest.TestCase):
 
     def test_the_aret_state_of_every_brick_survives_the_import_without_loss(self) -> None:
         """Premier claim : la sémantique legacy est conservée, pas interprétée."""
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source, database, profile_path = _prepared(root)
             with MemoryStore.open(load_profile(profile_path), profile_path) as store:
@@ -148,7 +153,7 @@ class AretC05BrickParityTests(unittest.TestCase):
 
     def test_veras_own_lifecycle_runs_on_an_imported_brick(self) -> None:
         """Second claim : l'item importé entre bien dans le cycle de vie événementiel du Core."""
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source, database, profile_path = _prepared(root)
             identifier = f"aret-brick--{BASELINE['front_state']['brick']}"
@@ -177,7 +182,7 @@ class AretC05BrickParityTests(unittest.TestCase):
         active = [row["id"] for row in BASELINE["brick_rows"] if row["state"] == "ACTIVE"]
         self.assertEqual(active, [BASELINE["front_state"]["brick"]])
 
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source, database, profile_path = _prepared(root)
             identifier = f"aret-brick--{BASELINE['front_state']['brick']}"
@@ -222,7 +227,7 @@ class AretC05BrickParityTests(unittest.TestCase):
         self.assertEqual(len(unlinked), 5)
         self.assertEqual({row["component_id"] for row in linked} - declared, set())
 
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source, database, profile_path = _prepared(root)
             with MemoryStore.open(load_profile(profile_path), profile_path) as store:
@@ -235,7 +240,7 @@ class AretC05BrickParityTests(unittest.TestCase):
         self.assertEqual(sum(1 for value in absent if value is None), 5, "l’absence de lien s’est perdue")
 
     def test_the_thirteen_real_bricks_import_exactly(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source, database, profile_path = _prepared(root)
             with MemoryStore.open(load_profile(profile_path), profile_path) as store:
@@ -252,7 +257,7 @@ class AretC05BrickParityTests(unittest.TestCase):
         )
 
     def test_veras_reader_returns_the_thirteen_real_bricks(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source, database, _ = _prepared(root)
             inspection = schema_inspection(database)
@@ -274,7 +279,7 @@ class AretC05BrickParityTests(unittest.TestCase):
 
     def test_a_prerequisite_is_accepted_and_a_cycle_is_refused(self) -> None:
         """« Ajout de dépendance/cycle » : l'arête utile passe, la boucle et l'auto-arête non."""
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             source, database, profile_path = _prepared(root)
             with MemoryStore.open(load_profile(profile_path), profile_path) as store:

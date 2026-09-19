@@ -8,10 +8,13 @@ fixtures divergentes seraient pires qu'une.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from hashlib import sha256
 import json
 from pathlib import Path
 import sqlite3
+import tempfile
 
 from vera_mmu.bundles import BundleService, project_bundle_path, restore_bundle
 from vera_mmu.identity import load_profile
@@ -82,12 +85,33 @@ BUNDLE_ID = "aret-parity-bundle"
 PROJECT_ID = "aret-parity"
 
 
+@contextmanager
+def temporary_root() -> Iterator[Path]:
+    """Un répertoire temporaire dont le chemin est **canonique**, ce que les lecteurs exigent.
+
+    Les lecteurs ARET refusent une racine non canonique, et ils ont raison : un chemin qui a deux
+    écritures est ambigu, et c'est justement ce qu'un import ne doit pas avaler. Mais les tests
+    leur remettaient le chemin brut de `TemporaryDirectory`, qui n'est canonique que par accident.
+
+    Mesuré au run #50 : sur Windows ce chemin porte un nom court 8.3 — `C:\\Users\\RUNNER~1\\…` —
+    et `resolve()` ne l'étend que pour un chemin **existant**, faute de poignée à ouvrir. Une
+    racine résolue avant la création de ses répertoires restait donc non canonique, et onze tests
+    de parité tombaient sur le refus. Résoudre le répertoire lui-même, qui existe, tranche sur
+    toutes les plateformes ; sous Linux c'est un non-événement.
+    """
+    with tempfile.TemporaryDirectory() as directory:
+        yield Path(directory).resolve(strict=True)
+
+
 def source_root(root: Path, *, with_symbols: bool = False) -> Path:
     """Matérialiser une source ARET V1 complète sous une racine, prête pour le lecteur."""
-    source = (root / "aret-memory").resolve()
+    source = root / "aret-memory"
     database = source / ".aret-memory" / "aret_memory.sqlite"
     database.parent.mkdir(parents=True)
-    build_source(database, with_symbols=with_symbols).close()
+    # Résoudre **après** la création : voir `temporary_root`, un chemin inexistant ne se canonise
+    # pas sur Windows. La racine rendue ici doit franchir le garde du lecteur.
+    source = source.resolve(strict=True)
+    build_source(source / ".aret-memory" / "aret_memory.sqlite", with_symbols=with_symbols).close()
     return source
 
 

@@ -22,7 +22,6 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import sqlite3
-import tempfile
 import unittest
 
 from vera_mmu.domain_packs.aret.function_symbol_projection import (
@@ -51,6 +50,7 @@ from tests.aret_v1_baseline import (
     import_real_components,
     import_real_symbols,
     symbols as stored_symbols,
+    temporary_root,
 )
 
 
@@ -227,7 +227,7 @@ class AretC04FunctionSymbolParityTests(unittest.TestCase):
     # --- lecteur V1, import exact et relations vers entité -------------------
 
     def test_veras_reader_returns_the_nine_real_symbols_exactly(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = (Path(directory) / "aret-memory").resolve()
             path = root / ".aret-memory" / "aret_memory.sqlite"
             path.parent.mkdir(parents=True)
@@ -310,7 +310,7 @@ class AretC04FunctionSymbolParityTests(unittest.TestCase):
         importés d'abord : un symbole dont l'entité propriétaire n'existe pas n'est pas un import
         partiel, c'est un import faux.
         """
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             entities, _ = import_real_components(root)
             self.assertEqual(len(entities), 17)
@@ -352,7 +352,7 @@ class AretC04FunctionSymbolParityTests(unittest.TestCase):
         migration à moitié faite est pire qu'une migration refusée, parce qu'elle a l'air d'avoir
         réussi.
         """
-        with tempfile.TemporaryDirectory() as directory:
+        with temporary_root() as directory:
             root = Path(directory)
             import_real_components(root)
             source = root / "aret-memory"
