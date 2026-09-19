@@ -1,6 +1,9 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-19 — **`C08` promu `DONE` : le registre est complet, seize sur seize.**
+L’image de référence a été construite et un oracle y a réellement tourné — `winehash`, 135 s, sous
+Wine et MinGW. Voir `LOG-0325`.
 **Révisé le :** 2026-09-19 — **`C07` promu `DONE`** : ses six dimensions sont mesurées, jusqu’à
 faire tourner un vrai oracle qui rend `PASS` et promeut une connaissance en `PROVEN`. La gate est
 tenue à deux couches indépendantes. **Quinze couplages clos sur seize** ; seul `C08` reste ouvert,
@@ -66,7 +69,7 @@ pour 14 couplages sur 16.
 entièrement, il n’est plus hors périmètre.
 **Commit de référence :** branche `claude/youthful-fermat-b0h84l`
 **Méthode :** chaque ligne est vérifiée contre le code, jamais reprise d’un registre.
-**Suite :** `1111 passed, 1 skipped, 376 subtests passed` en local sur Linux. L’attestation **sur les deux
+**Suite :** `1114 passed, 3 skipped, 392 subtests passed` en local sur Linux. L’attestation **sur les deux
 plateformes** porte sur `1105 passed, 1 skipped, 365 subtests passed` côté Core et `78 passed` côté
 interface, au run `desktop-packaging.yml` #62 sur `ca8a2f3` : chiffres identiques des deux côtés,
 zéro échec, aucune occurrence de `WinError`, et l’intégralité des **179 tests de parité**
@@ -692,33 +695,14 @@ playbook et de barrière de reprise n’est pas une parité ARET.
 
 **Reste, et il ne reste qu’une chose :**
 
-1. **`C07` et `C08`** — la seule dimension restante est l’**exécution réelle** d’un oracle :
-   evidence hashée, promotion `PROVEN`, gate réelle, et exécutabilité mesurée dans l’image de
-   référence. Tout le reste de ces deux lignes est désormais mesuré, sans chaîne d’outils, par
-   `tests/test_aret_c07_c08_oracle_parity.py` — voir `LOG-0322`.
+**Il ne reste rien.** `C08` a été clos en construisant l’image de référence épinglée
+(`docker/ci-toolchain/Dockerfile`, 1,19 Go) et en y **exécutant** `winehash` — 135 s, compilation
+MinGW, exécution sous Wine, 295 lignes. Mesurer le seul préflight n’aurait pas suffi : `LOG-0323`
+venait d’établir qu’un `required_tools == []` peut mentir.
 
-   **L’état réel du conteneur, vérifié et non repris d’un registre.** Absents : `wine`,
-   `i686-w64-mingw32-gcc`, `i686-w64-mingw32-nm`, `winegcc`, `z3` ; `target/release/aret` n’est pas
-   construit. Présents, et c’est ce que le registre ne disait pas : **les neuf scripts d’oracle**
-   (`bench/*.sh`, `src/cpudiff.rs`, dans `Automatic-reverse-engineering-toolkit` et non dans
-   `ARET-MMU`), **l’image de référence** `docker/ci-toolchain/Dockerfile` épinglée à `ubuntu:24.04`,
-   **`docker`** lui-même, plus `cargo`, `rustc`, `gcc`, `clang` et `bash`. Mesuré sur le vrai dépôt
-   toolkit : `cpudiff` et `funcdiff` n’ont **aucune dépendance manquante** ici.
-
-   **`C07` est clos** : `libunicorn` a été installée, la `--features unpack` compilée, et `cpudiff`
-   a réellement tourné — `PASS` en 180 s, artefact hashé, preuve admissible, connaissance promue en
-   `PROVEN`. Voir `LOG-0324`.
-
-   **Il ne reste donc que `C08`, sur une seule de ses quatre dimensions** : « exécutabilité mesurée
-   dans une image de référence ». Les mesures ont eu lieu sur la machine hôte, pas dans l’image
-   `docker/ci-toolchain` épinglée à `ubuntu:24.04`. La fermer demande de construire cette image —
-   `docker` est présent ici — puis d’y rejouer les oracles, y compris ceux qui exigent Wine et
-   MinGW. C’est la dernière ligne du registre, et le choix de la tenter revient au propriétaire.
-
-**Tous les couplages de nature « données et comportement » sont clos** depuis `C15`. Le gabarit,
-posé par `C01` et étendu par `C13`, aura tenu jusqu’au bout : une référence ARET versionnée avec son
-empreinte, un corpus réel, une parité dirigée — et, quand la question porte sur un comportement, une
-référence qui **s’exécute** plutôt qu’elle ne se lit.
+**Les seize couplages du registre sont clos**, chacun par un test de parité **exécuté**. Ce que
+cela autorise à dire reste borné : une parité mesurée sur seize surfaces nommées, pas une parité
+ARET globale.
 
 *Critère de sortie inchangé :* chaque ligne `DONE` porte son test de parité **exécuté** et son
 artefact de comparaison daté. Aucune promotion par lecture de code.

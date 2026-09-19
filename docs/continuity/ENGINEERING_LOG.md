@@ -5315,3 +5315,58 @@ affirmation.
 l'exécutabilité mesurée **dans l'image de référence** `docker/ci-toolchain`, épinglée à
 `ubuntu:24.04`. Les mesures de ce lot ont eu lieu sur la machine hôte. `docker` est présent ; la
 tenter est le dernier geste du registre.
+
+## LOG-0325 — `C08` clos : le registre est complet, seize couplages sur seize
+
+**Statut : `C08` promu `DONE`. 5 tests, 25 sous-tests, 5 mutations mordantes.
+Suite `1114 + 3 sautés + 392`.**
+
+La dernière dimension ouverte du registre demandait « l'exécutabilité mesurée dans une image de
+référence ». `docker` était présent dans ce conteneur mais aucun daemon ne tournait ; il a été
+démarré, et `docker/ci-toolchain/Dockerfile` — versionné et épinglé sous
+`fixtures/aret_v1/config/`, `472f54aa…` — a été construit : **1,19 Go, quatre étapes, smoke check
+compris**.
+
+**Mesuré dans l'image.** La référence d'oracles épinglée y est chargée par le `python3` du
+conteneur — elle ne dépend que de la bibliothèque standard — et c'est le `required_tools` d'ARET
+lui-même qui répond : **les neuf oracles y ont `required_tools == []`**, contre sept sur neuf en
+manque sur l'hôte. Les onze outils sondés s'y résolvent tous, `libunicorn.so.2` comprise.
+
+**Et il a fallu aller plus loin que le préflight, pour une raison précise.** `LOG-0323` venait
+d'établir que `required_tools == []` peut mentir : `funcdiff` et `cpudiff` rendent `[]` sur une
+machine sans `libunicorn`, qu'ils ne déclarent pas. Clore `C08` sur le seul préflight aurait donc
+répété l'erreur que le lot précédent venait de documenter. Un oracle a donc été **réellement
+exécuté** dans l'image : `winehash`, qui compile un corpus au MinGW et le lance sous Wine — deux
+outils absents de l'hôte. **135 s, 295 lignes de sortie, artefact de 18 046 octets** dont
+l'empreinte annoncée égale la recalculée.
+
+**Son verdict est `UNKNOWN`, et c'est la règle voulue.** Ce que `C07` avait épinglé sur une chaîne
+fabriquée se vérifie ici sur une exécution réelle : la sortie de `winehash` est une mesure à
+comparer au runner Windows, jamais un gate de conformité. ARET refuse de la promouvoir en verdict,
+et cette retenue est exactement ce que `I004` demande.
+
+**Ce que l'image fait bien, et qui mérite d'être dit dans le même souffle que le défaut de
+préflight.** Elle se termine par un smoke check de **construction** — `gcc -m32`, MinGW,
+`pkg-config unicorn`, SDL2 i386, wine, z3, clang, Xvfb, plus les prérequis FreeType/fontconfig en
+i386. Une image incomplète échoue bruyamment à la construction au lieu de sauter des oracles en
+silence à l'exécution. C'est le contraire exact du défaut mesuré en `C07`, **dans le même dépôt** :
+la même équipe applique deux disciplines opposées selon l'endroit, et il fallait mesurer les deux
+plutôt que juger l'une par l'autre.
+
+Ses épinglages sont argumentés plutôt que subis : `ubuntu:24.04` parce que les constantes Wine
+mesurées en viennent et qu'une version plus récente les déplacerait en silence — « a REAL
+divergence must stay a finding, never an environment drift » ; `libgd3:i386` installé **en premier**
+parce que le résolveur apt refuse sinon wine entier ; les polices Liberation et DejaVu parce qu'une
+`ubuntu:24.04` nue n'en embarque aucune et que les fixtures de texte divergeraient alors pour une
+raison d'environnement.
+
+**Une mutation est revenue inerte, et c'est la sixième fois la même cause.** Retirer la sonde
+`wine --version` du smoke check ne faisait pas tomber le test : la bannière finale cite
+`$(wine --version)`, et ma recherche de sous-chaîne trouvait la bannière. Corrigé en analysant les
+**instructions** du smoke check plutôt que son texte. *Une propriété satisfaite par plus d'un chemin
+n'en prouve aucun* — cette phrase aura servi à chaque lot de la série.
+
+**Le registre est complet.** Seize couplages, seize tests de parité exécutés contre la vraie source
+ARET, son vrai DDL, sa vraie mémoire baseline, ses vraies fonctions, ses vrais hooks, ses vrais
+oracles et son image de référence. Ce que cela autorise à dire reste borné et doit le rester :
+c'est une parité **mesurée sur seize surfaces nommées**, pas une parité ARET globale.
