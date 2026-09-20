@@ -224,11 +224,18 @@ class CliBinaryIdentityTests(unittest.TestCase):
         pour *tout* chemin, y compris celui d'une CLI voisine qui n'existe pas — le test aurait
         alors mesuré le contraire de ce qu'il annonce. Elle cassait aussi des contrôles sans
         rapport, le doctor lisant `.gitignore` par la même méthode.
+
+        Le chemin est rendu **résolu**, et le runner Windows l'a exigé. `TemporaryDirectory` y
+        rend la forme courte héritée de MS-DOS — `C:\\Users\\RUNNER~1\\…` — tandis que la
+        résolution du produit rend la forme longue, `C:\\Users\\runneradmin\\…`. C'est le produit
+        qui a raison : un chemin inscrit dans `.mcp.json` doit être canonique, l'alias court
+        pouvant différer d'une machine à l'autre. Comparer à la forme non résolue ne mesurait
+        donc que la convention d'écriture du répertoire temporaire.
         """
         repertoire.mkdir(parents=True, exist_ok=True)
         for nom in noms:
             (repertoire / nom).write_bytes(b"\x7fELF")
-        return repertoire
+        return repertoire.resolve()
 
     def test_a_frozen_process_that_is_not_the_cli_is_refused(self) -> None:
         """Le défaut n°1 : le sidecar du bureau se prenait pour la CLI.
