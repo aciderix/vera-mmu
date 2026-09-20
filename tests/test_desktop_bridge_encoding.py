@@ -162,6 +162,13 @@ class DesktopBridgeEncodingTests(unittest.TestCase):
                     charge.get("id"), identifiant,
                     "l’identifiant accentué n’a pas survécu à l’aller-retour",
                 )
+                # Ce test emprunte délibérément un chemin de refus : `_REQUEST_ID` est un motif
+                # ASCII fermé, donc un identifiant accentué est rejeté — et c'est précisément ce
+                # qui le rend probant, puisque le bridge doit quand même le renvoyer intact. Le
+                # dire ici évite que le test reste vert pour une autre raison si la règle
+                # s'assouplissait un jour et que la requête se mettait à réussir.
+                self.assertIs(charge.get("ok"), False, charge)
+                self.assertEqual(charge.get("error", {}).get("code"), "ENVELOPE_INVALID", charge)
 
     def test_the_bridge_forces_the_encoding_itself_rather_than_trusting_its_caller(self) -> None:
         """L'encodage appartient au protocole, donc au bridge — pas à celui qui le lance.
