@@ -756,3 +756,52 @@ class SiblingLookupIsForPackagedBinariesOnlyTests(unittest.TestCase):
             claude_code_local._cli_binary(command_lookup=lambda nom: BINAIRE_REEL if nom == CLI_BINARY_NAME else None),
             BINAIRE_REEL,
         )
+
+
+class EphemeralIsJudgedOnSegmentsNotOnAStringTests(unittest.TestCase):
+    """Le même répertoire doit recevoir le même verdict, quelle que soit la forme du chemin.
+
+    **Mesuré sur le runner Windows.** `Path("/tmp/.mount_X/usr/bin/vmmu").resolve()` y rend
+    `D:\\tmp\\.mount_X\\usr\\bin\\vmmu` : la normalisation ancre le chemin sur le lecteur courant.
+    Le contrôle par préfixe de chaîne ne mordait plus, si bien que la voie principale refusait le
+    montage temporaire pendant que la recherche du voisin l'acceptait — deux réponses pour une
+    seule propriété, la classe de défaut que ce dépôt rencontre le plus souvent.
+    """
+
+    def test_the_mount_is_recognised_whatever_the_flavour_of_the_path(self) -> None:
+        from pathlib import PurePosixPath, PureWindowsPath
+
+        from vera_mmu.claude_code_local import _is_ephemeral
+
+        for chemin in (
+            PurePosixPath("/tmp/.mount_VERA-abc/usr/bin/vmmu"),
+            PurePosixPath("/private/tmp/.mount_VERA-abc/usr/bin/vmmu"),
+            # La forme que produit `resolve()` sous Windows, et qui défaisait le préfixe.
+            PureWindowsPath(r"D:\tmp\.mount_VERA-abc\usr\bin\vmmu"),
+            PureWindowsPath(r"C:\Users\x\AppData\Local\Temp\.mount_VERA-abc\vmmu"),
+        ):
+            with self.subTest(chemin=str(chemin)):
+                self.assertTrue(_is_ephemeral(chemin), f"{chemin} devrait être jugé éphémère")
+
+    def test_a_durable_path_is_not_mistaken_for_a_mount(self) -> None:
+        from pathlib import PurePosixPath, PureWindowsPath
+
+        from vera_mmu.claude_code_local import _is_ephemeral
+
+        for chemin in (
+            PurePosixPath("/usr/bin/vmmu"),
+            PurePosixPath("/opt/vera/.mount_pas_sous_tmp/vmmu"),
+            PureWindowsPath(r"C:\Program Files\VERA-MMU\vmmu.exe"),
+        ):
+            with self.subTest(chemin=str(chemin)):
+                self.assertFalse(_is_ephemeral(chemin), f"{chemin} est durable")
+
+    def test_nothing_beside_an_ephemeral_process_is_offered_as_durable(self) -> None:
+        """L'invariant qui manquait : le voisin d'un montage temporaire disparaît avec lui."""
+        from vera_mmu import claude_code_local
+
+        with mock.patch.object(claude_code_local.sys, "frozen", True, create=True), \
+             mock.patch.object(claude_code_local.sys, "executable", "/tmp/.mount_VERA-abc/usr/bin/vmmu-desktop-bridge"), \
+             mock.patch("vera_mmu.claude_code_local.Path.is_file", lambda self: True):
+            self.assertIsNone(claude_code_local._sibling_cli())
+            self.assertIsNone(claude_code_local._cli_binary(command_lookup=_absent))

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePath
 import shutil
 import sys
 from tempfile import NamedTemporaryFile
@@ -202,6 +202,11 @@ def _sibling_cli() -> str | None:
     """
     if not getattr(sys, "frozen", False):
         return None
+    # Aucune garde ici sur le caractère éphémère du **processus** : c'est le chemin qu'on
+    # s'apprête à inscrire qui doit être durable, et `_is_ephemeral` le juge plus bas sur le
+    # candidat lui-même. La mutation qui retirait une telle garde est revenue inerte, et
+    # l'examen a confirmé qu'elle était non seulement redondante mais fausse : si le répertoire
+    # du binaire monté pointe, par lien, hors du montage, le voisin résolu est bien durable.
     try:
         voisin = Path(sys.executable).resolve().parent / CLI_BINARY_NAME
     except OSError:  # pragma: no cover - chemin d'exécutable illisible
@@ -212,23 +217,36 @@ def _sibling_cli() -> str | None:
     return None
 
 
-#: Préfixes de points de montage qui ne survivent pas au processus qui les a créés. AppImage monte
-#: son squashfs sous `/tmp/.mount_<nom><aléa>` et le démonte à la sortie ; le nom change à chaque
-#: lancement, donc même l'écrire correctement ne le rendrait pas retrouvable.
-_EPHEMERAL_MARKERS = ("/tmp/.mount_", "/private/tmp/.mount_")
+#: Préfixe des points de montage qu'AppImage crée sous un répertoire temporaire et démonte à la
+#: sortie : `.mount_<nom><aléa>`, dont le suffixe change à chaque lancement.
+_EPHEMERAL_SEGMENT = ".mount_"
+
+#: Les noms de répertoire temporaire sous lesquels ce montage apparaît, quelle que soit la casse.
+_TEMPORARY_DIRECTORIES = frozenset({"tmp", "temp"})
 
 
-def _is_ephemeral(candidate: Path) -> bool:
+def _is_ephemeral(candidate: PurePath) -> bool:
     """Le chemin disparaîtra-t-il avec le processus courant ?
 
     Écrire dans `.mcp.json` un chemin qui ne survivra pas à la fermeture de l'application, c'est
     livrer une configuration qui fonctionne exactement tant que personne ne la relit.
+
+    **Le contrôle porte sur les segments, et le runner Windows a montré pourquoi.** La version
+    précédente comparait un préfixe de chaîne — `/tmp/.mount_`. Or `Path("/tmp/.mount_X").resolve()`
+    y rend `D:\\tmp\\.mount_X` : la normalisation ancre le chemin sur le lecteur courant, et le
+    préfixe ne mord plus. Le même répertoire était alors jugé éphémère par une voie et durable par
+    l'autre — *une propriété qui reçoit deux réponses selon le chemin emprunté n'en a aucune*, et
+    c'est la classe de défaut que ce dépôt rencontre le plus souvent.
     """
-    texte = candidate.as_posix()
-    if any(texte.startswith(prefixe) for prefixe in _EPHEMERAL_MARKERS):
-        return True
+    parties = candidate.parts
+    for precedent, segment in zip(parties, parties[1:]):
+        if segment.startswith(_EPHEMERAL_SEGMENT) and precedent.lower() in _TEMPORARY_DIRECTORIES:
+            return True
     racine = os.environ.get("APPDIR", "").strip()
-    return bool(racine) and (texte == racine or texte.startswith(racine.rstrip("/") + "/"))
+    if not racine:
+        return False
+    texte = candidate.as_posix()
+    return texte == racine or texte.startswith(racine.rstrip("/") + "/")
 
 
 def program_is_launchable(program: str, *, command_lookup: Callable[[str], str | None] | None = None) -> bool:
