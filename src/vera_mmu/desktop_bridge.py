@@ -697,8 +697,33 @@ def _json(value: Mapping[str, object]) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def _force_utf8_stdio() -> None:
+    """Fixe l'encodage des deux bouts du tube à UTF-8, quelle que soit la machine.
+
+    **Le défaut mesuré.** Le protocole est du JSON lu côté Rust par `BufReader::read_line`, qui
+    exige de l'UTF-8 valide. Python, lui, encode sa sortie selon la locale : `utf-8` sur Linux et
+    macOS, mais la page de code de la console sur Windows — `cp1252` sur une installation
+    occidentale. Les messages de VERA étant en français, la première réponse contenant un accent
+    sortait en octets non-UTF-8 ; `read_line` rendait alors une erreur d'E/S, et l'appelant
+    affichait « Lecture bridge impossible. » — un bridge muet, alors qu'il avait parfaitement
+    répondu.
+
+    Vérifié plutôt que déduit : le même bridge interrogé sous `PYTHONIOENCODING=cp1252` rend
+    1411 octets dont le 244e est une continuation invalide, contre 1420 octets valides sans elle.
+
+    **Ici et pas dans l'appelant.** Poser `PYTHONIOENCODING` côté Rust ne couvrirait que le
+    lancement en mode développement ; le sidecar figé par PyInstaller est lancé autrement, et
+    aurait gardé le défaut. L'encodage est une propriété du protocole, donc du bridge.
+    """
+    for stream in (sys.stdin, sys.stdout):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
+
 def desktop_bridge_main(argv: Sequence[str] | None = None) -> int:
     """Run the isolated desktop sidecar over stdio; never listen on a socket."""
+    _force_utf8_stdio()
     parser = argparse.ArgumentParser(description="Bridge stdio borné pour application desktop VERA.")
     parser.add_argument("--project-root", type=Path, required=True)
     parser.add_argument("--nonce", required=True)
