@@ -182,15 +182,23 @@ jobs:
       - name: Publier la release
         env:
           GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ inputs.prerelease }}
         run: |
+          # Comparaison explicite plutôt que la véracité de l'expression : dans les expressions
+          # GitHub, **toute chaîne non vide est vraie**. Si cette entrée arrivait un jour comme la
+          # chaîne "false" — via l'API, un workflow appelant, ou un changement de typage —
+          # `inputs.prerelease && …` la tiendrait pour vraie et publierait une version finale en
+          # pre-release. Le test l'aurait été ici, en silence, une fois sur cent.
+          drapeau=""
+          if [ "$PRERELEASE" = "true" ]; then drapeau="--prerelease"; fi
           notes=docs/release-notes/${{ inputs.tag }}.md
           if [ -f "$notes" ]; then
             gh release create "${{ inputs.tag }}" --title "VERA-MMU ${{ inputs.tag }}" \
-              --notes-file "$notes" ${{ inputs.prerelease && '--prerelease' || '' }} livrables/*
+              --notes-file "$notes" $drapeau livrables/*
           else
             echo "Pas de notes rédigées sous $notes : GitHub les génère depuis les commits."
             gh release create "${{ inputs.tag }}" --title "VERA-MMU ${{ inputs.tag }}" \
-              --generate-notes ${{ inputs.prerelease && '--prerelease' || '' }} livrables/*
+              --generate-notes $drapeau livrables/*
           fi
           gh release view "${{ inputs.tag }}" --json tagName,isPrerelease,assets \
             --jq '"tag: \(.tagName) | prerelease: \(.isPrerelease) | \(.assets | length) fichiers"'

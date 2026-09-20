@@ -83,6 +83,45 @@ class ReleaseTagTests(unittest.TestCase):
             self.assertIn("v0.1.0-rc.5", message)
             self.assertIn("v0.1.0-rc.4", message)
 
+    def test_the_release_workflow_never_trusts_expression_truthiness_for_the_flag(self) -> None:
+        """Dans les expressions GitHub, **toute chaîne non vide est vraie**.
+
+        `${{ inputs.prerelease && '--prerelease' || '' }}` publierait donc une version finale en
+        pre-release le jour où cette entrée arriverait comme la chaîne `"false"` — via l'API, un
+        workflow appelant, ou un changement de typage. L'erreur serait silencieuse et ne se
+        verrait qu'une fois sur cent, au pire moment.
+
+        Le drapeau est donc calculé par une comparaison explicite dans le shell. Ce test épingle
+        la règle plutôt que l'instance, pour qu'elle ne revienne pas sous une autre forme.
+        """
+        workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        # La **syntaxe d'expression**, pas les mots : la première version de ce test cherchait
+        # `inputs.prerelease &&` et trouvait le commentaire qui explique pourquoi c'est proscrit.
+        # Même défaut que celui mesuré sur le smoke check du Dockerfile ARET — chercher dans le
+        # texte plutôt que dans ce qui s'exécute.
+        self.assertNotIn("${{ inputs.prerelease &&", workflow)
+        self.assertIn('if [ "$PRERELEASE" = "true" ]', workflow)
+
+    def test_the_release_workflow_guards_before_it_writes(self) -> None:
+        """Les trois refus doivent précéder toute écriture, sinon ils ne refusent rien.
+
+        Vérifier après avoir tagué laisserait la référence publiée — et un tag ne se retire pas
+        proprement une fois que des clones l'ont récupéré.
+        """
+        workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        garde = workflow.index("jobs:\n  guard:")
+        publication = workflow.index("  publish:")
+        self.assertLess(garde, publication, "le job de garde doit précéder la publication")
+        # Et la publication doit en dépendre, sinon l'ordre du fichier ne prouve rien.
+        self.assertIn("needs: guard", workflow)
+        self.assertIn("needs: package", workflow)
+        # La dérivation du nom passe par le module testé, pas par une expression du workflow.
+        self.assertIn("scripts/release_tag.py --check", workflow)
+
     def test_the_command_line_reports_a_refusal_as_a_failure(self) -> None:
         """Le workflow s'arrête sur le code de sortie : il doit être non nul quand le tag ment."""
         from scripts.release_tag import main
