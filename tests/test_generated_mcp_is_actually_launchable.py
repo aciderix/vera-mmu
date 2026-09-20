@@ -713,3 +713,39 @@ class StalenessNamesItsCauseTests(unittest.TestCase):
         from vera_mmu.claude_code_local import _describe_drift
 
         self.assertIn("plus lisible", _describe_drift("pas du json", None))  # type: ignore[arg-type]
+
+
+class SiblingLookupIsForPackagedBinariesOnlyTests(unittest.TestCase):
+    """« À côté de moi » ne veut dire « livré avec moi » que pour un exécutable empaqueté.
+
+    Mesuré sur le runner CI, où `pip` pose `vmmu` dans le même répertoire que l'interpréteur :
+    la recherche du voisin court-circuitait le `PATH`, donc l'injection par laquelle les tests
+    simulent une machine sans CLI, et seize tests sont tombés d'un coup. En local, le lien
+    `/usr/local/bin/python3` se résout vers `/usr/bin`, où `pip` n'avait rien posé — la suite
+    passait par accident de disposition.
+    """
+
+    def test_a_plain_interpreter_never_claims_its_neighbour(self) -> None:
+        from vera_mmu import claude_code_local
+
+        with TemporaryDirectory() as repertoire:
+            faux = Path(repertoire) / "bin"
+            faux.mkdir()
+            (faux / "python3").write_bytes(b"#!/bin/sh\n")
+            (faux / CLI_BINARY_NAME).write_bytes(b"\x7fELF")
+            environnement = {c: v for c, v in os.environ.items() if c != CLI_MARKER_VARIABLE}
+            with mock.patch.object(claude_code_local.sys, "executable", str(faux / "python3")), \
+                 mock.patch.dict(os.environ, environnement, clear=True):
+                # Non gelé : le voisin ne prouve rien, et le `PATH` — substituable — décide seul.
+                self.assertFalse(getattr(claude_code_local.sys, "frozen", False))
+                self.assertIsNone(claude_code_local._sibling_cli())
+                self.assertIsNone(claude_code_local._cli_binary(command_lookup=_absent))
+
+    def test_the_path_lookup_still_decides_for_a_plain_interpreter(self) -> None:
+        """Le `PATH` reste la voie d'un `pip install`, et il passe par le point d'injection."""
+        from vera_mmu import claude_code_local
+
+        self.assertEqual(
+            claude_code_local._cli_binary(command_lookup=lambda nom: BINAIRE_REEL if nom == CLI_BINARY_NAME else None),
+            BINAIRE_REEL,
+        )

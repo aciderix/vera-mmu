@@ -179,7 +179,7 @@ def _cli_binary(*, command_lookup: Callable[[str], str | None] | None = None) ->
 
 
 def _sibling_cli() -> str | None:
-    """Cherche la CLI **livrée à côté** du processus courant.
+    """Cherche la CLI **livrée à côté** du processus courant, et seulement si elle l'est.
 
     Le paquet de bureau embarque désormais `vmmu` aux côtés du sidecar. Sur une installation
     `.deb`, les deux atterrissent dans `/usr/bin`, donc le `PATH` les trouve de toute façon ;
@@ -188,7 +188,20 @@ def _sibling_cli() -> str | None:
 
     Préférée au `PATH` : entre la CLI livrée avec cette application et une autre installée par
     ailleurs, celle qui vient du même paquet porte la même version, donc le même plan compilé.
+
+    **Réservée aux binaires gelés, et une mesure l'a imposé.** « À côté de moi » ne signifie
+    « livré avec moi » que pour un exécutable empaqueté. Pour un interpréteur, le répertoire
+    voisin est simplement celui où `pip` a posé ses scripts — et sur le runner CI, `vmmu` s'y
+    trouve précisément. La recherche court-circuitait alors le `PATH`, donc l'injection par
+    laquelle les tests simulent une machine sans CLI : seize d'entre eux sont tombés.
+
+    En local, `/usr/local/bin/python3` se résout vers `/usr/bin`, où `pip` n'avait rien posé ;
+    la suite passait donc, par accident de disposition. C'est la quatrième fois de cette série
+    qu'un environnement local plus permissif que celui de la CI laisse passer un défaut, et la
+    résolution du lien symbolique est ce qui l'a masqué.
     """
+    if not getattr(sys, "frozen", False):
+        return None
     try:
         voisin = Path(sys.executable).resolve().parent / CLI_BINARY_NAME
     except OSError:  # pragma: no cover - chemin d'exécutable illisible
