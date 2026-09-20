@@ -104,6 +104,27 @@ class ReleaseTagTests(unittest.TestCase):
         self.assertNotIn("${{ inputs.prerelease &&", workflow)
         self.assertIn('if [ "$PRERELEASE" = "true" ]', workflow)
 
+    def test_the_tag_is_created_through_the_api_not_by_pushing(self) -> None:
+        """`git push` d'un tag est refusé quand le commit touche un fichier de workflow.
+
+        Mesuré : « refusing to allow a GitHub App to create or update workflow
+        `.github/workflows/release.yml` without `workflows` permission ». Cette permission ne peut
+        pas être accordée à `GITHUB_TOKEN` — le workflow s'est donc fait refuser par sa propre
+        introduction, et le referait à chaque modification de lui-même.
+
+        L'API ne crée qu'une référence vers un objet déjà présent : rien n'est introduit, la
+        restriction ne s'applique pas. Deux appels pour garder le tag **annoté**, comme la lignée
+        rc.1 à rc.4 — un tag léger romprait la convention.
+        """
+        workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("git push origin \"${{ inputs.tag }}\"", workflow)
+        self.assertIn("git/tags", workflow)
+        self.assertIn("git/refs", workflow)
+        # L'objet tag porte un message : c'est ce qui en fait un tag annoté.
+        self.assertIn('-f message=', workflow)
+
     def test_the_release_workflow_guards_before_it_writes(self) -> None:
         """Les trois refus doivent précéder toute écriture, sinon ils ne refusent rien.
 

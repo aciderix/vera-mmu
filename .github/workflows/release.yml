@@ -171,14 +171,27 @@ jobs:
                   sys.exit(f"::error::{chemin.name} désigne {m['source_revision']}, pas {attendu}.")
           print("Les deux manifestes désignent le commit publié.")
           PY
+      # **Par l'API, pas par `git push`.** Mesuré ici même : pousser un tag dont le commit touche
+      # un fichier de `.github/workflows/` est refusé — « refusing to allow a GitHub App to
+      # create or update workflow … without `workflows` permission » — et cette permission ne
+      # peut pas être accordée à `GITHUB_TOKEN`. Le workflow s'est fait refuser par sa propre
+      # introduction. L'API ne crée qu'une référence vers un objet déjà présent dans le dépôt :
+      # aucun contenu de workflow n'est introduit, et la restriction ne s'applique pas.
+      #
+      # Deux appels plutôt qu'un pour garder le tag **annoté**, comme rc.1 à rc.4 : l'objet tag
+      # porte le message, la référence le désigne. Un tag léger perdrait cette lignée.
       - name: Poser le tag annoté
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ inputs.tag }}" -m "VERA-MMU ${{ inputs.tag }}" "${{ github.sha }}"
-          git push origin "${{ inputs.tag }}"
+          objet=$(gh api "repos/${{ github.repository }}/git/tags" \
+            -f tag="${{ inputs.tag }}" \
+            -f message="VERA-MMU ${{ inputs.tag }}" \
+            -f object="${{ github.sha }}" \
+            -f type=commit --jq .sha)
+          echo "objet tag : $objet"
+          gh api "repos/${{ github.repository }}/git/refs" \
+            -f ref="refs/tags/${{ inputs.tag }}" -f sha="$objet" --jq .ref
       - name: Publier la release
         env:
           GH_TOKEN: ${{ github.token }}
