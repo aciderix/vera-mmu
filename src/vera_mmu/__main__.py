@@ -3,8 +3,10 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict
 import json
+import os as _os
 from pathlib import Path
 from typing import Sequence
+from .claude_code_local import CLI_MARKER_VARIABLE
 from .adapter_catalog import ADAPTER_CATALOG, adapter_spec, call_adapter, call_adapter_json
 from .bundles import BundleService, restore_bundle
 from .coverage_report import compile_coverage_report
@@ -182,6 +184,11 @@ def _project_result_payload(result: object) -> dict[str, object]:
 
 
 def main(argv:Sequence[str]|None=None)->int:
+    # La CLI se déclare ici, avant toute écriture de configuration. `sys.frozen` ne suffit pas à
+    # se reconnaître : le produit livre deux binaires PyInstaller, et le sidecar de bureau
+    # répondait vrai à cette question. Mesuré : `.mcp.json` recevait alors le chemin du sidecar,
+    # sous un point de montage AppImage éphémère, et aucun serveur MCP ne pouvait démarrer.
+    _os.environ.setdefault(CLI_MARKER_VARIABLE,"1")
     try:
         args=build_parser().parse_args(argv)
         if args.command=="init-project":

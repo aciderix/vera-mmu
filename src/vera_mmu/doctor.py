@@ -462,17 +462,99 @@ def _diagnose_hooks(profile: Mapping[str, Any] | None, workspace: Workspace | No
                 "Installer le paquet VERA (`pip install vera-mmu`) ou réinstaller l’adapter avec "
                 "la CLI autonome, puis relancer `vmmu install … --apply-project --confirm`.",
             )
-    return _pass("hooks", f"{len(enabled)} intégration(s) déclarée(s) et installée(s) project-local.")
+        ecart = _claude_local_drift(workspace.project_root)
+        if ecart is not None:
+            return _fail("hooks", ecart, "Relancer `vmmu install <profile> --adapter claude-code-local --apply-project --confirm`.")
+    verifiees = sorted(str(nom) for nom in enabled if str(nom) in _ADAPTER_MARKERS)
+    if len(verifiees) == len(enabled):
+        return _pass("hooks", f"{len(enabled)} intégration(s) déclarée(s) et installée(s) project-local.")
+    # Dire ce qui a été vérifié, et ce qui ne l’a pas été. Un contrôle qui tait sa portée se
+    # fait lire comme s’il avait tout couvert — c’est ainsi que le `.claude/` d’un autre outil
+    # passait pour une installation VERA.
+    return _pass(
+        "hooks",
+        f"{len(enabled)} intégration(s) déclarée(s) ; installation vérifiée pour "
+        + (", ".join(f"`{nom}`" for nom in verifiees) if verifiees else "aucune")
+        + ", non vérifiable pour les autres (marqueurs non catalogués).",
+    )
+
+
+def _claude_local_drift(project_root: Path) -> str | None:
+    """Le serveur déclaré dans `.mcp.json` est-il encore celui que l'installation a attesté ?
+
+    **Le défaut mesuré, et c'est le pire du lot.** Éditer `.vera-mmu/playbook.md` — ce que le
+    produit demande explicitement de faire — suffit à ce que le serveur MCP déclaré refuse de
+    démarrer : « État d'installation Claude local périmé ou altéré ». Pendant ce temps, `doctor`
+    rendait PASS sur ses vingt contrôles, `repair` répondait `NOTHING_TO_REPAIR`, et `conclude`
+    certifiait « Les 18 étapes sont franchies ». **Le verdict terminal du produit était vert
+    pendant que ce qu'il livre était mort.**
+
+    Ce contrôle ne démarre aucun serveur — `diagnose_project` s'interdit d'ouvrir la mémoire — mais
+    il compare ce que deux fichiers déclarent, ce qui suffit à voir l'écart le plus courant : un
+    `.mcp.json` qui ne désigne plus ce que l'état d'installation atteste, ou un programme devenu
+    introuvable depuis. Un contrôle qui ne peut pas tout voir le dit dans son libellé plutôt que
+    de laisser croire qu'il a tout vu.
+    """
+    etat = project_root / ".vera-mmu" / "generated" / "claude-code-local-install.json"
+    mcp = project_root / ".mcp.json"
+    if not etat.is_file():
+        return "Intégration `claude-code-local` installée sans état attesté sous `.vera-mmu/generated/`."
+    try:
+        atteste = json.loads(etat.read_text(encoding="utf-8"))["claudeCodeLocal"]["mcpServer"]
+        identifiant = str(atteste["id"])
+        attendu = {cle: valeur for cle, valeur in atteste.items() if cle != "id"}
+        declare = json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"]
+    except (KeyError, TypeError, ValueError, OSError):
+        return "État d’installation `claude-code-local` ou `.mcp.json` illisible : l’intégration n’est pas vérifiable."
+    if identifiant not in declare:
+        return f"`.mcp.json` ne déclare plus le serveur `{identifiant}` que l’installation atteste."
+    if declare[identifiant] != attendu:
+        return f"Le serveur `{identifiant}` déclaré dans `.mcp.json` diverge de l’état attesté : il refusera de démarrer."
+    programme = attendu.get("command")
+    if not isinstance(programme, str) or not programme:
+        return f"Le serveur `{identifiant}` ne déclare aucun programme exécutable."
+    # Résolu par l'adapter, pas ici : une seule source pour ce que le produit sait lancer. Le
+    # doctor ne sonde aucune chaîne d'outils tierce — il vérifie seulement que la commande que
+    # VERA a elle-même écrite est encore là.
+    from .claude_code_local import program_is_launchable
+
+    if not program_is_launchable(programme):
+        return f"Le programme `{programme}` déclaré par `{identifiant}` est introuvable : le serveur ne démarrera pas."
+    return None
+
+
+#: Ce que **chaque** adapter écrit project-local, et rien d'autre. La liste est fermée : un
+#: adapter absent n'est pas deviné, il est déclaré non vérifiable — voir `_integration_installed`.
+_ADAPTER_MARKERS: dict[str, tuple[str, ...]] = {
+    "claude-code-local": (".mcp.json", ".claude/settings.json"),
+    "generic-mcp": (".mcp.json",),
+}
 
 
 def _integration_installed(project_root: Path, adapter: str) -> bool:
-    """Observe a project-local integration marker without following symlinks."""
-    for marker in (Path(".mcp.json"), Path(".claude"), Path(".codex"), Path(".gemini"), Path(".antigravity")):
-        candidate = project_root / marker
-        if candidate.exists() and not candidate.is_symlink():
-            return True
-    del adapter
-    return False
+    """Observe the marker of **this** adapter, project-local, without following symlinks.
+
+    **Le défaut mesuré.** La version précédente rendait vrai dès qu'un seul de cinq répertoires
+    existait — `.mcp.json`, `.claude`, `.codex`, `.gemini`, `.antigravity` — sans jamais regarder
+    de quel adapter il s'agissait : le paramètre `adapter` était explicitement jeté par un
+    `del adapter`. Sur un dépôt réel possédant déjà un `.claude/` pour un tout autre outil, le
+    contrôle passait donc avant même que VERA n'ait rien écrit. C'est la classe de défaut que ce
+    dépôt rencontre le plus souvent : *une propriété satisfaite par plus d'un chemin n'en prouve
+    aucun*.
+
+    Le catalogue est volontairement restreint à ce qui a été **mesuré**. Deviner les marqueurs des
+    autres adapters referait la même faute à l'envers : un contrôle qui échoue pour de mauvaises
+    raisons ne vaut pas mieux qu'un contrôle qui passe pour de mauvaises raisons. Un adapter hors
+    catalogue est donc rendu à l'appelant comme non vérifiable, et le libellé du contrôle le dit.
+    """
+    marqueurs = _ADAPTER_MARKERS.get(adapter)
+    if marqueurs is None:
+        return True
+    for marqueur in marqueurs:
+        candidate = project_root / marqueur
+        if not candidate.is_file() or candidate.is_symlink():
+            return False
+    return True
 
 
 def render_doctor_report(report: DoctorReport) -> str:

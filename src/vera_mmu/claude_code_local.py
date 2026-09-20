@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import sys
 from tempfile import NamedTemporaryFile
@@ -40,10 +41,24 @@ HOOK_SUBCOMMAND = "claude-code-local-hook"
 MCP_SUBCOMMAND = "claude-code-local-mcp"
 
 
+#: Nom de la CLI autonome que les archives de release embarquent. Cherché sur le `PATH` quand le
+#: processus courant n'est pas lui-même cette CLI — c'est le cas de l'application de bureau, dont
+#: le sidecar est un tout autre binaire.
+CLI_BINARY_NAME = "vmmu"
+
+#: Variable que la CLI autonome pose avant de servir une sous-commande, pour se faire reconnaître
+#: par le code qui écrit la configuration. Un simple `sys.frozen` ne distingue pas deux binaires
+#: PyInstaller différents — et c'est exactement la confusion qui a produit une configuration morte.
+CLI_MARKER_VARIABLE = "VERA_MMU_CLI_BINARY"
+
+
 def resolve_entrypoint(
     entrypoint: str, subcommand: str, *, command_lookup: Callable[[str], str | None] | None = None
 ) -> str | None:
-    """Rend la commande qui lancera réellement cet entry point, ou `None` si aucune ne le peut.
+    """Rend la ligne de commande qui lancera cet entry point, ou `None` si aucune ne le peut.
+
+    Conservée pour les hooks, dont le `command` **est** une ligne de shell. Pour `.mcp.json`, où
+    `command` désigne un programme et `args` ses arguments, voir `resolve_launcher`.
 
     **Le défaut mesuré.** `install` écrivait `vmmu-claude-code-local-mcp` dans `.mcp.json` et
     `vmmu-claude-code-local-hook` dans les hooks. Ce sont des scripts console déclarés dans
@@ -62,30 +77,120 @@ def resolve_entrypoint(
     # Résolu à l'appel et non en valeur par défaut : un défaut par défaut capture `shutil.which`
     # au moment de la définition, donc aucun test ne peut le substituer. Le test qui exerce
     # `install` sur une machine sans script console l'a montré en ne voyant aucun refus.
+    lanceur = resolve_launcher(entrypoint, subcommand, command_lookup=command_lookup)
+    if lanceur is None:
+        return None
+    programme, arguments = lanceur
+    return " ".join(shlex.quote(element) for element in (programme, *arguments))
+
+
+def resolve_launcher(
+    entrypoint: str, subcommand: str, *, command_lookup: Callable[[str], str | None] | None = None
+) -> tuple[str, tuple[str, ...]] | None:
+    """Rend `(programme, arguments)` — jamais une ligne à découper par celui qui la lit.
+
+    **Le défaut mesuré.** La version précédente rendait la chaîne `"<binaire> <sous-commande>"`,
+    et `install` la posait telle quelle dans le champ `command` de `.mcp.json`. Or ce champ
+    désigne un **programme**, pas une ligne de commande : `args` porte les arguments. Un client
+    qui l'exécute sans passer par un shell — ce que fait un client MCP — demande donc au système
+    un fichier dont le nom contient une espace, et reçoit `ENOENT`. Mesuré sur la release :
+
+        [Errno 2] No such file or directory: '…/vmmu claude-code-local-mcp'
+
+    Rendre la paire plutôt que la chaîne supprime la question : chaque appelant compose ensuite
+    selon sa cible — `command`/`args` pour MCP, une ligne de shell correctement échappée pour les
+    hooks, dont le `command` est bien une ligne de shell.
+    """
+    # Résolu à l'appel et non en valeur par défaut : un défaut par défaut capture `shutil.which`
+    # au moment de la définition, donc aucun test ne peut le substituer. Le test qui exerce
+    # `install` sur une machine sans script console l'a montré en ne voyant aucun refus.
     lookup = command_lookup if command_lookup is not None else shutil.which
     if lookup(entrypoint):
-        return entrypoint
-    binary = _cli_binary()
+        return entrypoint, ()
+    binary = _cli_binary(command_lookup=lookup)
     if binary is not None:
-        return f"{_quote(binary)} {subcommand}"
+        return binary, (subcommand,)
     return None
 
 
-def _cli_binary() -> str | None:
-    """Rend le chemin de la CLI VERA courante quand elle est un exécutable autonome.
+def _cli_binary(*, command_lookup: Callable[[str], str | None] | None = None) -> str | None:
+    """Rend le chemin d'un binaire qui porte réellement les sous-commandes VERA, ou `None`.
 
-    Sous PyInstaller, `sys.executable` est le binaire lui-même ; hors gel, c'est l'interpréteur
-    Python, qui ne porte aucune sous-commande VERA — d'où la garde.
+    **Le défaut mesuré, et il était grave.** La version précédente rendait `sys.executable` dès
+    que `sys.frozen` était vrai. Or cette condition est vraie dans **tout** binaire PyInstaller,
+    et le produit en livre deux : la CLI `vmmu`, et le sidecar `vmmu-desktop-bridge` que
+    l'application de bureau lance. Quand l'installation partait de la fenêtre, `.mcp.json`
+    recevait donc :
+
+        "command": "/tmp/.mount_VERA-MjDbbJp/usr/bin/vmmu-desktop-bridge claude-code-local-mcp"
+
+    Deux fautes en une, chacune fatale. Le binaire désigné est le **bridge**, qui ne connaît pas
+    cette sous-commande et exige `--project-root` et `--nonce` : aucune voie de lancement ne pouvait
+    aboutir. Et le chemin est le point de montage de l'AppImage, qui disparaît à la fermeture de
+    l'application et change de nom à chaque lancement : même un binaire correct aurait été
+    introuvable ensuite. **Toute configuration MCP produite depuis la fenêtre était morte-née, et
+    définitivement.** Le paquet de bureau n'embarque d'ailleurs pas la CLI — seulement
+    `vera-mmu-desktop` et `vmmu-desktop-bridge` — donc aucune supposition ne pouvait la sauver.
+
+    L'ordre suivi n'accepte que ce qui est démontrable :
+
+    1. le processus courant, s'il s'est **déclaré** comme la CLI — un binaire gelé ne se reconnaît
+       pas à `sys.frozen`, qui ne distingue pas deux binaires différents, mais à la marque que
+       `vmmu` pose avant de servir une sous-commande ;
+    2. à défaut, un `vmmu` trouvé sur le `PATH` — c'est la voie de l'application de bureau quand
+       l'archive CLI est installée à côté d'elle ;
+    3. sinon `None`, qui fait refuser l'installation au lieu d'écrire une commande inerte.
+
+    Un chemin éphémère est écarté dans tous les cas : ce qu'on écrit dans `.mcp.json` doit encore
+    exister quand l'hôte le lira, c'est-à-dire après la fin du processus qui l'a écrit.
     """
-    if not getattr(sys, "frozen", False):
-        return None
-    candidate = Path(sys.executable)
-    return str(candidate) if candidate.is_file() else None
+    marque = os.environ.get(CLI_MARKER_VARIABLE, "").strip()
+    if marque and getattr(sys, "frozen", False):
+        candidat = Path(sys.executable)
+        if candidat.is_file() and not _is_ephemeral(candidat):
+            return str(candidat)
+    lookup = command_lookup if command_lookup is not None else shutil.which
+    trouve = lookup(CLI_BINARY_NAME)
+    if trouve:
+        chemin = Path(trouve)
+        if not _is_ephemeral(chemin):
+            return str(chemin)
+    return None
 
 
-def _quote(command: str) -> str:
-    """Entoure de guillemets un chemin qui en a besoin, sans en ajouter inutilement."""
-    return f'"{command}"' if any(caractere.isspace() for caractere in command) else command
+#: Préfixes de points de montage qui ne survivent pas au processus qui les a créés. AppImage monte
+#: son squashfs sous `/tmp/.mount_<nom><aléa>` et le démonte à la sortie ; le nom change à chaque
+#: lancement, donc même l'écrire correctement ne le rendrait pas retrouvable.
+_EPHEMERAL_MARKERS = ("/tmp/.mount_", "/private/tmp/.mount_")
+
+
+def _is_ephemeral(candidate: Path) -> bool:
+    """Le chemin disparaîtra-t-il avec le processus courant ?
+
+    Écrire dans `.mcp.json` un chemin qui ne survivra pas à la fermeture de l'application, c'est
+    livrer une configuration qui fonctionne exactement tant que personne ne la relit.
+    """
+    texte = candidate.as_posix()
+    if any(texte.startswith(prefixe) for prefixe in _EPHEMERAL_MARKERS):
+        return True
+    racine = os.environ.get("APPDIR", "").strip()
+    return bool(racine) and (texte == racine or texte.startswith(racine.rstrip("/") + "/"))
+
+
+def program_is_launchable(program: str, *, command_lookup: Callable[[str], str | None] | None = None) -> bool:
+    """Le programme nommé dans une configuration générée peut-il encore être lancé ?
+
+    Un chemin est vérifié comme fichier ; un nom nu est cherché sur le `PATH`. Les deux cas se
+    distinguent par la présence d'un séparateur, comme le fait l'exécution elle-même : `foo/bar`
+    n'est jamais cherché sur le `PATH`, `bar` l'est toujours.
+    """
+    if not program:
+        return False
+    separateurs = [os.sep] + ([os.altsep] if os.altsep else [])
+    if any(separateur in program for separateur in separateurs):
+        return Path(program).is_file()
+    lookup = command_lookup if command_lookup is not None else shutil.which
+    return lookup(program) is not None
 
 
 def entrypoint_status(*, command_lookup: Callable[[str], str | None] | None = None) -> dict[str, str | None]:
@@ -209,11 +314,16 @@ def compile_claude_code_local_plan(
     bindings = tuple((item.capability_id, item.adapter_id) for item in manifest.capabilities)
     server_id, generic_server = _single_server(integration)
     profile_argument = _profile_argument(generic_server)
+    # `command` désigne un programme et `args` ses arguments : la sous-commande appartient donc à
+    # `args`, jamais au nom du programme. La version précédente concaténait les deux dans
+    # `command`, et tout client MCP qui exécute sans shell y lisait un fichier inexistant.
+    lanceur = resolve_launcher(MCP_ENTRYPOINT, MCP_SUBCOMMAND)
+    programme, arguments_lanceur = lanceur if lanceur is not None else (MCP_ENTRYPOINT, ())
     local_server = {
-        "args": ["--profile", profile_argument],
-        # Résolue plutôt que supposée : voir `resolve_entrypoint`. Le nom logique reste préféré
-        # quand il existe, pour ne pas invalider les installations `pip` déjà en place.
-        "command": resolve_entrypoint(MCP_ENTRYPOINT, MCP_SUBCOMMAND) or MCP_ENTRYPOINT,
+        "args": [*arguments_lanceur, "--profile", profile_argument],
+        # Résolu plutôt que supposé : voir `resolve_launcher` et `_cli_binary`. Le nom logique
+        # reste préféré quand il existe, pour ne pas invalider les installations `pip` en place.
+        "command": programme,
         "env": {
             "VERA_CLAUDE_CODE_LOCAL": "1",
             "VERA_MCP_BUILD_HASH": manifest.mcp_build_hash,
@@ -338,17 +448,38 @@ def install_claude_code_local(
     merged_settings, settings_changed = _merge_hooks(settings, desired_hooks)
     merged_mcp, mcp_changed = _merge_local_server(mcp, desired_server, generic_server)
     existing_state = _read_optional_text(state_path)
-    if existing_state is not None and existing_state != plan.json_text:
+    # Un état présent mais illisible n'est pas le nôtre : refuser reste juste. Un état qui est
+    # bien le nôtre et qui a simplement vieilli doit au contraire être réécrit, sans quoi le
+    # serveur déclaré refuserait de démarrer — `_load_installed_plan` compare à l'octet près.
+    if existing_state is not None and existing_state != plan.json_text and not _is_our_state(existing_state, plan):
         raise ClaudeCodeLocalError("État d’installation lifecycle local divergent : refus sans écriture.")
-    if not settings_changed and not mcp_changed and existing_state == plan.json_text:
+    state_changed = existing_state != plan.json_text
+    if not settings_changed and not mcp_changed and not state_changed:
         return ClaudeCodeLocalInstallResult("UNCHANGED", settings_path, mcp_path, state_path, plan.plan_hash)
     if settings_changed:
         _atomic_write(settings_path, _canonical_json(merged_settings), ".vera-claude-settings-")
     if mcp_changed:
         _atomic_write(mcp_path, _canonical_json(merged_mcp), ".vera-claude-mcp-")
-    if existing_state is None:
+    if state_changed:
         _atomic_write(state_path, plan.json_text, ".vera-claude-state-")
-    return ClaudeCodeLocalInstallResult("INSTALLED", settings_path, mcp_path, state_path, plan.plan_hash)
+    statut = "UPDATED" if existing_state is not None else "INSTALLED"
+    return ClaudeCodeLocalInstallResult(statut, settings_path, mcp_path, state_path, plan.plan_hash)
+
+
+def _is_our_state(raw: str, plan: ClaudeCodeLocalPlan) -> bool:
+    """L'état déjà présent est-il une trace VERA de ce même adapter pour ce même serveur ?
+
+    Le critère ne porte pas sur le contenu — qui change à chaque édition légitime — mais sur la
+    provenance : même format, même adapter, même identifiant de serveur. Tout le reste est
+    étranger et reste refusé.
+    """
+    try:
+        charge = json.loads(raw)["claudeCodeLocal"]
+        adapter = charge["adapter"]["id"]
+        serveur = charge["mcpServer"]["id"]
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return False
+    return adapter == CLAUDE_CODE_LOCAL_ADAPTER_ID and serveur == _plan_payload(plan)["mcpServer"]["id"]
 
 
 def inspect_claude_code_local(
@@ -625,12 +756,19 @@ def _merge_hooks(existing: dict[str, Any], desired: object) -> tuple[dict[str, A
         current = hooks.get(event, [])
         if not isinstance(current, list):
             raise ClaudeCodeLocalError("Événement de hooks existant doit être une liste.")
-        for group in current:
-            if _contains_vera_hook(group) and group not in groups:
-                raise ClaudeCodeLocalError("Conflit : hook VERA Claude local existant divergent.")
-        additions = [group for group in groups if group not in current]
-        if additions:
-            hooks[event] = [*current, *additions]
+        # Un groupe portant la commande de hook VERA est un groupe que VERA a écrit : personne
+        # d'autre n'invoque `claude-code-local-hook --profile`. Le remplacer est donc la mise à
+        # jour de notre propre trace, pas l'écrasement du travail d'autrui — dont les groupes,
+        # eux, sont conservés tels quels à leur place.
+        #
+        # **Le défaut mesuré.** La version précédente refusait tout groupe VERA différent du
+        # nouveau : « Conflit : hook VERA Claude local existant divergent ». Comme le plan change
+        # dès que le playbook, les policies ou une capability changent, la moindre modification
+        # légitime rendait le projet impossible à réinstaller.
+        conserves = [groupe for groupe in current if not _contains_vera_hook(groupe)]
+        fusionnes = [*conserves, *groups]
+        if fusionnes != current:
+            hooks[event] = fusionnes
             changed = True
     if changed:
         merged["hooks"] = hooks
@@ -664,8 +802,18 @@ def _merge_local_server(existing: dict[str, Any], desired: object, generic: Mapp
     current = servers.get(server_id)
     if current == server:
         return existing, False
-    if current is not None and current != generic:
-        raise ClaudeCodeLocalError("Conflit : serveur MCP VERA existant divergent.")
+    # `vera-mmu-<project_id>` est un espace de noms que VERA possède : une entrée qui s'y trouve
+    # est une entrée que VERA a écrite. La remplacer met à jour notre propre trace ; les autres
+    # serveurs du fichier, eux, ne sont jamais touchés — mesuré sur un dépôt réel dont le serveur
+    # `aret-memory` a survécu intact à l'installation.
+    #
+    # **Le défaut mesuré.** La version précédente n'acceptait de remplacer que la forme générique,
+    # donc jamais une entrée déjà écrite par VERA : « Conflit : serveur MCP VERA existant
+    # divergent ». Or le plan change dès qu'on touche au playbook — ce que le produit demande
+    # explicitement de faire. Éditer son propre playbook rendait donc le projet inréparable :
+    # `install` refusait, `repair` répondait `NOTHING_TO_REPAIR`, et le serveur déclaré ne
+    # démarrait plus.
+    del generic
     merged = dict(existing)
     merged_servers = dict(servers)
     merged_servers[server_id] = server
