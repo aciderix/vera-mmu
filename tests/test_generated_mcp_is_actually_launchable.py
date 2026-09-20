@@ -216,6 +216,20 @@ class LauncherShapeTests(unittest.TestCase):
 class CliBinaryIdentityTests(unittest.TestCase):
     """Un binaire gelé n'est pas la CLI VERA du seul fait d'être gelé."""
 
+    @staticmethod
+    def _paquet(repertoire: Path, *noms: str) -> Path:
+        """Fabrique un répertoire d'installation contenant réellement les binaires nommés.
+
+        Des fichiers plutôt qu'un `Path.is_file` substitué : la substitution globale rendait vrai
+        pour *tout* chemin, y compris celui d'une CLI voisine qui n'existe pas — le test aurait
+        alors mesuré le contraire de ce qu'il annonce. Elle cassait aussi des contrôles sans
+        rapport, le doctor lisant `.gitignore` par la même méthode.
+        """
+        repertoire.mkdir(parents=True, exist_ok=True)
+        for nom in noms:
+            (repertoire / nom).write_bytes(b"\x7fELF")
+        return repertoire
+
     def test_a_frozen_process_that_is_not_the_cli_is_refused(self) -> None:
         """Le défaut n°1 : le sidecar du bureau se prenait pour la CLI.
 
@@ -225,33 +239,69 @@ class CliBinaryIdentityTests(unittest.TestCase):
         Le binaire doit **exister** pendant la mesure, et une mutation l'a montré : la première
         version de ce test nommait un chemin absent, si bien que retirer la marque ne faisait
         rien tomber — `is_file()` refusait déjà, pour une tout autre raison que celle mesurée.
+
+        Le paquet ne contient ici que le sidecar : c'est le cas d'une installation de bureau
+        antérieure à l'embarquement de la CLI, et c'est celui qui doit être refusé.
         """
         from vera_mmu import claude_code_local
 
         environnement = {cle: valeur for cle, valeur in os.environ.items() if cle != CLI_MARKER_VARIABLE}
-        with mock.patch.object(claude_code_local.sys, "frozen", True, create=True), \
-             mock.patch.object(claude_code_local.sys, "executable", "/opt/app/vmmu-desktop-bridge"), \
-             mock.patch("vera_mmu.claude_code_local.Path.is_file", lambda self: True), \
-             mock.patch.dict(os.environ, environnement, clear=True):
-            self.assertIsNone(claude_code_local._cli_binary(command_lookup=_absent))
+        with TemporaryDirectory() as repertoire:
+            paquet = self._paquet(Path(repertoire) / "bin", "vmmu-desktop-bridge")
+            with mock.patch.object(claude_code_local.sys, "frozen", True, create=True), \
+                 mock.patch.object(claude_code_local.sys, "executable", str(paquet / "vmmu-desktop-bridge")), \
+                 mock.patch.dict(os.environ, environnement, clear=True):
+                self.assertIsNone(claude_code_local._cli_binary(command_lookup=_absent))
+
+    def test_the_desktop_package_now_carries_the_cli_beside_its_sidecar(self) -> None:
+        """Ce que l'embarquement rouvre : la fenêtre peut de nouveau installer un MCP.
+
+        Sur une installation `.deb` les deux binaires atterrissent dans `/usr/bin`, donc le
+        `PATH` suffirait ; sur Windows, le répertoire d'installation n'y est presque jamais, et
+        sans cette recherche l'application ne verrait pas la CLI qu'elle transporte.
+        """
+        from vera_mmu import claude_code_local
+
+        environnement = {cle: valeur for cle, valeur in os.environ.items() if cle != CLI_MARKER_VARIABLE}
+        with TemporaryDirectory() as repertoire:
+            paquet = self._paquet(Path(repertoire) / "bin", "vmmu-desktop-bridge", "vmmu")
+            with mock.patch.object(claude_code_local.sys, "frozen", True, create=True), \
+                 mock.patch.object(claude_code_local.sys, "executable", str(paquet / "vmmu-desktop-bridge")), \
+                 mock.patch.dict(os.environ, environnement, clear=True):
+                self.assertEqual(
+                    claude_code_local._cli_binary(command_lookup=_absent), str(paquet / "vmmu")
+                )
+
+    def test_the_embedded_cli_wins_over_an_unrelated_one_on_the_path(self) -> None:
+        """Entre deux CLI, celle du même paquet porte la même version, donc le même plan."""
+        from vera_mmu import claude_code_local
+
+        with TemporaryDirectory() as repertoire:
+            paquet = self._paquet(Path(repertoire) / "bin", "vmmu-desktop-bridge", "vmmu")
+            with mock.patch.object(claude_code_local.sys, "frozen", True, create=True), \
+                 mock.patch.object(claude_code_local.sys, "executable", str(paquet / "vmmu-desktop-bridge")):
+                self.assertEqual(
+                    claude_code_local._cli_binary(command_lookup=lambda _n: "/usr/bin/vmmu"),
+                    str(paquet / "vmmu"),
+                )
 
     def test_the_cli_that_declares_itself_is_accepted(self) -> None:
         from vera_mmu import claude_code_local
 
-        with mock.patch.object(claude_code_local.sys, "frozen", True, create=True), \
-             mock.patch.object(claude_code_local.sys, "executable", str(Path("/opt/vera/vmmu"))), \
-             mock.patch.dict(os.environ, {CLI_MARKER_VARIABLE: "1"}), \
-             mock.patch("vera_mmu.claude_code_local.Path.is_file", lambda self: True):
-            # `str(Path(...))` plutôt que la chaîne POSIX : le chemin traverse `Path`, donc il
-            # ressort avec les séparateurs de la plateforme. Mesuré sous Windows.
-            self.assertEqual(claude_code_local._cli_binary(command_lookup=_absent), str(Path("/opt/vera/vmmu")))
+        with TemporaryDirectory() as repertoire:
+            paquet = self._paquet(Path(repertoire) / "bin", "vmmu")
+            with mock.patch.object(claude_code_local.sys, "frozen", True, create=True), \
+                 mock.patch.object(claude_code_local.sys, "executable", str(paquet / "vmmu")), \
+                 mock.patch.dict(os.environ, {CLI_MARKER_VARIABLE: "1"}):
+                self.assertEqual(claude_code_local._cli_binary(command_lookup=_absent), str(paquet / "vmmu"))
 
     def test_an_ephemeral_mount_path_is_refused_even_when_it_is_really_the_cli(self) -> None:
         """L'autre moitié du défaut n°1 : le chemin doit survivre au processus qui l'écrit.
 
         Une AppImage monte son contenu sous `/tmp/.mount_<nom><aléa>`, démonte à la sortie et
         tire un nouveau nom au lancement suivant. Une configuration qui le nomme fonctionne
-        exactement tant que personne ne la relit.
+        exactement tant que personne ne la relit. Embarquer la CLI dans le paquet **ne change
+        rien à ce cas** : elle y est bien, mais à un endroit qui disparaîtra.
         """
         from vera_mmu import claude_code_local
 
@@ -260,6 +310,22 @@ class CliBinaryIdentityTests(unittest.TestCase):
              mock.patch.dict(os.environ, {CLI_MARKER_VARIABLE: "1"}), \
              mock.patch("vera_mmu.claude_code_local.Path.is_file", lambda self: True):
             self.assertIsNone(claude_code_local._cli_binary(command_lookup=_absent))
+
+    def test_the_refusal_from_an_appimage_names_the_mount_rather_than_the_command(self) -> None:
+        """Depuis une AppImage, « commande introuvable » enverrait chercher au mauvais endroit.
+
+        La CLI **est** dans le paquet, visible à l'œil nu. Ce qui manque n'est pas le binaire
+        mais un chemin qui lui survive, et c'est cela que le refus doit dire.
+        """
+        from vera_mmu import claude_code_local
+
+        with mock.patch.object(claude_code_local.sys, "executable", "/tmp/.mount_VERA-abc/usr/bin/vmmu-desktop-bridge"), \
+             mock.patch("vera_mmu.claude_code_local.shutil.which", _absent):
+            with self.assertRaises(ClaudeCodeLocalError) as refus:
+                claude_code_local._require_resolvable_entrypoints()
+        message = str(refus.exception)
+        self.assertIn("AppImage", message)
+        self.assertIn(".deb", message)
 
     def test_a_path_under_the_running_appimage_is_refused_too(self) -> None:
         from vera_mmu import claude_code_local

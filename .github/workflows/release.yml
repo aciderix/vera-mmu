@@ -121,20 +121,19 @@ jobs:
       - name: Build desktop bundles
         working-directory: apps/desktop
         run: pnpm tauri build --bundles ${{ matrix.bundles }}
-      # Les deux plateformes produisent un `SHA256SUMS` homonyme : les distinguer ici évite qu'un
-      # fichier écrase l'autre au moment de l'assemblage.
-      - name: Rassembler les livrables
+      # **Sceller après le build, pas avant.** `build_cli_bundle.py` écrit son manifeste avant
+      # que `tauri build` n'ait produit quoi que ce soit : sur rc.5, les quatre bundles de bureau
+      # étaient donc publiés sans qu'aucun manifeste ne les relie au commit. Ce scellement les y
+      # rattache, et refuse de publier si l'un des livrables attendus manque.
+      - name: Rassembler et sceller les livrables
         shell: bash
         run: |
           mkdir -p livrables
           cp .build/cli-release/${{ matrix.target }}/vera-mmu-cli_* livrables/
-          cp .build/cli-release/${{ matrix.target }}/release-manifest.json \
-             "livrables/release-manifest-${{ matrix.target }}.json"
-          cp .build/cli-release/${{ matrix.target }}/SHA256SUMS \
-             "livrables/SHA256SUMS-${{ matrix.target }}"
           find apps/desktop/src-tauri/target/release/bundle -type f \
             \( -name '*.AppImage' -o -name '*.deb' -o -name '*.msi' -o -name '*-setup.exe' \) \
             -exec cp {} livrables/ \;
+          python scripts/seal_release_manifest.py ${{ matrix.target }}
           ls -la livrables
       - uses: actions/upload-artifact@v4
         with:
@@ -156,20 +155,51 @@ jobs:
       # Dernière vérification avant publication : les deux manifestes doivent désigner le commit
       # que ce run construit. Un artefact lié à un autre build est exactement la dérive
       # silencieuse que ce produit refuse.
-      - name: Les artefacts viennent-ils bien de ce commit ?
+      - name: Les artefacts viennent-ils bien de ce commit, et sont-ils tous attestés ?
         run: |
           python - <<'PY'
-          import json, pathlib, sys
+          import hashlib, json, pathlib, sys
           attendu = "${{ github.sha }}"
-          manifestes = sorted(pathlib.Path("livrables").glob("release-manifest-*.json"))
+          livrables = pathlib.Path("livrables")
+          manifestes = sorted(livrables.glob("release-manifest-*.json"))
           if len(manifestes) != 2:
               sys.exit(f"::error::{len(manifestes)} manifeste(s) trouvé(s), deux attendus.")
+
+          def empreinte(chemin: pathlib.Path) -> str:
+              condense = hashlib.sha256()
+              with chemin.open("rb") as flux:
+                  for bloc in iter(lambda: flux.read(1024 * 1024), b""):
+                      condense.update(bloc)
+              return condense.hexdigest()
+
+          attestes: dict[str, str] = {}
           for chemin in manifestes:
               m = json.loads(chemin.read_text(encoding="utf-8"))
               print(f"{m['platform']:12} {m['version']:10} {m['source_revision']}")
               if m["source_revision"] != attendu:
                   sys.exit(f"::error::{chemin.name} désigne {m['source_revision']}, pas {attendu}.")
-          print("Les deux manifestes désignent le commit publié.")
+              for artefact in m["artifacts"]:
+                  attestes[artefact["path"]] = artefact["sha256"]
+
+          # **Chaque fichier publié doit être couvert.** Un artefact sans provenance publié à
+          # côté d'artefacts qui en ont une est pire qu'inutile : il se fait croire couvert.
+          # Les manifestes et les sommes s'attestent mutuellement et sont exclus de la boucle.
+          manque = []
+          for chemin in sorted(livrables.iterdir()):
+              if not chemin.is_file() or chemin.name.startswith(("release-manifest-", "SHA256SUMS-")):
+                  continue
+              annonce = attestes.get(chemin.name)
+              if annonce is None:
+                  manque.append(f"{chemin.name} : aucun manifeste ne le mentionne")
+                  continue
+              reel = empreinte(chemin)
+              if reel != annonce:
+                  manque.append(f"{chemin.name} : {reel} publié, {annonce} attesté")
+              else:
+                  print(f"  attesté  {chemin.name}")
+          if manque:
+              sys.exit("::error::Livrables non attestés — " + " ; ".join(manque))
+          print("Tous les livrables désignent le commit publié.")
           PY
       # **Par l'API, pas par `git push`.** Mesuré ici même : pousser un tag dont le commit touche
       # un fichier de `.github/workflows/` est refusé — « refusing to allow a GitHub App to

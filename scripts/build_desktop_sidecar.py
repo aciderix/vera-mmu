@@ -7,9 +7,11 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from types import SimpleNamespace
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import build_cli_bundle as cli_bundle  # noqa: E402
 from pyinstaller_resources import add_data_arguments  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,6 +59,28 @@ def pyinstaller_command(binary_name: str, binary_dir: Path, work_dir: Path) -> l
     ]
 
 
+def cli_command(binary_name: str, binary_dir: Path, work_dir: Path) -> list[str]:
+    """Compose la commande de la CLI embarquée dans le paquet de bureau.
+
+    **Pourquoi le bureau transporte la CLI.** Mesuré sur la release `v0.1.0-rc.5` : le paquet
+    n'embarquait que `vera-mmu-desktop` et son sidecar. Or c'est la CLI qui porte les
+    sous-commandes `claude-code-local-mcp` et `-hook` que la configuration générée doit nommer.
+    Faute de l'avoir, l'installation lancée depuis la fenêtre inscrivait le chemin du **sidecar**,
+    qui ne connaît pas ces sous-commandes : aucun serveur MCP ne pouvait démarrer.
+
+    La commande dérive de `build_cli_bundle.pyinstaller_command`, jamais d'une copie : deux
+    recettes pour un même binaire, c'est la garantie qu'elles divergeront un jour, et l'oubli de
+    ressources livré simultanément dans les deux emballages a déjà montré ce que cela coûte.
+    """
+    spec = SimpleNamespace(binary_name=binary_name)
+    commande = cli_bundle.pyinstaller_command(spec, binary_dir, work_dir)
+    # Le nom de sortie est la seule différence : Tauri attend `<nom>-<triplet>` et retire le
+    # suffixe à l'installation, si bien que le binaire installé s'appelle bien `vmmu`.
+    index = commande.index("--name")
+    commande[index + 1] = binary_name
+    return commande
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Construit le sidecar desktop VERA pour le triplet natif demandé.")
     parser.add_argument("target", nargs="?", default=host_tuple())
@@ -70,8 +94,9 @@ def main() -> int:
 
     binary_dir = ROOT / "apps" / "desktop" / "src-tauri" / "binaries"
     work_dir = ROOT / ".build" / "desktop-sidecar" / target
+    suffixe = ".exe" if target.endswith("windows-msvc") else ""
     binary_name = f"vmmu-desktop-bridge-{target}"
-    expected = binary_dir / f"{binary_name}{'.exe' if target.endswith('windows-msvc') else ''}"
+    expected = binary_dir / f"{binary_name}{suffixe}"
     shutil.rmtree(work_dir, ignore_errors=True)
     binary_dir.mkdir(parents=True, exist_ok=True)
 
@@ -79,6 +104,13 @@ def main() -> int:
     if not expected.is_file() or expected.is_symlink():
         raise RuntimeError(f"Sidecar attendu absent ou ambigu : {expected}")
     print(f"Built {expected}")
+
+    cli_name = f"vmmu-{target}"
+    cli_attendue = binary_dir / f"{cli_name}{suffixe}"
+    subprocess.run(cli_command(cli_name, binary_dir, work_dir / "cli"), check=True, cwd=ROOT)
+    if not cli_attendue.is_file() or cli_attendue.is_symlink():
+        raise RuntimeError(f"CLI embarquée attendue absente ou ambiguë : {cli_attendue}")
+    print(f"Built {cli_attendue}")
     return 0
 
 

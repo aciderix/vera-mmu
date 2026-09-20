@@ -166,12 +166,36 @@ def _cli_binary(*, command_lookup: Callable[[str], str | None] | None = None) ->
         candidat = Path(sys.executable)
         if candidat.is_file() and not _is_ephemeral(candidat):
             return str(candidat)
+    voisin = _sibling_cli()
+    if voisin is not None:
+        return voisin
     lookup = command_lookup if command_lookup is not None else shutil.which
     trouve = lookup(CLI_BINARY_NAME)
     if trouve:
         chemin = Path(trouve)
         if not _is_ephemeral(chemin):
             return str(chemin)
+    return None
+
+
+def _sibling_cli() -> str | None:
+    """Cherche la CLI **livrée à côté** du processus courant.
+
+    Le paquet de bureau embarque désormais `vmmu` aux côtés du sidecar. Sur une installation
+    `.deb`, les deux atterrissent dans `/usr/bin`, donc le `PATH` les trouve de toute façon ;
+    sur Windows, en revanche, le répertoire d'installation n'est presque jamais dans le `PATH`,
+    et sans cette recherche l'application de bureau ne verrait pas la CLI qu'elle transporte.
+
+    Préférée au `PATH` : entre la CLI livrée avec cette application et une autre installée par
+    ailleurs, celle qui vient du même paquet porte la même version, donc le même plan compilé.
+    """
+    try:
+        voisin = Path(sys.executable).resolve().parent / CLI_BINARY_NAME
+    except OSError:  # pragma: no cover - chemin d'exécutable illisible
+        return None
+    for candidat in (voisin, voisin.with_suffix(".exe")):
+        if candidat.is_file() and not candidat.is_symlink() and not _is_ephemeral(candidat):
+            return str(candidat)
     return None
 
 
@@ -226,14 +250,35 @@ def _require_resolvable_entrypoints(*, command_lookup: Callable[[str], str | Non
     """Refuse l'installation tant qu'une des deux commandes ne peut pas être lancée."""
     statut = entrypoint_status(command_lookup=command_lookup)
     manquants = sorted(nom for nom, valeur in statut.items() if valeur is None)
-    if manquants:
-        attendus = {"hook": HOOK_ENTRYPOINT, "mcp": MCP_ENTRYPOINT}
+    if not manquants:
+        return
+    attendus = {"hook": HOOK_ENTRYPOINT, "mcp": MCP_ENTRYPOINT}
+    # Nommer la cause quand on la connaît. Depuis une AppImage, la CLI **est** là — à côté du
+    # sidecar — mais sous un point de montage qui disparaît à la fermeture : un utilisateur qui
+    # lit « commande introuvable » alors qu'il voit le binaire dans le paquet chercherait au
+    # mauvais endroit. C'est le cas où le refus doit le plus expliquer, puisqu'il est le moins
+    # intuitif.
+    if _running_from_ephemeral_image():
         raise ClaudeCodeLocalError(
-            "Installation refusée : la configuration désignerait des commandes introuvables — "
-            + ", ".join(f"`{attendus[nom]}`" for nom in manquants)
-            + ". Installer le paquet VERA (`pip install vera-mmu`) ou utiliser la CLI autonome, "
-            "qui porte les sous-commandes équivalentes."
+            "Installation refusée : lancée depuis une image dont le contenu est monté "
+            "temporairement (AppImage), l'application ne peut désigner aucun chemin qui existera "
+            "encore après sa fermeture. Installer VERA par le paquet `.deb`, ou décompresser "
+            "l'archive CLI et placer `vmmu` dans le PATH, puis relancer l'installation."
         )
+    raise ClaudeCodeLocalError(
+        "Installation refusée : la configuration désignerait des commandes introuvables — "
+        + ", ".join(f"`{attendus[nom]}`" for nom in manquants)
+        + ". Installer le paquet VERA (`pip install vera-mmu`) ou utiliser la CLI autonome, "
+        "qui porte les sous-commandes équivalentes."
+    )
+
+
+def _running_from_ephemeral_image() -> bool:
+    """Le processus courant tourne-t-il depuis un montage qui ne lui survivra pas ?"""
+    try:
+        return _is_ephemeral(Path(sys.executable))
+    except OSError:  # pragma: no cover - chemin d'exécutable illisible
+        return False
 
 
 _EVENTS = ("SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "PostCompact", "Stop")

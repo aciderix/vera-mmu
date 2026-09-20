@@ -16,7 +16,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/vmmu-desktop-bridge"],
+    "externalBin": ["binaries/vmmu-desktop-bridge", "binaries/vmmu"],
     "icon": ["icons/icon.png", "icons/icon.ico"]
   }
 }

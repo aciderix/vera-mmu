@@ -53,6 +53,22 @@ function errorText(error: unknown): string {
   return message ?? "Opération locale refusée.";
 }
 
+/**
+ * Les fichiers que le preview d'intégration annonce écrire, dans l'ordre où il les déclare.
+ *
+ * Lus dans le preview plutôt que devinés : l'installation touche `.mcp.json`,
+ * `.claude/settings.json` et l'état attesté sous `.vera-mmu/generated/`, et seul le bridge sait
+ * où ils se trouvent pour ce projet. Un nom inventé par la fenêtre serait la faute symétrique de
+ * celle qu'on corrige ici.
+ */
+export function installedPaths(preview: JsonObject | null): string[] {
+  const racine = isRecord(preview?.preview) ? (preview.preview as JsonObject) : preview;
+  if (!isRecord(racine)) return [];
+  return ["mcpPath", "settingsPath", "statePath"]
+    .map((cle) => racine[cle])
+    .filter((valeur): valeur is string => typeof valeur === "string" && valeur.trim().length > 0);
+}
+
 /** A panel whose journey step is blocked shows the Core's reason instead of its controls. */
 function Locked({ reason }: { reason: string }) {
   return <p className="panel-locked"><b>ÉTAPE BLOQUÉE</b> {reason}</p>;
@@ -144,11 +160,23 @@ export function DesktopConsole() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice>({ tone: "neutral", title: "Prêt à observer", detail: "Choisissez un dossier : rien n’est écrit à cette étape." });
 
+  /**
+   * Exécute une action et **rapporte ce qu'elle a fait**, réussite comme refus.
+   *
+   * Le travail peut rendre une phrase : elle remplace alors la formule générique. Mesuré sur la
+   * release : après « Confirmer l'installation MCP », trois fichiers étaient écrits hors de
+   * `.vera-mmu/` et la fenêtre n'en nommait aucun. « L'opération a été contrôlée localement par
+   * VERA » dit que rien n'a débordé, ce qui est vrai et rassurant, mais ne dit pas ce qui a été
+   * touché — or c'est précisément ce qu'un produit dont la thèse est la traçabilité doit dire.
+   */
   const action = useCallback(async (title: string, work: () => Promise<unknown>) => {
     setBusy(true);
     try {
-      await work();
-      setNotice({ tone: "success", title, detail: "L’opération a été contrôlée localement par VERA." });
+      const resultat = await work();
+      const detail = typeof resultat === "string" && resultat.trim()
+        ? resultat
+        : "L’opération a été contrôlée localement par VERA.";
+      setNotice({ tone: "success", title, detail });
     } catch (error) {
       setNotice({ tone: "error", title: "Action refusée", detail: errorText(error) });
     } finally {
@@ -335,8 +363,14 @@ export function DesktopConsole() {
   const applyInstallation = () => action("Configuration MCP project-local appliquée", async () => {
     const hash = getHash(installPreview, "previewHash");
     if (!hash) throw new Error("Aucun preview d’intégration disponible.");
+    // Les chemins viennent du preview que le bridge a produit, jamais d'une supposition de cette
+    // fenêtre : nommer un fichier qu'on n'a pas écrit serait la faute inverse de le taire.
+    const ecrits = installedPaths(installPreview);
     await desktopApi.installationApply(hash, installConfirmed);
     setInstallPreview(null);
+    return ecrits.length > 0
+      ? `Écrit : ${ecrits.join(", ")}.`
+      : "L’installation a été appliquée project-local.";
   });
   const refreshProjectStatus = () => action("État du projet actualisé", async () => setProjectStatus(await desktopApi.projectStatus()));
   const runDoctor = () => action("Diagnostic local produit", async () => setDoctor(await desktopApi.doctor(agentProfileId)));
