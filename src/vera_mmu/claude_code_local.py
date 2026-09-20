@@ -12,7 +12,6 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
-import shlex
 import shutil
 import sys
 from tempfile import NamedTemporaryFile
@@ -81,7 +80,25 @@ def resolve_entrypoint(
     if lanceur is None:
         return None
     programme, arguments = lanceur
-    return " ".join(shlex.quote(element) for element in (programme, *arguments))
+    return " ".join(_quote(element) for element in (programme, *arguments))
+
+
+def _quote(element: str) -> str:
+    """Entoure de guillemets **doubles** un élément qui en a besoin, et seulement alors.
+
+    Mesuré sur le runner Windows : `shlex.quote`, employé d'abord ici, applique les règles POSIX
+    et entoure de guillemets **simples** tout ce qui sort de `[a-zA-Z0-9_@%+=:,./-]`. Un chemin
+    Windows contient des contre-obliques, donc *tout* chemin Windows y passait :
+
+        'D:\\a\\vera-mmu\\...\\vmmu' claude-code-local-hook --profile "..."
+
+    `cmd.exe` ne reconnaît pas le guillemet simple comme une citation : la commande de hook
+    aurait été illisible sur la plateforme où elle est justement la plus fragile. Le guillemet
+    double, lui, est compris des deux côtés — et c'est déjà celui que la suite de la ligne
+    emploie pour l'argument de profil, dont le `${CLAUDE_PROJECT_DIR:-.}` doit rester
+    interprétable.
+    """
+    return f'"{element}"' if any(caractere.isspace() for caractere in element) else element
 
 
 def resolve_launcher(

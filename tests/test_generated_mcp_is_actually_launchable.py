@@ -41,7 +41,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-import shlex
 from tempfile import TemporaryDirectory
 import unittest
 from unittest import mock
@@ -163,13 +162,35 @@ class LauncherShapeTests(unittest.TestCase):
         self.assertEqual(lanceur, (binaire, (MCP_SUBCOMMAND,)))
         self.assertNotIn(" ", lanceur[0])
 
-    def test_the_shell_form_stays_available_and_is_quoted(self) -> None:
-        """Les hooks, eux, prennent bien une ligne de shell : elle doit être échappée."""
-        binaire = "/opt/mon dossier/vmmu"
-        with mock.patch("vera_mmu.claude_code_local.shutil.which", lambda nom: binaire if nom == CLI_BINARY_NAME else None):
+    def test_the_shell_form_quotes_with_double_quotes_on_every_platform(self) -> None:
+        """Les hooks prennent bien une ligne de shell — encore faut-il que le shell la lise.
+
+        Mesuré sur le runner Windows : `shlex.quote`, d'abord employé ici, applique les règles
+        POSIX et entoure de guillemets **simples** tout ce qui contient une contre-oblique,
+        c'est-à-dire tout chemin Windows. `cmd.exe` ne reconnaît pas ce guillemet comme une
+        citation. Le défaut était dans le produit, pas dans le test : la commande de hook
+        générée sous Windows aurait été illisible.
+
+        Le test compare donc à la forme attendue, et non au résultat de `shlex.split`, qui
+        n'aurait fait que redire les conventions POSIX sur une plateforme qui ne les suit pas.
+        """
+        avec_espace = str(Path("/opt/mon dossier/vmmu"))
+        with mock.patch(
+            "vera_mmu.claude_code_local.shutil.which",
+            lambda nom: avec_espace if nom == CLI_BINARY_NAME else None,
+        ):
             ligne = resolve_entrypoint(MCP_ENTRYPOINT, HOOK_SUBCOMMAND)
-        self.assertIsNotNone(ligne)
-        self.assertEqual(shlex.split(ligne), [binaire, HOOK_SUBCOMMAND])
+        self.assertEqual(ligne, f'"{avec_espace}" {HOOK_SUBCOMMAND}')
+        self.assertNotIn("'", ligne)
+
+        # Et sans espace, aucun guillemet inutile : une citation de trop se lit comme un nom.
+        sans_espace = BINAIRE_REEL
+        with mock.patch(
+            "vera_mmu.claude_code_local.shutil.which",
+            lambda nom: sans_espace if nom == CLI_BINARY_NAME else None,
+        ):
+            ligne = resolve_entrypoint(MCP_ENTRYPOINT, HOOK_SUBCOMMAND)
+        self.assertEqual(ligne, f"{sans_espace} {HOOK_SUBCOMMAND}")
 
     def test_the_installed_server_puts_the_subcommand_in_args_not_in_command(self) -> None:
         """Mesuré sur le produit, pas sur l'assistant : ce que `install` écrit réellement."""
@@ -218,10 +239,12 @@ class CliBinaryIdentityTests(unittest.TestCase):
         from vera_mmu import claude_code_local
 
         with mock.patch.object(claude_code_local.sys, "frozen", True, create=True), \
-             mock.patch.object(claude_code_local.sys, "executable", "/opt/vera/vmmu"), \
+             mock.patch.object(claude_code_local.sys, "executable", str(Path("/opt/vera/vmmu"))), \
              mock.patch.dict(os.environ, {CLI_MARKER_VARIABLE: "1"}), \
              mock.patch("vera_mmu.claude_code_local.Path.is_file", lambda self: True):
-            self.assertEqual(claude_code_local._cli_binary(command_lookup=_absent), "/opt/vera/vmmu")
+            # `str(Path(...))` plutôt que la chaîne POSIX : le chemin traverse `Path`, donc il
+            # ressort avec les séparateurs de la plateforme. Mesuré sous Windows.
+            self.assertEqual(claude_code_local._cli_binary(command_lookup=_absent), str(Path("/opt/vera/vmmu")))
 
     def test_an_ephemeral_mount_path_is_refused_even_when_it_is_really_the_cli(self) -> None:
         """L'autre moitié du défaut n°1 : le chemin doit survivre au processus qui l'écrit.
