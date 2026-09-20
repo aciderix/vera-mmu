@@ -979,8 +979,53 @@ def _load_installed_plan(store: MemoryStore) -> ClaudeCodeLocalPlan:
     )
     plan = compile_claude_code_local_plan(store, manifest, instructions, integration, hooks, review, lifecycle)
     if plan.json_text != raw:
-        raise ClaudeCodeLocalError("État d’installation Claude local périmé ou altéré.")
+        raise ClaudeCodeLocalError(
+            "État d’installation Claude local périmé ou altéré : " + _describe_drift(raw, plan)
+        )
     return plan
+
+
+def _describe_drift(raw: str, plan: ClaudeCodeLocalPlan) -> str:
+    """Nomme ce qui a changé depuis l'installation, plutôt que de constater qu'il a changé.
+
+    **Pourquoi ce détail vaut son code.** Le refus précédent disait « périmé ou altéré » et rien
+    d'autre. Il est correct, il est fail-closed — et il est indiagnosticable : rien n'indique s'il
+    faut réinstaller, revenir en arrière, ou chercher ailleurs. Mesuré en le rencontrant
+    moi-même sur un cas où la cause était la résolution de l'entry point, invisible depuis le
+    message ; il a fallu recompiler le plan à la main sous deux environnements pour la trouver.
+
+    C'est la classe de défaut déjà corrigée deux fois ici : *un refus qui tait ses valeurs oblige
+    à lire le code pour s'en servir.* La comparaison se fait clé par clé, et les deux valeurs sont
+    nommées quand elles tiennent sur une ligne — c'est presque toujours le cas de celle qui
+    compte, la commande.
+    """
+    try:
+        ancien = json.loads(raw)["claudeCodeLocal"]
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return "l’état enregistré n’est plus lisible ; réinstaller l’adapter."
+    nouveau = _plan_payload(plan)
+    differences: list[str] = []
+    for cle in sorted(set(ancien) | set(nouveau)):
+        avant, apres = ancien.get(cle), nouveau.get(cle)
+        if avant == apres:
+            continue
+        if cle == "inputs" and isinstance(avant, dict) and isinstance(apres, dict):
+            fichiers = sorted(nom for nom in set(avant) | set(apres) if avant.get(nom) != apres.get(nom))
+            differences.append("les fichiers " + ", ".join(f"`{nom}`" for nom in fichiers) + " ont changé")
+            continue
+        if cle == "mcpServer" and isinstance(avant, dict) and isinstance(apres, dict):
+            if avant.get("command") != apres.get("command"):
+                differences.append(
+                    f"la commande attestée était `{avant.get('command')}`, celle-ci serait `{apres.get('command')}`"
+                )
+                continue
+        differences.append(f"`{cle}` diffère")
+    if not differences:  # pragma: no cover - un écart sans clé divergente serait un bug de sérialisation
+        return "la sérialisation diffère sans qu’aucune clé ne diverge."
+    return (
+        "; ".join(differences)
+        + ". Relancer `install … --apply-project --confirm` pour réattester, après relecture du preview."
+    )
 
 
 #: Le runner auquel `mcp_compiler` lie cet adapter ; le staging et la configuration doivent

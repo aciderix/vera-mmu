@@ -653,3 +653,63 @@ class DoctorSeesTheDeadServerTests(unittest.TestCase):
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()
+
+
+class StalenessNamesItsCauseTests(unittest.TestCase):
+    """Un refus fail-closed doit rester diagnosticable.
+
+    « État d'installation Claude local périmé ou altéré » est correct et sans appel — et ne dit
+    pas s'il faut réinstaller, revenir en arrière, ou chercher ailleurs. Rencontré en vérifiant
+    l'installation faite depuis le sidecar : la cause était la résolution de l'entry point, et il
+    a fallu recompiler le plan à la main sous deux environnements pour la trouver. Même classe
+    que les refus de catalogue déjà corrigés ici : *taire ses valeurs oblige à lire le code*.
+    """
+
+    def test_an_edited_playbook_is_named_in_the_refusal(self) -> None:
+        from vera_mmu.claude_code_local import _load_installed_plan
+
+        binaire = BINAIRE_REEL
+        with TemporaryDirectory() as repertoire:
+            projet = _Projet(Path(repertoire))
+            try:
+                with mock.patch(
+                    "vera_mmu.claude_code_local.shutil.which",
+                    lambda nom: binaire if nom == CLI_BINARY_NAME else None,
+                ):
+                    projet.installer()
+                    playbook = projet.racine / ".vera-mmu" / "playbook.md"
+                    playbook.write_text(playbook.read_text(encoding="utf-8") + "\nMARQUEUR\n", encoding="utf-8")
+                    with self.assertRaises(ClaudeCodeLocalError) as refus:
+                        _load_installed_plan(projet.store)
+            finally:
+                projet.close()
+        message = str(refus.exception)
+        self.assertIn("playbook.md", message)
+        self.assertIn("install", message, "le refus doit nommer la marche à suivre")
+
+    def test_a_changed_command_names_both_the_old_and_the_new_one(self) -> None:
+        """Le cas qui m'a coûté le plus de temps : la résolution avait changé d'environnement."""
+        from vera_mmu.claude_code_local import _load_installed_plan
+
+        with TemporaryDirectory() as repertoire:
+            projet = _Projet(Path(repertoire))
+            try:
+                with mock.patch(
+                    "vera_mmu.claude_code_local.shutil.which",
+                    lambda nom: BINAIRE_REEL if nom == CLI_BINARY_NAME else None,
+                ):
+                    projet.installer()
+                # Le script console réapparaît — un `pip install` entre-temps suffit.
+                with mock.patch("vera_mmu.claude_code_local.shutil.which", lambda nom: f"/usr/bin/{nom}"):
+                    with self.assertRaises(ClaudeCodeLocalError) as refus:
+                        _load_installed_plan(projet.store)
+            finally:
+                projet.close()
+        message = str(refus.exception)
+        self.assertIn(BINAIRE_REEL, message, "la commande attestée doit être nommée")
+        self.assertIn(MCP_ENTRYPOINT, message, "celle qui serait écrite aussi")
+
+    def test_an_unreadable_state_says_so_rather_than_blaming_the_content(self) -> None:
+        from vera_mmu.claude_code_local import _describe_drift
+
+        self.assertIn("plus lisible", _describe_drift("pas du json", None))  # type: ignore[arg-type]

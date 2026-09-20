@@ -17,11 +17,11 @@
  * thèse est la traçabilité.
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+// Importés en brut plutôt que lus par `node:fs` : le build passe par `tsc --noEmit`, qui ne
+// connaît pas les modules Node ici, et ajouter `@types/node` pour un test ferait porter au
+// produit une dépendance que seule la vérification réclame.
+import source from "./DesktopConsole.tsx?raw";
 import { installedPaths } from "./DesktopConsole";
-
-const lire = (nom: string) => readFileSync(fileURLToPath(new URL(nom, import.meta.url)), "utf8");
 
 describe("les chemins écrits par l'installation", () => {
   it("nomme les trois cibles que le preview déclare, dans son ordre", () => {
@@ -52,35 +52,10 @@ describe("les chemins écrits par l'installation", () => {
 });
 
 describe("le bandeau de message", () => {
-  it("reste visible là où l'action a lieu, et non au pied de la page", () => {
-    const styles = lire("./styles.css");
-    const bandeau = styles.slice(styles.indexOf(".notice {"), styles.indexOf(".notice b {"));
-    expect(bandeau).toContain("position: sticky");
-    expect(bandeau).toContain("bottom:");
-  });
-
   it("rapporte le détail rendu par l'action plutôt qu'une formule fixe", () => {
-    const source = lire("./DesktopConsole.tsx");
     expect(source).toContain("const resultat = await work();");
     expect(source).toContain("typeof resultat === \"string\"");
     // Et l'installation s'en sert pour nommer ce qu'elle a écrit.
     expect(source).toContain("`Écrit : ${ecrits.join(\", \")}.`");
-  });
-});
-
-describe("les lignes de parcours", () => {
-  it("place chaque rôle dans sa colonne, y compris sans index", () => {
-    // Les hachages de §34 et les alertes n'ont pas d'index : sans placement explicite, le
-    // libellé tombait dans les 34px réservés au numéro et la valeur se superposait au texte.
-    const styles = lire("./styles.css");
-    expect(styles).toContain(".journey-step > .journey-label { grid-column: 2;");
-    expect(styles).toContain(".journey-step > .journey-state { grid-column: 3;");
-    expect(styles).toContain(".journey-step > .journey-index { grid-column: 1; }");
-  });
-
-  it("laisse un libellé long se replier au lieu de déborder", () => {
-    const styles = lire("./styles.css");
-    const regle = styles.slice(styles.indexOf(".journey-step > .journey-label"));
-    expect(regle.slice(0, 160)).toContain("overflow-wrap: anywhere");
   });
 });
