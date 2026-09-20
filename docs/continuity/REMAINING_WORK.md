@@ -1,6 +1,15 @@
 # Travail restant — VERA-MMU
 
 **Établi le :** 2026-09-14
+**Révisé le :** 2026-09-20 — **la configuration MCP générée désignait des commandes absentes de
+tout artefact de release.** `install` écrivait `vmmu-claude-code-local-mcp` et
+`vmmu-claude-code-local-hook`, scripts console qui n'existent qu'après un `pip install` ; depuis
+la release, l'hôte n'aurait pu démarrer ni le serveur ni un hook. `doctor` et `adapter doctor`
+rendaient pourtant PASS et `CONFIGURED`, seul `configure` disait `DEGRADED`. La CLI porte
+désormais les deux sous-commandes équivalentes, `install` refuse avant d'écrire ce qu'il ne sait
+pas lancer, et les trois diagnostics lisent le même statut. Prouvé de bout en bout : un playbook
+écrit à la main se retrouve verbatim dans les 3636 octets d'instructions que rend le serveur
+lancé par la commande que `.mcp.json` déclare. Voir `LOG-0328`.
 **Révisé le :** 2026-09-20 — **l'application desktop refusait trente-quatre de ses quarante-quatre
 commandes.** `build.rs` tenait l'ACL Tauri à la main : dix autorisées, quarante-quatre
 enregistrées. Le wizard, le parcours, le Doctor, le Capability Builder, l'éditeur de policies, le

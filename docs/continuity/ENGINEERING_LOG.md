@@ -5582,3 +5582,86 @@ commandes autrefois refusées, répond.
 
 **Ce que cela n'atteste pas** doit être dit aussi : la mesure sans écran a été faite sur Linux
 seulement, et une seule fois. Elle n'est pas une attestation deux plateformes.
+
+---
+
+## LOG-0328 — Une configuration générée qui désignait des commandes absentes, et trois diagnostics qui la disaient saine
+
+**Ce qui a déclenché ce lot.** Une question du propriétaire, pas une alerte : « donc là ça a généré
+un MCP après avoir scanné un projet, tu as pu paramétrer le playbook, définir les outils de
+preuve ? » Répondre honnêtement supposait de vérifier au lieu d'affirmer — et la vérification a
+sorti un défaut que huit heures de travail sur ces mêmes surfaces n'avaient pas vu.
+
+### Le défaut
+
+`install --adapter claude-code-local` écrivait dans `.mcp.json` la commande
+`vmmu-claude-code-local-mcp`, et dans `.claude/settings.json` six hooks appelant
+`vmmu-claude-code-local-hook`. Ce sont des scripts console déclarés par `pyproject.toml` : ils
+n'existent qu'après un `pip install`, la voie que le README documente.
+
+**Aucun artefact de release ne les embarque.** L'archive CLI contient `vmmu` et son manifest ; le
+paquet `.deb` contient `vera-mmu-desktop` et `vmmu-desktop-bridge`. Depuis la release, l'hôte
+n'aurait donc jamais pu démarrer le serveur MCP ni exécuter un seul hook — la configuration
+générée était complète, cohérente, hachée, et inopérante.
+
+### Trois diagnostics, un seul disait vrai
+
+* `doctor` → `PASS`, « 1 intégration déclarée et **installée** project-local »
+* `adapter doctor` → `ok: true`, `CONFIGURED`
+* `configure --adapter claude-code-local` → `DEGRADED`, `hook_entrypoint: MISSING`,
+  `mcp_entrypoint: MISSING`
+
+Les deux premiers ne regardaient que l'existence de fichiers. `_doctor` teste `config.exists()` :
+un fichier présent atteste qu'on a écrit, jamais que l'hôte pourra lancer quelque chose.
+
+Le troisième passe par `inspect_claude_code_local`, qui interroge réellement le PATH — et dont
+**l'unique appelant est l'entry point écrit le matin même** (`LOG-0327`). Avant ce lot, la
+détection existait dans le code et était inatteignable. Une capacité que rien n'appelle ne
+protège de rien, comme `adapter_catalog` l'avait déjà montré dans `LOG-0326`.
+
+Se déclarer sain sur une configuration qui ne peut pas fonctionner est exactement le défaut que
+ce produit existe pour empêcher.
+
+### Les deux correctifs, et pourquoi il fallait les deux
+
+`resolve_entrypoint` préfère le script console quand il existe — ne pas invalider les
+installations `pip` en place était une contrainte, pas un détail — et retombe sinon sur la CLI
+gelée invoquée avec sa sous-commande équivalente, `claude-code-local-mcp` ou
+`claude-code-local-hook`, désormais portées par le binaire unique. La release devient autonome
+sans rien embarquer de plus.
+
+Vérifié **avant** de choisir ce design : la commande n'apparaît pas dans les sorties compilées
+déterministes, donc le `package_hash` reste reproductible. Un chemin absolu dans un artefact
+censé être reproductible aurait été un défaut pire que celui corrigé.
+
+Et `install` refuse désormais avant la première écriture quand aucune forme n'est résoluble, en
+nommant la commande manquante et la marche à suivre. `doctor` et `adapter doctor` lisent le même
+statut que l'installation : les faire diverger reviendrait à diagnostiquer autre chose que ce
+qui est écrit.
+
+### Deux défauts trouvés par les mutations, pas par le raisonnement
+
+Neutraliser l'appel dans `install_claude_code_local` ne faisait d'abord **rien tomber** : les
+tests exerçaient la garde en direct, jamais par la route du produit. *Une propriété vérifiée par
+une autre route que celle du produit ne prouve rien du produit* — septième occurrence de cette
+règle dans ce dépôt, et la première où c'est une garde de sécurité qui était concernée.
+
+Le test ajouté pour combler ce trou ne passait pas, et son échec a révélé un second défaut :
+`command_lookup: Callable = shutil.which` en argument par défaut est **capturé à la définition**,
+donc insubstituable par un test. La résolution se fait maintenant à l'appel. Les deux moitiés
+mordent : refuser, et refuser sans avoir écrit.
+
+### Ce qui est attesté, et ce que la question portait vraiment
+
+Sur le binaire reconstruit, `vera_mmu` désinstallé, un playbook écrit à la main puis la chaîne
+complète : `.mcp.json` désigne le binaire livré avec sa sous-commande, et **le serveur lancé par
+exactement cette commande** rend 3636 octets d'instructions où les trois règles du projet
+figurent verbatim, suivies des `CAPABILITY RULES`.
+
+La chaîne est donc : le playbook que le projet édite → haché par `validate` → intégré aux
+instructions par `compile` → remis à l'agent par le serveur MCP au `initialize`. C'est bien le
+playbook du projet qui devient les instructions du MCP généré.
+
+Deux réserves tenues : le playbook s'édite à la main, aucune sous-commande ne le fait ; et
+`vmmu serve`, le serveur générique, sert des instructions génériques — seul le chemin adapter,
+celui que `.mcp.json` déclare, porte celles du projet.
