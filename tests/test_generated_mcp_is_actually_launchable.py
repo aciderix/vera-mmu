@@ -476,6 +476,45 @@ class DoctorSeesTheDeadServerTests(unittest.TestCase):
             (racine / ".mcp.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
             self.assertIn("sans état attesté", str(_claude_local_drift(racine)))
 
+    def test_editing_the_playbook_is_reported_before_the_server_refuses_to_start(self) -> None:
+        """Le cas le plus coûteux, et celui que la première correction manquait encore.
+
+        Éditer `.vera-mmu/playbook.md` laisse `.mcp.json` et l'état attesté parfaitement
+        cohérents **entre eux** : la première version de ce contrôle, qui ne comparait que ces
+        deux fichiers, restait donc verte pendant que le serveur, lui, recompilait son plan au
+        démarrage et le refusait. Mesuré sur le binaire reconstruit : serveur `MORT`, `doctor`
+        `hooks PASS`. Il fallait comparer les **entrées** dont le plan dérive, pas seulement ce
+        qui en a été écrit.
+        """
+        from vera_mmu.doctor import diagnose_project
+
+        binaire = BINAIRE_REEL
+        with TemporaryDirectory() as repertoire:
+            projet = _Projet(Path(repertoire))
+            try:
+                with mock.patch(
+                    "vera_mmu.claude_code_local.shutil.which",
+                    lambda nom: binaire if nom == CLI_BINARY_NAME else None,
+                ):
+                    projet.installer()
+                chemin = projet.chemin
+            finally:
+                projet.close()
+
+            sain = {c.name: c for c in diagnose_project(chemin).checks}
+            self.assertEqual(sain["hooks"].status, "PASS", sain["hooks"].detail)
+
+            playbook = Path(repertoire) / ".vera-mmu" / "playbook.md"
+            playbook.write_text(
+                playbook.read_text(encoding="utf-8") + "\n## Règle du projet\n\nMARQUEUR.\n", encoding="utf-8"
+            )
+            rapport = diagnose_project(chemin)
+
+        controles = {c.name: c for c in rapport.checks}
+        self.assertEqual(controles["hooks"].status, "FAIL", controles["hooks"].detail)
+        self.assertIn("playbook.md", controles["hooks"].detail)
+        self.assertEqual(rapport.status, "FAIL")
+
     def test_the_whole_doctor_fails_on_a_dead_server_not_just_the_helper(self) -> None:
         """Par la route du produit, pas par la fonction d'aide — une mutation l'a exigé.
 

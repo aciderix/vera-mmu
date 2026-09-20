@@ -495,17 +495,35 @@ def _claude_local_drift(project_root: Path) -> str | None:
     introuvable depuis. Un contrôle qui ne peut pas tout voir le dit dans son libellé plutôt que
     de laisser croire qu'il a tout vu.
     """
-    etat = project_root / ".vera-mmu" / "generated" / "claude-code-local-install.json"
+    runtime = project_root / ".vera-mmu"
+    etat = runtime / "generated" / "claude-code-local-install.json"
     mcp = project_root / ".mcp.json"
     if not etat.is_file():
         return "Intégration `claude-code-local` installée sans état attesté sous `.vera-mmu/generated/`."
     try:
-        atteste = json.loads(etat.read_text(encoding="utf-8"))["claudeCodeLocal"]["mcpServer"]
+        charge = json.loads(etat.read_text(encoding="utf-8"))["claudeCodeLocal"]
+        atteste = charge["mcpServer"]
         identifiant = str(atteste["id"])
         attendu = {cle: valeur for cle, valeur in atteste.items() if cle != "id"}
         declare = json.loads(mcp.read_text(encoding="utf-8"))["mcpServers"]
     except (KeyError, TypeError, ValueError, OSError):
         return "État d’installation `claude-code-local` ou `.mcp.json` illisible : l’intégration n’est pas vérifiable."
+    # Le cas qui a coûté le plus cher : éditer `.vera-mmu/playbook.md` — ce que le produit
+    # demande explicitement — laisse `.mcp.json` et l'état attesté parfaitement cohérents entre
+    # eux, mais le serveur, lui, recompile son plan au démarrage et le refuse. Comparer les
+    # empreintes des fichiers d'entrée voit cet écart sans ouvrir la mémoire.
+    from .claude_code_local import input_digests_for
+
+    enregistrees = charge.get("inputs")
+    if isinstance(enregistrees, dict):
+        actuelles = input_digests_for(runtime)
+        differents = sorted(nom for nom, valeur in enregistrees.items() if actuelles.get(nom) != valeur)
+        if differents:
+            return (
+                "L’installation `claude-code-local` a vieilli : "
+                + ", ".join(f"`{nom}`" for nom in differents)
+                + " a changé depuis. Le serveur MCP déclaré refusera de démarrer."
+            )
     if identifiant not in declare:
         return f"`.mcp.json` ne déclare plus le serveur `{identifiant}` que l’installation atteste."
     if declare[identifiant] != attendu:

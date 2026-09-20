@@ -341,6 +341,12 @@ def compile_claude_code_local_plan(
             },
             "adapterBindings": [{"adapter_id": adapter_id, "capability_id": capability_id} for capability_id, adapter_id in bindings],
             "hooks": hook_commands,
+            # Les empreintes des fichiers dont le plan dérive, pour que le vieillissement se lise
+            # sans recompiler. `_load_installed_plan` compare déjà le plan à l'octet près, mais
+            # il ne parle qu'au démarrage du serveur : le diagnostic, lui, s'interdit d'ouvrir la
+            # mémoire et n'avait donc aucun moyen de voir qu'une édition du playbook venait de
+            # condamner l'installation. Mesuré sur la release : serveur mort, `doctor` PASS.
+            "inputs": _input_digests(store),
             "installation": {"mcpTarget": ".mcp.json", "mode": "OPT_IN", "settingsTarget": ".claude/settings.json"},
             "mcpServer": {"id": server_id, **local_server},
         }
@@ -540,6 +546,33 @@ def _verify_local_plan(store: MemoryStore, lifecycle: LifecycleAdapterPlan, plan
         raise ClaudeCodeLocalError("Plan lifecycle Claude local invérifiable.") from exc
     if lifecycle != expected_lifecycle or plan != expected:
         raise ClaudeCodeLocalError("Plan lifecycle Claude local périmé, altéré ou étranger.")
+
+
+#: Les fichiers du runtime dont le plan Claude local dérive. Leur empreinte est enregistrée à
+#: l'installation pour qu'un diagnostic qui n'ouvre pas la mémoire puisse constater l'écart.
+INPUT_FILES = ("playbook.md", "capabilities.yaml", "gates.yaml", "policies.yaml", "agent-profiles.yaml")
+
+
+def _input_digests(store: MemoryStore) -> dict[str, str]:
+    """Empreintes vues depuis la mémoire ouverte — même fonction que côté diagnostic.
+
+    Une seule implémentation, délibérément : deux calculs d'empreinte qui divergeraient d'un
+    octet feraient rapporter une dérive permanente, ou aucune. C'est la leçon déjà posée sur
+    `entrypoint_status` — diagnostiquer autre chose que ce qui est écrit ne diagnostique rien.
+    """
+    return input_digests_for(store.locator.runtime_dir)
+
+
+def input_digests_for(runtime_dir: Path) -> dict[str, str]:
+    """Empreinte de chaque fichier dont le plan dépend ; `ABSENT` quand il n'y en a pas."""
+    empreintes: dict[str, str] = {}
+    for nom in INPUT_FILES:
+        chemin = runtime_dir / nom
+        try:
+            empreintes[nom] = sha256(chemin.read_bytes()).hexdigest() if chemin.is_file() else "ABSENT"
+        except OSError:
+            empreintes[nom] = "ILLISIBLE"
+    return empreintes
 
 
 def _single_server(integration: MCPIntegration) -> tuple[str, dict[str, object]]:
