@@ -20,7 +20,35 @@ SPEC.loader.exec_module(builder)
 
 class CliBundleBuilderTests(unittest.TestCase):
     def test_release_versions_are_aligned_across_all_distributed_manifests(self) -> None:
-        self.assertEqual(builder.product_version(), "0.1.0-4")
+        """L'alignement des quatre manifestes, mesuré comme propriété et non comme valeur.
+
+        La version était épinglée en dur, ce qui obligeait à éditer ce test à chaque montée sans
+        rien garantir de plus : `product_version()` refuse déjà lorsque les quatre fichiers
+        divergent, et c'est cette règle-là qui compte. Comparer à une constante ne testait donc
+        que la constante.
+
+        Les quatre sources sont relues ici depuis le disque et confrontées au résultat, si bien
+        qu'une divergence tombe quelle que soit la version du jour.
+        """
+        import json
+        import re
+        import tomllib
+
+        version = builder.product_version()
+        self.assertRegex(version, r"^\d+\.\d+\.\d+(-\d+)?$")
+
+        racine = builder.ROOT
+        with (racine / "pyproject.toml").open("rb") as flux:
+            python_version = tomllib.load(flux)["project"]["version"]
+        # `pyproject` porte la forme PEP 440 (`0.1.0rc5`) que `product_version` normalise.
+        self.assertEqual(re.sub(r"^(\d+\.\d+\.\d+)rc(\d+)$", r"\1-\2", python_version), version)
+
+        for chemin in ("apps/desktop/package.json", "apps/desktop/src-tauri/tauri.conf.json"):
+            with self.subTest(manifeste=chemin):
+                self.assertEqual(json.loads((racine / chemin).read_text(encoding="utf-8"))["version"], version)
+
+        cargo = (racine / "apps" / "desktop" / "src-tauri" / "Cargo.toml").read_text(encoding="utf-8")
+        self.assertEqual(re.search(r'^version\s*=\s*"([^"]+)"', cargo, flags=re.MULTILINE).group(1), version)
 
     def test_supported_targets_have_closed_names_and_platform_specific_archives(self) -> None:
         self.assertEqual(set(builder.TARGETS), {"x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"})
