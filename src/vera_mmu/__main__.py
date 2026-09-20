@@ -108,6 +108,14 @@ def build_parser() -> argparse.ArgumentParser:
     export=sub.add_parser("bundle-export",help="Exporte un bundle VERA sous le runtime project-local après confirmation.");export.add_argument("profile",type=Path,help="Chemin project.yaml.");export.add_argument("--bundle-id",required=True);export.add_argument("--confirm",action="store_true")
     restore=sub.add_parser("bundle-restore",help="Restaure un bundle vérifié vers une cible VERA vide et de même identité.");restore.add_argument("profile",type=Path,help="Chemin project.yaml cible.");restore.add_argument("--bundle",type=Path,required=True,help="Archive ZIP VERA explicitement sélectionnée.");restore.add_argument("--confirm",action="store_true")
     project_import=sub.add_parser("project-import",help="Prévisualise ou importe explicitement des documents locaux comme observations provenancées.");project_import.add_argument("profile",type=Path,help="Chemin project.yaml.");project_import.add_argument("--document",action="append",required=True,help="Chemin relatif d’un document depuis une racine workspace.");project_import.add_argument("--batch-id",required=True);project_import.add_argument("--knowledge-type-id",required=True);project_import.add_argument("--knowledge-type-label",required=True);project_import.add_argument("--apply",action="store_true");project_import.add_argument("--confirm",action="store_true")
+    # Les deux entry points de l'adapter Claude local, portés par la CLI unique pour que la
+    # release soit autonome : les scripts console `vmmu-claude-code-local-*` n'existent qu'après
+    # un `pip install`, et aucun artefact de release ne les embarque.
+    ccl_mcp=sub.add_parser("claude-code-local-mcp",help="Serveur MCP lifecycle Claude Code local (entry point d’adapter).")
+    ccl_mcp.add_argument("--profile",type=Path,required=True)
+    ccl_hook=sub.add_parser("claude-code-local-hook",help="Hook lifecycle Claude Code local (entry point d’adapter).")
+    ccl_hook.add_argument("--profile",type=Path,required=True)
+    ccl_hook.add_argument("--event",required=True)
     adapter=sub.add_parser("adapter",help="Opérations project-local des adapters VERA.")
     ops=adapter.add_subparsers(dest="adapter_command",required=True)
     ops.add_parser("matrix",help="Affiche la matrice statique des couvertures attestées.")
@@ -152,7 +160,15 @@ def _doctor(profile_path:Path,name:str)->dict[str,object]:
     adapter=adapter_spec(name);profile=load_profile(profile_path);workspace=resolve_workspace(profile,profile_path);locator=RuntimeLocator.from_workspace(profile,workspace)
     runtime=locator.runtime_dir/"generated"/adapter.runtime;config=workspace.project_root/adapter.config
     if runtime.is_symlink() or config.is_symlink():raise StoreError("Cible doctor symlinkée : refus de diagnostic ambigu.")
-    return {"adapter":name,"coverage":adapter.coverage,"runtime":"RUNTIME_READY" if runtime.is_file() else "RUNTIME_MISSING","runtimePath":str(runtime),"configuration":"CONFIGURED" if config.exists() else "CONFIG_ABSENT","configurationPath":str(config),"host":"NOT_OBSERVED","userScope":"NOT_OBSERVED"}
+    payload={"adapter":name,"coverage":adapter.coverage,"runtime":"RUNTIME_READY" if runtime.is_file() else "RUNTIME_MISSING","runtimePath":str(runtime),"configuration":"CONFIGURED" if config.exists() else "CONFIG_ABSENT","configurationPath":str(config),"host":"NOT_OBSERVED","userScope":"NOT_OBSERVED"}
+    # `CONFIGURED` ne disait que « le fichier existe ». Il pouvait désigner une commande absente
+    # de la machine, et ce diagnostic l'annonçait sain. L'exécutabilité est donc rapportée à part.
+    if name=="claude-code-local":
+        from .claude_code_local import entrypoint_status
+        statut=entrypoint_status()
+        payload["entrypoints"]={nom:(valeur if valeur else "UNRESOLVED") for nom,valeur in statut.items()}
+        payload["executable"]="EXECUTABLE" if all(statut.values()) else "NOT_EXECUTABLE"
+    return payload
 
 
 def _project_preview_payload(preview: object) -> dict[str, object]:
@@ -350,6 +366,12 @@ def main(argv:Sequence[str]|None=None)->int:
             code,adapter_payload=call_adapter_json(adapter.configure_entry,config_args)
             if code!=0 or adapter_payload.get("ok") is not True:raise StoreError(str(adapter_payload.get("error","Installation adapter refusée.")))
             payload={"ok":True,"installation":{key:value for key,value in adapter_payload.items() if key!="ok"}}
+        elif args.command=="claude-code-local-mcp":
+            from .claude_code_local import claude_code_local_mcp_main
+            claude_code_local_mcp_main(["--profile",str(args.profile)]);return 0
+        elif args.command=="claude-code-local-hook":
+            from .claude_code_local import claude_code_local_hook_main
+            return claude_code_local_hook_main(["--profile",str(args.profile),"--event",args.event])
         elif args.command=="adapter":
             if args.adapter_command=="matrix":payload={"ok":True,"adapters":[{"adapter":name,"coverage":data.coverage,"config":data.config,"runtime":data.runtime} for name,data in sorted(ADAPTER_CATALOG.items())]}
             elif args.adapter_command=="doctor":payload={"ok":True,"doctor":_doctor(args.profile,args.adapter)}

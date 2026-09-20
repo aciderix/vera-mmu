@@ -35,6 +35,85 @@ CLAUDE_CODE_LOCAL_ADAPTER_VERSION = "1.0.0"
 CLAUDE_CODE_LOCAL_MAXIMUM_GUARD_MODE = "HARD"
 HOOK_ENTRYPOINT = "vmmu-claude-code-local-hook"
 MCP_ENTRYPOINT = "vmmu-claude-code-local-mcp"
+#: Sous-commandes équivalentes portées par la CLI unique, pour la release autonome.
+HOOK_SUBCOMMAND = "claude-code-local-hook"
+MCP_SUBCOMMAND = "claude-code-local-mcp"
+
+
+def resolve_entrypoint(
+    entrypoint: str, subcommand: str, *, command_lookup: Callable[[str], str | None] | None = None
+) -> str | None:
+    """Rend la commande qui lancera réellement cet entry point, ou `None` si aucune ne le peut.
+
+    **Le défaut mesuré.** `install` écrivait `vmmu-claude-code-local-mcp` dans `.mcp.json` et
+    `vmmu-claude-code-local-hook` dans les hooks. Ce sont des scripts console déclarés dans
+    `pyproject.toml` : ils n'existent qu'après un `pip install`. Or **aucun artefact de release ne
+    les embarque** — l'archive CLI ne contient que `vmmu`, et le paquet `.deb` que le bureau et son
+    sidecar. Depuis la release, la configuration générée pointait donc vers des commandes absentes,
+    et l'hôte n'aurait jamais pu démarrer le serveur.
+
+    Deux formes sont acceptées, dans cet ordre : le script console s'il est installé — ce qui
+    laisse intactes les installations `pip` existantes — puis la CLI unique invoquée avec sa
+    sous-commande équivalente, ce qui rend la release autonome sans rien embarquer de plus.
+
+    `None` est un refus lisible plutôt qu'un chemin inventé : écrire une commande qu'on ne sait
+    pas résoudre, c'est produire une configuration qui ne peut pas fonctionner.
+    """
+    # Résolu à l'appel et non en valeur par défaut : un défaut par défaut capture `shutil.which`
+    # au moment de la définition, donc aucun test ne peut le substituer. Le test qui exerce
+    # `install` sur une machine sans script console l'a montré en ne voyant aucun refus.
+    lookup = command_lookup if command_lookup is not None else shutil.which
+    if lookup(entrypoint):
+        return entrypoint
+    binary = _cli_binary()
+    if binary is not None:
+        return f"{_quote(binary)} {subcommand}"
+    return None
+
+
+def _cli_binary() -> str | None:
+    """Rend le chemin de la CLI VERA courante quand elle est un exécutable autonome.
+
+    Sous PyInstaller, `sys.executable` est le binaire lui-même ; hors gel, c'est l'interpréteur
+    Python, qui ne porte aucune sous-commande VERA — d'où la garde.
+    """
+    if not getattr(sys, "frozen", False):
+        return None
+    candidate = Path(sys.executable)
+    return str(candidate) if candidate.is_file() else None
+
+
+def _quote(command: str) -> str:
+    """Entoure de guillemets un chemin qui en a besoin, sans en ajouter inutilement."""
+    return f'"{command}"' if any(caractere.isspace() for caractere in command) else command
+
+
+def entrypoint_status(*, command_lookup: Callable[[str], str | None] | None = None) -> dict[str, str | None]:
+    """Rend, pour chaque entry point, la commande qui le lancera — ou `None`.
+
+    Une seule source pour le diagnostic et pour l'installation : les faire diverger reviendrait à
+    diagnostiquer autre chose que ce qui est écrit.
+    """
+    return {
+        "hook": resolve_entrypoint(HOOK_ENTRYPOINT, HOOK_SUBCOMMAND, command_lookup=command_lookup),
+        "mcp": resolve_entrypoint(MCP_ENTRYPOINT, MCP_SUBCOMMAND, command_lookup=command_lookup),
+    }
+
+
+def _require_resolvable_entrypoints(*, command_lookup: Callable[[str], str | None] | None = None) -> None:
+    """Refuse l'installation tant qu'une des deux commandes ne peut pas être lancée."""
+    statut = entrypoint_status(command_lookup=command_lookup)
+    manquants = sorted(nom for nom, valeur in statut.items() if valeur is None)
+    if manquants:
+        attendus = {"hook": HOOK_ENTRYPOINT, "mcp": MCP_ENTRYPOINT}
+        raise ClaudeCodeLocalError(
+            "Installation refusée : la configuration désignerait des commandes introuvables — "
+            + ", ".join(f"`{attendus[nom]}`" for nom in manquants)
+            + ". Installer le paquet VERA (`pip install vera-mmu`) ou utiliser la CLI autonome, "
+            "qui porte les sous-commandes équivalentes."
+        )
+
+
 _EVENTS = ("SessionStart", "PreToolUse", "PostToolUse", "PreCompact", "PostCompact", "Stop")
 
 
@@ -132,7 +211,9 @@ def compile_claude_code_local_plan(
     profile_argument = _profile_argument(generic_server)
     local_server = {
         "args": ["--profile", profile_argument],
-        "command": MCP_ENTRYPOINT,
+        # Résolue plutôt que supposée : voir `resolve_entrypoint`. Le nom logique reste préféré
+        # quand il existe, pour ne pas invalider les installations `pip` déjà en place.
+        "command": resolve_entrypoint(MCP_ENTRYPOINT, MCP_SUBCOMMAND) or MCP_ENTRYPOINT,
         "env": {
             "VERA_CLAUDE_CODE_LOCAL": "1",
             "VERA_MCP_BUILD_HASH": manifest.mcp_build_hash,
@@ -238,6 +319,11 @@ def install_claude_code_local(
     """Install only the attested project-local hooks and local VERA MCP server after confirmation."""
     if confirm is not True:
         raise ClaudeCodeLocalError("Installation Claude locale refusée sans confirmation explicite.")
+    # Écrire une configuration dont les commandes n'existent pas, puis se déclarer sain, est
+    # exactement le défaut que ce produit existe pour empêcher. Mesuré : `doctor` rendait PASS et
+    # « 1 intégration déclarée et installée » sur un `.mcp.json` pointant vers un script console
+    # absent de tout artefact de release. Le refus est donc posé ici, avant la première écriture.
+    _require_resolvable_entrypoints()
     expected = compile_claude_code_local_plan(store, manifest, instructions, integration, hooks, review, lifecycle)
     if plan != expected:
         raise ClaudeCodeLocalError("Plan Claude local périmé, altéré ou étranger.")
@@ -275,7 +361,7 @@ def inspect_claude_code_local(
     lifecycle: LifecycleAdapterPlan,
     plan: ClaudeCodeLocalPlan,
     *,
-    command_lookup: Callable[[str], str | None] = shutil.which,
+    command_lookup: Callable[[str], str | None] | None = None,
 ) -> ClaudeCodeLocalDoctorReport:
     """Observe exact local installation state; never install, approve, or repair."""
     expected = compile_claude_code_local_plan(store, manifest, instructions, integration, hooks, review, lifecycle)
@@ -294,8 +380,9 @@ def inspect_claude_code_local(
     checks.extend((("hooks", "PASS" if hooks_ok else "MISSING"), ("mcp", "PASS" if server_ok else "MISSING"), ("state", "PASS" if state_ok else "MISSING")))
     if not hooks_ok and not server_ok and not state_ok:
         return ClaudeCodeLocalDoctorReport("NOT_INSTALLED", tuple(checks), ())
-    hook_entrypoint = command_lookup(HOOK_ENTRYPOINT)
-    mcp_entrypoint = command_lookup(MCP_ENTRYPOINT)
+    statut = entrypoint_status(command_lookup=command_lookup)
+    hook_entrypoint = statut["hook"]
+    mcp_entrypoint = statut["mcp"]
     checks.extend((("hook_entrypoint", "PASS" if hook_entrypoint else "MISSING"), ("mcp_entrypoint", "PASS" if mcp_entrypoint else "MISSING")))
     if hooks_ok and server_ok and state_ok and hook_entrypoint and mcp_entrypoint:
         return ClaudeCodeLocalDoctorReport("READY", tuple(checks), ())
@@ -349,7 +436,8 @@ def _hook_commands(store: MemoryStore, server_id: str, profile_argument: str) ->
     if not server_id.startswith("vera-mmu-"):
         raise ClaudeCodeLocalError("Identifiant serveur VERA local invalide.")
     def group(event: str, *, matcher: str | None = None) -> dict[str, object]:
-        command = f'{HOOK_ENTRYPOINT} --profile "{profile_argument}" --event {event}'
+        lanceur = resolve_entrypoint(HOOK_ENTRYPOINT, HOOK_SUBCOMMAND) or HOOK_ENTRYPOINT
+        command = f'{lanceur} --profile "{profile_argument}" --event {event}'
         handler: dict[str, object] = {"command": command, "timeout": 10, "type": "command"}
         payload: dict[str, object] = {"hooks": [handler]}
         if matcher is not None:
@@ -554,7 +642,11 @@ def _contains_vera_hook(group: object) -> bool:
         return False
     handlers = group.get("hooks")
     return isinstance(handlers, list) and any(
-        isinstance(handler, dict) and isinstance(handler.get("command"), str) and handler["command"].startswith(HOOK_ENTRYPOINT + " ")
+        isinstance(handler, dict)
+        and isinstance(handler.get("command"), str)
+        # Les deux formes comptent : le script console, et la CLI autonome avec sa sous-commande.
+        # N'en reconnaître qu'une ferait passer une installation valide pour étrangère.
+        and (handler["command"].startswith(HOOK_ENTRYPOINT + " ") or f" {HOOK_SUBCOMMAND} --profile" in handler["command"])
         for handler in handlers
     )
 

@@ -439,6 +439,29 @@ def _diagnose_hooks(profile: Mapping[str, Any] | None, workspace: Workspace | No
             f"Intégration(s) déclarée(s) mais non installée(s) : {', '.join(sorted(missing))}.",
             "Lancer `vmmu install <profile> --adapter <nom> --apply-project --confirm` après relecture de la preview.",
         )
+    # Installée ne veut pas dire exécutable. Mesuré : `doctor` rendait PASS sur un `.mcp.json`
+    # et des hooks désignant `vmmu-claude-code-local-mcp` / `-hook`, scripts console qu'aucun
+    # artefact de release n'embarque. Un fichier présent atteste qu'on a écrit, pas que l'hôte
+    # pourra lancer quoi que ce soit — et se déclarer sain sur une configuration inopérante est
+    # exactement ce que ce produit existe pour empêcher.
+    from .claude_code_local import HOOK_ENTRYPOINT, MCP_ENTRYPOINT, entrypoint_status
+
+    if any(str(name) == "claude-code-local" for name in enabled):
+        statut = entrypoint_status()
+        introuvables = sorted(
+            {"hook": HOOK_ENTRYPOINT, "mcp": MCP_ENTRYPOINT}[nom]
+            for nom, valeur in statut.items()
+            if valeur is None
+        )
+        if introuvables:
+            return _fail(
+                "hooks",
+                "Intégration installée mais inexécutable : commande(s) introuvable(s) — "
+                + ", ".join(f"`{nom}`" for nom in introuvables)
+                + ".",
+                "Installer le paquet VERA (`pip install vera-mmu`) ou réinstaller l’adapter avec "
+                "la CLI autonome, puis relancer `vmmu install … --apply-project --confirm`.",
+            )
     return _pass("hooks", f"{len(enabled)} intégration(s) déclarée(s) et installée(s) project-local.")
 
 
